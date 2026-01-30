@@ -4,3 +4,22 @@ server:
 spring:
   application:
     name: finance-portal-backend
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+application:
+  version: 1.0.0
+
+news:
+  api:
+    url: https://newsapi.org/v2/top-headlines
+    key: ${NEWS_API_KEY:your-api-key-here}
+  cache:
+    warmup:
+      fixed-delay-ms: ${NEWS_CACHE_WARMUP_FIXED_DELAY_MS:300000}
+
+cache:
+  news:
+    ttl-seconds: ${NEWS_CACHE_TTL_SECONDS:300}
