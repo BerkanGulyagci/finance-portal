@@ -8,6 +8,8 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:29092}
 
 application:
   version: 1.0.0
@@ -15,7 +17,7 @@ application:
 news:
   api:
     url: https://newsapi.org/v2/top-headlines
-    key: ${NEWS_API_KEY:your-api-key-here}
+    key: ${NEWS_API_KEY:a708be2ff81e432d98abb8a2586fedc1}
   cache:
     warmup:
       fixed-delay-ms: ${NEWS_CACHE_WARMUP_FIXED_DELAY_MS:300000}
@@ -23,3 +25,16 @@ news:
 cache:
   news:
     ttl-seconds: ${NEWS_CACHE_TTL_SECONDS:300}
+  market:
+    fx:
+      tcmb:
+        ttl-seconds: ${MARKET_FX_TCMB_TTL_SECONDS:21600}
+      open:
+        ttl-seconds: ${MARKET_FX_OPEN_TTL_SECONDS:1800}
+
+market:
+  fx:
+    tcmb:
+      url: ${MARKET_FX_TCMB_URL:https://www.tcmb.gov.tr/kurlar/today.xml}
+    open:
+      base-url: ${MARKET_FX_OPEN_BASE_URL:https://open.er-api.com/v6/latest}
