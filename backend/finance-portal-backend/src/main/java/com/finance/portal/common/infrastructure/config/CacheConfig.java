@@ -32,6 +32,9 @@ public class CacheConfig {
     @Value("${cache.market.fx.open.ttl-seconds:1800}")
     private long marketFxOpenTtlSeconds;
 
+    @Value("${cache.market.stocks.ttl-seconds:30}")
+    private long marketStocksTtlSeconds;
+
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
         return new LettuceConnectionFactory(redisHost, redisPort);
@@ -66,10 +69,24 @@ public class CacheConfig {
                         )
                 );
 
+        RedisCacheConfiguration marketStocksCacheConfig = RedisCacheConfiguration
+                .defaultCacheConfig()
+                .entryTtl(Duration.ofSeconds(marketStocksTtlSeconds))
+                .serializeValuesWith(
+                        RedisSerializationContext.SerializationPair.fromSerializer(
+                                new GenericJackson2JsonRedisSerializer()
+                        )
+                );
+
         return RedisCacheManager.builder(redisConnectionFactory)
                 .withCacheConfiguration("newsCache", newsCacheConfig)
                 .withCacheConfiguration("market.fx.tcmb.latest", marketFxTcmbCacheConfig)
                 .withCacheConfiguration("market.fx.open.latest", marketFxOpenCacheConfig)
+                .withCacheConfiguration("market.stocks.page", marketStocksCacheConfig)
+                .withCacheConfiguration("market.stocks.detail", marketStocksCacheConfig)
+                .withCacheConfiguration("market.funds.detail", marketStocksCacheConfig)
+                .withCacheConfiguration("market.funds.chart", marketStocksCacheConfig)
+                .withCacheConfiguration("market.futures.page", marketStocksCacheConfig)
                 .build();
     }
 }

@@ -31,6 +31,8 @@ cache:
         ttl-seconds: ${MARKET_FX_TCMB_TTL_SECONDS:21600}
       open:
         ttl-seconds: ${MARKET_FX_OPEN_TTL_SECONDS:1800}
+    stocks:
+      ttl-seconds: 30
 
 market:
   fx:
@@ -38,3 +40,20 @@ market:
       url: ${MARKET_FX_TCMB_URL:https://www.tcmb.gov.tr/kurlar/today.xml}
     open:
       base-url: ${MARKET_FX_OPEN_BASE_URL:https://open.er-api.com/v6/latest}
+  stocks:
+    yahoo:
+      base-url: https://query1.finance.yahoo.com/v8/finance/chart
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      yahooApi:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+  retry:
+    instances:
+      yahooApi:
+        maxAttempts: 3
+        waitDuration: 1s

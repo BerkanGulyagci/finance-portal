@@ -1,6 +1,7 @@
 package com.finance.portal.common.presentation.exception;
 
 import com.finance.portal.common.infrastructure.exception.ExternalApiException;
+import com.finance.portal.common.infrastructure.exception.ResourceNotFoundException;
 import com.finance.portal.common.presentation.dto.ApiResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +47,16 @@ public class GlobalExceptionHandler {
 
         ApiResponse<Object> response = ApiResponse.error(ex.getMessage());
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleResourceNotFoundException(
+            ResourceNotFoundException ex) {
+
+        logger.info("Resource not found: {}", ex.getMessage());
+
+        ApiResponse<Object> response = ApiResponse.error(ex.getMessage());
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(ExternalApiException.class)
