@@ -8,7 +8,18 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
@@ -34,7 +45,55 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .anyRequest().permitAll()
                 )
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(keycloakRealmRoleConverter()))
+                );
         return http.build();
+    }
+
+    @Bean
+    public JwtAuthenticationConverter keycloakRealmRoleConverter() {
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+
+        JwtGrantedAuthoritiesConverter defaultAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
+
+        converter.setJwtGrantedAuthoritiesConverter(jwt -> {
+            Collection<? extends GrantedAuthority> defaultAuthorities =
+                    defaultAuthoritiesConverter.convert(jwt);
+            Collection<? extends GrantedAuthority> realmRoles = extractRealmRoleAuthorities(jwt);
+
+            java.util.List<GrantedAuthority> combined = new java.util.ArrayList<>();
+            if (defaultAuthorities != null) {
+                combined.addAll(defaultAuthorities);
+            }
+            combined.addAll(realmRoles);
+            return combined;
+        });
+
+        return converter;
+    }
+
+    private Collection<? extends GrantedAuthority> extractRealmRoleAuthorities(Jwt jwt) {
+        Object realmAccessClaim = jwt.getClaim("realm_access");
+
+        if (!(realmAccessClaim instanceof Map)) {
+            return Collections.emptyList();
+        }
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> realmAccess = (Map<String, Object>) realmAccessClaim;
+        Object rolesObj = realmAccess.get("roles");
+        if (!(rolesObj instanceof Collection)) {
+            return Collections.emptyList();
+        }
+
+        @SuppressWarnings("unchecked")
+        Collection<String> roles = (Collection<String>) rolesObj;
+
+        return roles.stream()
+                .filter(role -> role != null && !role.isBlank())
+                .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role)
+                .map(SimpleGrantedAuthority::new)
+                .collect(Collectors.toList());
     }
 }
