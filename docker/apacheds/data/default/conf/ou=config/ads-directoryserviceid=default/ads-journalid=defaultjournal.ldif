@@ -1,0 +1,14 @@
+dn: ads-journalId=defaultJournal,ads-directoryServiceId=default,ou=config
+ads-journalid: defaultJournal
+ads-journalfilename: Journal.txt
+entryCSN: 20260311013536.554000Z#000000#000#000000
+objectclass: top
+objectclass: ads-base
+objectclass: ads-journal
+createTimestamp: 20260311013536.554Z
+creatorsName: uid=admin,ou=system
+ads-enabled: FALSE
+entryUUID: 086e625b-a4fb-4e28-adc6-76d9cdacbfe5
+ads-journalworkingdir: /
+ads-journalrotation: 2
+entryParentId: c2cb4645-6d2f-4eae-abd6-15e52ed24658

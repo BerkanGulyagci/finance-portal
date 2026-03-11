@@ -38,6 +38,12 @@ com.finance.portal/
 - **Response**: `Finance Portal Backend is running`
 - **Purpose**: Verify application status and readiness
 
+### Crypto Market API (Powered by CoinGecko)
+
+- **Endpoint**: `GET /api/market/crypto?page=0&size=20`
+- **Description**: Returns paginated crypto market list in TRY. Data is provided by [CoinGecko](https://www.coingecko.com/) (Demo API).
+- **Query params**: `page` (0-based, default 0), `size` (1–100, default 20)
+
 ## Technology Stack
 
 - **Framework**: Spring Boot 3.2.1
@@ -99,7 +105,29 @@ Each addition can be made without affecting the core business logic in the domai
 
 ## API Documentation
 
-API documentation will be available via Swagger UI once OpenAPI integration is added.
+API documentation will be available via Swagger UI once OpenAPI integration is added. For Crypto Market API, see "Testing the Crypto API" below. **Crypto market data: Powered by CoinGecko.**
+
+### Testing the Crypto API (local)
+
+Our API (defaults: page=0, size=20):
+
+```bash
+curl -s "http://localhost:8080/api/market/crypto?page=0&size=20"
+```
+
+**Cache check:** Call the same URL twice. The first request logs `Calling CoinGecko /coins/markets ...` (cache miss); the second request within TTL (45s) does not call CoinGecko (cache hit, no such log).
+
+```bash
+curl -s "http://localhost:8080/api/market/crypto?page=0&size=20" | jq .
+curl -s "http://localhost:8080/api/market/crypto?page=0&size=20" | jq .
+```
+
+Direct CoinGecko Demo API check (same parameters: `vs_currency=try`, `per_page=20`, `page=1`):
+
+```bash
+curl -s -H "x-cg-demo-api-key: CG-B1V3coqfjBN6Q5Ff8j6AnpZf" \
+  "https://api.coingecko.com/api/v3/coins/markets?vs_currency=try&order=market_cap_desc&per_page=20&page=1&sparkline=false&price_change_percentage=24h"
+```
 
 ## Development Guidelines
 

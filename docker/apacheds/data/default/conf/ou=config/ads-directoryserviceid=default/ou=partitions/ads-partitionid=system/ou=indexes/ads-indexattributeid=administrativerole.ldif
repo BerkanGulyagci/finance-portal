@@ -1,0 +1,15 @@
+dn: ads-indexAttributeId=administrativeRole,ou=indexes,ads-partitionId=system,ou
+ =partitions,ads-directoryServiceId=default,ou=config
+ads-indexhasreverse: FALSE
+entryCSN: 20260311013537.156000Z#000000#000#000000
+objectclass: ads-index
+objectclass: ads-jdbmIndex
+objectclass: ads-base
+objectclass: top
+createTimestamp: 20260311013537.157Z
+creatorsName: uid=admin,ou=system
+ads-indexattributeid: administrativeRole
+ads-enabled: TRUE
+entryUUID: 9b9bb873-0248-4e7a-bb24-fd1ff6f70c79
+ads-indexcachesize: 100
+entryParentId: c68b1cc5-43f0-43ab-ae8c-509521de3c56

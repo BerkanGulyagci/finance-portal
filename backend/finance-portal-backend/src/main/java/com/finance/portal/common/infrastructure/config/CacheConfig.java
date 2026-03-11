@@ -35,6 +35,9 @@ public class CacheConfig {
     @Value("${cache.market.stocks.ttl-seconds:30}")
     private long marketStocksTtlSeconds;
 
+    @Value("${cache.market.crypto.ttl-seconds:45}")
+    private long marketCryptoTtlSeconds;
+
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
         return new LettuceConnectionFactory(redisHost, redisPort);
@@ -78,6 +81,15 @@ public class CacheConfig {
                         )
                 );
 
+        RedisCacheConfiguration cryptoMarketsCacheConfig = RedisCacheConfiguration
+                .defaultCacheConfig()
+                .entryTtl(Duration.ofSeconds(marketCryptoTtlSeconds))
+                .serializeValuesWith(
+                        RedisSerializationContext.SerializationPair.fromSerializer(
+                                new GenericJackson2JsonRedisSerializer()
+                        )
+                );
+
         return RedisCacheManager.builder(redisConnectionFactory)
                 .withCacheConfiguration("newsCache", newsCacheConfig)
                 .withCacheConfiguration("market.fx.tcmb.latest", marketFxTcmbCacheConfig)
@@ -87,6 +99,7 @@ public class CacheConfig {
                 .withCacheConfiguration("market.funds.detail", marketStocksCacheConfig)
                 .withCacheConfiguration("market.funds.chart", marketStocksCacheConfig)
                 .withCacheConfiguration("market.futures.page", marketStocksCacheConfig)
+                .withCacheConfiguration("cryptoMarketsCache", cryptoMarketsCacheConfig)
                 .build();
     }
 }

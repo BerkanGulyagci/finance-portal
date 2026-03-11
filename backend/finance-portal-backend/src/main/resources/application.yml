@@ -4,12 +4,43 @@ server:
 spring:
   application:
     name: finance-portal-backend
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/finance_portal}
+    username: ${SPRING_DATASOURCE_USERNAME:berkan}
+    password: ${SPRING_DATASOURCE_PASSWORD:123}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:29092}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/finance-portal/protocol/openid-connect/certs}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,mappings
+  endpoint:
+    health:
+      show-details: when-authorized
 
 application:
   version: 1.0.0
@@ -33,6 +64,8 @@ cache:
         ttl-seconds: ${MARKET_FX_OPEN_TTL_SECONDS:1800}
     stocks:
       ttl-seconds: 30
+    crypto:
+      ttl-seconds: ${CACHE_MARKET_CRYPTO_TTL_SECONDS:45}
 
 market:
   fx:
@@ -44,6 +77,11 @@ market:
     yahoo:
       base-url: https://query1.finance.yahoo.com/v8/finance/chart
 
+coingecko:
+  base-url: https://api.coingecko.com/api/v3
+  api-key: ${COINGECKO_API_KEY:CG-B1V3coqfjBN6Q5Ff8j6AnpZf}
+  vs-currency: try
+
 resilience4j:
   circuitbreaker:
     instances:
@@ -52,8 +90,16 @@ resilience4j:
         minimumNumberOfCalls: 5
         failureRateThreshold: 50
         waitDurationInOpenState: 30s
+      coinGeckoApi:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 3
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
   retry:
     instances:
       yahooApi:
+        maxAttempts: 3
+        waitDuration: 1s
+      coinGeckoApi:
         maxAttempts: 3
         waitDuration: 1s

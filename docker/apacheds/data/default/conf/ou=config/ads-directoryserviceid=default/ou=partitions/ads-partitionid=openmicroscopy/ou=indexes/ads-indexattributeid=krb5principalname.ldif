@@ -1,0 +1,15 @@
+dn: ads-indexAttributeId=krb5PrincipalName,ou=indexes,ads-partitionId=openmicros
+ copy,ou=partitions,ads-directoryServiceId=default,ou=config
+ads-indexhasreverse: FALSE
+entryCSN: 20260311013537.332000Z#000000#000#000000
+objectclass: ads-index
+objectclass: ads-jdbmIndex
+objectclass: ads-base
+objectclass: top
+createTimestamp: 20260311013537.332Z
+creatorsName: uid=admin,ou=system
+ads-indexattributeid: krb5PrincipalName
+ads-enabled: TRUE
+entryUUID: 7e98ee6e-0826-4b56-a40b-fc15f086c0ad
+ads-indexcachesize: 100
+entryParentId: 0bec8a8f-924d-40e6-baab-3a280603a66d

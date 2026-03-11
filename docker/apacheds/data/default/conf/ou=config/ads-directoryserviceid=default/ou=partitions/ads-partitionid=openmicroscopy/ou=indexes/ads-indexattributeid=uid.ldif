@@ -1,0 +1,15 @@
+dn: ads-indexAttributeId=uid,ou=indexes,ads-partitionId=openmicroscopy,ou=partit
+ ions,ads-directoryServiceId=default,ou=config
+ads-indexhasreverse: FALSE
+entryCSN: 20260311013537.420000Z#000000#000#000000
+objectclass: ads-index
+objectclass: ads-jdbmIndex
+objectclass: ads-base
+objectclass: top
+createTimestamp: 20260311013537.420Z
+creatorsName: uid=admin,ou=system
+ads-indexattributeid: uid
+ads-enabled: TRUE
+entryUUID: b9fa8dd2-d380-42af-9b26-a80d54debd33
+ads-indexcachesize: 100
+entryParentId: 0bec8a8f-924d-40e6-baab-3a280603a66d

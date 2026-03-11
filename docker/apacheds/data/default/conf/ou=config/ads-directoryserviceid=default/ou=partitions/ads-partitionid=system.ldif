@@ -1,0 +1,19 @@
+dn: ads-partitionId=system,ou=partitions,ads-directoryServiceId=default,ou=confi
+ g
+ads-contextentry: dn: ou=system\nobjectClass: top\nobjectClass: organizationalUn
+ it\nou: system\ndescription: The System context entry
+entryCSN: 20260311013536.942000Z#000000#000#000000
+creatorsName: uid=admin,ou=system
+ads-enabled: TRUE
+entryUUID: 33e3352d-d15d-47f6-99b5-7d84ab73531a
+ads-jdbmpartitionoptimizerenabled: TRUE
+ads-partitionsynconwrite: TRUE
+objectclass: top
+objectclass: ads-base
+objectclass: ads-partition
+objectclass: ads-jdbmPartition
+createTimestamp: 20260311013536.943Z
+ads-partitionsuffix: ou=system
+ads-partitionid: system
+ads-partitioncachesize: 100
+entryParentId: d5d1ec17-997f-4a23-9a61-d8022435d9f9

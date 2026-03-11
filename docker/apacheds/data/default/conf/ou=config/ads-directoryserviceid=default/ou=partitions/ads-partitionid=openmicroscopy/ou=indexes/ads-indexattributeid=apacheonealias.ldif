@@ -1,0 +1,15 @@
+dn: ads-indexAttributeId=apacheOneAlias,ou=indexes,ads-partitionId=openmicroscop
+ y,ou=partitions,ads-directoryServiceId=default,ou=config
+ads-indexhasreverse: FALSE
+entryCSN: 20260311013537.251000Z#000000#000#000000
+objectclass: ads-index
+objectclass: ads-jdbmIndex
+objectclass: ads-base
+objectclass: top
+createTimestamp: 20260311013537.252Z
+creatorsName: uid=admin,ou=system
+ads-indexattributeid: apacheOneAlias
+ads-enabled: TRUE
+entryUUID: 07a58f2f-5178-4ff0-96fe-b198357523f7
+ads-indexcachesize: 100
+entryParentId: 0bec8a8f-924d-40e6-baab-3a280603a66d

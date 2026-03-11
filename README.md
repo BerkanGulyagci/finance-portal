@@ -70,6 +70,24 @@ curl http://localhost:8080/api/health
 
 Expected response: `Finance Portal Backend is running`
 
+### Keycloak (dev)
+
+Keycloak dev ortamda aynı Docker ağında çalışır (port 8081, backend 8080 ile çakışmaz).
+
+**Çalıştırma:**
+
+```bash
+docker compose up -d keycloak
+docker compose ps
+docker logs -f finance-portal-keycloak
+```
+
+**Admin Console:**
+
+- URL: http://localhost:8081
+- Username: `admin`
+- Password: `admin`
+
 ## Architecture
 
 This project follows **Clean Architecture** principles, ensuring:
