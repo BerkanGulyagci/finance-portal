@@ -1,6 +1,7 @@
 package com.finance.portal.market.crypto.application;
 
 import com.finance.portal.common.infrastructure.exception.ExternalApiException;
+import com.finance.portal.common.infrastructure.exception.ResourceNotFoundException;
 import com.finance.portal.market.crypto.infrastructure.CoinGeckoClient;
 import com.finance.portal.market.crypto.infrastructure.dto.CoinGeckoMarketItemDto;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,6 +26,11 @@ public class CryptoMarketService {
     private static final int MAX_SIZE = 100;
     private static final String CACHE_NAME = "cryptoMarketsCache";
     private static final String CACHE_KEY_PREFIX = "try:p";
+
+    /** findBySymbol için sayfa başı coin sayısı (CoinGecko max: 250, biz 100 kullanıyoruz) */
+    private static final int SYMBOL_SEARCH_PAGE_SIZE = 100;
+    /** findBySymbol için taranacak maksimum sayfa sayısı → en fazla 500 coin */
+    private static final int SYMBOL_SEARCH_MAX_PAGES = 5;
 
     private final CoinGeckoClient coinGeckoClient;
     private final CacheManager cacheManager;
@@ -49,6 +56,49 @@ public class CryptoMarketService {
         return dtos.stream()
                 .map(this::mapToCryptoMarketItem)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Market cap sıralamasında ilk {@value SYMBOL_SEARCH_MAX_PAGES} × {@value SYMBOL_SEARCH_PAGE_SIZE}
+     * coin içinde verilen symbol'ü case-insensitive olarak arar.
+     * <p>
+     * CoinGecko'da tekil symbol endpoint'i bulunmadığından sayfalı liste taraması yapılır;
+     * eşleşme bulununca tarama durur.
+     *
+     * @param symbol aranan coin sembolü (örn: "btc", "BTC")
+     * @return eşleşen {@link CryptoMarketItem}
+     * @throws ResourceNotFoundException symbol bulunamazsa
+     */
+    public CryptoMarketItem findBySymbol(String symbol) {
+        if (symbol == null || symbol.isBlank()) {
+            throw new IllegalArgumentException("symbol must not be blank");
+        }
+
+        String normalized = symbol.trim().toLowerCase();
+        log.debug("Searching crypto by symbol: {}", normalized);
+
+        for (int page = 0; page < SYMBOL_SEARCH_MAX_PAGES; page++) {
+            List<CryptoMarketItem> items = getCryptos(page, SYMBOL_SEARCH_PAGE_SIZE);
+
+            Optional<CryptoMarketItem> match = items.stream()
+                    .filter(item -> normalized.equals(item.getSymbol()))
+                    .findFirst();
+
+            if (match.isPresent()) {
+                log.debug("Found crypto symbol '{}' on page {}", normalized, page);
+                return match.get();
+            }
+
+            // Sayfa boş döndüyse daha fazla coin yok
+            if (items.isEmpty()) {
+                log.debug("Crypto symbol search exhausted at page {} (empty page)", page);
+                break;
+            }
+        }
+
+        throw new ResourceNotFoundException(
+                "Crypto not found in top " + (SYMBOL_SEARCH_MAX_PAGES * SYMBOL_SEARCH_PAGE_SIZE)
+                + " coins for symbol: " + symbol);
     }
 
     @SuppressWarnings("unused")

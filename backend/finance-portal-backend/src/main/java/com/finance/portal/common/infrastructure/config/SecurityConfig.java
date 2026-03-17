@@ -31,6 +31,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         log.info("Custom SecurityFilterChain initialized");
         log.info("/api/market/** is public");
+        log.info("/api/portfolios/** requires authentication");
         log.info("/api/kafka/test requires authentication");
         http
                 .csrf(csrf -> csrf.disable())
@@ -39,6 +40,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/mappings").denyAll()
                         .requestMatchers("/api/kafka/test").authenticated()
+                        .requestMatchers("/api/portfolios", "/api/portfolios/**").authenticated()
                         .requestMatchers("/api/news", "/api/news/**").permitAll()
                         .requestMatchers("/api/market/**").permitAll()
                         .requestMatchers("/api/health").permitAll()
