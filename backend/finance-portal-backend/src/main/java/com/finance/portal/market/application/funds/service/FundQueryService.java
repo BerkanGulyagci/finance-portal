@@ -5,6 +5,7 @@ import com.finance.portal.common.infrastructure.exception.ResourceNotFoundExcept
 import com.finance.portal.market.application.funds.model.FundChartPoint;
 import com.finance.portal.market.application.funds.model.FundChartResponse;
 import com.finance.portal.market.application.funds.model.FundDetail;
+import com.finance.portal.market.application.funds.model.FundPageResponse;
 import com.finance.portal.market.application.funds.model.FundSummary;
 import com.finance.portal.market.application.stock.port.YahooStockPort;
 import com.finance.portal.market.infrastructure.external.yahoo.YahooChartResponseDto;
@@ -23,6 +24,9 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 import java.util.regex.Pattern;
 
 @Service
@@ -35,16 +39,43 @@ public class FundQueryService {
 
     private final YahooStockPort yahooStockPort;
     private final CacheManager cacheManager;
+    private final FundSymbolProvider fundSymbolProvider;
 
-    public FundQueryService(YahooStockPort yahooStockPort, CacheManager cacheManager) {
+    public FundQueryService(YahooStockPort yahooStockPort, CacheManager cacheManager, FundSymbolProvider fundSymbolProvider) {
         this.yahooStockPort = yahooStockPort;
         this.cacheManager = cacheManager;
+        this.fundSymbolProvider = fundSymbolProvider;
     }
 
     public FundSummary getFundSummary(String symbol) {
         validateSymbol(symbol);
         YahooChartResponseDto.Meta meta = fetchMetaOrThrow(symbol);
         return mapToFundSummary(meta);
+    }
+
+    @Cacheable(cacheNames = "market.funds.page", key = "'page:' + #page + ':size:' + #size")
+    public FundPageResponse getPagedFunds(int page, int size) {
+        int totalElements = fundSymbolProvider.getTotalElements();
+        List<String> symbols = fundSymbolProvider.getPagedSymbols(page, size);
+
+        List<FundSummary> content = symbols.isEmpty() ? List.of() :
+            symbols.stream()
+                .map(symbol -> CompletableFuture.supplyAsync(() -> {
+                    try { return getFundSummary(symbol); }
+                    catch (Exception ex) { logger.warn("Failed fund summary for {}: {}", symbol, ex.getMessage()); return null; }
+                }))
+                .toList().stream()
+                .map(CompletableFuture::join)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        FundPageResponse response = new FundPageResponse();
+        response.setContent(content);
+        response.setPage(page);
+        response.setSize(size);
+        response.setTotalElements(totalElements);
+        response.setTotalPages(size > 0 ? (int) Math.ceil((double) totalElements / size) : 0);
+        return response;
     }
 
     @Cacheable(

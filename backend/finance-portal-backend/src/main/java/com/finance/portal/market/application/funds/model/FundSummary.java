@@ -1,8 +1,9 @@
 package com.finance.portal.market.application.funds.model;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 
-public class FundSummary {
+public class FundSummary implements Serializable {
 
     private String symbol;
     private String name;

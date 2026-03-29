@@ -1,6 +1,10 @@
 package com.finance.portal.market.infrastructure.external.yahoo;
 
 import com.finance.portal.common.infrastructure.exception.ExternalApiException;
+import com.finance.portal.market.application.stock.StockSummary;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.finance.portal.market.application.stock.port.YahooStockPort;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -23,6 +27,11 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.net.URI;
 import java.time.Duration;
 import java.nio.charset.StandardCharsets;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 @Component
 public class YahooChartClient implements YahooStockPort {
@@ -135,6 +144,80 @@ public class YahooChartClient implements YahooStockPort {
                 .encode(StandardCharsets.UTF_8)
                 .getPath()
                 .substring(1);
+    }
+
+    @Override
+    public List<StockSummary> fetchQuoteBatch(List<String> symbols) {
+        if (symbols == null || symbols.isEmpty()) return List.of();
+
+        String symbolsCsv = String.join(",", symbols);
+        URI uri = UriComponentsBuilder
+                .fromUriString("https://query1.finance.yahoo.com/v7/finance/quote")
+                .queryParam("symbols", symbolsCsv)
+                .build(true)
+                .toUri();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.USER_AGENT, USER_AGENT);
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        log.debug("Fetching batch quotes for {} symbols", symbols.size());
+
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(uri, HttpMethod.GET, entity, Map.class);
+            return parseQuoteResponse(response.getBody());
+        } catch (Exception ex) {
+            log.warn("Batch quote fetch failed: {}", ex.getMessage());
+            return List.of();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<StockSummary> parseQuoteResponse(Map<?, ?> body) {
+        List<StockSummary> result = new ArrayList<>();
+        if (body == null) return result;
+
+        try {
+            Map<?, ?> quoteResponse = (Map<?, ?>) body.get("quoteResponse");
+            if (quoteResponse == null) return result;
+            List<?> quotes = (List<?>) quoteResponse.get("result");
+            if (quotes == null) return result;
+
+            for (Object q : quotes) {
+                Map<?, ?> quote = (Map<?, ?>) q;
+                StockSummary s = new StockSummary();
+                s.setSymbol(str(quote, "symbol"));
+                s.setName(str(quote, "longName") != null ? str(quote, "longName") : str(quote, "shortName"));
+                s.setCurrency(str(quote, "currency"));
+                s.setExchange(str(quote, "fullExchangeName"));
+                s.setPrice(bd(quote, "regularMarketPrice"));
+                s.setChange(bd(quote, "regularMarketChange"));
+                s.setChangePercent(bd(quote, "regularMarketChangePercent"));
+                s.setDayHigh(bd(quote, "regularMarketDayHigh"));
+                s.setDayLow(bd(quote, "regularMarketDayLow"));
+                Object vol = quote.get("regularMarketVolume");
+                if (vol instanceof Number) s.setVolume(((Number) vol).longValue());
+                result.add(s);
+            }
+        } catch (Exception ex) {
+            log.warn("Failed to parse batch quote response: {}", ex.getMessage());
+        }
+        return result;
+    }
+
+    private String str(Map<?, ?> map, String key) {
+        Object v = map.get(key);
+        return v != null ? v.toString() : null;
+    }
+
+    private BigDecimal bd(Map<?, ?> map, String key) {
+        Object v = map.get(key);
+        if (v == null) return null;
+        try {
+            return new BigDecimal(v.toString()).setScale(2, RoundingMode.HALF_UP);
+        } catch (Exception e) {
+            return null;
+        }
     }
 }
 

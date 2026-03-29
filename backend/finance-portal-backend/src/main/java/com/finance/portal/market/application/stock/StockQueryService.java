@@ -85,17 +85,15 @@ public class StockQueryService {
 
             content = futures.stream()
                     .map(CompletableFuture::join)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
+                    .filter(java.util.Objects::nonNull)
+                    .collect(java.util.stream.Collectors.toList());
 
             if (content.isEmpty()) {
                 logger.warn("No stock summaries could be fetched for page {} and size {}", page, size);
             }
         }
 
-        int totalPages = size > 0
-                ? (int) Math.ceil((double) totalElements / size)
-                : 0;
+        int totalPages = size > 0 ? (int) Math.ceil((double) totalElements / size) : 0;
 
         StockPageResponse response = new StockPageResponse();
         response.setContent(content);

@@ -2,6 +2,10 @@ server:
   port: 8080
 
 spring:
+  mvc:
+    contentnegotiation:
+      default-content-type: application/json
+      favor-parameter: false
   application:
     name: finance-portal-backend
   datasource:
@@ -63,9 +67,13 @@ cache:
       open:
         ttl-seconds: ${MARKET_FX_OPEN_TTL_SECONDS:1800}
     stocks:
-      ttl-seconds: 30
+      ttl-seconds: 300
     crypto:
-      ttl-seconds: ${CACHE_MARKET_CRYPTO_TTL_SECONDS:45}
+      ttl-seconds: ${CACHE_MARKET_CRYPTO_TTL_SECONDS:60}
+    funds:
+      ttl-seconds: 300
+    futures:
+      ttl-seconds: 300
 
 market:
   fx:

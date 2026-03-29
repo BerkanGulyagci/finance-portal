@@ -5,6 +5,7 @@ import com.finance.portal.news.application.service.NewsService;
 import com.finance.portal.news.presentation.dto.NewsResponse;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,8 +13,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.finance.portal.news.presentation.dto.NewsItemDto;
+import java.util.List;
+
 @RestController
-@RequestMapping("/api")
+@RequestMapping(value = "/api", produces = MediaType.APPLICATION_JSON_VALUE)
 @Validated
 public class NewsController {
 
@@ -37,5 +41,11 @@ public class NewsController {
                 "News retrieved successfully"
         );
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/news/bloomberg-ht")
+    public ResponseEntity<ApiResponse<List<NewsItemDto>>> getBloombergHtNews() {
+        List<NewsItemDto> items = newsService.getBloombergHtNews();
+        return ResponseEntity.ok(ApiResponse.success(items, "BloombergHT news retrieved successfully"));
     }
 }

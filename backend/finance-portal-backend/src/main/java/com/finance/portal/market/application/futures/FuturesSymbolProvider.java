@@ -9,12 +9,14 @@ import java.util.List;
 public class FuturesSymbolProvider {
 
     private static final List<String> FUTURES_SYMBOLS = List.of(
-            "ES=F",
-            "NQ=F",
-            "YM=F",
-            "GC=F",
-            "CL=F",
-            "SI=F"
+            // Endeks vadeli
+            "ES=F", "NQ=F", "YM=F", "RTY=F",
+            // Emtia
+            "GC=F", "SI=F", "CL=F", "BZ=F", "NG=F", "HG=F",
+            // Tarım
+            "ZW=F", "ZC=F", "ZS=F",
+            // Döviz vadeli
+            "6E=F", "6J=F", "6B=F"
     );
 
     public int getTotalElements() {

@@ -66,3 +66,845 @@ INFO   | jvm 1    | 2026/03/11 21:17:58 |
 STATUS | wrapper  | 2026/03/11 22:14:57 | TERM trapped.  Shutting down.
 WARN   | wrapper  | 2026/03/11 22:14:58 | JVM exited unexpectedly while stopping the application.
 STATUS | wrapper  | 2026/03/11 22:14:58 | <-- Wrapper Stopped
+STATUS | wrapper  | 2026/03/13 13:41:14 | --> Wrapper Started as Daemon
+STATUS | wrapper  | 2026/03/13 13:41:14 | Launching a JVM...
+INFO   | jvm 1    | 2026/03/13 13:41:15 | Wrapper (Version 3.2.3) http://wrapper.tanukisoftware.org
+INFO   | jvm 1    | 2026/03/13 13:41:15 |   Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved.
+INFO   | jvm 1    | 2026/03/13 13:41:15 | 
+INFO   | jvm 1    | 2026/03/13 13:42:23 | [13:42:23] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.42.2.27.8.5.1' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/13 13:42:23 | [13:42:23] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.841' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/13 13:42:23 | [13:42:23] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.4203.1.9.1.2' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/13 13:42:23 | [13:42:23] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.319' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/13 13:42:23 | [13:42:23] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.528' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/13 13:42:23 | [13:42:23] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 13:42:23 | [13:42:23] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 13:42:23 | [13:42:23] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 13:42:23 | [13:42:23] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 13:42:23 | [13:42:23] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 13:42:23 | [13:42:23] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 13:42:23 | [13:42:23] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 13:42:23 | [13:42:23] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 13:42:23 | [13:42:23] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 13:42:23 | [13:42:23] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 13:42:23 | [13:42:23] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 13:42:23 | [13:42:23] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 13:42:23 | [13:42:23] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 13:42:23 | [13:42:23] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 13:42:23 | [13:42:23] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 13:42:23 | [13:42:23] WARN [org.apache.directory.server.core.DefaultDirectoryService] - You didn't change the admin password of directory service instance 'default'.  Please update the admin password as soon as possible to prevent a possible security breach.
+INFO   | jvm 1    | 2026/03/13 13:42:23 |            _                     _          ____  ____   
+INFO   | jvm 1    | 2026/03/13 13:42:23 |           / \   _ __    ___  ___| |__   ___|  _ \/ ___|  
+INFO   | jvm 1    | 2026/03/13 13:42:23 |          / _ \ | '_ \ / _` |/ __| '_ \ / _ \ | | \___ \  
+INFO   | jvm 1    | 2026/03/13 13:42:23 |         / ___ \| |_) | (_| | (__| | | |  __/ |_| |___) | 
+INFO   | jvm 1    | 2026/03/13 13:42:23 |        /_/   \_\ .__/ \__,_|\___|_| |_|\___|____/|____/  
+INFO   | jvm 1    | 2026/03/13 13:42:23 |                |_|                                       
+INFO   | jvm 1    | 2026/03/13 13:42:23 | 
+STATUS | wrapper  | 2026/03/13 15:16:09 | TERM trapped.  Shutting down.
+STATUS | wrapper  | 2026/03/13 15:16:09 | <-- Wrapper Stopped
+STATUS | wrapper  | 2026/03/13 15:16:26 | --> Wrapper Started as Daemon
+STATUS | wrapper  | 2026/03/13 15:16:26 | Launching a JVM...
+INFO   | jvm 1    | 2026/03/13 15:16:27 | Wrapper (Version 3.2.3) http://wrapper.tanukisoftware.org
+INFO   | jvm 1    | 2026/03/13 15:16:27 |   Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved.
+INFO   | jvm 1    | 2026/03/13 15:16:27 | 
+INFO   | jvm 1    | 2026/03/13 15:17:39 | [15:17:39] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.42.2.27.8.5.1' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/13 15:17:39 | [15:17:39] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.841' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/13 15:17:39 | [15:17:39] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.4203.1.9.1.2' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/13 15:17:39 | [15:17:39] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.319' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/13 15:17:39 | [15:17:39] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.528' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/13 15:17:39 | [15:17:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 15:17:39 | [15:17:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 15:17:39 | [15:17:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 15:17:39 | [15:17:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 15:17:39 | [15:17:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 15:17:39 | [15:17:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 15:17:39 | [15:17:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 15:17:39 | [15:17:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 15:17:39 | [15:17:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 15:17:39 | [15:17:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 15:17:39 | [15:17:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 15:17:39 | [15:17:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 15:17:39 | [15:17:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 15:17:39 | [15:17:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 15:17:39 | [15:17:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/13 15:17:39 | [15:17:39] WARN [org.apache.directory.server.core.DefaultDirectoryService] - You didn't change the admin password of directory service instance 'default'.  Please update the admin password as soon as possible to prevent a possible security breach.
+INFO   | jvm 1    | 2026/03/13 15:17:39 |            _                     _          ____  ____   
+INFO   | jvm 1    | 2026/03/13 15:17:39 |           / \   _ __    ___  ___| |__   ___|  _ \/ ___|  
+INFO   | jvm 1    | 2026/03/13 15:17:39 |          / _ \ | '_ \ / _` |/ __| '_ \ / _ \ | | \___ \  
+INFO   | jvm 1    | 2026/03/13 15:17:39 |         / ___ \| |_) | (_| | (__| | | |  __/ |_| |___) | 
+INFO   | jvm 1    | 2026/03/13 15:17:39 |        /_/   \_\ .__/ \__,_|\___|_| |_|\___|____/|____/  
+INFO   | jvm 1    | 2026/03/13 15:17:39 |                |_|                                       
+INFO   | jvm 1    | 2026/03/13 15:17:39 | 
+STATUS | wrapper  | 2026/03/13 15:33:12 | TERM trapped.  Shutting down.
+STATUS | wrapper  | 2026/03/13 15:33:12 | <-- Wrapper Stopped
+STATUS | wrapper  | 2026/03/17 01:30:32 | --> Wrapper Started as Daemon
+STATUS | wrapper  | 2026/03/17 01:30:32 | Launching a JVM...
+INFO   | jvm 1    | 2026/03/17 01:30:33 | Wrapper (Version 3.2.3) http://wrapper.tanukisoftware.org
+INFO   | jvm 1    | 2026/03/17 01:30:33 |   Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved.
+INFO   | jvm 1    | 2026/03/17 01:30:33 | 
+ERROR  | wrapper  | 2026/03/17 01:32:30 | Startup failed: Timed out waiting for signal from JVM.
+ERROR  | wrapper  | 2026/03/17 01:32:30 | JVM did not exit on request, terminated
+INFO   | wrapper  | 2026/03/17 01:32:30 | JVM exited on its own while waiting to kill the application.
+STATUS | wrapper  | 2026/03/17 01:32:30 | JVM exited in response to signal SIGKILL (9).
+FATAL  | wrapper  | 2026/03/17 01:32:30 | There were 1 failed launches in a row, each lasting less than 300 seconds.  Giving up.
+FATAL  | wrapper  | 2026/03/17 01:32:30 |   There may be a configuration problem: please check the logs.
+STATUS | wrapper  | 2026/03/17 01:32:30 | <-- Wrapper Stopped
+STATUS | wrapper  | 2026/03/17 01:32:46 | --> Wrapper Started as Daemon
+STATUS | wrapper  | 2026/03/17 01:32:46 | Launching a JVM...
+INFO   | jvm 1    | 2026/03/17 01:32:46 | Wrapper (Version 3.2.3) http://wrapper.tanukisoftware.org
+INFO   | jvm 1    | 2026/03/17 01:32:46 |   Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved.
+INFO   | jvm 1    | 2026/03/17 01:32:46 | 
+INFO   | jvm 1    | 2026/03/17 01:33:43 | [01:33:43] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.42.2.27.8.5.1' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/17 01:33:43 | [01:33:43] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.841' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/17 01:33:43 | [01:33:43] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.4203.1.9.1.2' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/17 01:33:43 | [01:33:43] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.319' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/17 01:33:43 | [01:33:43] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.528' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/17 01:33:43 | [01:33:43] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 01:33:43 | [01:33:43] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 01:33:43 | [01:33:43] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 01:33:43 | [01:33:43] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 01:33:43 | [01:33:43] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 01:33:43 | [01:33:43] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 01:33:43 | [01:33:43] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 01:33:43 | [01:33:43] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 01:33:43 | [01:33:43] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 01:33:43 | [01:33:43] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 01:33:43 | [01:33:43] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 01:33:44 | [01:33:44] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 01:33:44 | [01:33:44] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 01:33:44 | [01:33:44] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 01:33:44 | [01:33:44] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 01:33:44 | [01:33:44] WARN [org.apache.directory.server.core.DefaultDirectoryService] - You didn't change the admin password of directory service instance 'default'.  Please update the admin password as soon as possible to prevent a possible security breach.
+INFO   | jvm 1    | 2026/03/17 01:33:44 |            _                     _          ____  ____   
+INFO   | jvm 1    | 2026/03/17 01:33:44 |           / \   _ __    ___  ___| |__   ___|  _ \/ ___|  
+INFO   | jvm 1    | 2026/03/17 01:33:44 |          / _ \ | '_ \ / _` |/ __| '_ \ / _ \ | | \___ \  
+INFO   | jvm 1    | 2026/03/17 01:33:44 |         / ___ \| |_) | (_| | (__| | | |  __/ |_| |___) | 
+INFO   | jvm 1    | 2026/03/17 01:33:44 |        /_/   \_\ .__/ \__,_|\___|_| |_|\___|____/|____/  
+INFO   | jvm 1    | 2026/03/17 01:33:44 |                |_|                                       
+INFO   | jvm 1    | 2026/03/17 01:33:44 | 
+STATUS | wrapper  | 2026/03/17 01:57:21 | TERM trapped.  Shutting down.
+WARN   | wrapper  | 2026/03/17 01:57:22 | JVM exited unexpectedly while stopping the application.
+STATUS | wrapper  | 2026/03/17 01:57:22 | <-- Wrapper Stopped
+STATUS | wrapper  | 2026/03/17 01:59:19 | --> Wrapper Started as Daemon
+STATUS | wrapper  | 2026/03/17 01:59:19 | Launching a JVM...
+INFO   | jvm 1    | 2026/03/17 01:59:19 | Wrapper (Version 3.2.3) http://wrapper.tanukisoftware.org
+INFO   | jvm 1    | 2026/03/17 01:59:19 |   Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved.
+INFO   | jvm 1    | 2026/03/17 01:59:19 | 
+INFO   | jvm 1    | 2026/03/17 02:00:32 | [02:00:32] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.42.2.27.8.5.1' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/17 02:00:32 | [02:00:32] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.841' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/17 02:00:32 | [02:00:32] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.4203.1.9.1.2' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/17 02:00:32 | [02:00:32] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.319' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/17 02:00:32 | [02:00:32] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.528' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/17 02:00:32 | [02:00:32] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 02:00:32 | [02:00:32] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 02:00:32 | [02:00:32] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 02:00:32 | [02:00:32] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 02:00:32 | [02:00:32] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 02:00:32 | [02:00:32] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 02:00:32 | [02:00:32] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 02:00:32 | [02:00:32] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 02:00:32 | [02:00:32] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 02:00:32 | [02:00:32] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 02:00:32 | [02:00:32] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 02:00:32 | [02:00:32] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 02:00:32 | [02:00:32] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 02:00:32 | [02:00:32] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 02:00:32 | [02:00:32] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/17 02:00:32 | [02:00:32] WARN [org.apache.directory.server.core.DefaultDirectoryService] - You didn't change the admin password of directory service instance 'default'.  Please update the admin password as soon as possible to prevent a possible security breach.
+INFO   | jvm 1    | 2026/03/17 02:00:32 |            _                     _          ____  ____   
+INFO   | jvm 1    | 2026/03/17 02:00:32 |           / \   _ __    ___  ___| |__   ___|  _ \/ ___|  
+INFO   | jvm 1    | 2026/03/17 02:00:32 |          / _ \ | '_ \ / _` |/ __| '_ \ / _ \ | | \___ \  
+INFO   | jvm 1    | 2026/03/17 02:00:32 |         / ___ \| |_) | (_| | (__| | | |  __/ |_| |___) | 
+INFO   | jvm 1    | 2026/03/17 02:00:32 |        /_/   \_\ .__/ \__,_|\___|_| |_|\___|____/|____/  
+INFO   | jvm 1    | 2026/03/17 02:00:32 |                |_|                                       
+INFO   | jvm 1    | 2026/03/17 02:00:32 | 
+STATUS | wrapper  | 2026/03/17 02:14:11 | TERM trapped.  Shutting down.
+INFO   | jvm 1    | 2026/03/17 02:14:11 | Wrapper Manager: Unable to unregister shutdown hook: java.lang.IllegalStateException: Shutdown in progress
+STATUS | wrapper  | 2026/03/24 13:21:08 | --> Wrapper Started as Daemon
+STATUS | wrapper  | 2026/03/24 13:21:08 | Launching a JVM...
+INFO   | jvm 1    | 2026/03/24 13:21:09 | Wrapper (Version 3.2.3) http://wrapper.tanukisoftware.org
+INFO   | jvm 1    | 2026/03/24 13:21:09 |   Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved.
+INFO   | jvm 1    | 2026/03/24 13:21:09 | 
+INFO   | jvm 1    | 2026/03/24 13:22:35 | [13:22:35] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.42.2.27.8.5.1' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 13:22:35 | [13:22:35] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.841' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 13:22:35 | [13:22:35] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.4203.1.9.1.2' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 13:22:35 | [13:22:35] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.319' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 13:22:35 | [13:22:35] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.528' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 13:22:35 | [13:22:35] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:22:35 | [13:22:35] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:22:35 | [13:22:35] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:22:35 | [13:22:35] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:22:35 | [13:22:35] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:22:35 | [13:22:35] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:22:35 | [13:22:35] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:22:35 | [13:22:35] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:22:35 | [13:22:35] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:22:35 | [13:22:35] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:22:35 | [13:22:35] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:22:35 | [13:22:35] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:22:35 | [13:22:35] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:22:35 | [13:22:35] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:22:35 | [13:22:35] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:22:35 | [13:22:35] WARN [org.apache.directory.server.core.DefaultDirectoryService] - You didn't change the admin password of directory service instance 'default'.  Please update the admin password as soon as possible to prevent a possible security breach.
+INFO   | jvm 1    | 2026/03/24 13:22:35 |            _                     _          ____  ____   
+INFO   | jvm 1    | 2026/03/24 13:22:35 |           / \   _ __    ___  ___| |__   ___|  _ \/ ___|  
+INFO   | jvm 1    | 2026/03/24 13:22:35 |          / _ \ | '_ \ / _` |/ __| '_ \ / _ \ | | \___ \  
+INFO   | jvm 1    | 2026/03/24 13:22:35 |         / ___ \| |_) | (_| | (__| | | |  __/ |_| |___) | 
+INFO   | jvm 1    | 2026/03/24 13:22:35 |        /_/   \_\ .__/ \__,_|\___|_| |_|\___|____/|____/  
+INFO   | jvm 1    | 2026/03/24 13:22:35 |                |_|                                       
+INFO   | jvm 1    | 2026/03/24 13:22:35 | 
+STATUS | wrapper  | 2026/03/24 13:34:46 | TERM trapped.  Shutting down.
+WARN   | wrapper  | 2026/03/24 13:34:47 | JVM exited unexpectedly while stopping the application.
+STATUS | wrapper  | 2026/03/24 13:34:47 | <-- Wrapper Stopped
+STATUS | wrapper  | 2026/03/24 13:36:53 | --> Wrapper Started as Daemon
+STATUS | wrapper  | 2026/03/24 13:36:53 | Launching a JVM...
+INFO   | jvm 1    | 2026/03/24 13:36:53 | Wrapper (Version 3.2.3) http://wrapper.tanukisoftware.org
+INFO   | jvm 1    | 2026/03/24 13:36:53 |   Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved.
+INFO   | jvm 1    | 2026/03/24 13:36:53 | 
+INFO   | jvm 1    | 2026/03/24 13:37:47 | [13:37:47] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.42.2.27.8.5.1' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 13:37:47 | [13:37:47] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.841' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 13:37:47 | [13:37:47] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.4203.1.9.1.2' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 13:37:47 | [13:37:47] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.319' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 13:37:47 | [13:37:47] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.528' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 13:37:47 | [13:37:47] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:37:47 | [13:37:47] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:37:47 | [13:37:47] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:37:47 | [13:37:47] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:37:47 | [13:37:47] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:37:47 | [13:37:47] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:37:47 | [13:37:47] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:37:47 | [13:37:47] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:37:47 | [13:37:47] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:37:47 | [13:37:47] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:37:47 | [13:37:47] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:37:47 | [13:37:47] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:37:47 | [13:37:47] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:37:47 | [13:37:47] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:37:47 | [13:37:47] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 13:37:47 | [13:37:47] WARN [org.apache.directory.server.core.DefaultDirectoryService] - You didn't change the admin password of directory service instance 'default'.  Please update the admin password as soon as possible to prevent a possible security breach.
+INFO   | jvm 1    | 2026/03/24 13:37:48 |            _                     _          ____  ____   
+INFO   | jvm 1    | 2026/03/24 13:37:48 |           / \   _ __    ___  ___| |__   ___|  _ \/ ___|  
+INFO   | jvm 1    | 2026/03/24 13:37:48 |          / _ \ | '_ \ / _` |/ __| '_ \ / _ \ | | \___ \  
+INFO   | jvm 1    | 2026/03/24 13:37:48 |         / ___ \| |_) | (_| | (__| | | |  __/ |_| |___) | 
+INFO   | jvm 1    | 2026/03/24 13:37:48 |        /_/   \_\ .__/ \__,_|\___|_| |_|\___|____/|____/  
+INFO   | jvm 1    | 2026/03/24 13:37:48 |                |_|                                       
+INFO   | jvm 1    | 2026/03/24 13:37:48 | 
+STATUS | wrapper  | 2026/03/24 17:10:32 | TERM trapped.  Shutting down.
+STATUS | wrapper  | 2026/03/24 17:11:10 | --> Wrapper Started as Daemon
+STATUS | wrapper  | 2026/03/24 17:11:11 | Launching a JVM...
+INFO   | jvm 1    | 2026/03/24 17:11:11 | Wrapper (Version 3.2.3) http://wrapper.tanukisoftware.org
+INFO   | jvm 1    | 2026/03/24 17:11:11 |   Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved.
+INFO   | jvm 1    | 2026/03/24 17:11:11 | 
+INFO   | jvm 1    | 2026/03/24 17:12:21 | [17:12:21] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.42.2.27.8.5.1' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 17:12:21 | [17:12:21] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.841' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 17:12:21 | [17:12:21] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.4203.1.9.1.2' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 17:12:21 | [17:12:21] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.319' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 17:12:21 | [17:12:21] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.528' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 17:12:21 | [17:12:21] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:12:21 | [17:12:21] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:12:21 | [17:12:21] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:12:21 | [17:12:21] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:12:21 | [17:12:21] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:12:21 | [17:12:21] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:12:21 | [17:12:21] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:12:21 | [17:12:21] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:12:21 | [17:12:21] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:12:21 | [17:12:21] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:12:21 | [17:12:21] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:12:21 | [17:12:21] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:12:21 | [17:12:21] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:12:21 | [17:12:21] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:12:21 | [17:12:21] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:12:22 | [17:12:22] WARN [org.apache.directory.server.core.DefaultDirectoryService] - You didn't change the admin password of directory service instance 'default'.  Please update the admin password as soon as possible to prevent a possible security breach.
+INFO   | jvm 1    | 2026/03/24 17:12:22 |            _                     _          ____  ____   
+INFO   | jvm 1    | 2026/03/24 17:12:22 |           / \   _ __    ___  ___| |__   ___|  _ \/ ___|  
+INFO   | jvm 1    | 2026/03/24 17:12:22 |          / _ \ | '_ \ / _` |/ __| '_ \ / _ \ | | \___ \  
+INFO   | jvm 1    | 2026/03/24 17:12:22 |         / ___ \| |_) | (_| | (__| | | |  __/ |_| |___) | 
+INFO   | jvm 1    | 2026/03/24 17:12:22 |        /_/   \_\ .__/ \__,_|\___|_| |_|\___|____/|____/  
+INFO   | jvm 1    | 2026/03/24 17:12:22 |                |_|                                       
+INFO   | jvm 1    | 2026/03/24 17:12:22 | 
+STATUS | wrapper  | 2026/03/24 17:14:36 | TERM trapped.  Shutting down.
+STATUS | wrapper  | 2026/03/24 17:14:36 | <-- Wrapper Stopped
+STATUS | wrapper  | 2026/03/24 17:15:02 | --> Wrapper Started as Daemon
+STATUS | wrapper  | 2026/03/24 17:15:02 | Launching a JVM...
+INFO   | jvm 1    | 2026/03/24 17:15:03 | Wrapper (Version 3.2.3) http://wrapper.tanukisoftware.org
+INFO   | jvm 1    | 2026/03/24 17:15:03 |   Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved.
+INFO   | jvm 1    | 2026/03/24 17:15:03 | 
+INFO   | jvm 1    | 2026/03/24 17:15:57 | [17:15:57] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.42.2.27.8.5.1' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 17:15:57 | [17:15:57] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.841' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 17:15:57 | [17:15:57] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.4203.1.9.1.2' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 17:15:57 | [17:15:57] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.319' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 17:15:57 | [17:15:57] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.528' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 17:15:57 | [17:15:57] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:15:57 | [17:15:57] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:15:57 | [17:15:57] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:15:57 | [17:15:57] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:15:57 | [17:15:57] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:15:57 | [17:15:57] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:15:57 | [17:15:57] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:15:57 | [17:15:57] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:15:57 | [17:15:57] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:15:57 | [17:15:57] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:15:57 | [17:15:57] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:15:57 | [17:15:57] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:15:57 | [17:15:57] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:15:57 | [17:15:57] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:15:57 | [17:15:57] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:15:57 | [17:15:57] WARN [org.apache.directory.server.core.DefaultDirectoryService] - You didn't change the admin password of directory service instance 'default'.  Please update the admin password as soon as possible to prevent a possible security breach.
+INFO   | jvm 1    | 2026/03/24 17:15:57 |            _                     _          ____  ____   
+INFO   | jvm 1    | 2026/03/24 17:15:57 |           / \   _ __    ___  ___| |__   ___|  _ \/ ___|  
+INFO   | jvm 1    | 2026/03/24 17:15:57 |          / _ \ | '_ \ / _` |/ __| '_ \ / _ \ | | \___ \  
+INFO   | jvm 1    | 2026/03/24 17:15:57 |         / ___ \| |_) | (_| | (__| | | |  __/ |_| |___) | 
+INFO   | jvm 1    | 2026/03/24 17:15:57 |        /_/   \_\ .__/ \__,_|\___|_| |_|\___|____/|____/  
+INFO   | jvm 1    | 2026/03/24 17:15:57 |                |_|                                       
+INFO   | jvm 1    | 2026/03/24 17:15:57 | 
+STATUS | wrapper  | 2026/03/24 17:20:12 | TERM trapped.  Shutting down.
+WARN   | wrapper  | 2026/03/24 17:20:13 | JVM exited unexpectedly while stopping the application.
+STATUS | wrapper  | 2026/03/24 17:20:13 | <-- Wrapper Stopped
+STATUS | wrapper  | 2026/03/24 17:22:18 | --> Wrapper Started as Daemon
+STATUS | wrapper  | 2026/03/24 17:22:18 | Launching a JVM...
+INFO   | jvm 1    | 2026/03/24 17:22:18 | Wrapper (Version 3.2.3) http://wrapper.tanukisoftware.org
+INFO   | jvm 1    | 2026/03/24 17:22:18 |   Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved.
+INFO   | jvm 1    | 2026/03/24 17:22:18 | 
+INFO   | jvm 1    | 2026/03/24 17:23:18 | [17:23:18] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.42.2.27.8.5.1' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 17:23:18 | [17:23:18] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.841' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 17:23:18 | [17:23:18] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.4203.1.9.1.2' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 17:23:18 | [17:23:18] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.319' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 17:23:18 | [17:23:18] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.528' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 17:23:18 | [17:23:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:23:18 | [17:23:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:23:18 | [17:23:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:23:18 | [17:23:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:23:18 | [17:23:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:23:18 | [17:23:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:23:18 | [17:23:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:23:18 | [17:23:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:23:18 | [17:23:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:23:18 | [17:23:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:23:18 | [17:23:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:23:18 | [17:23:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:23:18 | [17:23:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:23:18 | [17:23:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:23:18 | [17:23:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:23:18 | [17:23:18] WARN [org.apache.directory.server.core.DefaultDirectoryService] - You didn't change the admin password of directory service instance 'default'.  Please update the admin password as soon as possible to prevent a possible security breach.
+INFO   | jvm 1    | 2026/03/24 17:23:19 |            _                     _          ____  ____   
+INFO   | jvm 1    | 2026/03/24 17:23:19 |           / \   _ __    ___  ___| |__   ___|  _ \/ ___|  
+INFO   | jvm 1    | 2026/03/24 17:23:19 |          / _ \ | '_ \ / _` |/ __| '_ \ / _ \ | | \___ \  
+INFO   | jvm 1    | 2026/03/24 17:23:19 |         / ___ \| |_) | (_| | (__| | | |  __/ |_| |___) | 
+INFO   | jvm 1    | 2026/03/24 17:23:19 |        /_/   \_\ .__/ \__,_|\___|_| |_|\___|____/|____/  
+INFO   | jvm 1    | 2026/03/24 17:23:19 |                |_|                                       
+INFO   | jvm 1    | 2026/03/24 17:23:19 | 
+STATUS | wrapper  | 2026/03/24 17:24:58 | TERM trapped.  Shutting down.
+WARN   | wrapper  | 2026/03/24 17:24:58 | JVM exited unexpectedly while stopping the application.
+STATUS | wrapper  | 2026/03/24 17:24:58 | <-- Wrapper Stopped
+STATUS | wrapper  | 2026/03/24 17:26:22 | --> Wrapper Started as Daemon
+STATUS | wrapper  | 2026/03/24 17:26:23 | Launching a JVM...
+INFO   | jvm 1    | 2026/03/24 17:26:23 | Wrapper (Version 3.2.3) http://wrapper.tanukisoftware.org
+INFO   | jvm 1    | 2026/03/24 17:26:23 |   Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved.
+INFO   | jvm 1    | 2026/03/24 17:26:23 | 
+INFO   | jvm 1    | 2026/03/24 17:27:22 | [17:27:22] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.42.2.27.8.5.1' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 17:27:22 | [17:27:22] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.841' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 17:27:22 | [17:27:22] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.4203.1.9.1.2' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 17:27:22 | [17:27:22] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.319' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 17:27:22 | [17:27:22] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.528' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 17:27:22 | [17:27:22] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:27:22 | [17:27:22] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:27:22 | [17:27:22] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:27:22 | [17:27:22] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:27:22 | [17:27:22] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:27:22 | [17:27:22] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:27:22 | [17:27:22] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:27:22 | [17:27:22] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:27:22 | [17:27:22] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:27:22 | [17:27:22] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:27:22 | [17:27:22] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:27:22 | [17:27:22] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:27:22 | [17:27:22] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:27:22 | [17:27:22] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:27:22 | [17:27:22] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:27:22 | [17:27:22] WARN [org.apache.directory.server.core.DefaultDirectoryService] - You didn't change the admin password of directory service instance 'default'.  Please update the admin password as soon as possible to prevent a possible security breach.
+INFO   | jvm 1    | 2026/03/24 17:27:22 |            _                     _          ____  ____   
+INFO   | jvm 1    | 2026/03/24 17:27:22 |           / \   _ __    ___  ___| |__   ___|  _ \/ ___|  
+INFO   | jvm 1    | 2026/03/24 17:27:22 |          / _ \ | '_ \ / _` |/ __| '_ \ / _ \ | | \___ \  
+INFO   | jvm 1    | 2026/03/24 17:27:22 |         / ___ \| |_) | (_| | (__| | | |  __/ |_| |___) | 
+INFO   | jvm 1    | 2026/03/24 17:27:22 |        /_/   \_\ .__/ \__,_|\___|_| |_|\___|____/|____/  
+INFO   | jvm 1    | 2026/03/24 17:27:22 |                |_|                                       
+INFO   | jvm 1    | 2026/03/24 17:27:22 | 
+STATUS | wrapper  | 2026/03/24 17:30:12 | TERM trapped.  Shutting down.
+WARN   | wrapper  | 2026/03/24 17:30:12 | JVM exited unexpectedly while stopping the application.
+STATUS | wrapper  | 2026/03/24 17:30:12 | <-- Wrapper Stopped
+STATUS | wrapper  | 2026/03/24 17:32:04 | --> Wrapper Started as Daemon
+STATUS | wrapper  | 2026/03/24 17:32:04 | Launching a JVM...
+INFO   | jvm 1    | 2026/03/24 17:32:05 | Wrapper (Version 3.2.3) http://wrapper.tanukisoftware.org
+INFO   | jvm 1    | 2026/03/24 17:32:05 |   Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved.
+INFO   | jvm 1    | 2026/03/24 17:32:05 | 
+INFO   | jvm 1    | 2026/03/24 17:33:01 | [17:33:01] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.42.2.27.8.5.1' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 17:33:01 | [17:33:01] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.841' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 17:33:01 | [17:33:01] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.4203.1.9.1.2' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 17:33:01 | [17:33:01] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.319' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 17:33:01 | [17:33:01] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.528' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/24 17:33:01 | [17:33:01] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:33:01 | [17:33:01] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:33:01 | [17:33:01] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:33:01 | [17:33:01] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:33:01 | [17:33:01] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:33:01 | [17:33:01] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:33:01 | [17:33:01] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:33:01 | [17:33:01] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:33:01 | [17:33:01] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:33:01 | [17:33:01] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:33:01 | [17:33:01] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:33:01 | [17:33:01] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:33:01 | [17:33:01] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:33:01 | [17:33:01] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:33:01 | [17:33:01] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/24 17:33:01 | [17:33:01] WARN [org.apache.directory.server.core.DefaultDirectoryService] - You didn't change the admin password of directory service instance 'default'.  Please update the admin password as soon as possible to prevent a possible security breach.
+INFO   | jvm 1    | 2026/03/24 17:33:01 |            _                     _          ____  ____   
+INFO   | jvm 1    | 2026/03/24 17:33:01 |           / \   _ __    ___  ___| |__   ___|  _ \/ ___|  
+INFO   | jvm 1    | 2026/03/24 17:33:01 |          / _ \ | '_ \ / _` |/ __| '_ \ / _ \ | | \___ \  
+INFO   | jvm 1    | 2026/03/24 17:33:01 |         / ___ \| |_) | (_| | (__| | | |  __/ |_| |___) | 
+INFO   | jvm 1    | 2026/03/24 17:33:01 |        /_/   \_\ .__/ \__,_|\___|_| |_|\___|____/|____/  
+INFO   | jvm 1    | 2026/03/24 17:33:01 |                |_|                                       
+INFO   | jvm 1    | 2026/03/24 17:33:01 | 
+STATUS | wrapper  | 2026/03/24 17:35:20 | TERM trapped.  Shutting down.
+STATUS | wrapper  | 2026/03/24 17:35:20 | <-- Wrapper Stopped
+STATUS | wrapper  | 2026/03/24 17:37:09 | --> Wrapper Started as Daemon
+STATUS | wrapper  | 2026/03/24 17:37:09 | Launching a JVM...
+INFO   | jvm 1    | 2026/03/24 17:37:09 | Wrapper (Version 3.2.3) http://wrapper.tanukisoftware.org
+INFO   | jvm 1    | 2026/03/24 17:37:09 |   Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved.
+INFO   | jvm 1    | 2026/03/24 17:37:09 | 
+STATUS | wrapper  | 2026/03/24 17:37:44 | TERM trapped.  Shutting down.
+STATUS | wrapper  | 2026/03/26 13:02:24 | --> Wrapper Started as Daemon
+STATUS | wrapper  | 2026/03/26 13:02:25 | Launching a JVM...
+INFO   | jvm 1    | 2026/03/26 13:02:25 | Wrapper (Version 3.2.3) http://wrapper.tanukisoftware.org
+INFO   | jvm 1    | 2026/03/26 13:02:25 |   Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved.
+INFO   | jvm 1    | 2026/03/26 13:02:25 | 
+INFO   | jvm 1    | 2026/03/26 13:04:39 | [13:04:39] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.42.2.27.8.5.1' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/26 13:04:39 | [13:04:39] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.841' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/26 13:04:39 | [13:04:39] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.4203.1.9.1.2' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/26 13:04:39 | [13:04:39] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.319' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/26 13:04:39 | [13:04:39] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.528' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/26 13:04:39 | [13:04:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/26 13:04:39 | [13:04:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/26 13:04:39 | [13:04:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/26 13:04:39 | [13:04:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/26 13:04:39 | [13:04:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/26 13:04:39 | [13:04:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/26 13:04:39 | [13:04:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/26 13:04:39 | [13:04:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/26 13:04:39 | [13:04:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/26 13:04:39 | [13:04:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/26 13:04:39 | [13:04:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/26 13:04:39 | [13:04:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/26 13:04:39 | [13:04:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/26 13:04:39 | [13:04:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/26 13:04:39 | [13:04:39] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/26 13:04:39 | [13:04:39] WARN [org.apache.directory.server.core.DefaultDirectoryService] - You didn't change the admin password of directory service instance 'default'.  Please update the admin password as soon as possible to prevent a possible security breach.
+INFO   | jvm 1    | 2026/03/26 13:04:40 |            _                     _          ____  ____   
+INFO   | jvm 1    | 2026/03/26 13:04:40 |           / \   _ __    ___  ___| |__   ___|  _ \/ ___|  
+INFO   | jvm 1    | 2026/03/26 13:04:40 |          / _ \ | '_ \ / _` |/ __| '_ \ / _ \ | | \___ \  
+INFO   | jvm 1    | 2026/03/26 13:04:40 |         / ___ \| |_) | (_| | (__| | | |  __/ |_| |___) | 
+INFO   | jvm 1    | 2026/03/26 13:04:40 |        /_/   \_\ .__/ \__,_|\___|_| |_|\___|____/|____/  
+INFO   | jvm 1    | 2026/03/26 13:04:40 |                |_|                                       
+INFO   | jvm 1    | 2026/03/26 13:04:40 | 
+STATUS | wrapper  | 2026/03/26 13:06:06 | TERM trapped.  Shutting down.
+WARN   | wrapper  | 2026/03/26 13:06:06 | JVM exited unexpectedly while stopping the application.
+STATUS | wrapper  | 2026/03/26 13:06:06 | <-- Wrapper Stopped
+STATUS | wrapper  | 2026/03/28 12:30:38 | --> Wrapper Started as Daemon
+STATUS | wrapper  | 2026/03/28 12:30:39 | Launching a JVM...
+INFO   | jvm 1    | 2026/03/28 12:30:40 | Wrapper (Version 3.2.3) http://wrapper.tanukisoftware.org
+INFO   | jvm 1    | 2026/03/28 12:30:40 |   Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved.
+INFO   | jvm 1    | 2026/03/28 12:30:40 | 
+INFO   | jvm 1    | 2026/03/28 12:32:07 | [12:32:07] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.42.2.27.8.5.1' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 12:32:07 | [12:32:07] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.841' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 12:32:07 | [12:32:07] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.4203.1.9.1.2' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 12:32:07 | [12:32:07] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.319' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 12:32:07 | [12:32:07] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.528' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 12:32:07 | [12:32:07] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 12:32:07 | [12:32:07] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 12:32:07 | [12:32:07] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 12:32:07 | [12:32:07] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 12:32:07 | [12:32:07] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 12:32:07 | [12:32:07] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 12:32:07 | [12:32:07] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 12:32:07 | [12:32:07] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 12:32:07 | [12:32:07] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 12:32:07 | [12:32:07] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 12:32:07 | [12:32:07] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 12:32:08 | [12:32:07] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 12:32:08 | [12:32:07] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 12:32:08 | [12:32:07] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 12:32:08 | [12:32:07] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 12:32:08 | [12:32:08] WARN [org.apache.directory.server.core.DefaultDirectoryService] - You didn't change the admin password of directory service instance 'default'.  Please update the admin password as soon as possible to prevent a possible security breach.
+INFO   | jvm 1    | 2026/03/28 12:32:08 |            _                     _          ____  ____   
+INFO   | jvm 1    | 2026/03/28 12:32:08 |           / \   _ __    ___  ___| |__   ___|  _ \/ ___|  
+INFO   | jvm 1    | 2026/03/28 12:32:08 |          / _ \ | '_ \ / _` |/ __| '_ \ / _ \ | | \___ \  
+INFO   | jvm 1    | 2026/03/28 12:32:08 |         / ___ \| |_) | (_| | (__| | | |  __/ |_| |___) | 
+INFO   | jvm 1    | 2026/03/28 12:32:08 |        /_/   \_\ .__/ \__,_|\___|_| |_|\___|____/|____/  
+INFO   | jvm 1    | 2026/03/28 12:32:08 |                |_|                                       
+INFO   | jvm 1    | 2026/03/28 12:32:08 | 
+STATUS | wrapper  | 2026/03/28 12:32:55 | TERM trapped.  Shutting down.
+WARN   | wrapper  | 2026/03/28 12:32:55 | JVM exited unexpectedly while stopping the application.
+STATUS | wrapper  | 2026/03/28 12:32:55 | <-- Wrapper Stopped
+STATUS | wrapper  | 2026/03/28 21:45:19 | --> Wrapper Started as Daemon
+STATUS | wrapper  | 2026/03/28 21:45:20 | Launching a JVM...
+INFO   | jvm 1    | 2026/03/28 21:45:21 | Wrapper (Version 3.2.3) http://wrapper.tanukisoftware.org
+INFO   | jvm 1    | 2026/03/28 21:45:21 |   Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved.
+INFO   | jvm 1    | 2026/03/28 21:45:21 | 
+INFO   | jvm 1    | 2026/03/28 21:46:52 | [21:46:52] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.42.2.27.8.5.1' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 21:46:52 | [21:46:52] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.841' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 21:46:52 | [21:46:52] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.4203.1.9.1.2' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 21:46:52 | [21:46:52] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.319' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 21:46:52 | [21:46:52] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.528' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 21:46:52 | [21:46:52] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 21:46:52 | [21:46:52] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 21:46:52 | [21:46:52] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 21:46:52 | [21:46:52] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 21:46:52 | [21:46:52] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 21:46:52 | [21:46:52] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 21:46:52 | [21:46:52] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 21:46:52 | [21:46:52] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 21:46:52 | [21:46:52] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 21:46:52 | [21:46:52] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 21:46:52 | [21:46:52] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 21:46:53 | [21:46:53] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 21:46:53 | [21:46:53] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 21:46:53 | [21:46:53] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 21:46:53 | [21:46:53] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 21:46:53 | [21:46:53] WARN [org.apache.directory.server.core.DefaultDirectoryService] - You didn't change the admin password of directory service instance 'default'.  Please update the admin password as soon as possible to prevent a possible security breach.
+INFO   | jvm 1    | 2026/03/28 21:46:53 |            _                     _          ____  ____   
+INFO   | jvm 1    | 2026/03/28 21:46:53 |           / \   _ __    ___  ___| |__   ___|  _ \/ ___|  
+INFO   | jvm 1    | 2026/03/28 21:46:53 |          / _ \ | '_ \ / _` |/ __| '_ \ / _ \ | | \___ \  
+INFO   | jvm 1    | 2026/03/28 21:46:53 |         / ___ \| |_) | (_| | (__| | | |  __/ |_| |___) | 
+INFO   | jvm 1    | 2026/03/28 21:46:53 |        /_/   \_\ .__/ \__,_|\___|_| |_|\___|____/|____/  
+INFO   | jvm 1    | 2026/03/28 21:46:53 |                |_|                                       
+INFO   | jvm 1    | 2026/03/28 21:46:53 | 
+STATUS | wrapper  | 2026/03/28 22:34:17 | TERM trapped.  Shutting down.
+WARN   | wrapper  | 2026/03/28 22:34:17 | JVM exited unexpectedly while stopping the application.
+STATUS | wrapper  | 2026/03/28 22:34:17 | <-- Wrapper Stopped
+STATUS | wrapper  | 2026/03/28 22:35:56 | --> Wrapper Started as Daemon
+STATUS | wrapper  | 2026/03/28 22:35:56 | Launching a JVM...
+INFO   | jvm 1    | 2026/03/28 22:35:57 | Wrapper (Version 3.2.3) http://wrapper.tanukisoftware.org
+INFO   | jvm 1    | 2026/03/28 22:35:57 |   Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved.
+INFO   | jvm 1    | 2026/03/28 22:35:57 | 
+INFO   | jvm 1    | 2026/03/28 22:37:08 | [22:37:08] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.42.2.27.8.5.1' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 22:37:08 | [22:37:08] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.841' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 22:37:08 | [22:37:08] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.4203.1.9.1.2' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 22:37:08 | [22:37:08] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.319' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 22:37:08 | [22:37:08] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.528' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 22:37:08 | [22:37:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:37:08 | [22:37:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:37:08 | [22:37:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:37:08 | [22:37:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:37:08 | [22:37:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:37:08 | [22:37:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:37:08 | [22:37:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:37:08 | [22:37:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:37:08 | [22:37:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:37:08 | [22:37:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:37:08 | [22:37:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:37:08 | [22:37:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:37:08 | [22:37:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:37:08 | [22:37:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:37:08 | [22:37:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:37:08 | [22:37:08] WARN [org.apache.directory.server.core.DefaultDirectoryService] - You didn't change the admin password of directory service instance 'default'.  Please update the admin password as soon as possible to prevent a possible security breach.
+INFO   | jvm 1    | 2026/03/28 22:37:08 |            _                     _          ____  ____   
+INFO   | jvm 1    | 2026/03/28 22:37:08 |           / \   _ __    ___  ___| |__   ___|  _ \/ ___|  
+INFO   | jvm 1    | 2026/03/28 22:37:08 |          / _ \ | '_ \ / _` |/ __| '_ \ / _ \ | | \___ \  
+INFO   | jvm 1    | 2026/03/28 22:37:08 |         / ___ \| |_) | (_| | (__| | | |  __/ |_| |___) | 
+INFO   | jvm 1    | 2026/03/28 22:37:08 |        /_/   \_\ .__/ \__,_|\___|_| |_|\___|____/|____/  
+INFO   | jvm 1    | 2026/03/28 22:37:08 |                |_|                                       
+INFO   | jvm 1    | 2026/03/28 22:37:08 | 
+STATUS | wrapper  | 2026/03/28 22:42:35 | TERM trapped.  Shutting down.
+STATUS | wrapper  | 2026/03/28 22:42:35 | <-- Wrapper Stopped
+STATUS | wrapper  | 2026/03/28 22:43:12 | --> Wrapper Started as Daemon
+STATUS | wrapper  | 2026/03/28 22:43:12 | Launching a JVM...
+INFO   | jvm 1    | 2026/03/28 22:43:12 | Wrapper (Version 3.2.3) http://wrapper.tanukisoftware.org
+INFO   | jvm 1    | 2026/03/28 22:43:12 |   Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved.
+INFO   | jvm 1    | 2026/03/28 22:43:12 | 
+INFO   | jvm 1    | 2026/03/28 22:44:08 | [22:44:08] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.42.2.27.8.5.1' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 22:44:08 | [22:44:08] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.841' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 22:44:08 | [22:44:08] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.4203.1.9.1.2' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 22:44:08 | [22:44:08] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.319' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 22:44:08 | [22:44:08] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.528' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 22:44:08 | [22:44:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:44:08 | [22:44:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:44:08 | [22:44:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:44:08 | [22:44:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:44:08 | [22:44:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:44:08 | [22:44:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:44:08 | [22:44:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:44:08 | [22:44:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:44:08 | [22:44:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:44:08 | [22:44:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:44:08 | [22:44:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:44:09 | [22:44:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:44:09 | [22:44:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:44:09 | [22:44:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:44:09 | [22:44:08] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 22:44:09 | [22:44:09] WARN [org.apache.directory.server.core.DefaultDirectoryService] - You didn't change the admin password of directory service instance 'default'.  Please update the admin password as soon as possible to prevent a possible security breach.
+INFO   | jvm 1    | 2026/03/28 22:44:09 |            _                     _          ____  ____   
+INFO   | jvm 1    | 2026/03/28 22:44:09 |           / \   _ __    ___  ___| |__   ___|  _ \/ ___|  
+INFO   | jvm 1    | 2026/03/28 22:44:09 |          / _ \ | '_ \ / _` |/ __| '_ \ / _ \ | | \___ \  
+INFO   | jvm 1    | 2026/03/28 22:44:09 |         / ___ \| |_) | (_| | (__| | | |  __/ |_| |___) | 
+INFO   | jvm 1    | 2026/03/28 22:44:09 |        /_/   \_\ .__/ \__,_|\___|_| |_|\___|____/|____/  
+INFO   | jvm 1    | 2026/03/28 22:44:09 |                |_|                                       
+INFO   | jvm 1    | 2026/03/28 22:44:09 | 
+STATUS | wrapper  | 2026/03/28 23:02:31 | TERM trapped.  Shutting down.
+WARN   | wrapper  | 2026/03/28 23:02:31 | JVM exited unexpectedly while stopping the application.
+STATUS | wrapper  | 2026/03/28 23:02:31 | <-- Wrapper Stopped
+STATUS | wrapper  | 2026/03/28 23:03:01 | --> Wrapper Started as Daemon
+STATUS | wrapper  | 2026/03/28 23:03:01 | Launching a JVM...
+INFO   | jvm 1    | 2026/03/28 23:03:02 | Wrapper (Version 3.2.3) http://wrapper.tanukisoftware.org
+INFO   | jvm 1    | 2026/03/28 23:03:02 |   Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved.
+INFO   | jvm 1    | 2026/03/28 23:03:02 | 
+INFO   | jvm 1    | 2026/03/28 23:04:10 | [23:04:10] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.42.2.27.8.5.1' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 23:04:10 | [23:04:10] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.841' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 23:04:10 | [23:04:10] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.4203.1.9.1.2' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 23:04:10 | [23:04:10] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.319' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 23:04:10 | [23:04:10] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.528' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 23:04:10 | [23:04:10] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:04:10 | [23:04:10] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:04:10 | [23:04:10] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:04:10 | [23:04:10] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:04:10 | [23:04:10] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:04:10 | [23:04:10] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:04:10 | [23:04:10] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:04:10 | [23:04:10] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:04:10 | [23:04:10] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:04:10 | [23:04:10] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:04:10 | [23:04:10] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:04:10 | [23:04:10] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:04:10 | [23:04:10] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:04:10 | [23:04:10] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:04:10 | [23:04:10] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:04:10 | [23:04:10] WARN [org.apache.directory.server.core.DefaultDirectoryService] - You didn't change the admin password of directory service instance 'default'.  Please update the admin password as soon as possible to prevent a possible security breach.
+INFO   | jvm 1    | 2026/03/28 23:04:10 |            _                     _          ____  ____   
+INFO   | jvm 1    | 2026/03/28 23:04:10 |           / \   _ __    ___  ___| |__   ___|  _ \/ ___|  
+INFO   | jvm 1    | 2026/03/28 23:04:10 |          / _ \ | '_ \ / _` |/ __| '_ \ / _ \ | | \___ \  
+INFO   | jvm 1    | 2026/03/28 23:04:10 |         / ___ \| |_) | (_| | (__| | | |  __/ |_| |___) | 
+INFO   | jvm 1    | 2026/03/28 23:04:10 |        /_/   \_\ .__/ \__,_|\___|_| |_|\___|____/|____/  
+INFO   | jvm 1    | 2026/03/28 23:04:10 |                |_|                                       
+INFO   | jvm 1    | 2026/03/28 23:04:10 | 
+STATUS | wrapper  | 2026/03/28 23:12:17 | TERM trapped.  Shutting down.
+WARN   | wrapper  | 2026/03/28 23:12:17 | JVM exited unexpectedly while stopping the application.
+STATUS | wrapper  | 2026/03/28 23:12:17 | <-- Wrapper Stopped
+STATUS | wrapper  | 2026/03/28 23:12:52 | --> Wrapper Started as Daemon
+STATUS | wrapper  | 2026/03/28 23:12:52 | Launching a JVM...
+INFO   | jvm 1    | 2026/03/28 23:12:53 | Wrapper (Version 3.2.3) http://wrapper.tanukisoftware.org
+INFO   | jvm 1    | 2026/03/28 23:12:53 |   Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved.
+INFO   | jvm 1    | 2026/03/28 23:12:53 | 
+INFO   | jvm 1    | 2026/03/28 23:14:18 | [23:14:18] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.42.2.27.8.5.1' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 23:14:18 | [23:14:18] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.841' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 23:14:18 | [23:14:18] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.4203.1.9.1.2' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 23:14:18 | [23:14:18] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.319' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 23:14:18 | [23:14:18] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.528' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 23:14:18 | [23:14:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:14:18 | [23:14:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:14:18 | [23:14:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:14:18 | [23:14:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:14:18 | [23:14:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:14:18 | [23:14:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:14:18 | [23:14:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:14:18 | [23:14:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:14:18 | [23:14:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:14:18 | [23:14:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:14:18 | [23:14:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:14:18 | [23:14:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:14:18 | [23:14:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:14:18 | [23:14:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:14:18 | [23:14:18] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:14:18 | [23:14:18] WARN [org.apache.directory.server.core.DefaultDirectoryService] - You didn't change the admin password of directory service instance 'default'.  Please update the admin password as soon as possible to prevent a possible security breach.
+INFO   | jvm 1    | 2026/03/28 23:14:18 |            _                     _          ____  ____   
+INFO   | jvm 1    | 2026/03/28 23:14:18 |           / \   _ __    ___  ___| |__   ___|  _ \/ ___|  
+INFO   | jvm 1    | 2026/03/28 23:14:18 |          / _ \ | '_ \ / _` |/ __| '_ \ / _ \ | | \___ \  
+INFO   | jvm 1    | 2026/03/28 23:14:18 |         / ___ \| |_) | (_| | (__| | | |  __/ |_| |___) | 
+INFO   | jvm 1    | 2026/03/28 23:14:18 |        /_/   \_\ .__/ \__,_|\___|_| |_|\___|____/|____/  
+INFO   | jvm 1    | 2026/03/28 23:14:18 |                |_|                                       
+INFO   | jvm 1    | 2026/03/28 23:14:18 | 
+STATUS | wrapper  | 2026/03/28 23:16:33 | TERM trapped.  Shutting down.
+WARN   | wrapper  | 2026/03/28 23:16:33 | JVM exited unexpectedly while stopping the application.
+STATUS | wrapper  | 2026/03/28 23:16:33 | <-- Wrapper Stopped
+STATUS | wrapper  | 2026/03/28 23:16:59 | --> Wrapper Started as Daemon
+STATUS | wrapper  | 2026/03/28 23:17:00 | Launching a JVM...
+INFO   | jvm 1    | 2026/03/28 23:17:00 | Wrapper (Version 3.2.3) http://wrapper.tanukisoftware.org
+INFO   | jvm 1    | 2026/03/28 23:17:00 |   Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved.
+INFO   | jvm 1    | 2026/03/28 23:17:00 | 
+INFO   | jvm 1    | 2026/03/28 23:18:45 | [23:18:45] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.42.2.27.8.5.1' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 23:18:45 | [23:18:45] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.841' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 23:18:45 | [23:18:45] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.4203.1.9.1.2' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 23:18:45 | [23:18:45] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.319' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 23:18:45 | [23:18:45] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.528' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 23:18:45 | [23:18:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:18:45 | [23:18:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:18:45 | [23:18:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:18:45 | [23:18:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:18:45 | [23:18:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:18:45 | [23:18:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:18:45 | [23:18:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:18:45 | [23:18:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:18:45 | [23:18:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:18:45 | [23:18:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:18:45 | [23:18:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:18:45 | [23:18:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:18:45 | [23:18:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:18:45 | [23:18:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:18:45 | [23:18:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:18:45 | [23:18:45] WARN [org.apache.directory.server.core.DefaultDirectoryService] - You didn't change the admin password of directory service instance 'default'.  Please update the admin password as soon as possible to prevent a possible security breach.
+INFO   | jvm 1    | 2026/03/28 23:18:45 |            _                     _          ____  ____   
+INFO   | jvm 1    | 2026/03/28 23:18:45 |           / \   _ __    ___  ___| |__   ___|  _ \/ ___|  
+INFO   | jvm 1    | 2026/03/28 23:18:45 |          / _ \ | '_ \ / _` |/ __| '_ \ / _ \ | | \___ \  
+INFO   | jvm 1    | 2026/03/28 23:18:45 |         / ___ \| |_) | (_| | (__| | | |  __/ |_| |___) | 
+INFO   | jvm 1    | 2026/03/28 23:18:45 |        /_/   \_\ .__/ \__,_|\___|_| |_|\___|____/|____/  
+INFO   | jvm 1    | 2026/03/28 23:18:45 |                |_|                                       
+INFO   | jvm 1    | 2026/03/28 23:18:45 | 
+STATUS | wrapper  | 2026/03/28 23:30:58 | TERM trapped.  Shutting down.
+STATUS | wrapper  | 2026/03/28 23:30:58 | <-- Wrapper Stopped
+STATUS | wrapper  | 2026/03/28 23:31:20 | --> Wrapper Started as Daemon
+STATUS | wrapper  | 2026/03/28 23:31:20 | Launching a JVM...
+INFO   | jvm 1    | 2026/03/28 23:31:21 | Wrapper (Version 3.2.3) http://wrapper.tanukisoftware.org
+INFO   | jvm 1    | 2026/03/28 23:31:21 |   Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved.
+INFO   | jvm 1    | 2026/03/28 23:31:21 | 
+INFO   | jvm 1    | 2026/03/28 23:32:16 | [23:32:16] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.42.2.27.8.5.1' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 23:32:16 | [23:32:16] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.841' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 23:32:16 | [23:32:16] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.4203.1.9.1.2' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 23:32:16 | [23:32:16] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.319' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 23:32:16 | [23:32:16] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.528' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 23:32:15 | [23:32:15] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:32:15 | [23:32:15] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:32:15 | [23:32:15] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:32:15 | [23:32:15] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:32:15 | [23:32:15] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:32:15 | [23:32:15] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:32:15 | [23:32:15] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:32:15 | [23:32:15] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:32:15 | [23:32:15] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:32:15 | [23:32:15] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:32:15 | [23:32:15] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:32:15 | [23:32:15] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:32:15 | [23:32:15] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:32:15 | [23:32:15] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:32:15 | [23:32:15] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:32:15 | [23:32:15] WARN [org.apache.directory.server.core.DefaultDirectoryService] - You didn't change the admin password of directory service instance 'default'.  Please update the admin password as soon as possible to prevent a possible security breach.
+INFO   | jvm 1    | 2026/03/28 23:32:15 |            _                     _          ____  ____   
+INFO   | jvm 1    | 2026/03/28 23:32:15 |           / \   _ __    ___  ___| |__   ___|  _ \/ ___|  
+INFO   | jvm 1    | 2026/03/28 23:32:15 |          / _ \ | '_ \ / _` |/ __| '_ \ / _ \ | | \___ \  
+INFO   | jvm 1    | 2026/03/28 23:32:15 |         / ___ \| |_) | (_| | (__| | | |  __/ |_| |___) | 
+INFO   | jvm 1    | 2026/03/28 23:32:15 |        /_/   \_\ .__/ \__,_|\___|_| |_|\___|____/|____/  
+INFO   | jvm 1    | 2026/03/28 23:32:15 |                |_|                                       
+INFO   | jvm 1    | 2026/03/28 23:32:15 | 
+STATUS | wrapper  | 2026/03/28 23:37:02 | TERM trapped.  Shutting down.
+INFO   | jvm 1    | 2026/03/28 23:37:03 | Wrapper Manager: Unable to unregister shutdown hook: java.lang.IllegalStateException: Shutdown in progress
+STATUS | wrapper  | 2026/03/28 23:37:25 | --> Wrapper Started as Daemon
+STATUS | wrapper  | 2026/03/28 23:37:25 | Launching a JVM...
+INFO   | jvm 1    | 2026/03/28 23:37:26 | Wrapper (Version 3.2.3) http://wrapper.tanukisoftware.org
+INFO   | jvm 1    | 2026/03/28 23:37:26 |   Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved.
+INFO   | jvm 1    | 2026/03/28 23:37:26 | 
+INFO   | jvm 1    | 2026/03/28 23:38:14 | [23:38:14] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.42.2.27.8.5.1' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 23:38:14 | [23:38:14] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.841' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 23:38:14 | [23:38:14] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.4203.1.9.1.2' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 23:38:14 | [23:38:14] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.319' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 23:38:14 | [23:38:14] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.528' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/28 23:38:14 | [23:38:14] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:38:14 | [23:38:14] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:38:14 | [23:38:14] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:38:14 | [23:38:14] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:38:14 | [23:38:14] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:38:14 | [23:38:14] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:38:14 | [23:38:14] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:38:14 | [23:38:14] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:38:14 | [23:38:14] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:38:14 | [23:38:14] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:38:14 | [23:38:14] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:38:14 | [23:38:14] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:38:14 | [23:38:14] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:38:14 | [23:38:14] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:38:14 | [23:38:14] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/28 23:38:14 | [23:38:14] WARN [org.apache.directory.server.core.DefaultDirectoryService] - You didn't change the admin password of directory service instance 'default'.  Please update the admin password as soon as possible to prevent a possible security breach.
+INFO   | jvm 1    | 2026/03/28 23:38:14 |            _                     _          ____  ____   
+INFO   | jvm 1    | 2026/03/28 23:38:14 |           / \   _ __    ___  ___| |__   ___|  _ \/ ___|  
+INFO   | jvm 1    | 2026/03/28 23:38:14 |          / _ \ | '_ \ / _` |/ __| '_ \ / _ \ | | \___ \  
+INFO   | jvm 1    | 2026/03/28 23:38:14 |         / ___ \| |_) | (_| | (__| | | |  __/ |_| |___) | 
+INFO   | jvm 1    | 2026/03/28 23:38:14 |        /_/   \_\ .__/ \__,_|\___|_| |_|\___|____/|____/  
+INFO   | jvm 1    | 2026/03/28 23:38:14 |                |_|                                       
+INFO   | jvm 1    | 2026/03/28 23:38:14 | 
+STATUS | wrapper  | 2026/03/29 00:05:33 | TERM trapped.  Shutting down.
+WARN   | wrapper  | 2026/03/29 00:05:33 | JVM exited unexpectedly while stopping the application.
+STATUS | wrapper  | 2026/03/29 00:05:33 | <-- Wrapper Stopped
+STATUS | wrapper  | 2026/03/29 00:05:57 | --> Wrapper Started as Daemon
+STATUS | wrapper  | 2026/03/29 00:05:57 | Launching a JVM...
+INFO   | jvm 1    | 2026/03/29 00:05:57 | Wrapper (Version 3.2.3) http://wrapper.tanukisoftware.org
+INFO   | jvm 1    | 2026/03/29 00:05:57 |   Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved.
+INFO   | jvm 1    | 2026/03/29 00:05:57 | 
+INFO   | jvm 1    | 2026/03/29 00:06:46 | [00:06:46] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.42.2.27.8.5.1' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/29 00:06:46 | [00:06:46] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.841' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/29 00:06:46 | [00:06:46] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.4203.1.9.1.2' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/29 00:06:46 | [00:06:46] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.319' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/29 00:06:46 | [00:06:46] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.528' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/29 00:06:46 | [00:06:46] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:06:46 | [00:06:46] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:06:46 | [00:06:46] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:06:46 | [00:06:46] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:06:46 | [00:06:46] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:06:46 | [00:06:46] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:06:46 | [00:06:46] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:06:46 | [00:06:46] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:06:46 | [00:06:46] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:06:46 | [00:06:46] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:06:46 | [00:06:46] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:06:46 | [00:06:46] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:06:46 | [00:06:46] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:06:46 | [00:06:46] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:06:46 | [00:06:46] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:06:46 | [00:06:46] WARN [org.apache.directory.server.core.DefaultDirectoryService] - You didn't change the admin password of directory service instance 'default'.  Please update the admin password as soon as possible to prevent a possible security breach.
+INFO   | jvm 1    | 2026/03/29 00:06:46 |            _                     _          ____  ____   
+INFO   | jvm 1    | 2026/03/29 00:06:46 |           / \   _ __    ___  ___| |__   ___|  _ \/ ___|  
+INFO   | jvm 1    | 2026/03/29 00:06:46 |          / _ \ | '_ \ / _` |/ __| '_ \ / _ \ | | \___ \  
+INFO   | jvm 1    | 2026/03/29 00:06:46 |         / ___ \| |_) | (_| | (__| | | |  __/ |_| |___) | 
+INFO   | jvm 1    | 2026/03/29 00:06:46 |        /_/   \_\ .__/ \__,_|\___|_| |_|\___|____/|____/  
+INFO   | jvm 1    | 2026/03/29 00:06:46 |                |_|                                       
+INFO   | jvm 1    | 2026/03/29 00:06:46 | 
+STATUS | wrapper  | 2026/03/29 00:10:31 | TERM trapped.  Shutting down.
+WARN   | wrapper  | 2026/03/29 00:10:31 | JVM exited unexpectedly while stopping the application.
+STATUS | wrapper  | 2026/03/29 00:10:31 | <-- Wrapper Stopped
+STATUS | wrapper  | 2026/03/29 00:10:56 | --> Wrapper Started as Daemon
+STATUS | wrapper  | 2026/03/29 00:10:56 | Launching a JVM...
+INFO   | jvm 1    | 2026/03/29 00:10:56 | Wrapper (Version 3.2.3) http://wrapper.tanukisoftware.org
+INFO   | jvm 1    | 2026/03/29 00:10:56 |   Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved.
+INFO   | jvm 1    | 2026/03/29 00:10:56 | 
+INFO   | jvm 1    | 2026/03/29 00:11:56 | [00:11:56] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.42.2.27.8.5.1' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/29 00:11:56 | [00:11:56] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.841' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/29 00:11:56 | [00:11:56] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.4203.1.9.1.2' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/29 00:11:56 | [00:11:56] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.319' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/29 00:11:56 | [00:11:56] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.528' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/03/29 00:11:56 | [00:11:56] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:11:56 | [00:11:56] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:11:56 | [00:11:56] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:11:56 | [00:11:56] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:11:56 | [00:11:56] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:11:56 | [00:11:56] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:11:56 | [00:11:56] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:11:56 | [00:11:56] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:11:56 | [00:11:56] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:11:56 | [00:11:56] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:11:56 | [00:11:56] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:11:56 | [00:11:56] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:11:56 | [00:11:56] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:11:56 | [00:11:56] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:11:56 | [00:11:56] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/03/29 00:11:56 | [00:11:56] WARN [org.apache.directory.server.core.DefaultDirectoryService] - You didn't change the admin password of directory service instance 'default'.  Please update the admin password as soon as possible to prevent a possible security breach.
+INFO   | jvm 1    | 2026/03/29 00:11:57 |            _                     _          ____  ____   
+INFO   | jvm 1    | 2026/03/29 00:11:57 |           / \   _ __    ___  ___| |__   ___|  _ \/ ___|  
+INFO   | jvm 1    | 2026/03/29 00:11:57 |          / _ \ | '_ \ / _` |/ __| '_ \ / _ \ | | \___ \  
+INFO   | jvm 1    | 2026/03/29 00:11:57 |         / ___ \| |_) | (_| | (__| | | |  __/ |_| |___) | 
+INFO   | jvm 1    | 2026/03/29 00:11:57 |        /_/   \_\ .__/ \__,_|\___|_| |_|\___|____/|____/  
+INFO   | jvm 1    | 2026/03/29 00:11:57 |                |_|                                       
+INFO   | jvm 1    | 2026/03/29 00:11:57 | 
+STATUS | wrapper  | 2026/03/29 00:16:20 | TERM trapped.  Shutting down.
+WARN   | wrapper  | 2026/03/29 00:16:21 | JVM exited unexpectedly while stopping the application.
+STATUS | wrapper  | 2026/03/29 00:16:21 | <-- Wrapper Stopped
+STATUS | wrapper  | 2026/03/29 00:16:42 | --> Wrapper Started as Daemon
+STATUS | wrapper  | 2026/03/29 00:16:42 | Launching a JVM...
+INFO   | jvm 1    | 2026/03/29 00:16:43 | Wrapper (Version 3.2.3) http://wrapper.tanukisoftware.org
+INFO   | jvm 1    | 2026/03/29 00:16:43 |   Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved.
+INFO   | jvm 1    | 2026/03/29 00:16:43 | 
+STATUS | wrapper  | 2026/03/29 00:17:57 | TERM trapped.  Shutting down.

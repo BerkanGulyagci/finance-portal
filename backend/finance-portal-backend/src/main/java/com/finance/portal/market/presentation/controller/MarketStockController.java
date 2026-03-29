@@ -34,7 +34,7 @@ public class MarketStockController {
     @GetMapping
     public ResponseEntity<ApiResponse<StockPageResponse>> getStockPage(
             @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "10") @Min(1) @Max(20) int size
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
     ) {
         StockPageResponse stockPage = stockQueryService.getPagedStockSummaries(page, size);
 

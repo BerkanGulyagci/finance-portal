@@ -22,10 +22,13 @@ public class NewsService {
 
     private final NewsApiClient newsApiClient;
     private final NewsEventProducer newsEventProducer;
+    private final com.finance.portal.news.infrastructure.external.BloombergHtRssClient bloombergHtRssClient;
 
-    public NewsService(NewsApiClient newsApiClient, NewsEventProducer newsEventProducer) {
+    public NewsService(NewsApiClient newsApiClient, NewsEventProducer newsEventProducer,
+                       com.finance.portal.news.infrastructure.external.BloombergHtRssClient bloombergHtRssClient) {
         this.newsApiClient = newsApiClient;
         this.newsEventProducer = newsEventProducer;
+        this.bloombergHtRssClient = bloombergHtRssClient;
     }
 
     @Cacheable(cacheNames = "newsCache", key = "#category + '_' + #country + '_' + #page + '_' + #pageSize + '_' + (#keyword != null ? #keyword : 'null')")
@@ -64,5 +67,10 @@ public class NewsService {
         }
 
         return response;
+    }
+
+    @Cacheable(cacheNames = "newsCache", key = "'bloomberght'")
+    public List<NewsItemDto> getBloombergHtNews() {
+        return bloombergHtRssClient.fetchNews();
     }
 }

@@ -32,11 +32,17 @@ public class CacheConfig {
     @Value("${cache.market.fx.open.ttl-seconds:1800}")
     private long marketFxOpenTtlSeconds;
 
-    @Value("${cache.market.stocks.ttl-seconds:30}")
+    @Value("${cache.market.stocks.ttl-seconds:300}")
     private long marketStocksTtlSeconds;
 
-    @Value("${cache.market.crypto.ttl-seconds:45}")
+    @Value("${cache.market.crypto.ttl-seconds:60}")
     private long marketCryptoTtlSeconds;
+
+    @Value("${cache.market.funds.ttl-seconds:300}")
+    private long marketFundsTtlSeconds;
+
+    @Value("${cache.market.futures.ttl-seconds:300}")
+    private long marketFuturesTtlSeconds;
 
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
@@ -81,6 +87,24 @@ public class CacheConfig {
                         )
                 );
 
+        RedisCacheConfiguration marketFundsCacheConfig = RedisCacheConfiguration
+                .defaultCacheConfig()
+                .entryTtl(Duration.ofSeconds(marketFundsTtlSeconds))
+                .serializeValuesWith(
+                        RedisSerializationContext.SerializationPair.fromSerializer(
+                                new GenericJackson2JsonRedisSerializer()
+                        )
+                );
+
+        RedisCacheConfiguration marketFuturesCacheConfig = RedisCacheConfiguration
+                .defaultCacheConfig()
+                .entryTtl(Duration.ofSeconds(marketFuturesTtlSeconds))
+                .serializeValuesWith(
+                        RedisSerializationContext.SerializationPair.fromSerializer(
+                                new GenericJackson2JsonRedisSerializer()
+                        )
+                );
+
         RedisCacheConfiguration cryptoMarketsCacheConfig = RedisCacheConfiguration
                 .defaultCacheConfig()
                 .entryTtl(Duration.ofSeconds(marketCryptoTtlSeconds))
@@ -96,9 +120,11 @@ public class CacheConfig {
                 .withCacheConfiguration("market.fx.open.latest", marketFxOpenCacheConfig)
                 .withCacheConfiguration("market.stocks.page", marketStocksCacheConfig)
                 .withCacheConfiguration("market.stocks.detail", marketStocksCacheConfig)
-                .withCacheConfiguration("market.funds.detail", marketStocksCacheConfig)
-                .withCacheConfiguration("market.funds.chart", marketStocksCacheConfig)
-                .withCacheConfiguration("market.futures.page", marketStocksCacheConfig)
+                .withCacheConfiguration("market.tefas.funds", marketFundsCacheConfig)
+                .withCacheConfiguration("market.funds.page", marketFundsCacheConfig)
+                .withCacheConfiguration("market.funds.detail", marketFundsCacheConfig)
+                .withCacheConfiguration("market.funds.chart", marketFundsCacheConfig)
+                .withCacheConfiguration("market.futures.page", marketFuturesCacheConfig)
                 .withCacheConfiguration("cryptoMarketsCache", cryptoMarketsCacheConfig)
                 .build();
     }
