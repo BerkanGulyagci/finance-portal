@@ -6,6 +6,12 @@ import DashboardPage from '../pages/DashboardPage';
 import PortfolioPage from '../pages/PortfolioPage';
 import PortfolioDetailPage from '../pages/PortfolioDetailPage';
 import MarketPage from '../pages/MarketPage';
+import StocksPage from '../pages/market/StocksPage';
+import CryptoPage from '../pages/market/CryptoPage';
+import FuturesPage from '../pages/market/FuturesPage';
+import FundsPage from '../pages/market/FundsPage';
+import TefasPage from '../pages/market/TefasPage';
+import FxPage from '../pages/market/FxPage';
 import NewsPage from '../pages/NewsPage';
 import NotFoundPage from '../pages/NotFoundPage';
 
@@ -13,23 +19,26 @@ export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* "/" → News (public landing page) */}
         <Route path="/" element={<Navigate to="/news" replace />} />
-
-        {/* Login — standalone, no layout */}
         <Route path="/login" element={<LoginPage />} />
 
-        {/* Public — layout var, login gerekmez */}
+        {/* Public routes with layout */}
         <Route element={<AppLayout />}>
-          <Route path="/news"      element={<NewsPage />} />
-          <Route path="/market"    element={<MarketPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/news"              element={<NewsPage />} />
+          <Route path="/dashboard"         element={<DashboardPage />} />
+          <Route path="/market"            element={<MarketPage />} />
+          <Route path="/market/stocks"     element={<StocksPage />} />
+          <Route path="/market/crypto"     element={<CryptoPage />} />
+          <Route path="/market/futures"    element={<FuturesPage />} />
+          <Route path="/market/funds"      element={<FundsPage />} />
+          <Route path="/market/tefas"      element={<TefasPage />} />
+          <Route path="/market/fx"         element={<FxPage />} />
         </Route>
 
-        {/* Protected — login gerekli */}
+        {/* Protected routes */}
         <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-          <Route path="/portfolio"     element={<PortfolioPage />} />
-          <Route path="/portfolio/:id" element={<PortfolioDetailPage />} />
+          <Route path="/portfolio"         element={<PortfolioPage />} />
+          <Route path="/portfolio/:id"     element={<PortfolioDetailPage />} />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />

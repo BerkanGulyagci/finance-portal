@@ -121,6 +121,7 @@ public class CacheConfig {
                 .withCacheConfiguration("market.stocks.page", marketStocksCacheConfig)
                 .withCacheConfiguration("market.stocks.detail", marketStocksCacheConfig)
                 .withCacheConfiguration("market.tefas.funds", marketFundsCacheConfig)
+                .withCacheConfiguration("market.ipo", marketFundsCacheConfig)
                 .withCacheConfiguration("market.funds.page", marketFundsCacheConfig)
                 .withCacheConfiguration("market.funds.detail", marketFundsCacheConfig)
                 .withCacheConfiguration("market.funds.chart", marketFundsCacheConfig)

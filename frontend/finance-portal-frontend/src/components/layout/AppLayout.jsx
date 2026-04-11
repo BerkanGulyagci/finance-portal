@@ -1,41 +1,19 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-
-const navItems = [
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/portfolio', label: 'Portfolio' },
-  { to: '/market', label: 'Market' },
-  { to: '/news', label: 'News' },
-];
+import { Outlet } from 'react-router-dom';
+import { Header } from '../finans/Header';
+import { MarketTicker } from '../finans/MarketTicker';
+import { Footer } from '../finans/Footer';
+import { AIChatWidget } from '../finans/AIChatWidget';
 
 export default function AppLayout() {
-  const { logout } = useAuth();
-  const navigate = useNavigate();
-
-  function handleLogout() {
-    logout();
-    navigate('/');
-  }
-
   return (
-    <div>
-      <nav style={{ display: 'flex', gap: '1rem', padding: '1rem', borderBottom: '1px solid #ccc', alignItems: 'center' }}>
-        {navItems.map(({ to, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            style={({ isActive }) => ({ fontWeight: isActive ? 'bold' : 'normal' })}
-          >
-            {label}
-          </NavLink>
-        ))}
-        <button onClick={handleLogout} style={{ marginLeft: 'auto' }}>
-          Çıkış
-        </button>
-      </nav>
-      <main style={{ padding: '1.5rem' }}>
+    <div className="min-h-screen bg-[#f5f6f8]">
+      <Header />
+      <MarketTicker />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Outlet />
       </main>
+      <Footer />
+      <AIChatWidget />
     </div>
   );
 }

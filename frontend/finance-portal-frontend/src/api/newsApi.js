@@ -2,6 +2,15 @@ import axios from 'axios';
 
 const BASE_URL = 'http://localhost:8080';
 
+export function proxyImageUrl(url) {
+  if (!url) return null;
+  // Only proxy bloomberght images, others load directly
+  if (url.includes('bloomberght.com')) {
+    return `${BASE_URL}/api/proxy/image?url=${encodeURIComponent(url)}`;
+  }
+  return url;
+}
+
 /**
  * Public endpoint — no auth token sent intentionally.
  * @param {{ category?: string, country?: string, keyword?: string, pageSize?: number }} filters
