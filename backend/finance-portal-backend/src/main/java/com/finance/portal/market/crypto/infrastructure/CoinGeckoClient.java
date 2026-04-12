@@ -58,7 +58,7 @@ public class CoinGeckoClient {
                 + "&per_page=" + perPage
                 + "&page=" + coingeckoPage
                 + "&sparkline=false"
-                + "&price_change_percentage=24h";
+                + "&price_change_percentage=1h,7d";
 
         try {
             List<CoinGeckoMarketItemDto> body = restClient.get()

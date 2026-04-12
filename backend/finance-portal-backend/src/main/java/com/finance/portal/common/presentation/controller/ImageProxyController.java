@@ -25,7 +25,8 @@ public class ImageProxyController {
     private static final Set<String> ALLOWED_HOSTS = Set.of(
             "geoim.bloomberght.com",
             "images.unsplash.com",
-            "newsapi.org"
+            "newsapi.org",
+            "webcdn.getmidas.com"
     );
 
     private final RestTemplate restTemplate;

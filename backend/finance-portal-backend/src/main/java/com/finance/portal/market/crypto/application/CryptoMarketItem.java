@@ -25,6 +25,8 @@ public class CryptoMarketItem {
     private final BigDecimal low24h;
     private final BigDecimal priceChange24h;
     private final BigDecimal priceChangePercentage24h;
+    private final BigDecimal priceChangePercentage1h;
+    private final BigDecimal priceChangePercentage7d;
     /** ISO-8601 timestamp from provider (e.g. 2026-03-08T23:08:21.063Z). */
     private final String lastUpdated;
 
@@ -42,6 +44,8 @@ public class CryptoMarketItem {
             @JsonProperty("low24h") BigDecimal low24h,
             @JsonProperty("priceChange24h") BigDecimal priceChange24h,
             @JsonProperty("priceChangePercentage24h") BigDecimal priceChangePercentage24h,
+            @JsonProperty("priceChangePercentage1h") BigDecimal priceChangePercentage1h,
+            @JsonProperty("priceChangePercentage7d") BigDecimal priceChangePercentage7d,
             @JsonProperty("lastUpdated") String lastUpdated
     ) {
         this.id = id;
@@ -56,6 +60,8 @@ public class CryptoMarketItem {
         this.low24h = low24h;
         this.priceChange24h = priceChange24h;
         this.priceChangePercentage24h = priceChangePercentage24h;
+        this.priceChangePercentage1h = priceChangePercentage1h;
+        this.priceChangePercentage7d = priceChangePercentage7d;
         this.lastUpdated = lastUpdated;
     }
 }

@@ -23,7 +23,7 @@ public class CryptoMarketService {
 
     private static final Logger log = LoggerFactory.getLogger(CryptoMarketService.class);
     private static final int MIN_SIZE = 1;
-    private static final int MAX_SIZE = 100;
+    private static final int MAX_SIZE = 250;
     private static final String CACHE_NAME = "cryptoMarketsCache";
     private static final String CACHE_KEY_PREFIX = "try:p";
 
@@ -133,6 +133,8 @@ public class CryptoMarketService {
                 toBigDecimal(dto.getLow24h()),
                 toBigDecimal(dto.getPriceChange24h()),
                 toBigDecimal(dto.getPriceChangePercentage24h()),
+                toBigDecimal(dto.getPriceChangePercentage1hInCurrency()),
+                toBigDecimal(dto.getPriceChangePercentage7dInCurrency()),
                 dto.getLastUpdated()
         );
     }

@@ -22,19 +22,6 @@ public class IpoCalendarClient {
     private static final String URL = "https://halkarz.com/";
     private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
 
-    // Matches: <a href="/company-slug/">SYMBOL\n### [Company Name]\n\nDate
-    private static final Pattern ITEM_PATTERN = Pattern.compile(
-            "<a[^>]+href=\"(https://halkarz\\.com/[^\"]+)\"[^>]*>([A-Z0-9]+)\\s*</a>\\s*" +
-            "<h3[^>]*>\\s*<a[^>]*>([^<]+)</a>\\s*</h3>\\s*<p[^>]*>([^<]+)</p>",
-            Pattern.DOTALL
-    );
-
-    // Simpler fallback: extract name + ticker + date from rendered text blocks
-    private static final Pattern BLOCK_PATTERN = Pattern.compile(
-            "\\[([^\\]]+)\\]\\(https://halkarz\\.com/[^)]+\\)([A-Z0-9]{3,6})\\s*###\\s*\\[([^\\]]+)\\]\\([^)]+\\)\\s*([\\d\\-\\s,A-Za-zışğüöçİŞĞÜÖÇ]+(?:20\\d{2}))",
-            Pattern.DOTALL
-    );
-
     private final RestTemplate restTemplate;
 
     public IpoCalendarClient(RestTemplate restTemplate) {
@@ -62,37 +49,24 @@ public class IpoCalendarClient {
     private List<IpoItem> parseHtml(String html) {
         List<IpoItem> result = new ArrayList<>();
 
-        // Extract the main content section between "İlk Halka Arzlar" and "DAHA FAZLA GÖSTER"
-        int start = html.indexOf("İlk Halka Arzlar");
-        int end = html.indexOf("DAHA FAZLA GÖSTER");
-        if (start == -1 || end == -1 || end <= start) {
-            log.debug("Could not find IPO section in HTML");
-            return result;
-        }
-
-        String section = html.substring(start, end);
-
-        // Pattern: ticker in a span/div, company name in h3/a, date in next element
-        // halkarz.com structure: <a href="/slug/">TICKER</a> <h3><a>Company</a></h3> date text
+        // Actual halkarz.com HTML structure:
+        // <span class="il-bist-kod">TICKER</span>
+        // <h3 class="il-halka-arz-sirket"><a href="URL">Company Name</a></h3>
+        // <span class="il-halka-arz-tarihi"><time ...>Date</time></span>
         Pattern p = Pattern.compile(
-                "href=\"https://halkarz\\.com/([^\"]+)\"[^>]*>([A-Z0-9]{3,6})</a>\\s*" +
-                "<h3[^>]*>\\s*<a[^>]*>([^<]+)</a>\\s*</h3>\\s*" +
-                "([\\d\\-\\s,A-Za-zışğüöçİŞĞÜÖÇ]+(?:20\\d{2}))",
+                "<span class=\"il-bist-kod\">\\s*([A-Z0-9]{3,6})\\s*</span>\\s*" +
+                "<h3[^>]*><a href=\"([^\"]+)\"[^>]*>([^<]+)</a></h3>\\s*" +
+                "<span[^>]*>\\s*<time[^>]*>([^<]+)</time>",
                 Pattern.DOTALL
         );
 
-        Matcher m = p.matcher(section);
+        Matcher m = p.matcher(html);
         while (m.find() && result.size() < 20) {
-            String slug   = m.group(1).trim();
-            String ticker = m.group(2).trim();
-            String name   = m.group(3).trim();
-            String date   = m.group(4).trim().replaceAll("\\s+", " ");
-
             IpoItem item = new IpoItem();
-            item.setTicker(ticker);
-            item.setName(name);
-            item.setDate(date);
-            item.setUrl("https://halkarz.com/" + slug);
+            item.setTicker(m.group(1).trim());
+            item.setUrl(m.group(2).trim());
+            item.setName(m.group(3).trim());
+            item.setDate(m.group(4).trim());
             result.add(item);
         }
 

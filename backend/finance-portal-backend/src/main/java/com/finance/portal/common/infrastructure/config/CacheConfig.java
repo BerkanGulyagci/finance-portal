@@ -120,6 +120,7 @@ public class CacheConfig {
                 .withCacheConfiguration("market.fx.open.latest", marketFxOpenCacheConfig)
                 .withCacheConfiguration("market.stocks.page", marketStocksCacheConfig)
                 .withCacheConfiguration("market.stocks.detail", marketStocksCacheConfig)
+                .withCacheConfiguration("market.stocks.midas", marketStocksCacheConfig)
                 .withCacheConfiguration("market.tefas.funds", marketFundsCacheConfig)
                 .withCacheConfiguration("market.ipo", marketFundsCacheConfig)
                 .withCacheConfiguration("market.funds.page", marketFundsCacheConfig)

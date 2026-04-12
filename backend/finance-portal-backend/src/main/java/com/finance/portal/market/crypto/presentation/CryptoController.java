@@ -31,7 +31,7 @@ public class CryptoController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<CryptoMarketItem>>> getCryptos(
             @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
+            @RequestParam(defaultValue = "100") @Min(1) @Max(250) int size
     ) {
         List<CryptoMarketItem> items = cryptoMarketService.getCryptos(page, size);
         ApiResponse<List<CryptoMarketItem>> response = ApiResponse.success(

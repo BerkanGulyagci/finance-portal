@@ -1,6 +1,8 @@
 package com.finance.portal.market.application.stock;
 
 import com.finance.portal.common.infrastructure.exception.ResourceNotFoundException;
+import com.finance.portal.market.application.stock.MidasStockDetail;
+import com.finance.portal.market.infrastructure.external.midas.MidasStockClient;
 import com.finance.portal.market.application.stock.port.YahooStockPort;
 import com.finance.portal.market.infrastructure.external.yahoo.YahooChartResponseDto;
 import org.slf4j.Logger;
@@ -27,10 +29,13 @@ public class StockQueryService {
 
     private final YahooStockPort yahooStockPort;
     private final StockSymbolProvider stockSymbolProvider;
+    private final MidasStockClient midasStockClient;
 
-    public StockQueryService(YahooStockPort yahooStockPort, StockSymbolProvider stockSymbolProvider) {
+    public StockQueryService(YahooStockPort yahooStockPort, StockSymbolProvider stockSymbolProvider,
+                             MidasStockClient midasStockClient) {
         this.yahooStockPort = yahooStockPort;
         this.stockSymbolProvider = stockSymbolProvider;
+        this.midasStockClient = midasStockClient;
     }
 
     public StockSummary getStockSummary(String symbol) {
@@ -152,6 +157,46 @@ public class StockQueryService {
         chartResponse.setTimestamps(filteredTimestamps);
         chartResponse.setClosePrices(filteredCloses);
 
+        return chartResponse;
+    }
+
+    @Cacheable(cacheNames = "market.stocks.midas", key = "'midas:' + #symbol")
+    public MidasStockDetail getMidasDetail(String symbol) {
+        return midasStockClient.fetchDetail(symbol);
+    }
+
+    public StockChartResponse getStockChartWithParams(String symbol, String range, String interval) {
+        YahooChartResponseDto response = yahooStockPort.fetchChartWithParams(symbol, range, interval);
+
+        if (response == null || response.getChart() == null
+                || response.getChart().getResult() == null
+                || response.getChart().getResult().isEmpty()) {
+            throw new ResourceNotFoundException("Stock chart not found for symbol: " + symbol);
+        }
+
+        YahooChartResponseDto.Result result = response.getChart().getResult().get(0);
+        List<Long> timestamps = result.getTimestamp();
+        List<BigDecimal> closes = null;
+        if (result.getIndicators() != null && result.getIndicators().getQuote() != null
+                && !result.getIndicators().getQuote().isEmpty()) {
+            closes = result.getIndicators().getQuote().get(0).getClose();
+        }
+        if (timestamps == null || closes == null || timestamps.isEmpty()) {
+            throw new ResourceNotFoundException("Stock chart data not available for symbol: " + symbol);
+        }
+        int sz = Math.min(timestamps.size(), closes.size());
+        List<Long> ts = timestamps;
+        List<BigDecimal> cl = closes;
+        List<Long> filteredTs = java.util.stream.IntStream.range(0, sz)
+                .filter(i -> ts.get(i) != null && cl.get(i) != null)
+                .mapToObj(ts::get).toList();
+        List<BigDecimal> filteredCl = java.util.stream.IntStream.range(0, sz)
+                .filter(i -> ts.get(i) != null && cl.get(i) != null)
+                .mapToObj(cl::get).toList();
+        StockChartResponse chartResponse = new StockChartResponse();
+        chartResponse.setSymbol(symbol);
+        chartResponse.setTimestamps(filteredTs);
+        chartResponse.setClosePrices(filteredCl);
         return chartResponse;
     }
 

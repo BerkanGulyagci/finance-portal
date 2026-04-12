@@ -1,6 +1,7 @@
 package com.finance.portal.market.presentation.controller;
 
 import com.finance.portal.common.presentation.dto.ApiResponse;
+import com.finance.portal.market.application.stock.MidasStockDetail;
 import com.finance.portal.market.application.stock.StockChartResponse;
 import com.finance.portal.market.application.stock.StockDetail;
 import com.finance.portal.market.application.stock.StockPageResponse;
@@ -69,7 +70,9 @@ public class MarketStockController {
 
     @GetMapping("/{symbol}/chart")
     public ResponseEntity<ApiResponse<StockChartResponse>> getStockChart(
-            @PathVariable("symbol") String symbol
+            @PathVariable("symbol") String symbol,
+            @RequestParam(defaultValue = "1d") String range,
+            @RequestParam(defaultValue = "1m") String interval
     ) {
         if (symbol == null || symbol.trim().isEmpty()) {
             throw new IllegalArgumentException("symbol must not be empty");
@@ -78,7 +81,7 @@ public class MarketStockController {
         String normalizedSymbol = symbol.trim().toUpperCase();
         validateSymbol(normalizedSymbol);
 
-        StockChartResponse chart = stockQueryService.getStockChart(normalizedSymbol);
+        StockChartResponse chart = stockQueryService.getStockChartWithParams(normalizedSymbol, range, interval);
 
         ApiResponse<StockChartResponse> response = ApiResponse.success(
                 chart,
@@ -86,6 +89,18 @@ public class MarketStockController {
         );
 
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{symbol}/midas")
+    public ResponseEntity<ApiResponse<MidasStockDetail>> getMidasDetail(
+            @PathVariable("symbol") String symbol
+    ) {
+        if (symbol == null || symbol.trim().isEmpty()) {
+            throw new IllegalArgumentException("symbol must not be empty");
+        }
+        String normalizedSymbol = symbol.trim().toUpperCase();
+        MidasStockDetail detail = stockQueryService.getMidasDetail(normalizedSymbol);
+        return ResponseEntity.ok(ApiResponse.success(detail, "Midas stock detail retrieved successfully"));
     }
 
     private void validateSymbol(String symbol) {

@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { getAllStocks } from '../../api/marketApi';
 
 const PAGE_SIZE = 20;
@@ -58,8 +59,10 @@ export default function StocksPage() {
               </thead>
               <tbody>
                 {paged.map(r => (
-                  <tr key={r.symbol} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-bold text-[#093eaa] text-sm">{r.symbol}</td>
+                  <tr key={r.symbol} className="border-t border-gray-100 hover:bg-blue-50 transition-colors cursor-pointer">
+                    <td className="px-4 py-3 font-bold text-sm">
+                      <Link to={`/market/stocks/${r.symbol}`} className="text-[#093eaa] hover:underline">{r.symbol}</Link>
+                    </td>
                     <td className="px-4 py-3 text-sm text-gray-700">{r.name ?? '-'}</td>
                     <td className="px-4 py-3 text-sm font-semibold">{num(r.price)} <span className="text-gray-400 text-xs">{r.currency}</span></td>
                     <td className="px-4 py-3 text-sm">{r.change == null ? '-' : <span className={parseFloat(r.change) >= 0 ? 'text-emerald-600 font-semibold' : 'text-rose-600 font-semibold'}>{num(r.change)}</span>}</td>

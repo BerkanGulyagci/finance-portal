@@ -7,6 +7,7 @@ import PortfolioPage from '../pages/PortfolioPage';
 import PortfolioDetailPage from '../pages/PortfolioDetailPage';
 import MarketPage from '../pages/MarketPage';
 import StocksPage from '../pages/market/StocksPage';
+import StockDetailPage from '../pages/market/StockDetailPage';
 import CryptoPage from '../pages/market/CryptoPage';
 import FuturesPage from '../pages/market/FuturesPage';
 import FundsPage from '../pages/market/FundsPage';
@@ -28,6 +29,7 @@ export default function AppRouter() {
           <Route path="/dashboard"         element={<DashboardPage />} />
           <Route path="/market"            element={<MarketPage />} />
           <Route path="/market/stocks"     element={<StocksPage />} />
+          <Route path="/market/stocks/:symbol" element={<StockDetailPage />} />
           <Route path="/market/crypto"     element={<CryptoPage />} />
           <Route path="/market/futures"    element={<FuturesPage />} />
           <Route path="/market/funds"      element={<FundsPage />} />
