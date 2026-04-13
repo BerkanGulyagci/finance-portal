@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 const marketItems = [
   { label: 'Hisse Senetleri', path: '/market/stocks', desc: 'BIST hisse fiyatları' },
   { label: 'Kripto Para',     path: '/market/crypto',  desc: 'CoinGecko TRY bazlı' },
-  { label: 'Vadeli İşlemler', path: '/market/futures', desc: 'Küresel vadeli kontratlar' },
+  { label: 'Vadeli İşlemler', path: '/market/futures', desc: 'Türkiye VİOP ve küresel vadeli kontratlar' },
   { label: 'Global Fonlar',   path: '/market/funds',   desc: 'ETF ve yatırım fonları' },
   { label: 'TEFAS Fonları',   path: '/market/tefas',   desc: 'Türkiye yatırım fonları' },
   { label: 'Döviz Kurları',   path: '/market/fx',      desc: 'TCMB resmi kurlar' },

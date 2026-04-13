@@ -97,7 +97,7 @@ resilience4j:
         slidingWindowSize: 10
         minimumNumberOfCalls: 5
         failureRateThreshold: 50
-        waitDurationInOpenState: 30s
+        waitDurationInOpenState: 60s
       coinGeckoApi:
         slidingWindowSize: 10
         minimumNumberOfCalls: 3

@@ -36,7 +36,7 @@ public class MarketFundController {
     public ResponseEntity<ApiResponse<TefasFundPageResponse>> getTefasFunds(
             @RequestParam(defaultValue = "YAT") String kind,
             @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "50") @Min(1) @Max(1000) int size
+            @RequestParam(defaultValue = "50") @Min(1) @Max(2000) int size
     ) {
         TefasFundPageResponse result = tefasFundService.getPagedFunds(kind, page, size);
         return ResponseEntity.ok(ApiResponse.success(result, "TEFAS funds retrieved successfully"));

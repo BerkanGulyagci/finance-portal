@@ -72,29 +72,21 @@ public class StockQueryService {
         int totalElements = stockSymbolProvider.getTotalElements();
         List<String> symbols = stockSymbolProvider.getPagedSymbols(page, size);
 
-        List<StockSummary> content;
+        List<StockSummary> content = new java.util.ArrayList<>();
 
-        if (symbols.isEmpty()) {
-            content = List.of();
-        } else {
-            List<CompletableFuture<StockSummary>> futures = symbols.stream()
-                    .map(symbol -> CompletableFuture.supplyAsync(() -> {
-                        try {
-                            return getStockSummary(symbol);
-                        } catch (Exception ex) {
-                            logger.warn("Failed to fetch stock summary for symbol {}: {}", symbol, ex.getMessage());
-                            return null;
-                        }
-                    }))
-                    .toList();
-
-            content = futures.stream()
-                    .map(CompletableFuture::join)
-                    .filter(java.util.Objects::nonNull)
-                    .collect(java.util.stream.Collectors.toList());
-
-            if (content.isEmpty()) {
-                logger.warn("No stock summaries could be fetched for page {} and size {}", page, size);
+        if (!symbols.isEmpty()) {
+            // Sequential with small delay to avoid Yahoo rate limiting
+            for (String symbol : symbols) {
+                try {
+                    StockSummary s = getStockSummary(symbol);
+                    if (s != null) content.add(s);
+                    Thread.sleep(50); // 50ms between requests = ~20 req/sec
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                } catch (Exception ex) {
+                    logger.warn("Failed to fetch stock summary for {}: {}", symbol, ex.getMessage());
+                }
             }
         }
 

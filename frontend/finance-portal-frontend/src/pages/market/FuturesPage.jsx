@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
-import { getFutures } from '../../api/marketApi';
+import { useEffect, useState, useRef, useMemo } from 'react';
+import { getFutures, getViopContracts } from '../../api/marketApi';
+
+const PAGE_SIZE = 20;
 
 function pct(v) {
   if (v == null) return <span className="text-gray-400">-</span>;
@@ -9,49 +11,240 @@ function pct(v) {
 function num(v, dec = 2) {
   return v == null ? '-' : parseFloat(v).toLocaleString('tr-TR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 }
+function pctViop(v) {
+  if (!v) return <span className="text-gray-400">-</span>;
+  const clean = v.replace('%', '').replace(',', '.').trim();
+  const n = parseFloat(clean);
+  if (isNaN(n)) return <span className="text-gray-600 text-xs">{v}</span>;
+  return <span className={n >= 0 ? 'text-emerald-600 font-semibold' : 'text-rose-600 font-semibold'}>{v}</span>;
+}
+
+function Pagination({ page, totalPages, onChange }) {
+  if (totalPages <= 1) return null;
+  const pages = [];
+  const start = Math.max(0, page - 2);
+  const end = Math.min(totalPages - 1, page + 2);
+  for (let i = start; i <= end; i++) pages.push(i);
+  return (
+    <div className="flex items-center justify-center gap-1 py-4">
+      <button onClick={() => onChange(0)} disabled={page === 0}
+        className="px-2 py-1 text-xs rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50">«</button>
+      <button onClick={() => onChange(page - 1)} disabled={page === 0}
+        className="px-2 py-1 text-xs rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50">‹</button>
+      {pages.map(p => (
+        <button key={p} onClick={() => onChange(p)}
+          className={`px-3 py-1 text-xs rounded border ${p === page ? 'bg-[#093eaa] text-white border-[#093eaa]' : 'border-gray-200 hover:bg-gray-50'}`}>
+          {p + 1}
+        </button>
+      ))}
+      <button onClick={() => onChange(page + 1)} disabled={page === totalPages - 1}
+        className="px-2 py-1 text-xs rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50">›</button>
+      <button onClick={() => onChange(totalPages - 1)} disabled={page === totalPages - 1}
+        className="px-2 py-1 text-xs rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50">»</button>
+    </div>
+  );
+}
 
 export default function FuturesPage() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('viop');
+
+  // VIOP state
+  const [viopItems, setViopItems] = useState([]);
+  const [viopSearch, setViopSearch] = useState('');
+  const [viopPage, setViopPage] = useState(0);
+  const viopFetched = useRef(false);
+
+  // Global state
+  const [globalItems, setGlobalItems] = useState([]);
+  const [globalSearch, setGlobalSearch] = useState('');
+  const [globalPage, setGlobalPage] = useState(0);
+  const globalFetched = useRef(false);
+
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    getFutures(0, 20).then(r => setItems(r.content ?? [])).catch(e => setError(!e.response ? 'Sunucuya ulaşılamıyor.' : `Hata (${e.response.status})`)).finally(() => setLoading(false));
+    if (!viopFetched.current) {
+      viopFetched.current = true;
+      setLoading(true);
+      getViopContracts()
+        .then(setViopItems)
+        .catch(e => setError(!e.response ? 'Sunucuya ulaşılamıyor.' : `Hata (${e.response.status})`))
+        .finally(() => setLoading(false));
+    }
   }, []);
+
+  function handleTab(tab) {
+    setActiveTab(tab);
+    if (tab === 'global' && !globalFetched.current) {
+      globalFetched.current = true;
+      setLoading(true);
+      setError('');
+      getFutures(0, 100)
+        .then(r => setGlobalItems(r.content ?? []))
+        .catch(e => setError(!e.response ? 'Sunucuya ulaşılamıyor.' : `Hata (${e.response.status})`))
+        .finally(() => setLoading(false));
+    }
+  }
+
+  // Filtered + paginated VIOP
+  const filteredViop = useMemo(() => {
+    if (!viopSearch.trim()) return viopItems;
+    const q = viopSearch.toLowerCase();
+    return viopItems.filter(r => r.name?.toLowerCase().includes(q));
+  }, [viopItems, viopSearch]);
+
+  const viopTotalPages = Math.ceil(filteredViop.length / PAGE_SIZE);
+  const viopPageItems = filteredViop.slice(viopPage * PAGE_SIZE, (viopPage + 1) * PAGE_SIZE);
+
+  // Filtered + paginated Global
+  const filteredGlobal = useMemo(() => {
+    if (!globalSearch.trim()) return globalItems;
+    const q = globalSearch.toLowerCase();
+    return globalItems.filter(r => r.symbol?.toLowerCase().includes(q) || r.name?.toLowerCase().includes(q));
+  }, [globalItems, globalSearch]);
+
+  const globalTotalPages = Math.ceil(filteredGlobal.length / PAGE_SIZE);
+  const globalPageItems = filteredGlobal.slice(globalPage * PAGE_SIZE, (globalPage + 1) * PAGE_SIZE);
+
+  function handleViopSearch(v) { setViopSearch(v); setViopPage(0); }
+  function handleGlobalSearch(v) { setGlobalSearch(v); setGlobalPage(0); }
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-2 border-l-4 border-[#093eaa] pl-4">Vadeli İşlemler</h1>
-      <p className="text-sm text-gray-500 mb-6 pl-5">Küresel endeks, emtia ve döviz vadeli kontratları</p>
+      <p className="text-sm text-gray-500 mb-6 pl-5">Türkiye VİOP kontratları ve küresel vadeli işlemler</p>
+
+      <div className="flex gap-2 mb-4">
+        <button onClick={() => handleTab('viop')}
+          className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === 'viop' ? 'bg-[#093eaa] text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>
+          🇹🇷 Türkiye VİOP
+        </button>
+        <button onClick={() => handleTab('global')}
+          className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === 'global' ? 'bg-[#093eaa] text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>
+          🌍 Küresel Vadeli
+        </button>
+      </div>
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         {loading && <div className="p-8 text-center text-gray-400 text-sm">Yükleniyor...</div>}
         {error && <div className="p-6 text-rose-500 text-sm">{error}</div>}
-        {!loading && !error && (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>{['Sembol', 'Ad', 'Fiyat', 'Değişim', '%', 'Yüksek', 'Düşük', 'Hacim', 'Borsa'].map(h =>
-                  <th key={h} className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap border-b border-gray-200">{h}</th>
-                )}</tr>
-              </thead>
-              <tbody>
-                {items.map(r => (
-                  <tr key={r.symbol} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-bold text-[#093eaa] text-sm">{r.symbol}</td>
-                    <td className="px-4 py-3 text-sm text-gray-700">{r.name ?? '-'}</td>
-                    <td className="px-4 py-3 text-sm font-semibold">{num(r.price)} <span className="text-gray-400 text-xs">{r.currency}</span></td>
-                    <td className="px-4 py-3 text-sm">{r.change == null ? '-' : <span className={parseFloat(r.change) >= 0 ? 'text-emerald-600 font-semibold' : 'text-rose-600 font-semibold'}>{num(r.change)}</span>}</td>
-                    <td className="px-4 py-3 text-sm">{pct(r.changePercent)}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{num(r.dayHigh)}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{num(r.dayLow)}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{r.volume == null ? '-' : Number(r.volume).toLocaleString('tr-TR')}</td>
-                    <td className="px-4 py-3 text-xs text-gray-400">{r.exchange ?? '-'}</td>
+
+        {/* VIOP Tab */}
+        {!loading && !error && activeTab === 'viop' && (
+          <>
+            {/* Search bar */}
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-3">
+              <div className="relative flex-1 max-w-sm">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Sözleşme ara..."
+                  value={viopSearch}
+                  onChange={e => handleViopSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30 focus:border-[#093eaa]"
+                />
+              </div>
+              <span className="text-xs text-gray-400">
+                {filteredViop.length} sözleşme
+              </span>
+            </div>
+
+            {viopItems.length === 0
+              ? <p className="p-6 text-gray-400 text-sm">VİOP verisi bulunamadı.</p>
+              : (
+                <>
+                  <div className="px-4 py-1.5 bg-gray-50 border-b border-gray-100 text-xs text-gray-400">
+                    Kaynak: Akbank Yatırım · yatirim.akbank.com
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          {['Sözleşme', 'Fark (%)', 'Son', 'Yüksek', 'Düşük', 'Açık Poz. Sayısı', 'Açık Poz. Değ.', 'Uzlaşma', 'Önceki Uzlaşma', 'Zaman'].map(h =>
+                            <th key={h} className="text-left px-3 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap border-b border-gray-200">{h}</th>
+                          )}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {viopPageItems.length === 0
+                          ? <tr><td colSpan={10} className="px-4 py-8 text-center text-gray-400 text-sm">Sonuç bulunamadı.</td></tr>
+                          : viopPageItems.map((r, i) => (
+                            <tr key={i} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
+                              <td className="px-3 py-2.5 text-sm font-semibold text-[#093eaa] whitespace-nowrap">{r.name}</td>
+                              <td className="px-3 py-2.5 text-sm">{pctViop(r.changePercent)}</td>
+                              <td className="px-3 py-2.5 text-sm font-semibold text-gray-900">{r.lastPrice ?? '-'}</td>
+                              <td className="px-3 py-2.5 text-sm text-gray-600">{r.high ?? '-'}</td>
+                              <td className="px-3 py-2.5 text-sm text-gray-600">{r.low ?? '-'}</td>
+                              <td className="px-3 py-2.5 text-sm text-gray-600">{r.openPositionCount ?? '-'}</td>
+                              <td className="px-3 py-2.5 text-sm text-gray-600">{r.openPositionChange ?? '-'}</td>
+                              <td className="px-3 py-2.5 text-sm text-gray-600">{r.settlementPrice ?? '-'}</td>
+                              <td className="px-3 py-2.5 text-sm text-gray-600">{r.prevSettlementPrice ?? '-'}</td>
+                              <td className="px-3 py-2.5 text-xs text-gray-400">{r.time ?? '-'}</td>
+                            </tr>
+                          ))
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                  <Pagination page={viopPage} totalPages={viopTotalPages} onChange={p => setViopPage(p)} />
+                </>
+              )
+            }
+          </>
+        )}
+
+        {/* Global Futures Tab */}
+        {!loading && !error && activeTab === 'global' && (
+          <>
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-3">
+              <div className="relative flex-1 max-w-sm">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Sembol veya isim ara..."
+                  value={globalSearch}
+                  onChange={e => handleGlobalSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30 focus:border-[#093eaa]"
+                />
+              </div>
+              <span className="text-xs text-gray-400">{filteredGlobal.length} kontrat</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    {['Sembol', 'Ad', 'Fiyat', 'Değişim', '%', 'Yüksek', 'Düşük', 'Hacim', 'Borsa'].map(h =>
+                      <th key={h} className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap border-b border-gray-200">{h}</th>
+                    )}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {globalPageItems.length === 0
+                    ? <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400 text-sm">Veri yok.</td></tr>
+                    : globalPageItems.map(r => (
+                      <tr key={r.symbol} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-3 font-bold text-[#093eaa] text-sm">{r.symbol}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{r.name ?? '-'}</td>
+                        <td className="px-4 py-3 text-sm font-semibold">{num(r.price)} <span className="text-gray-400 text-xs">{r.currency}</span></td>
+                        <td className="px-4 py-3 text-sm">{r.change == null ? '-' : <span className={parseFloat(r.change) >= 0 ? 'text-emerald-600 font-semibold' : 'text-rose-600 font-semibold'}>{num(r.change)}</span>}</td>
+                        <td className="px-4 py-3 text-sm">{pct(r.changePercent)}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{num(r.dayHigh)}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{num(r.dayLow)}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{r.volume == null ? '-' : Number(r.volume).toLocaleString('tr-TR')}</td>
+                        <td className="px-4 py-3 text-xs text-gray-400">{r.exchange ?? '-'}</td>
+                      </tr>
+                    ))
+                  }
+                </tbody>
+              </table>
+            </div>
+            <Pagination page={globalPage} totalPages={globalTotalPages} onChange={p => setGlobalPage(p)} />
+          </>
         )}
       </div>
     </div>

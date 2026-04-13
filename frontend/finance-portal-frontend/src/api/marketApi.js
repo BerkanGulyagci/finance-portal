@@ -41,6 +41,11 @@ export async function getFutures(page = 0, size = 20) {
   return w.data ?? {};
 }
 
+export async function getViopContracts() {
+  const { data: w } = await client.get('/api/market/viop');
+  return w.data ?? [];
+}
+
 export async function getFunds(page = 0, size = 20) {
   const { data: w } = await client.get('/api/market/funds', { params: { page, size } });
   return w.data ?? {};
@@ -53,5 +58,10 @@ export async function getTefasFunds(kind = 'YAT', page = 0, size = 50) {
 
 export async function getFxTcmb() {
   const { data: w } = await client.get('/api/market/fx/tcmb/latest');
+  return w.data ?? {};
+}
+
+export async function getFxOpen(base = 'USD') {
+  const { data: w } = await client.get('/api/market/fx/open/latest', { params: { base } });
   return w.data ?? {};
 }

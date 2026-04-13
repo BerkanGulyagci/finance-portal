@@ -107,9 +107,9 @@ public class TefasFundClient {
             item.setCode(str(map, "FONKODU"));
             item.setTitle(str(map, "FONUNVAN"));
             item.setPrice(parseBigDecimal(str(map, "FIYAT")));
-            item.setDailyReturnPercent(parseBigDecimal(str(map, "GUNLUKGETIRI")));
+            item.setDailyReturnPercent(parseBigDecimal(str(map, "GUNLUKGETIRI"))); // may be null
             item.setMarketCap(parseBigDecimal(str(map, "PORTFOYBUYUKLUK")));
-            item.setNumberOfInvestors(parseLong(str(map, "YATIRIMCISAYISI")));
+            item.setNumberOfInvestors(parseLong(str(map, "KISISAYISI"))); // actual field name
             item.setDate(str(map, "TARIH"));
             return item;
         } catch (Exception e) {

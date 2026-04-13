@@ -123,6 +123,7 @@ public class CacheConfig {
                 .withCacheConfiguration("market.stocks.midas", marketStocksCacheConfig)
                 .withCacheConfiguration("market.tefas.funds", marketFundsCacheConfig)
                 .withCacheConfiguration("market.ipo", marketFundsCacheConfig)
+                .withCacheConfiguration("market.viop", marketFundsCacheConfig)
                 .withCacheConfiguration("market.funds.page", marketFundsCacheConfig)
                 .withCacheConfiguration("market.funds.detail", marketFundsCacheConfig)
                 .withCacheConfiguration("market.funds.chart", marketFundsCacheConfig)
