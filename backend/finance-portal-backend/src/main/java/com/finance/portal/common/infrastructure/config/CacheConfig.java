@@ -32,16 +32,16 @@ public class CacheConfig {
     @Value("${cache.market.fx.open.ttl-seconds:1800}")
     private long marketFxOpenTtlSeconds;
 
-    @Value("${cache.market.stocks.ttl-seconds:300}")
+    @Value("${cache.market.stocks.ttl-seconds:600}")
     private long marketStocksTtlSeconds;
 
     @Value("${cache.market.crypto.ttl-seconds:60}")
     private long marketCryptoTtlSeconds;
 
-    @Value("${cache.market.funds.ttl-seconds:300}")
+    @Value("${cache.market.funds.ttl-seconds:600}")
     private long marketFundsTtlSeconds;
 
-    @Value("${cache.market.futures.ttl-seconds:300}")
+    @Value("${cache.market.futures.ttl-seconds:600}")
     private long marketFuturesTtlSeconds;
 
     @Bean
@@ -124,6 +124,10 @@ public class CacheConfig {
                 .withCacheConfiguration("market.tefas.funds", marketFundsCacheConfig)
                 .withCacheConfiguration("market.ipo", marketFundsCacheConfig)
                 .withCacheConfiguration("market.viop", marketFundsCacheConfig)
+                .withCacheConfiguration("market.bonds", marketFundsCacheConfig)
+                .withCacheConfiguration("market.indicators", marketFxTcmbCacheConfig)
+                .withCacheConfiguration("market.gold.spot", marketFxTcmbCacheConfig)
+                .withCacheConfiguration("market.gold.history", marketFundsCacheConfig)
                 .withCacheConfiguration("market.funds.page", marketFundsCacheConfig)
                 .withCacheConfiguration("market.funds.detail", marketFundsCacheConfig)
                 .withCacheConfiguration("market.funds.chart", marketFundsCacheConfig)

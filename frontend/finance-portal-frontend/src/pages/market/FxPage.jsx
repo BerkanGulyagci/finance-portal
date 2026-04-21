@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getFxTcmb, getFxOpen } from '../../api/marketApi';
+import { useSortable } from '../../hooks/useSortable';
+import SortableTh from '../../components/common/SortableTh';
 
 function num(v, dec = 4) {
   return v == null ? '-' : parseFloat(v).toLocaleString('tr-TR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
@@ -34,6 +36,15 @@ export default function FxPage() {
       .catch(e => setError(!e.response ? 'Sunucuya ulaşılamıyor.' : `Hata (${e.response.status})`))
       .finally(() => setLoading(false));
   }, [activeTab, openBase]);
+
+  const tcmbRates = tcmbData?.rates ?? [];
+  const openRates = openData?.rates ?? [];
+
+  const { sorted: sortedTcmb, sortKey: tcmbSortKey, sortDir: tcmbSortDir, handleSort: handleTcmbSort } = useSortable(tcmbRates, 'symbol', 'asc');
+  const { sorted: sortedOpen, sortKey: openSortKey, sortDir: openSortDir, handleSort: handleOpenSort } = useSortable(openRates, 'symbol', 'asc');
+
+  const tcmbTh = (key, label, align = 'left') => ({ label, sortKey: key, currentKey: tcmbSortKey, currentDir: tcmbSortDir, onSort: handleTcmbSort, align });
+  const openTh = (key, label, align = 'left') => ({ label, sortKey: key, currentKey: openSortKey, currentDir: openSortDir, onSort: handleOpenSort, align });
 
   const tabs = [
     { key: 'tcmb', label: '🏦 TCMB Resmi Kurlar' },
@@ -106,17 +117,18 @@ export default function FxPage() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  {['Döviz', 'Alış', 'Satış', 'Birim'].map(h =>
-                    <th key={h} className="text-left px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200">{h}</th>
-                  )}
+                  <SortableTh {...tcmbTh('symbol', 'Döviz')} />
+                  <SortableTh {...tcmbTh('buy', 'Alış', 'right')} />
+                  <SortableTh {...tcmbTh('sell', 'Satış', 'right')} />
+                  <th className="text-left px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200">Birim</th>
                 </tr>
               </thead>
               <tbody>
-                {tcmbData.rates.map((r, i) => (
+                {sortedTcmb.map((r, i) => (
                   <tr key={r.symbol} className={`border-t border-gray-100 hover:bg-gray-50 transition-colors ${i % 2 === 0 ? '' : 'bg-gray-50/30'}`}>
                     <td className="px-6 py-3 font-bold text-[#093eaa] text-sm">{r.symbol}</td>
-                    <td className="px-6 py-3 text-sm font-semibold text-gray-900">{num(r.buy)}</td>
-                    <td className="px-6 py-3 text-sm font-semibold text-gray-900">{num(r.sell)}</td>
+                    <td className="px-6 py-3 text-sm font-semibold text-gray-900 text-right">{num(r.buy)}</td>
+                    <td className="px-6 py-3 text-sm font-semibold text-gray-900 text-right">{num(r.sell)}</td>
                     <td className="px-6 py-3 text-sm text-gray-400">{r.unit}</td>
                   </tr>
                 ))}
@@ -131,16 +143,16 @@ export default function FxPage() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  {['Döviz', 'Kur', 'Birim'].map(h =>
-                    <th key={h} className="text-left px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200">{h}</th>
-                  )}
+                  <SortableTh {...openTh('symbol', 'Döviz')} />
+                  <SortableTh {...openTh('sell', 'Kur', 'right')} />
+                  <th className="text-left px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200">Birim</th>
                 </tr>
               </thead>
               <tbody>
-                {openData.rates.map((r, i) => (
+                {sortedOpen.map((r, i) => (
                   <tr key={r.symbol} className={`border-t border-gray-100 hover:bg-gray-50 transition-colors ${i % 2 === 0 ? '' : 'bg-gray-50/30'}`}>
                     <td className="px-6 py-3 font-bold text-[#093eaa] text-sm">{r.symbol}</td>
-                    <td className="px-6 py-3 text-sm font-semibold text-gray-900">{num(r.sell ?? r.buy, 6)}</td>
+                    <td className="px-6 py-3 text-sm font-semibold text-gray-900 text-right">{num(r.sell ?? r.buy, 6)}</td>
                     <td className="px-6 py-3 text-sm text-gray-400">{r.unit}</td>
                   </tr>
                 ))}

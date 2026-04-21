@@ -130,6 +130,35 @@ public class PortfolioServiceImpl implements PortfolioService {
     }
 
     @Override
+    @Transactional
+    public void deletePortfolio(String userId, UUID portfolioId) {
+        Portfolio portfolio = portfolioRepository.findByIdAndUserId(portfolioId, userId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Portfolio not found: id=" + portfolioId + " userId=" + userId));
+        portfolioRepository.delete(portfolio);
+        log.debug("Deleted portfolio id={} for userId={}", portfolioId, userId);
+    }
+
+    @Override
+    @Transactional
+    public PortfolioResponse deleteTransaction(String userId, UUID portfolioId, UUID transactionId) {
+        Portfolio portfolio = portfolioRepository.findByIdAndUserId(portfolioId, userId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Portfolio not found: id=" + portfolioId + " userId=" + userId));
+
+        PortfolioTransaction tx = portfolio.getTransactions().stream()
+                .filter(t -> transactionId.equals(t.getId()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Transaction not found: id=" + transactionId));
+
+        portfolio.removeTransaction(tx);
+        portfolio = portfolioRepository.save(portfolio);
+        log.debug("Deleted transaction id={} from portfolioId={}", transactionId, portfolioId);
+        return toPortfolioResponse(portfolio);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<PortfolioResponse> getUserPortfolios(String userId) {
         return portfolioRepository.findByUserId(userId).stream()

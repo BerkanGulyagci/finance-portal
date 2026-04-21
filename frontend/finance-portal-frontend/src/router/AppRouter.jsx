@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout';
 import ProtectedRoute from '../components/common/ProtectedRoute';
 import LoginPage from '../pages/LoginPage';
+import RegisterPage from '../pages/RegisterPage';
+import AuthCallbackPage from '../pages/AuthCallbackPage';
 import DashboardPage from '../pages/DashboardPage';
 import PortfolioPage from '../pages/PortfolioPage';
 import PortfolioDetailPage from '../pages/PortfolioDetailPage';
@@ -13,6 +15,8 @@ import FuturesPage from '../pages/market/FuturesPage';
 import FundsPage from '../pages/market/FundsPage';
 import TefasPage from '../pages/market/TefasPage';
 import FxPage from '../pages/market/FxPage';
+import BondsPage from '../pages/market/BondsPage';
+import GoldPage from '../pages/market/GoldPage';
 import NewsPage from '../pages/NewsPage';
 import NotFoundPage from '../pages/NotFoundPage';
 
@@ -21,10 +25,12 @@ export default function AppRouter() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Navigate to="/news" replace />} />
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
         {/* Public routes with layout */}
         <Route element={<AppLayout />}>
+          <Route path="/login"             element={<LoginPage />} />
+          <Route path="/register"          element={<RegisterPage />} />
           <Route path="/news"              element={<NewsPage />} />
           <Route path="/dashboard"         element={<DashboardPage />} />
           <Route path="/market"            element={<MarketPage />} />
@@ -35,6 +41,8 @@ export default function AppRouter() {
           <Route path="/market/funds"      element={<FundsPage />} />
           <Route path="/market/tefas"      element={<TefasPage />} />
           <Route path="/market/fx"         element={<FxPage />} />
+          <Route path="/market/bonds"      element={<BondsPage />} />
+          <Route path="/market/gold"       element={<GoldPage />} />
         </Route>
 
         {/* Protected routes */}

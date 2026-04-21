@@ -1,37 +1,20 @@
-import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Wallet, Eye, EyeOff } from 'lucide-react';
+import { useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Wallet } from 'lucide-react';
+import { redirectToLogin } from '../api/authApi';
 import { useAuth } from '../context/AuthContext';
-import { loginRequest } from '../api/authApi';
+import { useNavigate } from 'react-router-dom';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      const { access_token } = await loginRequest(username, password);
-      login(access_token);
-      const from = location.state?.from || '/portfolio';
-      navigate(from, { replace: true });
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }
+  useEffect(() => {
+    if (isAuthenticated) navigate('/portfolio', { replace: true });
+  }, [isAuthenticated]);
 
   return (
-    <div className="min-h-screen bg-[#f5f6f8] flex items-center justify-center px-4">
+    <div className="bg-[#f5f6f8] flex items-center justify-center px-4 py-12 -mx-4 sm:-mx-6 lg:-mx-8 -my-8">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
@@ -44,61 +27,42 @@ export default function LoginPage() {
           </h1>
         </div>
 
-        {/* Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
           <h2 className="text-xl font-bold text-gray-900 mb-2">Hesabınıza Giriş Yapın</h2>
-          <p className="text-sm text-gray-500 mb-6">Portföyünüzü yönetmek için giriş yapın.</p>
+          <p className="text-sm text-gray-500 mb-6">
+            Portföyünüzü yönetmek için güvenli giriş yapın.
+          </p>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Kullanıcı Adı</label>
-              <input
-                type="text"
-                value={username}
-                onChange={e => setUsername(e.target.value)}
-                disabled={loading}
-                required
-                placeholder="Kullanıcı adınız"
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#093eaa] focus:border-transparent transition-all"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Şifre</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  disabled={loading}
-                  required
-                  placeholder="Şifreniz"
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#093eaa] focus:border-transparent transition-all pr-12"
-                />
-                <button type="button" onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+          {/* 2FA info */}
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">🔐</span>
+              <div>
+                <p className="text-sm font-semibold text-blue-800">2 Faktörlü Kimlik Doğrulama</p>
+                <p className="text-xs text-blue-600 mt-1">
+                  Hesabınız Google Authenticator ile korunmaktadır. İlk girişte TOTP kurulumu yapmanız gerekecektir.
+                </p>
               </div>
             </div>
+          </div>
 
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
-                {error}
-              </div>
-            )}
+          <button
+            onClick={redirectToLogin}
+            className="w-full bg-[#093eaa] text-white py-3 rounded-xl font-bold text-sm hover:bg-[#093eaa]/90 transition-all flex items-center justify-center gap-2"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" />
+            </svg>
+            Güvenli Giriş Yap
+          </button>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#093eaa] text-white py-3 rounded-xl font-bold text-sm hover:bg-[#093eaa]/90 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
-            </button>
-          </form>
+          <p className="text-xs text-gray-400 text-center mt-4">
+            Keycloak güvenli kimlik doğrulama sistemi kullanılmaktadır.
+          </p>
 
-          <p className="text-xs text-gray-400 text-center mt-6">
-            Portföy yönetimi için giriş gereklidir. Haberler ve piyasa verileri herkese açıktır.
+          <p className="text-sm text-center text-gray-500 mt-4">
+            Hesabınız yok mu?{' '}
+            <Link to="/register" className="text-[#093eaa] font-semibold hover:underline">Kayıt Olun</Link>
           </p>
         </div>
       </div>

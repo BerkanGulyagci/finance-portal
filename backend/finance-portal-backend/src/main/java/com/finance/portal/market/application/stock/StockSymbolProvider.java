@@ -11,13 +11,15 @@ public class StockSymbolProvider {
     private static final List<String> BIST_SYMBOLS = List.of(
             // BIST 30
             "THYAO.IS", "AKBNK.IS", "ASELS.IS", "EREGL.IS", "FROTO.IS",
-            "ISCTR.IS", "KCHOL.IS", "KOZAL.IS", "PETKM.IS", "SAHOL.IS",
+            "ISCTR.IS", "KCHOL.IS", "PETKM.IS", "SAHOL.IS",
             "GARAN.IS", "HALKB.IS", "VAKBN.IS", "YKBNK.IS", "SISE.IS",
             "TOASO.IS", "TUPRS.IS", "BIMAS.IS", "MGROS.IS", "ARCLK.IS",
             "TCELL.IS", "TTKOM.IS", "ENKAI.IS", "EKGYO.IS", "PGSUS.IS",
-            "TAVHL.IS", "VESTL.IS", "KRDMD.IS", "SOKM.IS", "KOZAA.IS",
+            "TAVHL.IS", "VESTL.IS", "KRDMD.IS", "SOKM.IS",
+            // BIST endeksleri
+            "XU100.IS",
             // BIST 50 ek
-            "AEFES.IS", "AGHOL.IS", "ALARK.IS", "ANACM.IS", "BRISA.IS",
+            "AEFES.IS", "AGHOL.IS", "ALARK.IS", "BRISA.IS",
             "CCOLA.IS", "CIMSA.IS", "DOHOL.IS", "ENJSA.IS", "GESAN.IS",
             "GUBRF.IS", "HEKTS.IS", "ISGYO.IS", "KARSN.IS", "LOGO.IS",
             "MAVI.IS", "OTKAR.IS", "OYAKC.IS", "SASA.IS", "SKBNK.IS",
@@ -29,19 +31,19 @@ public class StockSymbolProvider {
             "ECILC.IS", "ECZYT.IS", "EGEEN.IS", "EMKEL.IS", "ERBOS.IS",
             "ESCAR.IS", "FENER.IS", "GSRAY.IS", "HDFGS.IS", "HUBVC.IS",
             "IHEVA.IS", "IHLAS.IS", "IMASM.IS", "INDES.IS", "INFO.IS",
-            "IPEKE.IS", "ISATR.IS", "ISBIR.IS", "ISDMR.IS", "ISFIN.IS",
+            "ISATR.IS", "ISBIR.IS", "ISDMR.IS", "ISFIN.IS",
             "ISGSY.IS", "JANTS.IS", "KAREL.IS", "KATMR.IS", "KBORU.IS",
-            "KENT.IS", "KERVT.IS", "KLKIM.IS", "KLMSN.IS", "KONKA.IS",
+            "KENT.IS", "KLKIM.IS", "KLMSN.IS", "KONKA.IS",
             "KONYA.IS", "KORDS.IS", "KOTON.IS", "KRDMA.IS", "KRDMB.IS",
-            "KRTEK.IS", "LIDER.IS", "LILAK.IS", "LUKSK.IS", "MAALT.IS",
+            "LIDER.IS", "LILAK.IS", "LUKSK.IS", "MAALT.IS",
             "MAGEN.IS", "MAKIM.IS", "MARKA.IS", "MARTI.IS", "MEDTR.IS",
             "MEGAP.IS", "MERCN.IS", "MERIT.IS", "MERKO.IS", "METRO.IS",
             "MNDRS.IS", "MOBTL.IS", "MPARK.IS", "NATEN.IS", "NETAS.IS",
-            "NUHCM.IS", "ODAS.IS", "ORGE.IS", "OSTIM.IS", "PENGD.IS",
+            "NUHCM.IS", "ORGE.IS", "OSTIM.IS", "PENGD.IS",
             "PENTA.IS", "PETUN.IS", "PKART.IS", "PKENT.IS", "PRKAB.IS",
             "PRKME.IS", "QUAGR.IS", "RAYSG.IS", "RGYAS.IS", "ROYAL.IS",
             "SAFKR.IS", "SAMAT.IS", "SANEL.IS", "SANFM.IS", "SARKY.IS",
-            "SAYAS.IS", "SELEC.IS", "SELGD.IS", "SELVA.IS", "SILVR.IS",
+            "SAYAS.IS", "SELEC.IS", "SELVA.IS", "SILVR.IS",
             "SMART.IS", "SOKE.IS", "SONME.IS", "SUMAS.IS", "SUWEN.IS",
             "TABGD.IS", "TATGD.IS", "TEKTU.IS", "TKFEN.IS", "TKNSA.IS",
             "TLMAN.IS", "TMPOL.IS", "TMSN.IS", "TRCAS.IS", "TRILC.IS",
@@ -53,6 +55,10 @@ public class StockSymbolProvider {
 
     public int getTotalElements() {
         return BIST_SYMBOLS.size();
+    }
+
+    public List<String> getAllSymbols() {
+        return BIST_SYMBOLS;
     }
 
     public List<String> getPagedSymbols(int page, int size) {

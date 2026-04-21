@@ -24,9 +24,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 import java.util.regex.Pattern;
 
 @Service
@@ -58,16 +55,19 @@ public class FundQueryService {
         int totalElements = fundSymbolProvider.getTotalElements();
         List<String> symbols = fundSymbolProvider.getPagedSymbols(page, size);
 
-        List<FundSummary> content = symbols.isEmpty() ? List.of() :
-            symbols.stream()
-                .map(symbol -> CompletableFuture.supplyAsync(() -> {
-                    try { return getFundSummary(symbol); }
-                    catch (Exception ex) { logger.warn("Failed fund summary for {}: {}", symbol, ex.getMessage()); return null; }
-                }))
-                .toList().stream()
-                .map(CompletableFuture::join)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+        List<FundSummary> content = new ArrayList<>();
+        for (String symbol : symbols) {
+            try {
+                FundSummary s = getFundSummary(symbol);
+                if (s != null) content.add(s);
+                Thread.sleep(80);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                break;
+            } catch (Exception ex) {
+                logger.warn("Failed fund summary for {}: {}", symbol, ex.getMessage());
+            }
+        }
 
         FundPageResponse response = new FundPageResponse();
         response.setContent(content);
@@ -101,7 +101,7 @@ public class FundQueryService {
             cacheNames = "market.funds.chart",
             key = "'symbol:' + #symbol + ':range:' + #range + ':interval:' + #interval"
     )
-    @CircuitBreaker(name = "yahooApi", fallbackMethod = "fallbackFundChart")
+    @CircuitBreaker(name = "yahooFundsApi", fallbackMethod = "fallbackFundChart")
     public FundChartResponse getFundChart(String symbol, String range, String interval) {
         validateSymbol(symbol);
 

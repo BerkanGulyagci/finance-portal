@@ -16,4 +16,8 @@ public interface PortfolioService {
     PortfolioResponse getPortfolioById(String userId, UUID portfolioId);
 
     List<PortfolioResponse> getUserPortfolios(String userId);
+
+    void deletePortfolio(String userId, UUID portfolioId);
+
+    PortfolioResponse deleteTransaction(String userId, UUID portfolioId, UUID transactionId);
 }

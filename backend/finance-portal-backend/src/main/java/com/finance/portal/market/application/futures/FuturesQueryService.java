@@ -9,8 +9,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 @Service
 public class FuturesQueryService {
@@ -38,21 +36,20 @@ public class FuturesQueryService {
         if (symbols.isEmpty()) {
             content = List.of();
         } else {
-            List<CompletableFuture<StockSummary>> futures = symbols.stream()
-                    .map(symbol -> CompletableFuture.supplyAsync(() -> {
-                        try {
-                            return stockQueryService.getStockSummary(symbol);
-                        } catch (Exception ex) {
-                            logger.warn("Failed to fetch futures summary for symbol {}: {}", symbol, ex.getMessage());
-                            return null;
-                        }
-                    }))
-                    .toList();
-
-            content = futures.stream()
-                    .map(CompletableFuture::join)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
+            // Sequential with delay to avoid Yahoo rate limiting
+            content = new java.util.ArrayList<>();
+            for (String symbol : symbols) {
+                try {
+                    StockSummary s = stockQueryService.getStockSummary(symbol);
+                    if (s != null) content.add(s);
+                    Thread.sleep(80);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                } catch (Exception ex) {
+                    logger.warn("Failed to fetch futures summary for symbol {}: {}", symbol, ex.getMessage());
+                }
+            }
 
             if (content.isEmpty()) {
                 logger.warn("No futures summaries could be fetched for page {} and size {}", page, size);

@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { getCryptos, getAllStocks, getFutures, getFunds, getTefasFunds, getFxTcmb } from '../api/marketApi';
+import { getCryptos, getStocks, getFutures, getFunds, getTefasFunds, getFxTcmb } from '../api/marketApi';
 
 const TABS = [
   { key: 'crypto',  label: '🪙 Kripto' },
@@ -195,7 +195,7 @@ export default function MarketPage() {
     setError('');
     const fetchers = {
       crypto:  () => getCryptos(0, 50),
-      stocks:  () => getAllStocks(),
+      stocks:  () => getStocks(0, 20).then(r => r.content ?? []),
       futures: () => getFutures(0, 20).then(r => r.content ?? []),
       funds:   () => getFunds(0, 30).then(r => r.content ?? []),
       tefas:   () => getTefasFunds('YAT', 0, 500).then(r => r.content ?? []),

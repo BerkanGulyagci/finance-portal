@@ -67,7 +67,7 @@ cache:
       open:
         ttl-seconds: ${MARKET_FX_OPEN_TTL_SECONDS:1800}
     stocks:
-      ttl-seconds: 300
+      ttl-seconds: 600
     crypto:
       ttl-seconds: ${CACHE_MARKET_CRYPTO_TTL_SECONDS:60}
     funds:
@@ -85,6 +85,20 @@ market:
     yahoo:
       base-url: https://query1.finance.yahoo.com/v8/finance/chart
 
+keycloak:
+  admin:
+    url: ${KEYCLOAK_ADMIN_URL:http://finance-portal-keycloak:8080}
+    realm: finance-portal
+    client-id: admin-cli
+    username: ${KEYCLOAK_ADMIN_USERNAME:admin}
+    password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
+
+ldap:
+  url: ${LDAP_URL:ldap://finance-portal-apacheds:10389}
+  base-dn: ${LDAP_BASE_DN:dc=openmicroscopy,dc=org}
+  admin-dn: ${LDAP_ADMIN_DN:uid=admin,ou=system}
+  admin-password: ${LDAP_ADMIN_PASSWORD:secret}
+
 coingecko:
   base-url: https://api.coingecko.com/api/v3
   api-key: ${COINGECKO_API_KEY:CG-B1V3coqfjBN6Q5Ff8j6AnpZf}
@@ -94,10 +108,38 @@ resilience4j:
   circuitbreaker:
     instances:
       yahooApi:
+        slidingWindowSize: 20
+        minimumNumberOfCalls: 10
+        failureRateThreshold: 70
+        waitDurationInOpenState: 20s
+        recordExceptions:
+          - org.springframework.web.client.ResourceAccessException
+          - org.springframework.web.client.HttpServerErrorException
+        ignoreExceptions:
+          - com.finance.portal.common.infrastructure.exception.ExternalApiException
+          - org.springframework.web.client.HttpClientErrorException
+      yahooFundsApi:
         slidingWindowSize: 10
         minimumNumberOfCalls: 5
-        failureRateThreshold: 50
-        waitDurationInOpenState: 60s
+        failureRateThreshold: 70
+        waitDurationInOpenState: 20s
+        recordExceptions:
+          - org.springframework.web.client.ResourceAccessException
+          - org.springframework.web.client.HttpServerErrorException
+        ignoreExceptions:
+          - com.finance.portal.common.infrastructure.exception.ExternalApiException
+          - org.springframework.web.client.HttpClientErrorException
+      yahooFuturesApi:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 70
+        waitDurationInOpenState: 20s
+        recordExceptions:
+          - org.springframework.web.client.ResourceAccessException
+          - org.springframework.web.client.HttpServerErrorException
+        ignoreExceptions:
+          - com.finance.portal.common.infrastructure.exception.ExternalApiException
+          - org.springframework.web.client.HttpClientErrorException
       coinGeckoApi:
         slidingWindowSize: 10
         minimumNumberOfCalls: 3
@@ -106,8 +148,20 @@ resilience4j:
   retry:
     instances:
       yahooApi:
-        maxAttempts: 3
-        waitDuration: 1s
+        maxAttempts: 2
+        waitDuration: 500ms
+        retryExceptions:
+          - org.springframework.web.client.ResourceAccessException
+          - org.springframework.web.client.HttpServerErrorException
+        ignoreExceptions:
+          - com.finance.portal.common.infrastructure.exception.ExternalApiException
+          - org.springframework.web.client.HttpClientErrorException
+      yahooFundsApi:
+        maxAttempts: 2
+        waitDuration: 500ms
+      yahooFuturesApi:
+        maxAttempts: 2
+        waitDuration: 500ms
       coinGeckoApi:
         maxAttempts: 3
         waitDuration: 1s

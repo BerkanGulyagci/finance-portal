@@ -1,7 +1,10 @@
 package com.finance.portal.market.application.viop;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.io.Serializable;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ViopContract implements Serializable {
 
     private String name;

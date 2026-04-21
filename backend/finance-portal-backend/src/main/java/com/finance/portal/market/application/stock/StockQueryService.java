@@ -75,18 +75,30 @@ public class StockQueryService {
         List<StockSummary> content = new java.util.ArrayList<>();
 
         if (!symbols.isEmpty()) {
-            // Sequential with small delay to avoid Yahoo rate limiting
-            for (String symbol : symbols) {
-                try {
-                    StockSummary s = getStockSummary(symbol);
-                    if (s != null) content.add(s);
-                    Thread.sleep(50); // 50ms between requests = ~20 req/sec
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    break;
-                } catch (Exception ex) {
-                    logger.warn("Failed to fetch stock summary for {}: {}", symbol, ex.getMessage());
+            // Paralel fetch with bounded thread pool (max 5 concurrent)
+            java.util.concurrent.ExecutorService executor =
+                java.util.concurrent.Executors.newFixedThreadPool(5);
+            try {
+                List<java.util.concurrent.Future<StockSummary>> futures = symbols.stream()
+                    .map(symbol -> executor.submit(() -> {
+                        try { return getStockSummary(symbol); }
+                        catch (Exception ex) {
+                            logger.warn("Failed to fetch stock summary for {}: {}", symbol, ex.getMessage());
+                            return null;
+                        }
+                    }))
+                    .toList();
+
+                for (java.util.concurrent.Future<StockSummary> f : futures) {
+                    try {
+                        StockSummary s = f.get(5, java.util.concurrent.TimeUnit.SECONDS);
+                        if (s != null) content.add(s);
+                    } catch (Exception ex) {
+                        logger.warn("Stock summary future failed: {}", ex.getMessage());
+                    }
                 }
+            } finally {
+                executor.shutdown();
             }
         }
 

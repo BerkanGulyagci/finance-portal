@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, ArrowUpDown, CalendarDays } from 'lucide-react';
-import { getFxTcmb } from '../../api/marketApi';
+import { getFxTcmb, getEconomicIndicators } from '../../api/marketApi';
 import { getBloombergHtNews } from '../../api/newsApi';
 import { getIpos } from '../../api/ipoApi';
 
@@ -10,11 +10,13 @@ export function Sidebar() {
   const [amount, setAmount] = useState(1000);
   const [mostRead, setMostRead] = useState([]);
   const [ipos, setIpos] = useState([]);
+  const [indicators, setIndicators] = useState({ policyRate: '...', inflation: '...' });
 
   useEffect(() => {
     getFxTcmb().then(fx => setRates(fx?.rates ?? [])).catch(() => {});
     getBloombergHtNews().then(n => setMostRead(n.slice(0, 3))).catch(() => {});
     getIpos().then(setIpos).catch(() => {});
+    getEconomicIndicators().then(setIndicators).catch(() => {});
   }, []);
 
   const selectedRate = rates.find(r => r.symbol === selectedCurrency);
@@ -95,20 +97,23 @@ export function Sidebar() {
         <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm space-y-3">
           <div className="flex justify-between items-center">
             <span className="text-xs font-semibold text-gray-600">TCMB Faiz Oranı</span>
-            <span className="text-xs font-bold text-[#093eaa]">%45.00</span>
+            <span className="text-xs font-bold text-[#093eaa]">%{indicators.policyRate}</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-xs font-semibold text-gray-600">Enflasyon (TÜFE)</span>
-            <span className="text-xs font-bold text-rose-500">%67.07</span>
+            <span className="text-xs font-bold text-rose-500">%{indicators.inflation}</span>
           </div>
-          {rates.slice(0, 3).map(r => (
-            <div key={r.symbol} className="flex justify-between items-center">
-              <span className="text-xs font-semibold text-gray-600">{r.symbol}/TRY</span>
-              <span className="text-xs font-bold text-gray-800">
-                {r.sell.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-              </span>
-            </div>
-          ))}
+          {['USD', 'EUR', 'GBP'].map(sym => {
+            const r = rates.find(x => x.symbol === sym);
+            return r ? (
+              <div key={sym} className="flex justify-between items-center">
+                <span className="text-xs font-semibold text-gray-600">{sym}/TRY</span>
+                <span className="text-xs font-bold text-gray-800">
+                  {r.sell.toLocaleString('tr-TR', { minimumFractionDigits: 3 })}
+                </span>
+              </div>
+            ) : null;
+          })}
         </div>
       </div>
 

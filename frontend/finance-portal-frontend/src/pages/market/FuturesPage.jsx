@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { getFutures, getViopContracts } from '../../api/marketApi';
+import { useSortable } from '../../hooks/useSortable';
+import SortableTh from '../../components/common/SortableTh';
 
 const PAGE_SIZE = 20;
 
@@ -27,20 +29,16 @@ function Pagination({ page, totalPages, onChange }) {
   for (let i = start; i <= end; i++) pages.push(i);
   return (
     <div className="flex items-center justify-center gap-1 py-4">
-      <button onClick={() => onChange(0)} disabled={page === 0}
-        className="px-2 py-1 text-xs rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50">«</button>
-      <button onClick={() => onChange(page - 1)} disabled={page === 0}
-        className="px-2 py-1 text-xs rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50">‹</button>
+      <button onClick={() => onChange(0)} disabled={page === 0} className="px-2 py-1 text-xs rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50">«</button>
+      <button onClick={() => onChange(page - 1)} disabled={page === 0} className="px-2 py-1 text-xs rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50">‹</button>
       {pages.map(p => (
         <button key={p} onClick={() => onChange(p)}
           className={`px-3 py-1 text-xs rounded border ${p === page ? 'bg-[#093eaa] text-white border-[#093eaa]' : 'border-gray-200 hover:bg-gray-50'}`}>
           {p + 1}
         </button>
       ))}
-      <button onClick={() => onChange(page + 1)} disabled={page === totalPages - 1}
-        className="px-2 py-1 text-xs rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50">›</button>
-      <button onClick={() => onChange(totalPages - 1)} disabled={page === totalPages - 1}
-        className="px-2 py-1 text-xs rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50">»</button>
+      <button onClick={() => onChange(page + 1)} disabled={page === totalPages - 1} className="px-2 py-1 text-xs rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50">›</button>
+      <button onClick={() => onChange(totalPages - 1)} disabled={page === totalPages - 1} className="px-2 py-1 text-xs rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50">»</button>
     </div>
   );
 }
@@ -48,13 +46,11 @@ function Pagination({ page, totalPages, onChange }) {
 export default function FuturesPage() {
   const [activeTab, setActiveTab] = useState('viop');
 
-  // VIOP state
   const [viopItems, setViopItems] = useState([]);
   const [viopSearch, setViopSearch] = useState('');
   const [viopPage, setViopPage] = useState(0);
   const viopFetched = useRef(false);
 
-  // Global state
   const [globalItems, setGlobalItems] = useState([]);
   const [globalSearch, setGlobalSearch] = useState('');
   const [globalPage, setGlobalPage] = useState(0);
@@ -87,28 +83,36 @@ export default function FuturesPage() {
     }
   }
 
-  // Filtered + paginated VIOP
+  // VIOP filtered
   const filteredViop = useMemo(() => {
     if (!viopSearch.trim()) return viopItems;
     const q = viopSearch.toLowerCase();
     return viopItems.filter(r => r.name?.toLowerCase().includes(q));
   }, [viopItems, viopSearch]);
 
-  const viopTotalPages = Math.ceil(filteredViop.length / PAGE_SIZE);
-  const viopPageItems = filteredViop.slice(viopPage * PAGE_SIZE, (viopPage + 1) * PAGE_SIZE);
+  const { sorted: sortedViop, sortKey: viopSortKey, sortDir: viopSortDir, handleSort: handleViopSort } = useSortable(filteredViop, 'name', 'asc');
+  const viopTotalPages = Math.ceil(sortedViop.length / PAGE_SIZE);
+  const viopPageItems = sortedViop.slice(viopPage * PAGE_SIZE, (viopPage + 1) * PAGE_SIZE);
 
-  // Filtered + paginated Global
+  // Global filtered
   const filteredGlobal = useMemo(() => {
     if (!globalSearch.trim()) return globalItems;
     const q = globalSearch.toLowerCase();
     return globalItems.filter(r => r.symbol?.toLowerCase().includes(q) || r.name?.toLowerCase().includes(q));
   }, [globalItems, globalSearch]);
 
-  const globalTotalPages = Math.ceil(filteredGlobal.length / PAGE_SIZE);
-  const globalPageItems = filteredGlobal.slice(globalPage * PAGE_SIZE, (globalPage + 1) * PAGE_SIZE);
+  const { sorted: sortedGlobal, sortKey: globalSortKey, sortDir: globalSortDir, handleSort: handleGlobalSort } = useSortable(filteredGlobal, 'symbol', 'asc');
+  const globalTotalPages = Math.ceil(sortedGlobal.length / PAGE_SIZE);
+  const globalPageItems = sortedGlobal.slice(globalPage * PAGE_SIZE, (globalPage + 1) * PAGE_SIZE);
 
-  function handleViopSearch(v) { setViopSearch(v); setViopPage(0); }
-  function handleGlobalSearch(v) { setGlobalSearch(v); setGlobalPage(0); }
+  const viopThProps = (key, label, align = 'left') => ({
+    label, sortKey: key, currentKey: viopSortKey, currentDir: viopSortDir,
+    onSort: (k) => { handleViopSort(k); setViopPage(0); }, align
+  });
+  const globalThProps = (key, label, align = 'left') => ({
+    label, sortKey: key, currentKey: globalSortKey, currentDir: globalSortDir,
+    onSort: (k) => { handleGlobalSort(k); setGlobalPage(0); }, align
+  });
 
   return (
     <div>
@@ -133,23 +137,16 @@ export default function FuturesPage() {
         {/* VIOP Tab */}
         {!loading && !error && activeTab === 'viop' && (
           <>
-            {/* Search bar */}
             <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-3">
               <div className="relative flex-1 max-w-sm">
                 <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-                <input
-                  type="text"
-                  placeholder="Sözleşme ara..."
-                  value={viopSearch}
-                  onChange={e => handleViopSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30 focus:border-[#093eaa]"
-                />
+                <input type="text" placeholder="Sözleşme ara..." value={viopSearch}
+                  onChange={e => { setViopSearch(e.target.value); setViopPage(0); }}
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30 focus:border-[#093eaa]" />
               </div>
-              <span className="text-xs text-gray-400">
-                {filteredViop.length} sözleşme
-              </span>
+              <span className="text-xs text-gray-400">{sortedViop.length} sözleşme</span>
             </div>
 
             {viopItems.length === 0
@@ -163,9 +160,16 @@ export default function FuturesPage() {
                     <table className="w-full">
                       <thead className="bg-gray-50">
                         <tr>
-                          {['Sözleşme', 'Fark (%)', 'Son', 'Yüksek', 'Düşük', 'Açık Poz. Sayısı', 'Açık Poz. Değ.', 'Uzlaşma', 'Önceki Uzlaşma', 'Zaman'].map(h =>
-                            <th key={h} className="text-left px-3 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap border-b border-gray-200">{h}</th>
-                          )}
+                          <SortableTh {...viopThProps('name', 'Sözleşme')} />
+                          <SortableTh {...viopThProps('changePercent', 'Fark (%)', 'right')} />
+                          <SortableTh {...viopThProps('lastPrice', 'Son', 'right')} />
+                          <SortableTh {...viopThProps('high', 'Yüksek', 'right')} />
+                          <SortableTh {...viopThProps('low', 'Düşük', 'right')} />
+                          <SortableTh {...viopThProps('openPositionCount', 'Açık Poz. Sayısı', 'right')} />
+                          <SortableTh {...viopThProps('openPositionChange', 'Açık Poz. Değ.', 'right')} />
+                          <SortableTh {...viopThProps('settlementPrice', 'Uzlaşma', 'right')} />
+                          <SortableTh {...viopThProps('prevSettlementPrice', 'Önceki Uzlaşma', 'right')} />
+                          <th className="px-3 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 text-left">Zaman</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -174,14 +178,14 @@ export default function FuturesPage() {
                           : viopPageItems.map((r, i) => (
                             <tr key={i} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
                               <td className="px-3 py-2.5 text-sm font-semibold text-[#093eaa] whitespace-nowrap">{r.name}</td>
-                              <td className="px-3 py-2.5 text-sm">{pctViop(r.changePercent)}</td>
-                              <td className="px-3 py-2.5 text-sm font-semibold text-gray-900">{r.lastPrice ?? '-'}</td>
-                              <td className="px-3 py-2.5 text-sm text-gray-600">{r.high ?? '-'}</td>
-                              <td className="px-3 py-2.5 text-sm text-gray-600">{r.low ?? '-'}</td>
-                              <td className="px-3 py-2.5 text-sm text-gray-600">{r.openPositionCount ?? '-'}</td>
-                              <td className="px-3 py-2.5 text-sm text-gray-600">{r.openPositionChange ?? '-'}</td>
-                              <td className="px-3 py-2.5 text-sm text-gray-600">{r.settlementPrice ?? '-'}</td>
-                              <td className="px-3 py-2.5 text-sm text-gray-600">{r.prevSettlementPrice ?? '-'}</td>
+                              <td className="px-3 py-2.5 text-sm text-right">{pctViop(r.changePercent)}</td>
+                              <td className="px-3 py-2.5 text-sm font-semibold text-gray-900 text-right">{r.lastPrice ?? '-'}</td>
+                              <td className="px-3 py-2.5 text-sm text-gray-600 text-right">{r.high ?? '-'}</td>
+                              <td className="px-3 py-2.5 text-sm text-gray-600 text-right">{r.low ?? '-'}</td>
+                              <td className="px-3 py-2.5 text-sm text-gray-600 text-right">{r.openPositionCount ?? '-'}</td>
+                              <td className="px-3 py-2.5 text-sm text-gray-600 text-right">{r.openPositionChange ?? '-'}</td>
+                              <td className="px-3 py-2.5 text-sm text-gray-600 text-right">{r.settlementPrice ?? '-'}</td>
+                              <td className="px-3 py-2.5 text-sm text-gray-600 text-right">{r.prevSettlementPrice ?? '-'}</td>
                               <td className="px-3 py-2.5 text-xs text-gray-400">{r.time ?? '-'}</td>
                             </tr>
                           ))
@@ -204,23 +208,25 @@ export default function FuturesPage() {
                 <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-                <input
-                  type="text"
-                  placeholder="Sembol veya isim ara..."
-                  value={globalSearch}
-                  onChange={e => handleGlobalSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30 focus:border-[#093eaa]"
-                />
+                <input type="text" placeholder="Sembol veya isim ara..." value={globalSearch}
+                  onChange={e => { setGlobalSearch(e.target.value); setGlobalPage(0); }}
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30 focus:border-[#093eaa]" />
               </div>
-              <span className="text-xs text-gray-400">{filteredGlobal.length} kontrat</span>
+              <span className="text-xs text-gray-400">{sortedGlobal.length} kontrat</span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    {['Sembol', 'Ad', 'Fiyat', 'Değişim', '%', 'Yüksek', 'Düşük', 'Hacim', 'Borsa'].map(h =>
-                      <th key={h} className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap border-b border-gray-200">{h}</th>
-                    )}
+                    <SortableTh {...globalThProps('symbol', 'Sembol')} />
+                    <SortableTh {...globalThProps('name', 'Ad')} />
+                    <SortableTh {...globalThProps('price', 'Fiyat', 'right')} />
+                    <SortableTh {...globalThProps('change', 'Değişim', 'right')} />
+                    <SortableTh {...globalThProps('changePercent', '%', 'right')} />
+                    <SortableTh {...globalThProps('dayHigh', 'Yüksek', 'right')} />
+                    <SortableTh {...globalThProps('dayLow', 'Düşük', 'right')} />
+                    <SortableTh {...globalThProps('volume', 'Hacim', 'right')} />
+                    <SortableTh {...globalThProps('exchange', 'Borsa')} />
                   </tr>
                 </thead>
                 <tbody>
@@ -230,12 +236,12 @@ export default function FuturesPage() {
                       <tr key={r.symbol} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
                         <td className="px-4 py-3 font-bold text-[#093eaa] text-sm">{r.symbol}</td>
                         <td className="px-4 py-3 text-sm text-gray-700">{r.name ?? '-'}</td>
-                        <td className="px-4 py-3 text-sm font-semibold">{num(r.price)} <span className="text-gray-400 text-xs">{r.currency}</span></td>
-                        <td className="px-4 py-3 text-sm">{r.change == null ? '-' : <span className={parseFloat(r.change) >= 0 ? 'text-emerald-600 font-semibold' : 'text-rose-600 font-semibold'}>{num(r.change)}</span>}</td>
-                        <td className="px-4 py-3 text-sm">{pct(r.changePercent)}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{num(r.dayHigh)}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{num(r.dayLow)}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{r.volume == null ? '-' : Number(r.volume).toLocaleString('tr-TR')}</td>
+                        <td className="px-4 py-3 text-sm font-semibold text-right">{num(r.price)} <span className="text-gray-400 text-xs">{r.currency}</span></td>
+                        <td className="px-4 py-3 text-sm text-right">{r.change == null ? '-' : <span className={parseFloat(r.change) >= 0 ? 'text-emerald-600 font-semibold' : 'text-rose-600 font-semibold'}>{num(r.change)}</span>}</td>
+                        <td className="px-4 py-3 text-sm text-right">{pct(r.changePercent)}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600 text-right">{num(r.dayHigh)}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600 text-right">{num(r.dayLow)}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600 text-right">{r.volume == null ? '-' : Number(r.volume).toLocaleString('tr-TR')}</td>
                         <td className="px-4 py-3 text-xs text-gray-400">{r.exchange ?? '-'}</td>
                       </tr>
                     ))

@@ -1,5 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { getTefasFunds } from '../../api/marketApi';
+import { useSortable } from '../../hooks/useSortable';
+import SortableTh from '../../components/common/SortableTh';
 
 const PAGE_SIZE = 15;
 
@@ -44,8 +46,14 @@ export default function TefasPage() {
     return all.filter(f => f.code?.toLowerCase().includes(q) || f.title?.toLowerCase().includes(q));
   }, [all, search]);
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const { sorted, sortKey, sortDir, handleSort } = useSortable(filtered, 'code', 'asc');
+  const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
+  const paged = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  const thProps = (key, label, align = 'left') => ({
+    label, sortKey: key, currentKey: sortKey, currentDir: sortDir,
+    onSort: (k) => { handleSort(k); setPage(0); }, align
+  });
 
   return (
     <div>
@@ -78,7 +86,7 @@ export default function TefasPage() {
               className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#093eaa] min-w-[280px]" />
           </div>
           <span className="text-xs text-gray-400">
-            {filtered.length} kayıttan {page * PAGE_SIZE + 1} - {Math.min((page + 1) * PAGE_SIZE, filtered.length)} arası gösteriliyor
+            {sorted.length} kayıttan {page * PAGE_SIZE + 1} - {Math.min((page + 1) * PAGE_SIZE, sorted.length)} arası gösteriliyor
           </span>
         </div>
 
@@ -99,12 +107,12 @@ export default function TefasPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-[#093eaa] text-white">
-                  <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider whitespace-nowrap">Fon Kodu</th>
-                  <th className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider">Fon Adı</th>
-                  <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider whitespace-nowrap">Birim Pay Değeri (TL)</th>
-                  <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider whitespace-nowrap">Portföy Büyüklüğü (TL)</th>
-                  <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider whitespace-nowrap">Yatırımcı Sayısı</th>
-                  <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider whitespace-nowrap">Tarih</th>
+                  <SortableTh {...thProps('code', 'Fon Kodu')} className="text-white hover:text-white hover:bg-[#0a3590]" />
+                  <SortableTh {...thProps('title', 'Fon Adı')} className="text-white hover:text-white hover:bg-[#0a3590]" />
+                  <SortableTh {...thProps('price', 'Birim Pay Değeri (TL)', 'right')} className="text-white hover:text-white hover:bg-[#0a3590]" />
+                  <SortableTh {...thProps('marketCap', 'Portföy Büyüklüğü (TL)', 'right')} className="text-white hover:text-white hover:bg-[#0a3590]" />
+                  <SortableTh {...thProps('numberOfInvestors', 'Yatırımcı Sayısı', 'right')} className="text-white hover:text-white hover:bg-[#0a3590]" />
+                  <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider whitespace-nowrap border-b border-[#0a3590]">Tarih</th>
                 </tr>
               </thead>
               <tbody>
@@ -130,7 +138,7 @@ export default function TefasPage() {
         {totalPages > 1 && (
           <div className="p-4 flex items-center justify-between border-t border-gray-100 flex-wrap gap-3">
             <span className="text-xs text-gray-500">
-              {filtered.length} kayıttan {page * PAGE_SIZE + 1} - {Math.min((page + 1) * PAGE_SIZE, filtered.length)} arası
+              {sorted.length} kayıttan {page * PAGE_SIZE + 1} - {Math.min((page + 1) * PAGE_SIZE, sorted.length)} arası
             </span>
             <div className="flex gap-1">
               <button disabled={page === 0} onClick={() => setPage(0)}

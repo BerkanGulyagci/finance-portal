@@ -1,5 +1,10 @@
 import client from './client';
 
+export async function getStocks(page = 0, size = 20) {
+  const { data: w } = await client.get('/api/market/stocks', { params: { page, size } });
+  return w.data ?? {};
+}
+
 export async function getCryptos(page = 0, size = 100) {
   const { data: w } = await client.get('/api/market/crypto', { params: { page, size } });
   return w.data ?? [];
@@ -64,4 +69,95 @@ export async function getFxTcmb() {
 export async function getFxOpen(base = 'USD') {
   const { data: w } = await client.get('/api/market/fx/open/latest', { params: { base } });
   return w.data ?? {};
+}
+
+export async function getBonds() {
+  const { data: w } = await client.get('/api/market/bonds');
+  return w.data ?? [];
+}
+
+export async function getEconomicIndicators() {
+  const { data: w } = await client.get('/api/market/indicators');
+  return w.data ?? {};
+}
+
+export async function getGoldSpot() {
+  const { data: w } = await client.get('/api/gold/spot');
+  return w.data ?? null;
+}
+
+export async function getGoldHistory(range = '1M', currency = 'USD') {
+  const { data: w } = await client.get('/api/gold/history', { params: { range, currency } });
+  return w.data ?? null;
+}
+
+export async function searchAssetSymbols(type, q = '') {
+  const query = q.trim().toLowerCase();
+  try {
+    if (type === 'STOCK') {
+      // Tüm hisse sembollerini cache'den al
+      const { data: w } = await client.get('/api/market/stocks', { params: { page: 0, size: 100 } });
+      const symbols = (w.data?.content ?? []).map(s => s.symbol);
+      if (!query) return symbols.slice(0, 20);
+      return symbols.filter(s => s.toLowerCase().includes(query)).slice(0, 15);
+    }
+    if (type === 'CRYPTO') {
+      const { data: w } = await client.get('/api/market/crypto', { params: { page: 0, size: 100 } });
+      const symbols = (w.data ?? []).map(c => c.symbol?.toUpperCase());
+      if (!query) return symbols.slice(0, 20);
+      return symbols.filter(s => s?.toLowerCase().includes(query)).slice(0, 15);
+    }
+    if (type === 'FX') {
+      const { data: w } = await client.get('/api/market/fx/tcmb/latest');
+      const symbols = (w.data?.rates ?? []).map(r => r.symbol);
+      if (!query) return symbols.slice(0, 20);
+      return symbols.filter(s => s?.toLowerCase().includes(query)).slice(0, 15);
+    }
+    if (type === 'FUND') {
+      const funds = ['SPY', 'QQQ', 'IWM', 'GLD', 'TLT', 'VTI', 'VOO', 'EFA', 'EEM', 'AGG', 'XLF', 'XLK', 'XLE', 'XLV', 'USO'];
+      if (!query) return funds;
+      return funds.filter(s => s.toLowerCase().includes(query));
+    }
+    if (type === 'FUTURE') {
+      const futures = ['ES=F', 'NQ=F', 'YM=F', 'RTY=F', 'GC=F', 'SI=F', 'CL=F', 'BZ=F', 'NG=F', 'HG=F', 'ZW=F', 'ZC=F', 'ZS=F', '6E=F', '6J=F', '6B=F'];
+      if (!query) return futures;
+      return futures.filter(s => s.toLowerCase().includes(query));
+    }
+    return [];
+  } catch {
+    return [];
+  }
+}
+
+export async function getAssetPrice(type, symbol) {
+  try {
+    if (type === 'STOCK' || type === 'FUTURE') {
+      const { data: w } = await client.get(`/api/market/stocks/${encodeURIComponent(symbol)}`);
+      const d = w.data;
+      if (d?.summary?.price) return { valid: true, symbol, price: d.summary.price, currency: d.summary.currency };
+      return { valid: false };
+    }
+    if (type === 'CRYPTO') {
+      const sym = symbol.toLowerCase();
+      const { data: w } = await client.get('/api/market/crypto', { params: { page: 0, size: 250 } });
+      const coin = (w.data ?? []).find(c => c.symbol?.toLowerCase() === sym);
+      if (coin) return { valid: true, symbol, price: coin.currentPrice, currency: 'TRY' };
+      return { valid: false };
+    }
+    if (type === 'FX') {
+      const { data: w } = await client.get('/api/market/fx/tcmb/latest');
+      const rate = (w.data?.rates ?? []).find(r => r.symbol === symbol.toUpperCase());
+      if (rate) return { valid: true, symbol, price: rate.sell, currency: 'TRY' };
+      return { valid: false };
+    }
+    if (type === 'FUND') {
+      const { data: w } = await client.get(`/api/market/funds/${encodeURIComponent(symbol)}`);
+      const d = w.data;
+      if (d?.summary?.price) return { valid: true, symbol, price: d.summary.price, currency: d.summary.currency };
+      return { valid: false };
+    }
+    return { valid: false };
+  } catch {
+    return { valid: false };
+  }
 }

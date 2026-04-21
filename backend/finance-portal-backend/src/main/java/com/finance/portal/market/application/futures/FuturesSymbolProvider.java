@@ -23,12 +23,16 @@ public class FuturesSymbolProvider {
         return FUTURES_SYMBOLS.size();
     }
 
+    public List<String> getAllSymbols() {
+        return FUTURES_SYMBOLS;
+    }
+
     public List<String> getPagedSymbols(int page, int size) {
         if (page < 0) {
             throw new IllegalArgumentException("page must be greater than or equal to 0");
         }
-        if (size < 1 || size > 20) {
-            throw new IllegalArgumentException("size must be between 1 and 20");
+        if (size < 1 || size > 100) {
+            throw new IllegalArgumentException("size must be between 1 and 100");
         }
 
         int total = FUTURES_SYMBOLS.size();

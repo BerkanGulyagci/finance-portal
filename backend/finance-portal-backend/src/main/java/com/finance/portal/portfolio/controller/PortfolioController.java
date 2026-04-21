@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -72,5 +73,26 @@ public class PortfolioController {
         String userId = jwt.getSubject();
         PortfolioResponse portfolio = portfolioService.addTransaction(userId, portfolioId, request);
         return ResponseEntity.ok(ApiResponse.success(portfolio, "Transaction added successfully"));
+    }
+
+    @DeleteMapping("/{portfolioId}")
+    public ResponseEntity<ApiResponse<Void>> deletePortfolio(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID portfolioId
+    ) {
+        String userId = jwt.getSubject();
+        portfolioService.deletePortfolio(userId, portfolioId);
+        return ResponseEntity.ok(ApiResponse.success(null, "Portfolio deleted successfully"));
+    }
+
+    @DeleteMapping("/{portfolioId}/transactions/{transactionId}")
+    public ResponseEntity<ApiResponse<PortfolioResponse>> deleteTransaction(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID portfolioId,
+            @PathVariable UUID transactionId
+    ) {
+        String userId = jwt.getSubject();
+        PortfolioResponse portfolio = portfolioService.deleteTransaction(userId, portfolioId, transactionId);
+        return ResponseEntity.ok(ApiResponse.success(portfolio, "Transaction deleted successfully"));
     }
 }
