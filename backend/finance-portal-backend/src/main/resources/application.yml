@@ -66,6 +66,8 @@ cache:
         ttl-seconds: ${MARKET_FX_TCMB_TTL_SECONDS:21600}
       open:
         ttl-seconds: ${MARKET_FX_OPEN_TTL_SECONDS:1800}
+      history:
+        ttl-seconds: ${MARKET_FX_HISTORY_TTL_SECONDS:3600}
     stocks:
       ttl-seconds: 600
     crypto:

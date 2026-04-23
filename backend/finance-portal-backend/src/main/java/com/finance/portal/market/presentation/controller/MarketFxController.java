@@ -2,6 +2,7 @@ package com.finance.portal.market.presentation.controller;
 
 import com.finance.portal.common.presentation.dto.ApiResponse;
 import com.finance.portal.market.application.service.MarketFxService;
+import com.finance.portal.market.presentation.dto.FxHistoryResponse;
 import com.finance.portal.market.presentation.dto.FxLatestResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -67,5 +68,18 @@ public class MarketFxController {
                 "Open FX rates retrieved successfully"
         );
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * GET /api/market/fx/history?symbol=USD&range=1M
+     * Döviz tarihsel verisi (TRY karşılığı)
+     */
+    @GetMapping("/history")
+    public ResponseEntity<ApiResponse<FxHistoryResponse>> getFxHistory(
+            @RequestParam String symbol,
+            @RequestParam(defaultValue = "1M") String range
+    ) {
+        FxHistoryResponse data = marketFxService.getFxHistory(symbol, range);
+        return ResponseEntity.ok(ApiResponse.success(data, "FX history retrieved"));
     }
 }

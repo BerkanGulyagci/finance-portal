@@ -26,6 +26,7 @@ const dropdownMenus = [
     items: [
       { label: 'TCMB Kurları', path: '/market/fx', desc: 'Resmi döviz kurları' },
       { label: 'Open Exchange Rates', path: '/market/fx', desc: 'Gerçek zamanlı kurlar' },
+      { label: 'Karşılaştır', path: '/market/compare', desc: 'Dövizleri karşılaştır' },
     ],
   },
   {

@@ -24,7 +24,26 @@ public class GoldSpotResponse implements Serializable {
     private BigDecimal gramTl;        // Gram altın TRY
     private BigDecimal ceyrekTl;      // Çeyrek altın TRY
     private BigDecimal yarimTl;       // Yarım altın TRY
-    private BigDecimal tamTl;         // Tam altın TRY
+    private BigDecimal tamTl;         // Ziynet tam altın TRY (7.00g brüt)
+    private BigDecimal cumhuriyetTl;  // Cumhuriyet (Ata) altın TRY mid
+    private BigDecimal ayar14Tl;      // 14 Ayar bilezik TRY/gram mid
+    private BigDecimal ayar22Tl;      // 22 Ayar bilezik TRY/gram mid
+
+    // Scrape'den gelen gerçek alış/satış fiyatları (tablo için)
+    private BigDecimal gramBuy;
+    private BigDecimal gramSell;
+    private BigDecimal ceyrekBuy;
+    private BigDecimal ceyrekSell;
+    private BigDecimal yarimBuy;
+    private BigDecimal yarimSell;
+    private BigDecimal tamBuy;
+    private BigDecimal tamSell;
+    private BigDecimal cumhuriyetBuy;
+    private BigDecimal cumhuriyetSell;
+    private BigDecimal ayar14Buy;
+    private BigDecimal ayar14Sell;
+    private BigDecimal ayar22Buy;
+    private BigDecimal ayar22Sell;
 
     // USD/TRY kuru
     private BigDecimal usdTry;
@@ -66,6 +85,40 @@ public class GoldSpotResponse implements Serializable {
     public void setYarimTl(BigDecimal yarimTl) { this.yarimTl = yarimTl; }
     public BigDecimal getTamTl() { return tamTl; }
     public void setTamTl(BigDecimal tamTl) { this.tamTl = tamTl; }
+    public BigDecimal getCumhuriyetTl() { return cumhuriyetTl; }
+    public void setCumhuriyetTl(BigDecimal cumhuriyetTl) { this.cumhuriyetTl = cumhuriyetTl; }
+    public BigDecimal getAyar14Tl() { return ayar14Tl; }
+    public void setAyar14Tl(BigDecimal ayar14Tl) { this.ayar14Tl = ayar14Tl; }
+    public BigDecimal getAyar22Tl() { return ayar22Tl; }
+    public void setAyar22Tl(BigDecimal ayar22Tl) { this.ayar22Tl = ayar22Tl; }
+    public BigDecimal getGramBuy() { return gramBuy; }
+    public void setGramBuy(BigDecimal gramBuy) { this.gramBuy = gramBuy; }
+    public BigDecimal getGramSell() { return gramSell; }
+    public void setGramSell(BigDecimal gramSell) { this.gramSell = gramSell; }
+    public BigDecimal getCeyrekBuy() { return ceyrekBuy; }
+    public void setCeyrekBuy(BigDecimal ceyrekBuy) { this.ceyrekBuy = ceyrekBuy; }
+    public BigDecimal getCeyrekSell() { return ceyrekSell; }
+    public void setCeyrekSell(BigDecimal ceyrekSell) { this.ceyrekSell = ceyrekSell; }
+    public BigDecimal getYarimBuy() { return yarimBuy; }
+    public void setYarimBuy(BigDecimal yarimBuy) { this.yarimBuy = yarimBuy; }
+    public BigDecimal getYarimSell() { return yarimSell; }
+    public void setYarimSell(BigDecimal yarimSell) { this.yarimSell = yarimSell; }
+    public BigDecimal getTamBuy() { return tamBuy; }
+    public void setTamBuy(BigDecimal tamBuy) { this.tamBuy = tamBuy; }
+    public BigDecimal getTamSell() { return tamSell; }
+    public void setTamSell(BigDecimal tamSell) { this.tamSell = tamSell; }
+    public BigDecimal getCumhuriyetBuy() { return cumhuriyetBuy; }
+    public void setCumhuriyetBuy(BigDecimal cumhuriyetBuy) { this.cumhuriyetBuy = cumhuriyetBuy; }
+    public BigDecimal getCumhuriyetSell() { return cumhuriyetSell; }
+    public void setCumhuriyetSell(BigDecimal cumhuriyetSell) { this.cumhuriyetSell = cumhuriyetSell; }
+    public BigDecimal getAyar14Buy() { return ayar14Buy; }
+    public void setAyar14Buy(BigDecimal ayar14Buy) { this.ayar14Buy = ayar14Buy; }
+    public BigDecimal getAyar14Sell() { return ayar14Sell; }
+    public void setAyar14Sell(BigDecimal ayar14Sell) { this.ayar14Sell = ayar14Sell; }
+    public BigDecimal getAyar22Buy() { return ayar22Buy; }
+    public void setAyar22Buy(BigDecimal ayar22Buy) { this.ayar22Buy = ayar22Buy; }
+    public BigDecimal getAyar22Sell() { return ayar22Sell; }
+    public void setAyar22Sell(BigDecimal ayar22Sell) { this.ayar22Sell = ayar22Sell; }
     public BigDecimal getUsdTry() { return usdTry; }
     public void setUsdTry(BigDecimal usdTry) { this.usdTry = usdTry; }
     public String getUpdatedAt() { return updatedAt; }

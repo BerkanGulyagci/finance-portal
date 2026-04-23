@@ -32,6 +32,9 @@ public class CacheConfig {
     @Value("${cache.market.fx.open.ttl-seconds:1800}")
     private long marketFxOpenTtlSeconds;
 
+    @Value("${cache.market.fx.history.ttl-seconds:3600}")
+    private long marketFxHistoryTtlSeconds;
+
     @Value("${cache.market.stocks.ttl-seconds:600}")
     private long marketStocksTtlSeconds;
 
@@ -118,6 +121,9 @@ public class CacheConfig {
                 .withCacheConfiguration("newsCache", newsCacheConfig)
                 .withCacheConfiguration("market.fx.tcmb.latest", marketFxTcmbCacheConfig)
                 .withCacheConfiguration("market.fx.open.latest", marketFxOpenCacheConfig)
+                .withCacheConfiguration("market.fx.history", RedisCacheConfiguration.defaultCacheConfig()
+                        .entryTtl(Duration.ofSeconds(marketFxHistoryTtlSeconds))
+                        .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer())))
                 .withCacheConfiguration("market.stocks.page", marketStocksCacheConfig)
                 .withCacheConfiguration("market.stocks.detail", marketStocksCacheConfig)
                 .withCacheConfiguration("market.stocks.midas", marketStocksCacheConfig)

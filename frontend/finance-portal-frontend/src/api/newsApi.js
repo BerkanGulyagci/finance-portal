@@ -32,3 +32,9 @@ export async function getBloombergHtNews() {
   // ApiResponse<List<NewsItemDto>>
   return wrapper.data ?? [];
 }
+
+export async function getGoldNews() {
+  const { data: wrapper } = await axios.get(`${BASE_URL}/api/news/gold`);
+  // ApiResponse<{ items: NewsItemDto[], isFiltered: boolean, label: string }>
+  return wrapper.data ?? { items: [], isFiltered: false, label: 'Son Haberler' };
+}

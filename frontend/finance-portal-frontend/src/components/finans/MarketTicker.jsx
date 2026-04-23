@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { getFxTcmb, getCryptos, getEconomicIndicators } from '../../api/marketApi';
+import { getFxTcmb, getCryptos, getEconomicIndicators, getGoldSpot } from '../../api/marketApi';
 
 function Sparkline({ data, color }) {
   if (!data || data.length < 2) return null;
@@ -49,20 +49,15 @@ export function MarketTicker() {
   useEffect(() => {
     async function load() {
       try {
-        const [fx, cryptos, indicators, futures] = await Promise.all([
+        const [fx, cryptos, indicators, goldSpot] = await Promise.all([
           getFxTcmb().catch(() => null),
           getCryptos(0, 50).catch(() => []),
           getEconomicIndicators().catch(() => ({})),
-          fetch('http://localhost:8080/api/market/futures?page=0&size=100')
-            .then(r => r.json()).then(d => d.data).catch(() => null),
+          getGoldSpot().catch(() => null),
         ]);
 
         const result = [];
         const rates = fx?.rates ?? [];
-        const futuresList = futures?.content ?? [];
-
-        // GC=F — Altın/ONS vadeli
-        const gcf = futuresList.find(f => f.symbol === 'GC=F');
 
         // USD/TRY
         const usdRate = rates.find(x => x.symbol === 'USD');
@@ -89,19 +84,11 @@ export function MarketTicker() {
         const faiz = parseFloat(indicators?.policyRate ?? 37);
         result.push({ label: 'FAİZ', value: `${faiz.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}%`, change: null, dir: null, spark: makeSparkline(faiz, 0) });
 
-        // Altın/ONS — GC=F vadeli kontrat
-        if (gcf?.price) {
-          const val = parseFloat(gcf.price);
-          const chg = parseFloat(gcf.changePercent ?? 0);
+        // Altın/ONS — /api/gold/spot'tan (scrape ile aynı kaynak)
+        if (goldSpot?.price) {
+          const val = parseFloat(goldSpot.price);
+          const chg = parseFloat(goldSpot.changePercent ?? 0);
           result.push({ label: 'ALTIN/ONS', value: val.toLocaleString('tr-TR', { minimumFractionDigits: 2 }), change: chg !== 0 ? chg : null, dir: chg > 0 ? 'up' : chg < 0 ? 'down' : null, spark: makeSparkline(val, chg * val / 100) });
-        } else {
-          // Fallback: CoinGecko PAXG/XAUT
-          const goldToken = cryptos.find(x => x.symbol?.toLowerCase() === 'paxg' || x.symbol?.toLowerCase() === 'xaut');
-          if (goldToken) {
-            const val = parseFloat(goldToken.currentPrice ?? 0);
-            const chg = parseFloat(goldToken.priceChangePercentage24h ?? 0);
-            result.push({ label: 'ALTIN/TRY', value: val.toLocaleString('tr-TR', { minimumFractionDigits: 0 }), change: chg !== 0 ? chg : null, dir: chg > 0 ? 'up' : chg < 0 ? 'down' : null, spark: makeSparkline(val, chg * val / 100) });
-          }
         }
 
         // Kripto — BTC, ETH, BNB, SOL

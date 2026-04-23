@@ -91,6 +91,11 @@ export async function getGoldHistory(range = '1M', currency = 'USD') {
   return w.data ?? null;
 }
 
+export async function getFxHistory(symbol, range = '1M') {
+  const { data: w } = await client.get('/api/market/fx/history', { params: { symbol, range } });
+  return w.data ?? null;
+}
+
 export async function searchAssetSymbols(type, q = '') {
   const query = q.trim().toLowerCase();
   try {

@@ -15,8 +15,10 @@ import FuturesPage from '../pages/market/FuturesPage';
 import FundsPage from '../pages/market/FundsPage';
 import TefasPage from '../pages/market/TefasPage';
 import FxPage from '../pages/market/FxPage';
+import FxDetailPage from '../pages/market/FxDetailPage';
 import BondsPage from '../pages/market/BondsPage';
 import GoldPage from '../pages/market/GoldPage';
+import ComparePage from '../pages/market/ComparePage';
 import NewsPage from '../pages/NewsPage';
 import NotFoundPage from '../pages/NotFoundPage';
 
@@ -41,8 +43,10 @@ export default function AppRouter() {
           <Route path="/market/funds"      element={<FundsPage />} />
           <Route path="/market/tefas"      element={<TefasPage />} />
           <Route path="/market/fx"         element={<FxPage />} />
+          <Route path="/market/fx/:symbol" element={<FxDetailPage />} />
           <Route path="/market/bonds"      element={<BondsPage />} />
           <Route path="/market/gold"       element={<GoldPage />} />
+          <Route path="/market/compare"    element={<ComparePage />} />
         </Route>
 
         {/* Protected routes */}

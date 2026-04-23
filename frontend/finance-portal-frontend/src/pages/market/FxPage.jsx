@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { BarChart2 } from 'lucide-react';
 import { getFxTcmb, getFxOpen } from '../../api/marketApi';
 import { useSortable } from '../../hooks/useSortable';
 import SortableTh from '../../components/common/SortableTh';
+import { FX_META, FlagImg } from '../../utils/fxMeta.jsx';
 
 function num(v, dec = 4) {
   return v == null ? '-' : parseFloat(v).toLocaleString('tr-TR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
@@ -16,8 +19,8 @@ export default function FxPage() {
   const [openBase, setOpenBase] = useState('USD');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
-  // Load TCMB on mount
   useEffect(() => {
     setLoading(true);
     getFxTcmb()
@@ -26,7 +29,6 @@ export default function FxPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Load Open FX when tab switches or base changes
   useEffect(() => {
     if (activeTab !== 'open') return;
     setLoading(true);
@@ -44,7 +46,7 @@ export default function FxPage() {
   const { sorted: sortedOpen, sortKey: openSortKey, sortDir: openSortDir, handleSort: handleOpenSort } = useSortable(openRates, 'symbol', 'asc');
 
   const tcmbTh = (key, label, align = 'left') => ({ label, sortKey: key, currentKey: tcmbSortKey, currentDir: tcmbSortDir, onSort: handleTcmbSort, align });
-  const openTh = (key, label, align = 'left') => ({ label, sortKey: key, currentKey: openSortKey, currentDir: openSortDir, onSort: handleOpenSort, align });
+  const openTh  = (key, label, align = 'left') => ({ label, sortKey: key, currentKey: openSortKey,  currentDir: openSortDir,  onSort: handleOpenSort,  align });
 
   const tabs = [
     { key: 'tcmb', label: '🏦 TCMB Resmi Kurlar' },
@@ -56,11 +58,11 @@ export default function FxPage() {
       <h1 className="text-2xl font-bold text-gray-900 mb-2 border-l-4 border-[#093eaa] pl-4">Döviz Kurları</h1>
       <p className="text-sm text-gray-500 mb-6 pl-5">
         {activeTab === 'tcmb'
-          ? 'TCMB resmi döviz kurları (günlük güncellenir)'
+          ? 'TCMB resmi döviz kurları (günlük güncellenir) — Türk Lirası bazlı'
           : 'Open Exchange Rates — gerçek zamanlıya yakın kurlar'}
       </p>
 
-      {/* Source tabs */}
+      {/* Tabs */}
       <div className="flex gap-2 mb-4">
         {tabs.map(t => (
           <button key={t.key} onClick={() => setActiveTab(t.key)}
@@ -79,10 +81,10 @@ export default function FxPage() {
           <div className="flex gap-2">
             {OPEN_BASES.map(b => (
               <button key={b} onClick={() => setOpenBase(b)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-all border ${
+                className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-all border flex items-center gap-1.5 ${
                   openBase === b ? 'bg-[#093eaa] text-white border-[#093eaa]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                 }`}>
-                {b}
+                <FlagImg cc={FX_META[b]?.cc} size={16} /> {b}
               </button>
             ))}
           </div>
@@ -95,20 +97,26 @@ export default function FxPage() {
           <div className="px-6 py-3 border-b border-gray-100 bg-gray-50 text-xs text-gray-500 flex items-center justify-between">
             {activeTab === 'tcmb' && tcmbData && (
               <>
-                <span>Kaynak: {tcmbData.provider} · Baz: {tcmbData.base}</span>
+                <span>Kaynak: TCMB · Baz: TRY · {tcmbRates.length} döviz</span>
                 <span>{tcmbData.asOf}</span>
               </>
             )}
             {activeTab === 'open' && openData && (
               <>
-                <span>Kaynak: {openData.provider} · Baz: {openData.base}</span>
+                <span>Kaynak: Open Exchange Rates · Baz: {openData.base}</span>
                 <span>{openData.asOf}</span>
               </>
             )}
           </div>
         )}
 
-        {loading && <div className="p-8 text-center text-gray-400 text-sm">Yükleniyor...</div>}
+        {loading && (
+          <div className="p-8 flex justify-center gap-1.5">
+            <div className="w-2 h-2 bg-[#093eaa] rounded-full animate-bounce" />
+            <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
+            <div className="w-2 h-2 bg-[#093eaa]/30 rounded-full animate-bounce [animation-delay:200ms]" />
+          </div>
+        )}
         {error && <div className="p-6 text-rose-500 text-sm">{error}</div>}
 
         {/* TCMB Table */}
@@ -117,21 +125,73 @@ export default function FxPage() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <SortableTh {...tcmbTh('symbol', 'Döviz')} />
+                  <SortableTh {...tcmbTh('symbol', 'Döviz Kodu')} />
+                  <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200">
+                    Döviz Cinsi
+                  </th>
+                  <SortableTh {...tcmbTh('unit', 'Birim', 'right')} />
                   <SortableTh {...tcmbTh('buy', 'Alış', 'right')} />
                   <SortableTh {...tcmbTh('sell', 'Satış', 'right')} />
-                  <th className="text-left px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200">Birim</th>
+                  <th className="px-4 py-3 border-b border-gray-200 w-8" />
+                  <th className="px-4 py-3 border-b border-gray-200 w-10" />
                 </tr>
               </thead>
               <tbody>
-                {sortedTcmb.map((r, i) => (
-                  <tr key={r.symbol} className={`border-t border-gray-100 hover:bg-gray-50 transition-colors ${i % 2 === 0 ? '' : 'bg-gray-50/30'}`}>
-                    <td className="px-6 py-3 font-bold text-[#093eaa] text-sm">{r.symbol}</td>
-                    <td className="px-6 py-3 text-sm font-semibold text-gray-900 text-right">{num(r.buy)}</td>
-                    <td className="px-6 py-3 text-sm font-semibold text-gray-900 text-right">{num(r.sell)}</td>
-                    <td className="px-6 py-3 text-sm text-gray-400">{r.unit}</td>
-                  </tr>
-                ))}
+                {sortedTcmb.map((r, i) => {
+                  const meta = FX_META[r.symbol];
+                  return (
+                    <tr
+                      key={r.symbol}
+                      onClick={() => navigate('/market/fx/' + r.symbol)}
+                      className={`border-t border-gray-100 hover:bg-blue-50 transition-colors cursor-pointer ${i % 2 === 0 ? '' : 'bg-gray-50/30'}`}
+                    >
+                      {/* Döviz kodu + bayrak */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <FlagImg cc={meta?.cc} />
+                          <div>
+                            <Link
+                              to={`/market/fx/${r.symbol}`}
+                              onClick={e => e.stopPropagation()}
+                              className="font-bold text-[#093eaa] text-sm hover:underline"
+                            >
+                              {r.symbol}/TRY
+                            </Link>
+                          </div>
+                        </div>
+                      </td>
+                      {/* Döviz adı */}
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {meta?.ad ?? r.symbol}
+                      </td>
+                      {/* Birim */}
+                      <td className="px-4 py-3 text-sm text-gray-400 text-right">
+                        {r.unit ?? 1}
+                      </td>
+                      {/* Alış */}
+                      <td className="px-4 py-3 text-sm font-semibold text-gray-900 text-right">
+                        {num(r.buy)}
+                      </td>
+                      {/* Satış */}
+                      <td className="px-4 py-3 text-sm font-semibold text-gray-900 text-right">
+                        {num(r.sell)}
+                      </td>
+                      {/* Ok */}
+                      <td className="px-4 py-3 text-gray-300 text-right text-sm">→</td>
+                      {/* Karşılaştır */}
+                      <td className="px-2 py-3">
+                        <Link
+                          to={`/market/compare?symbols=${r.symbol}`}
+                          onClick={e => e.stopPropagation()}
+                          title="Karşılaştır"
+                          className="p-1.5 rounded-lg bg-gray-100 hover:bg-[#093eaa] hover:text-white text-gray-400 transition-all inline-flex"
+                        >
+                          <BarChart2 className="w-3.5 h-3.5" />
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -144,18 +204,28 @@ export default function FxPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <SortableTh {...openTh('symbol', 'Döviz')} />
+                  <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200">
+                    Döviz Cinsi
+                  </th>
                   <SortableTh {...openTh('sell', 'Kur', 'right')} />
-                  <th className="text-left px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200">Birim</th>
                 </tr>
               </thead>
               <tbody>
-                {sortedOpen.map((r, i) => (
-                  <tr key={r.symbol} className={`border-t border-gray-100 hover:bg-gray-50 transition-colors ${i % 2 === 0 ? '' : 'bg-gray-50/30'}`}>
-                    <td className="px-6 py-3 font-bold text-[#093eaa] text-sm">{r.symbol}</td>
-                    <td className="px-6 py-3 text-sm font-semibold text-gray-900 text-right">{num(r.sell ?? r.buy, 6)}</td>
-                    <td className="px-6 py-3 text-sm text-gray-400">{r.unit}</td>
-                  </tr>
-                ))}
+                {sortedOpen.map((r, i) => {
+                  const meta = FX_META[r.symbol];
+                  return (
+                    <tr key={r.symbol} className={`border-t border-gray-100 hover:bg-gray-50 transition-colors ${i % 2 === 0 ? '' : 'bg-gray-50/30'}`}>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <FlagImg cc={meta?.cc} />
+                          <span className="font-bold text-[#093eaa] text-sm">{r.symbol}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{meta?.ad ?? r.symbol}</td>
+                      <td className="px-4 py-3 text-sm font-semibold text-gray-900 text-right">{num(r.sell ?? r.buy, 6)}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
