@@ -3,6 +3,9 @@ package com.finance.portal.market.application.funds.service;
 import com.finance.portal.common.infrastructure.exception.ExternalApiException;
 import com.finance.portal.common.infrastructure.exception.ResourceNotFoundException;
 import com.finance.portal.market.application.funds.model.FundChartPoint;
+import com.finance.portal.market.application.funds.model.TefasFundHistoryPoint;
+import com.finance.portal.market.application.funds.model.TefasFundHistoryResponse;
+import com.finance.portal.market.infrastructure.external.tefas.TefasFundClient;
 import com.finance.portal.market.application.funds.model.FundChartResponse;
 import com.finance.portal.market.application.funds.model.FundDetail;
 import com.finance.portal.market.application.funds.model.FundPageResponse;
@@ -37,17 +40,44 @@ public class FundQueryService {
     private final YahooStockPort yahooStockPort;
     private final CacheManager cacheManager;
     private final FundSymbolProvider fundSymbolProvider;
+    private final TefasFundClient tefasFundClient;
 
-    public FundQueryService(YahooStockPort yahooStockPort, CacheManager cacheManager, FundSymbolProvider fundSymbolProvider) {
+    public FundQueryService(YahooStockPort yahooStockPort, CacheManager cacheManager,
+                            FundSymbolProvider fundSymbolProvider, TefasFundClient tefasFundClient) {
         this.yahooStockPort = yahooStockPort;
         this.cacheManager = cacheManager;
         this.fundSymbolProvider = fundSymbolProvider;
+        this.tefasFundClient = tefasFundClient;
     }
 
     public FundSummary getFundSummary(String symbol) {
         validateSymbol(symbol);
         YahooChartResponseDto.Meta meta = fetchMetaOrThrow(symbol);
         return mapToFundSummary(meta);
+    }
+
+    /**
+     * TEFAS fon tarihsel fiyat verisi.
+     * range: 1W, 1M, 3M, 6M, 1Y
+     */
+    @Cacheable(cacheNames = "market.tefas.history", key = "#code + ':' + #range")
+    public TefasFundHistoryResponse getTefasFundHistory(String code, String range) {
+        java.time.LocalDate today = java.time.LocalDate.now(java.time.ZoneId.of("Europe/Istanbul"));
+        java.time.LocalDate from = switch (range == null ? "1M" : range.toUpperCase()) {
+            case "1W"  -> today.minusWeeks(1);
+            case "3M"  -> today.minusMonths(3);
+            case "6M"  -> today.minusMonths(6);
+            case "1Y"  -> today.minusYears(1);
+            case "3Y"  -> today.minusYears(3);
+            case "5Y"  -> today.minusYears(5);
+            default    -> today.minusMonths(1);
+        };
+        List<TefasFundHistoryPoint> points = tefasFundClient.fetchHistory(code.toUpperCase(), from, today);
+        TefasFundHistoryResponse resp = new TefasFundHistoryResponse();
+        resp.setCode(code.toUpperCase());
+        resp.setRange(range);
+        resp.setPoints(points);
+        return resp;
     }
 
     @Cacheable(cacheNames = "market.funds.page", key = "'page:' + #page + ':size:' + #size")

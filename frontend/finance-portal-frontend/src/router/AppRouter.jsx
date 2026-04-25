@@ -14,6 +14,8 @@ import CryptoPage from '../pages/market/CryptoPage';
 import FuturesPage from '../pages/market/FuturesPage';
 import FundsPage from '../pages/market/FundsPage';
 import TefasPage from '../pages/market/TefasPage';
+import TefasFundDetailPage from '../pages/market/TefasFundDetailPage';
+import TefasComparePage from '../pages/market/TefasComparePage';
 import FxPage from '../pages/market/FxPage';
 import FxDetailPage from '../pages/market/FxDetailPage';
 import BondsPage from '../pages/market/BondsPage';
@@ -41,7 +43,9 @@ export default function AppRouter() {
           <Route path="/market/crypto"     element={<CryptoPage />} />
           <Route path="/market/futures"    element={<FuturesPage />} />
           <Route path="/market/funds"      element={<FundsPage />} />
-          <Route path="/market/tefas"      element={<TefasPage />} />
+          <Route path="/market/tefas"         element={<TefasPage />} />
+          <Route path="/market/tefas/compare" element={<TefasComparePage />} />
+          <Route path="/market/tefas/:code"   element={<TefasFundDetailPage />} />
           <Route path="/market/fx"         element={<FxPage />} />
           <Route path="/market/fx/:symbol" element={<FxDetailPage />} />
           <Route path="/market/bonds"      element={<BondsPage />} />

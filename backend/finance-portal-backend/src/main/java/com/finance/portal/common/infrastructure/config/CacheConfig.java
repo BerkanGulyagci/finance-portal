@@ -134,6 +134,7 @@ public class CacheConfig {
                 .withCacheConfiguration("market.indicators", marketFxTcmbCacheConfig)
                 .withCacheConfiguration("market.gold.spot", marketFxTcmbCacheConfig)
                 .withCacheConfiguration("market.gold.history", marketFundsCacheConfig)
+                .withCacheConfiguration("market.tefas.history", marketFundsCacheConfig)
                 .withCacheConfiguration("market.funds.page", marketFundsCacheConfig)
                 .withCacheConfiguration("market.funds.detail", marketFundsCacheConfig)
                 .withCacheConfiguration("market.funds.chart", marketFundsCacheConfig)

@@ -61,6 +61,16 @@ export async function getTefasFunds(kind = 'YAT', page = 0, size = 50) {
   return w.data ?? {};
 }
 
+export async function getTefasFundDetail(code) {
+  const { data: w } = await client.get(`/api/market/funds/tefas/${encodeURIComponent(code)}`);
+  return w.data ?? null;
+}
+
+export async function getTefasFundHistory(code, range = '1M') {
+  const { data: w } = await client.get(`/api/market/funds/tefas/${encodeURIComponent(code)}/history`, { params: { range } });
+  return w.data ?? null;
+}
+
 export async function getFxTcmb() {
   const { data: w } = await client.get('/api/market/fx/tcmb/latest');
   return w.data ?? {};

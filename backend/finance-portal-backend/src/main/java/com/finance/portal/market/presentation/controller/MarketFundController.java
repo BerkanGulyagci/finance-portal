@@ -4,6 +4,7 @@ import com.finance.portal.common.presentation.dto.ApiResponse;
 import com.finance.portal.market.application.funds.model.FundChartResponse;
 import com.finance.portal.market.application.funds.model.FundDetail;
 import com.finance.portal.market.application.funds.model.FundPageResponse;
+import com.finance.portal.market.application.funds.model.TefasFundHistoryResponse;
 import com.finance.portal.market.application.funds.model.TefasFundPageResponse;
 import com.finance.portal.market.application.funds.service.FundQueryService;
 import com.finance.portal.market.application.funds.service.TefasFundService;
@@ -40,6 +41,21 @@ public class MarketFundController {
     ) {
         TefasFundPageResponse result = tefasFundService.getPagedFunds(kind, page, size);
         return ResponseEntity.ok(ApiResponse.success(result, "TEFAS funds retrieved successfully"));
+    }
+
+    @GetMapping("/tefas/{code}")
+    public ResponseEntity<ApiResponse<Object>> getTefasFundDetail(@PathVariable String code) {
+        var items = tefasFundService.getFundByCode(code.toUpperCase());
+        return ResponseEntity.ok(ApiResponse.success(items.isEmpty() ? null : items.get(0), "TEFAS fund detail retrieved"));
+    }
+
+    @GetMapping("/tefas/{code}/history")
+    public ResponseEntity<ApiResponse<TefasFundHistoryResponse>> getTefasFundHistory(
+            @PathVariable String code,
+            @RequestParam(defaultValue = "1M") String range
+    ) {
+        TefasFundHistoryResponse result = fundQueryService.getTefasFundHistory(code, range);
+        return ResponseEntity.ok(ApiResponse.success(result, "TEFAS fund history retrieved"));
     }
 
     @GetMapping

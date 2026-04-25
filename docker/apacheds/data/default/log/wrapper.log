@@ -319,3 +319,43 @@ INFO   | jvm 1    | 2026/04/23 13:08:46 |         / ___ \| |_) | (_| | (__| | | 
 INFO   | jvm 1    | 2026/04/23 13:08:46 |        /_/   \_\ .__/ \__,_|\___|_| |_|\___|____/|____/  
 INFO   | jvm 1    | 2026/04/23 13:08:46 |                |_|                                       
 INFO   | jvm 1    | 2026/04/23 13:08:46 | 
+STATUS | wrapper  | 2026/04/23 23:06:56 | TERM trapped.  Shutting down.
+STATUS | wrapper  | 2026/04/23 23:06:57 | <-- Wrapper Stopped
+STATUS | wrapper  | 2026/04/24 19:18:16 | --> Wrapper Started as Daemon
+STATUS | wrapper  | 2026/04/24 19:18:16 | Launching a JVM...
+INFO   | jvm 1    | 2026/04/24 19:18:17 | Wrapper (Version 3.2.3) http://wrapper.tanukisoftware.org
+INFO   | jvm 1    | 2026/04/24 19:18:17 |   Copyright 1999-2006 Tanuki Software, Inc.  All Rights Reserved.
+INFO   | jvm 1    | 2026/04/24 19:18:17 | 
+INFO   | jvm 1    | 2026/04/24 19:19:45 | [19:19:44] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.42.2.27.8.5.1' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/04/24 19:19:45 | [19:19:44] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.841' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/04/24 19:19:45 | [19:19:44] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.3.6.1.4.1.4203.1.9.1.2' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/04/24 19:19:45 | [19:19:44] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.319' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/04/24 19:19:45 | [19:19:44] WARN [org.apache.directory.api.ldap.model.entry.DefaultAttribute] - ERR_13207_VALUE_ALREADY_EXISTS The value '1.2.840.113556.1.4.528' already exists in the attribute (supportedControl)
+INFO   | jvm 1    | 2026/04/24 19:19:45 | [19:19:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/04/24 19:19:45 | [19:19:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/04/24 19:19:45 | [19:19:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/04/24 19:19:45 | [19:19:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/04/24 19:19:45 | [19:19:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/04/24 19:19:45 | [19:19:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/04/24 19:19:45 | [19:19:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/04/24 19:19:45 | [19:19:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/04/24 19:19:45 | [19:19:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/04/24 19:19:45 | [19:19:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/04/24 19:19:45 | [19:19:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/04/24 19:19:45 | [19:19:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/04/24 19:19:45 | [19:19:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/04/24 19:19:45 | [19:19:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/04/24 19:19:45 | [19:19:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/04/24 19:19:45 | [19:19:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/04/24 19:19:45 | [19:19:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/04/24 19:19:45 | [19:19:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/04/24 19:19:45 | [19:19:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/04/24 19:19:45 | [19:19:45] WARN [org.apache.directory.api.ldap.model.entry.Value] - MSG_13202_AT_IS_NULL ()
+INFO   | jvm 1    | 2026/04/24 19:19:45 | [19:19:45] WARN [org.apache.directory.server.core.DefaultDirectoryService] - You didn't change the admin password of directory service instance 'default'.  Please update the admin password as soon as possible to prevent a possible security breach.
+INFO   | jvm 1    | 2026/04/24 19:19:42 |            _                     _          ____  ____   
+INFO   | jvm 1    | 2026/04/24 19:19:42 |           / \   _ __    ___  ___| |__   ___|  _ \/ ___|  
+INFO   | jvm 1    | 2026/04/24 19:19:42 |          / _ \ | '_ \ / _` |/ __| '_ \ / _ \ | | \___ \  
+INFO   | jvm 1    | 2026/04/24 19:19:42 |         / ___ \| |_) | (_| | (__| | | |  __/ |_| |___) | 
+INFO   | jvm 1    | 2026/04/24 19:19:42 |        /_/   \_\ .__/ \__,_|\___|_| |_|\___|____/|____/  
+INFO   | jvm 1    | 2026/04/24 19:19:42 |                |_|                                       
+INFO   | jvm 1    | 2026/04/24 19:19:42 | 

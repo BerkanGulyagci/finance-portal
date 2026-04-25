@@ -1,4 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { BarChart2 } from 'lucide-react';
 import { getTefasFunds } from '../../api/marketApi';
 import { useSortable } from '../../hooks/useSortable';
 import SortableTh from '../../components/common/SortableTh';
@@ -18,12 +20,15 @@ function formatDate(ts) {
 }
 
 const KINDS = [
-  { key: 'YAT', label: 'Menkul Kıymet Yatırım Fonları' },
-  { key: 'BYF', label: 'Borsa Yatırım Fonları' },
-  { key: 'EMK', label: 'Emeklilik Fonları' },
+  { key: 'YAT',  label: 'Menkul Kıymet Yatırım Fonları' },
+  { key: 'BYF',  label: 'Borsa Yatırım Fonları' },
+  { key: 'EMK',  label: 'Emeklilik Fonları' },
+  { key: 'GYF',  label: 'Gayrimenkul Yatırım Fonları' },
+  { key: 'GSYF', label: 'Girişim Sermayesi Yatırım Fonları' },
 ];
 
 export default function TefasPage() {
+  const navigate = useNavigate();
   const [kind, setKind] = useState('YAT');
   const [all, setAll] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -60,19 +65,22 @@ export default function TefasPage() {
       <h1 className="text-2xl font-bold text-gray-900 mb-2 border-l-4 border-[#093eaa] pl-4">TEFAS Fonları</h1>
       <p className="text-sm text-gray-500 mb-6 pl-5">Türkiye Elektronik Fon Alım Satım Platformu · fundturkey.com.tr</p>
 
-      {/* Fon tipi tabs — TEFAS style */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-4 p-4">
-        <p className="text-xs font-bold text-gray-500 mb-3 uppercase tracking-wider">Fon Tipi</p>
-        <div className="flex flex-wrap gap-2">
+      {/* Fon tipi — radio button style */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-4 px-5 py-4">
+        <span className="text-sm font-bold text-gray-600 mr-4">Fon Tipi :</span>
+        <div className="inline-flex flex-wrap gap-x-5 gap-y-2">
           {KINDS.map(k => (
-            <button key={k.key} onClick={() => { setKind(k.key); setPage(0); setSearch(''); }}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all border ${
-                kind === k.key
-                  ? 'bg-[#093eaa] text-white border-[#093eaa]'
-                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-              }`}>
+            <label key={k.key} className="flex items-center gap-1.5 cursor-pointer text-sm text-gray-700 hover:text-[#093eaa]">
+              <input
+                type="radio"
+                name="fundKind"
+                value={k.key}
+                checked={kind === k.key}
+                onChange={() => { setKind(k.key); setPage(0); setSearch(''); }}
+                className="accent-[#093eaa] w-3.5 h-3.5"
+              />
               {k.label}
-            </button>
+            </label>
           ))}
         </div>
       </div>
@@ -107,23 +115,52 @@ export default function TefasPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-[#093eaa] text-white">
+                  <SortableTh {...thProps('date', 'Tarih')} className="text-white hover:text-white hover:bg-[#0a3590]" />
                   <SortableTh {...thProps('code', 'Fon Kodu')} className="text-white hover:text-white hover:bg-[#0a3590]" />
                   <SortableTh {...thProps('title', 'Fon Adı')} className="text-white hover:text-white hover:bg-[#0a3590]" />
-                  <SortableTh {...thProps('price', 'Birim Pay Değeri (TL)', 'right')} className="text-white hover:text-white hover:bg-[#0a3590]" />
-                  <SortableTh {...thProps('marketCap', 'Portföy Büyüklüğü (TL)', 'right')} className="text-white hover:text-white hover:bg-[#0a3590]" />
-                  <SortableTh {...thProps('numberOfInvestors', 'Yatırımcı Sayısı', 'right')} className="text-white hover:text-white hover:bg-[#0a3590]" />
-                  <th className="text-right px-4 py-3 text-xs font-bold uppercase tracking-wider whitespace-nowrap border-b border-[#0a3590]">Tarih</th>
+                  <SortableTh {...thProps('price', 'Fiyat', 'right')} className="text-white hover:text-white hover:bg-[#0a3590]" />
+                  <SortableTh {...thProps('sharesInCirculation', 'Tedavüldeki Pay Sayısı', 'right')} className="text-white hover:text-white hover:bg-[#0a3590]" />
+                  <SortableTh {...thProps('numberOfInvestors', 'Kişi Sayısı', 'right')} className="text-white hover:text-white hover:bg-[#0a3590]" />
+                  <SortableTh {...thProps('marketCap', 'Fon Toplam Değer', 'right')} className="text-white hover:text-white hover:bg-[#0a3590]" />
+                  {kind === 'BYF' && (
+                    <SortableTh {...thProps('borsaBultenFiyat', 'Borsa Bülten Fiyatı', 'right')} className="text-white hover:text-white hover:bg-[#0a3590]" />
+                  )}
+                  <th className="px-4 py-3 border-b border-[#0a3590] w-10" />
                 </tr>
               </thead>
               <tbody>
                 {paged.map((r, i) => (
                   <tr key={r.code} className={`border-t border-gray-100 hover:bg-blue-50 transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
-                    <td className="px-4 py-3 font-bold text-[#093eaa] text-sm">{r.code}</td>
+                    <td className="px-4 py-3 text-xs text-gray-400">{formatDate(r.date)}</td>
+                    <td className="px-4 py-3 font-bold text-[#093eaa] text-sm">
+                      <Link to={`/market/tefas/${r.code}`} className="hover:underline">{r.code}</Link>
+                    </td>
                     <td className="px-4 py-3 text-sm text-gray-800">{r.title ?? '-'}</td>
                     <td className="px-4 py-3 text-sm font-semibold text-gray-900 text-right">{num(r.price, 6)}</td>
-                    <td className="px-4 py-3 text-sm text-gray-700 text-right">{r.marketCap == null ? '-' : num(r.marketCap, 2)}</td>
-                    <td className="px-4 py-3 text-sm text-gray-700 text-right">{r.numberOfInvestors == null ? '-' : Number(r.numberOfInvestors).toLocaleString('tr-TR')}</td>
-                    <td className="px-4 py-3 text-xs text-gray-400 text-right">{formatDate(r.date)}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700 text-right">
+                      {r.sharesInCirculation == null ? '-' : num(r.sharesInCirculation, 2)}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-700 text-right">
+                      {r.numberOfInvestors == null ? '-' : Number(r.numberOfInvestors).toLocaleString('tr-TR')}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-700 text-right">
+                      {r.marketCap == null ? '-' : num(r.marketCap, 2)}
+                    </td>
+                    {kind === 'BYF' && (
+                      <td className="px-4 py-3 text-sm font-semibold text-gray-900 text-right">
+                        {r.borsaBultenFiyat == null ? '-' : num(r.borsaBultenFiyat, 2)}
+                      </td>
+                    )}
+                    <td className="px-2 py-3">
+                      <Link
+                        to={`/market/tefas/compare?codes=${r.code}`}
+                        onClick={e => e.stopPropagation()}
+                        title="Karşılaştır"
+                        className="p-1.5 rounded-lg bg-gray-100 hover:bg-[#093eaa] hover:text-white text-gray-400 transition-all inline-flex"
+                      >
+                        <BarChart2 className="w-3.5 h-3.5" />
+                      </Link>
+                    </td>
                   </tr>
                 ))}
                 {paged.length === 0 && (
