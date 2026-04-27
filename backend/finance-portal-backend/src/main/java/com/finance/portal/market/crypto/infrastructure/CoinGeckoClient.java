@@ -24,8 +24,8 @@ public class CoinGeckoClient {
 
     private final RestClient restClient;
 
-    @Value("${coingecko.vs-currency:try}")
-    private String vsCurrency;
+    private static final java.util.Set<String> ALLOWED_CURRENCIES =
+            java.util.Set.of("try", "usd", "eur");
 
     public CoinGeckoClient(
             @Value("${coingecko.base-url}") String baseUrl,
@@ -47,13 +47,14 @@ public class CoinGeckoClient {
      *
      * @param coingeckoPage 1-based page number for CoinGecko
      * @param perPage       number of items per page (1–250)
-     * @return list of market items in TRY (or configured vs_currency)
+     * @param currency      vs_currency: try, usd or eur
+     * @return list of market items in requested currency
      */
-    public List<CoinGeckoMarketItemDto> fetchMarkets(int coingeckoPage, int perPage) {
-        String currency = vsCurrency != null && !vsCurrency.isBlank() ? vsCurrency.trim().toLowerCase() : "try";
-        log.info("Calling CoinGecko /coins/markets vs_currency={} page={} per_page={}", currency, coingeckoPage, perPage);
+    public List<CoinGeckoMarketItemDto> fetchMarkets(int coingeckoPage, int perPage, String currency) {
+        String cur = resolveCurrency(currency);
+        log.info("Calling CoinGecko /coins/markets vs_currency={} page={} per_page={}", cur, coingeckoPage, perPage);
 
-        String uri = PATH_MARKETS + "?vs_currency=" + currency
+        String uri = PATH_MARKETS + "?vs_currency=" + cur
                 + "&order=market_cap_desc"
                 + "&per_page=" + perPage
                 + "&page=" + coingeckoPage
@@ -85,5 +86,75 @@ public class CoinGeckoClient {
         } catch (Exception e) {
             throw new ExternalApiException("CoinGecko API error: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Fetches detailed coin info: description, links, ATH/ATL, supply, categories.
+     */
+    @SuppressWarnings("unchecked")
+    public java.util.Map<String, Object> fetchCoinDetail(String coinId) {
+        String uri = "/coins/" + coinId
+                + "?localization=true&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false";
+        try {
+            java.util.Map<String, Object> body = restClient.get().uri(uri).retrieve()
+                    .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
+                        throw new ExternalApiException("CoinGecko detail error: " + res.getStatusCode());
+                    })
+                    .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
+                        throw new ExternalApiException("CoinGecko detail server error: " + res.getStatusCode());
+                    })
+                    .body(new ParameterizedTypeReference<java.util.Map<String, Object>>() {});
+            return body != null ? body : java.util.Map.of();
+        } catch (ExternalApiException e) { throw e; }
+        catch (Exception e) { throw new ExternalApiException("CoinGecko detail error: " + e.getMessage(), e); }
+    }
+
+    /**
+     * Fetches OHLC (candlestick) data for a coin.
+     * days: 1, 7, 14, 30, 90, 180, 365
+     */
+    public List<List<Number>> fetchOhlc(String coinId, int days, String currency) {
+        String cur = resolveCurrency(currency);
+        String uri = "/coins/" + coinId + "/ohlc?vs_currency=" + cur + "&days=" + days;
+        try {
+            List<List<Number>> body = restClient.get().uri(uri).retrieve()
+                    .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
+                        throw new ExternalApiException("CoinGecko OHLC error: " + res.getStatusCode());
+                    })
+                    .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
+                        throw new ExternalApiException("CoinGecko OHLC server error: " + res.getStatusCode());
+                    })
+                    .body(new ParameterizedTypeReference<>() {});
+            return body != null ? body : List.of();
+        } catch (ExternalApiException e) { throw e; }
+        catch (Exception e) { throw new ExternalApiException("CoinGecko OHLC error: " + e.getMessage(), e); }
+    }
+
+    /**
+     * Fetches market chart (price history) for a coin.
+     * days: 1, 7, 14, 30, 90, 180, 365
+     */
+    @SuppressWarnings("unchecked")
+    public java.util.Map<String, Object> fetchMarketChart(String coinId, int days, String currency) {
+        String cur = resolveCurrency(currency);
+        String uri = "/coins/" + coinId + "/market_chart?vs_currency=" + cur + "&days=" + days;
+        try {
+            java.util.Map<String, Object> body = restClient.get().uri(uri).retrieve()
+                    .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
+                        throw new ExternalApiException("CoinGecko chart error: " + res.getStatusCode());
+                    })
+                    .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
+                        throw new ExternalApiException("CoinGecko chart server error: " + res.getStatusCode());
+                    })
+                    .body(new ParameterizedTypeReference<java.util.Map<String, Object>>() {});
+            return body != null ? body : java.util.Map.of();
+        } catch (ExternalApiException e) { throw e; }
+        catch (Exception e) { throw new ExternalApiException("CoinGecko chart error: " + e.getMessage(), e); }
+    }
+
+    private String resolveCurrency(String currency) {
+        if (currency == null || currency.isBlank()) return "try";
+        String lower = currency.trim().toLowerCase();
+        return ALLOWED_CURRENCIES.contains(lower) ? lower : "try";
     }
 }

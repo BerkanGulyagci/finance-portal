@@ -5,19 +5,42 @@ export async function getStocks(page = 0, size = 20) {
   return w.data ?? {};
 }
 
-export async function getCryptos(page = 0, size = 100) {
-  const { data: w } = await client.get('/api/market/crypto', { params: { page, size } });
+export async function getCryptos(page = 0, size = 100, currency = 'try') {
+  const { data: w } = await client.get('/api/market/crypto', { params: { page, size, currency } });
   return w.data ?? [];
 }
 
-export async function getAllCryptos() {
-  // CoinGecko free tier: max 250 per page, rate limited
-  // Fetch first 500 (pages 0 and 1 with size=250)
-  const [p1, p2] = await Promise.all([
-    client.get('/api/market/crypto', { params: { page: 0, size: 250 } }).then(r => r.data?.data ?? []),
-    client.get('/api/market/crypto', { params: { page: 1, size: 250 } }).then(r => r.data?.data ?? []).catch(() => []),
-  ]);
-  return [...p1, ...p2];
+export async function getAllCryptos(currency = 'try') {
+  // Sayfaları sırayla çek — paralel çekince CoinGecko rate-limit verir
+  const results = [];
+  for (let page = 0; page < 4; page++) {
+    try {
+      const { data: w } = await client.get('/api/market/crypto', { params: { page, size: 250, currency } });
+      const items = w.data ?? [];
+      if (items.length === 0) break;
+      results.push(...items);
+      // Rate-limit koruması: sayfalar arası 1.3s bekle
+      if (page < 3) await new Promise(r => setTimeout(r, 1300));
+    } catch {
+      break;
+    }
+  }
+  return results;
+}
+
+export async function getCryptoOhlc(coinId, days = 7, currency = 'try') {
+  const { data: w } = await client.get(`/api/market/crypto/${encodeURIComponent(coinId)}/ohlc`, { params: { days, currency } });
+  return w.data ?? [];
+}
+
+export async function getCryptoChart(coinId, days = 7, currency = 'try') {
+  const { data: w } = await client.get(`/api/market/crypto/${encodeURIComponent(coinId)}/chart`, { params: { days, currency } });
+  return w.data ?? {};
+}
+
+export async function getCryptoDetail(coinId) {
+  const { data: w } = await client.get(`/api/market/crypto/${encodeURIComponent(coinId)}/detail`);
+  return w.data ?? {};
 }
 
 export async function getStockMidasDetail(symbol) {

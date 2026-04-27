@@ -71,7 +71,7 @@ cache:
     stocks:
       ttl-seconds: 600
     crypto:
-      ttl-seconds: ${CACHE_MARKET_CRYPTO_TTL_SECONDS:60}
+      ttl-seconds: ${CACHE_MARKET_CRYPTO_TTL_SECONDS:300}
     funds:
       ttl-seconds: 300
     futures:

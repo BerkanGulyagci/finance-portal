@@ -11,6 +11,7 @@ import MarketPage from '../pages/MarketPage';
 import StocksPage from '../pages/market/StocksPage';
 import StockDetailPage from '../pages/market/StockDetailPage';
 import CryptoPage from '../pages/market/CryptoPage';
+import CryptoDetailPage from '../pages/market/CryptoDetailPage';
 import FuturesPage from '../pages/market/FuturesPage';
 import FundsPage from '../pages/market/FundsPage';
 import TefasPage from '../pages/market/TefasPage';
@@ -41,6 +42,7 @@ export default function AppRouter() {
           <Route path="/market/stocks"     element={<StocksPage />} />
           <Route path="/market/stocks/:symbol" element={<StockDetailPage />} />
           <Route path="/market/crypto"     element={<CryptoPage />} />
+          <Route path="/market/crypto/:coinId" element={<CryptoDetailPage />} />
           <Route path="/market/futures"    element={<FuturesPage />} />
           <Route path="/market/funds"      element={<FundsPage />} />
           <Route path="/market/tefas"         element={<TefasPage />} />
