@@ -29,8 +29,55 @@ public class MidasStockClient {
         this.restTemplate = restTemplate;
     }
 
-    public MidasStockDetail fetchDetail(String symbol) {
-        String slug = symbol.toLowerCase().replace(".is", "");
+    private static final String LIST_BASE_URL = "https://www.getmidas.com/canli-borsa/%s";
+
+    /**
+     * Midas'tan belirtilen endeks sayfasındaki hisse sembollerini çeker.
+     * @param path örn: "" (tüm hisseler), "xu030-bist-30-hisseleri", "xu050-bist-50-hisseleri", "xu100-bist-100-hisseleri"
+     */
+    public List<String> fetchSymbols(String path) {
+        String url = path == null || path.isBlank()
+                ? "https://www.getmidas.com/canli-borsa/"
+                : String.format(LIST_BASE_URL, path);
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set(HttpHeaders.USER_AGENT, USER_AGENT);
+            headers.set(HttpHeaders.ACCEPT, "text/html,application/xhtml+xml");
+            headers.set(HttpHeaders.ACCEPT_LANGUAGE, "tr-TR,tr;q=0.9");
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+            String html = response.getBody();
+            if (html == null) return List.of();
+
+            return parseSymbols(html);
+        } catch (Exception e) {
+            log.warn("Failed to fetch Midas symbol list from {}: {}", url, e.getMessage());
+            return List.of();
+        }
+    }
+
+    private List<String> parseSymbols(String html) {
+        List<String> symbols = new ArrayList<>();
+        // Midas'ta hisse linkleri /canli-borsa/THYAO-hisse formatında
+        java.util.regex.Pattern p = java.util.regex.Pattern.compile(
+                "/canli-borsa/([A-Z0-9]{2,10})-hisse(?:[\"'/])",
+                java.util.regex.Pattern.CASE_INSENSITIVE
+        );
+        java.util.regex.Matcher m = p.matcher(html);
+        java.util.LinkedHashSet<String> seen = new java.util.LinkedHashSet<>();
+        while (m.find()) {
+            String sym = m.group(1).toUpperCase();
+            // Endeks sembollerini filtrele (XU030, XU050 vb.)
+            if (!sym.startsWith("XU") && !sym.startsWith("XK") && sym.length() <= 8) {
+                seen.add(sym + ".IS");
+            }
+        }
+        symbols.addAll(seen);
+        return symbols;
+    }
+
+    public MidasStockDetail fetchDetail(String symbol) {        String slug = symbol.toLowerCase().replace(".is", "");
         String url = String.format(BASE_URL, slug);
         try {
             HttpHeaders headers = new HttpHeaders();
@@ -54,8 +101,9 @@ public class MidasStockClient {
         MidasStockDetail d = new MidasStockDetail();
         d.setSymbol(symbol.replace(".IS", "").replace(".is", "").toUpperCase());
 
-        // Company logo from img tag
-        d.setLogoUrl(extractFirst(html, "<img[^>]+src=\"(https://webcdn\\.getmidas\\.com/uploads/[^\"]+logo[^\"]+)\""));
+        // Company logo — first webcdn.getmidas.com/uploads image (PNG/WEBP/JPG, skip SVG/QR)
+        d.setLogoUrl(extractFirst(html,
+                "src=\"(https://webcdn\\.getmidas\\.com/uploads/[^\"]+(?:logo|hisse)[^\"]+\\.(?:png|webp|jpg|jpeg))\""));
 
         // Company name from h1
         d.setName(extractFirst(html, "<h1[^>]*>([^<]+Hisse[^<]+)</h1>"));

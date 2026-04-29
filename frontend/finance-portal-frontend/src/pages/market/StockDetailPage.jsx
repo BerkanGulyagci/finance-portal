@@ -1,19 +1,28 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, TrendingUp, TrendingDown } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer
 } from 'recharts';
-import { getStockMidasDetail, getStockChart } from '../../api/marketApi';
+import { getStockMidasDetail, getStockChart, getStockOhlc } from '../../api/marketApi';
+import { init as klineInit, dispose as klineDispose } from 'klinecharts';
 
 const RANGES = [
-  { label: '1G', range: '1d',  interval: '5m'  },
-  { label: '1H', range: '5d',  interval: '1h'  },
-  { label: '1A', range: '1mo', interval: '1d'  },
-  { label: '3A', range: '3mo', interval: '1d'  },
-  { label: '1Y', range: '1y',  interval: '1wk' },
-  { label: '5Y', range: '5y',  interval: '1mo' },
+  { label: '1G', range: '1d',  interval: '5m'  },  // ~78 nokta
+  { label: '1H', range: '5d',  interval: '15m' },  // ~130 nokta
+  { label: '1A', range: '1mo', interval: '1h'  },  // ~160 nokta
+  { label: '3A', range: '3mo', interval: '1d'  },  // ~63 nokta
+  { label: '1Y', range: '1y',  interval: '1d'  },  // ~252 nokta
+  { label: '5Y', range: '5y',  interval: '1wk' },  // ~260 nokta
+];
+
+const OHLC_RANGES = [
+  { label: '1A',  range: '1mo', interval: '1h'  },  // ~160 mum
+  { label: '3A',  range: '3mo', interval: '1d'  },  // ~63 mum
+  { label: '6A',  range: '6mo', interval: '1d'  },  // ~126 mum
+  { label: '1Y',  range: '1y',  interval: '1d'  },  // ~252 mum
+  { label: '5Y',  range: '5y',  interval: '1wk' },  // ~260 mum
 ];
 
 /* ─── Custom Tooltip ─── */
@@ -74,9 +83,229 @@ function StockChart({ timestamps, prices }) {
   );
 }
 
-/* ─── Metric Card ─── */
-function MetricCard({ label, value, highlight }) {
-  if (!value) return null;
+/* ─── KlineCharts Mum Grafiği ─── */
+const MA_PERIODS = [
+  { period: 7,  color: '#f59e0b' },
+  { period: 25, color: '#8b5cf6' },
+  { period: 99, color: '#ef4444' },
+];
+
+function CandlestickChart({ symbol }) {
+  const chartId = useRef(`kline_${Date.now()}`);
+  const chartRef = useRef(null);
+  const [ohlcRangeIdx, setOhlcRangeIdx] = useState(1);
+  const [activeMAs, setActiveMAs] = useState([7, 25]); // default MA7 + MA25
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState(false);
+
+  const activeRange = OHLC_RANGES[ohlcRangeIdx];
+
+  useEffect(() => {
+    const id = chartId.current;
+    const chart = klineInit(id);
+    chartRef.current = chart;
+
+    // MA indikatörlerini ekle — calcParams ile periyot belirt
+    chart.createIndicator('MA', false, { id: 'candle_pane' });
+
+    setLoading(true);
+    setError(false);
+
+    getStockOhlc(symbol, activeRange.range, activeRange.interval)
+      .then(data => {
+        if (!data?.length) { setError(true); setLoading(false); return; }
+        const klineData = data
+          .map(d => ({
+            timestamp: Number(d.time) * 1000,
+            open:   parseFloat(d.open),
+            high:   parseFloat(d.high),
+            low:    parseFloat(d.low),
+            close:  parseFloat(d.close),
+            volume: Number(d.volume ?? 0),
+            turnover: 0,
+          }))
+          .filter(d => !isNaN(d.open) && d.open > 0)
+          .sort((a, b) => a.timestamp - b.timestamp);
+
+        chartRef.current?.applyNewData(klineData);
+        setLoading(false);
+      })
+      .catch(() => { setError(true); setLoading(false); });
+
+    return () => {
+      klineDispose(id);
+    };
+  }, [symbol, activeRange.range, activeRange.interval]);
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-3 flex-wrap">
+        {/* Zaman aralığı */}
+        <div className="flex gap-1">
+          {OHLC_RANGES.map((r, i) => (
+            <button key={r.label} onClick={() => setOhlcRangeIdx(i)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                i === ohlcRangeIdx ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}>
+              {r.label}
+            </button>
+          ))}
+        </div>
+        {/* MA toggle butonları */}
+        <div className="flex gap-1 ml-auto">
+          {MA_PERIODS.map(({ period, color }) => {
+            const active = activeMAs.includes(period);
+            return (
+              <button key={period}
+                onClick={() => {
+                  setActiveMAs(prev =>
+                    prev.includes(period) ? prev.filter(p => p !== period) : [...prev, period]
+                  );
+                  // KlineCharts MA indikatörünü güncelle
+                  if (chartRef.current) {
+                    if (active) {
+                      chartRef.current.removeIndicator('candle_pane', 'MA');
+                      // Kalan MA'ları yeniden ekle
+                      const remaining = activeMAs.filter(p => p !== period);
+                      if (remaining.length > 0) {
+                        chartRef.current.createIndicator('MA', false, { id: 'candle_pane' });
+                      }
+                    } else {
+                      chartRef.current.createIndicator('MA', false, { id: 'candle_pane' });
+                    }
+                  }
+                }}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all border ${
+                  active ? 'text-white border-transparent' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
+                }`}
+                style={active ? { backgroundColor: color, borderColor: color } : {}}>
+                MA{period}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div className="relative">
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
+            <div className="flex gap-1.5">
+              <div className="w-2 h-2 bg-[#093eaa] rounded-full animate-bounce" />
+              <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
+              <div className="w-2 h-2 bg-[#093eaa]/30 rounded-full animate-bounce [animation-delay:200ms]" />
+            </div>
+          </div>
+        )}
+        {error && !loading && (
+          <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
+            Mum grafiği verisi yüklenemedi.
+          </div>
+        )}
+        <div id={chartId.current} style={{ width: '100%', height: '460px' }} />
+      </div>
+      <p className="text-xs text-gray-400 mt-2">Kaynak: Yahoo Finance · OHLC verisi</p>
+    </div>
+  );
+}
+/* ─── KlineCharts Çizgi Grafiği ─── */
+function LineChart({ symbol }) {
+  const chartId = useRef(`kline_line_${Date.now()}`);
+  const chartRef = useRef(null);
+  const [rangeIdx, setRangeIdx] = useState(2); // default 1A
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState(false);
+
+  const activeRange = RANGES[rangeIdx];
+
+  useEffect(() => {
+    const id = chartId.current;
+    const chart = klineInit(id);
+    // Alan/çizgi tipi
+    chart.setStyles({ candle: { type: 'area' } });
+    chartRef.current = chart;
+
+    setLoading(true);
+    setError(false);
+
+    getStockChart(symbol, activeRange.range, activeRange.interval)
+      .then(res => {
+        const ts     = res?.timestamps  ?? [];
+        const prices = res?.closePrices ?? [];
+        if (!ts.length) { setError(true); setLoading(false); return; }
+
+        const klineData = ts
+          .map((t, i) => ({
+            timestamp: Number(t) * 1000,
+            open:  parseFloat(prices[i] ?? 0),
+            high:  parseFloat(prices[i] ?? 0),
+            low:   parseFloat(prices[i] ?? 0),
+            close: parseFloat(prices[i] ?? 0),
+            volume: 0,
+            turnover: 0,
+          }))
+          .filter(d => !isNaN(d.close) && d.close > 0)
+          .sort((a, b) => a.timestamp - b.timestamp);
+
+        // İlk ve son fiyata göre renk belirle
+        const isUp = klineData[klineData.length - 1].close >= klineData[0].close;
+        const color = isUp ? '#10b981' : '#ef4444';
+        chartRef.current?.setStyles({
+          candle: {
+            type: 'area',
+            area: {
+              lineColor: color,
+              lineSize: 2,
+              value: 'close',
+              smooth: true,
+              backgroundColor: [
+                { offset: 0, color: color + '33' },
+                { offset: 1, color: color + '00' },
+              ],
+            },
+          },
+        });
+
+        chartRef.current?.applyNewData(klineData);
+        setLoading(false);
+      })
+      .catch(() => { setError(true); setLoading(false); });
+
+    return () => { klineDispose(id); };
+  }, [symbol, activeRange.range, activeRange.interval]);
+
+  return (
+    <div>
+      <div className="flex gap-1 mb-3 justify-center">
+        {RANGES.map((r, i) => (
+          <button key={r.label} onClick={() => setRangeIdx(i)}
+            className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+              i === rangeIdx ? 'bg-[#093eaa] text-white' : 'text-gray-400 hover:text-gray-700'
+            }`}>
+            {r.label}
+          </button>
+        ))}
+      </div>
+      <div className="relative">
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
+            <div className="flex gap-1.5">
+              <div className="w-2 h-2 bg-[#093eaa] rounded-full animate-bounce" />
+              <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
+              <div className="w-2 h-2 bg-[#093eaa]/30 rounded-full animate-bounce [animation-delay:200ms]" />
+            </div>
+          </div>
+        )}
+        {error && !loading && (
+          <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
+            Grafik verisi yüklenemedi.
+          </div>
+        )}
+        <div id={chartId.current} style={{ width: '100%', height: '380px' }} />
+      </div>
+    </div>
+  );
+}
+
+function MetricCard({ label, value, highlight }) {  if (!value) return null;
   return (
     <div className="bg-gray-50 rounded-xl p-4">
       <p className="text-xs text-gray-400 mb-1">{label}</p>
@@ -100,32 +329,18 @@ function InfoRow({ label, value }) {
 export default function StockDetailPage() {
   const { symbol } = useParams();
   const [midas, setMidas] = useState(null);
-  const [chart, setChart] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [chartLoading, setChartLoading] = useState(false);
   const [error, setError] = useState('');
-  const [activeRange, setActiveRange] = useState(0); // index into RANGES
+  const [chartMode, setChartMode] = useState('tv');
 
   useEffect(() => {
     setLoading(true);
-    const r = RANGES[0];
     Promise.all([
       getStockMidasDetail(symbol).catch(() => null),
-      getStockChart(symbol, r.range, r.interval).catch(() => null),
-    ]).then(([m, c]) => { setMidas(m); setChart(c); })
+    ]).then(([m]) => { setMidas(m); })
       .catch(e => setError(!e.response ? 'Sunucuya ulaşılamıyor.' : `Hata (${e.response.status})`))
       .finally(() => setLoading(false));
   }, [symbol]);
-
-  function handleRange(idx) {
-    setActiveRange(idx);
-    setChartLoading(true);
-    const r = RANGES[idx];
-    getStockChart(symbol, r.range, r.interval)
-      .then(setChart)
-      .catch(() => {})
-      .finally(() => setChartLoading(false));
-  }
 
   const ticker = symbol?.replace('.IS', '').replace('.is', '').toUpperCase();
   const isPos = midas?.dailyChangePercent && !midas.dailyChangePercent.startsWith('-');
@@ -137,11 +352,21 @@ export default function StockDetailPage() {
         <Link to="/market/stocks" className="text-gray-400 hover:text-[#093eaa] transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {ticker} Hisse {midas?.name ? `- ${midas.name}` : ''}
-          </h1>
-          <p className="text-xs text-gray-400 mt-0.5">Borsa İstanbul · Veriler 15 dk gecikmeli · Kaynak: Midas</p>
+        <div className="flex items-center gap-3">
+          {midas?.logoUrl && (
+            <img
+              src={`http://localhost:8080/api/proxy/image?url=${encodeURIComponent(midas.logoUrl)}`}
+              alt={midas.name}
+              className="w-10 h-10 rounded-xl object-contain border border-gray-100 p-0.5 bg-white shadow-sm"
+              onError={e => { e.target.style.display = 'none'; }}
+            />
+          )}
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {ticker} Hisse {midas?.name ? `- ${midas.name}` : ''}
+            </h1>
+            <p className="text-xs text-gray-400 mt-0.5">Borsa İstanbul · Veriler 15 dk gecikmeli · Kaynak: Midas</p>
+          </div>
         </div>
       </div>
 
@@ -177,21 +402,19 @@ export default function StockDetailPage() {
             </div>
 
             <div className="px-4 pt-2 pb-2">
-              <StockChart timestamps={chart?.timestamps} prices={chart?.closePrices} />
-              {/* Range buttons */}
-              <div className="flex gap-2 mt-3 justify-center">
-                {RANGES.map((r, i) => (
-                  <button key={r.label} onClick={() => handleRange(i)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                      activeRange === i
-                        ? 'bg-[#093eaa] text-white'
-                        : 'text-gray-400 hover:text-gray-700'
-                    }`}>
-                    {r.label}
+              {/* Grafik mod seçici */}
+              <div className="flex gap-1 mb-3">
+                {[{ key: 'tv', label: 'Mum Grafik' }, { key: 'line', label: 'Çizgi' }].map(m => (
+                  <button key={m.key} onClick={() => setChartMode(m.key)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${chartMode === m.key ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                    {m.label}
                   </button>
                 ))}
               </div>
-              {chartLoading && <p className="text-center text-xs text-gray-400 mt-2">Grafik yükleniyor...</p>}
+
+              {chartMode === 'tv' && <CandlestickChart symbol={symbol} />}
+
+              {chartMode === 'line' && <LineChart symbol={symbol} />}
             </div>
 
             {midas?.dailyChangePercent && (
@@ -274,21 +497,21 @@ export default function StockDetailPage() {
           </div>
 
           {/* ── Şirket Açıklaması ── */}
-          {midas?.description && (
+          {(midas?.description || midas?.logoUrl) && (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-              {/* Logo + Name header like Midas */}
+              {/* Logo + Name header */}
               <div className="flex items-center gap-4 mb-6">
                 {midas.logoUrl && (
                   <img
                     src={`http://localhost:8080/api/proxy/image?url=${encodeURIComponent(midas.logoUrl)}`}
                     alt={midas.name}
-                    className="w-16 h-16 rounded-xl object-contain border border-gray-100 p-1"
+                    className="w-16 h-16 rounded-xl object-contain border border-gray-100 p-1 bg-white"
                     onError={e => { e.target.style.display = 'none'; }}
                   />
                 )}
-                <h2 className="text-xl font-bold text-gray-900">{midas.name}</h2>
+                <h2 className="text-xl font-bold text-gray-900">{midas.name ?? ticker}</h2>
               </div>
-              {midas.description.split('\n\n').map((para, i) => (
+              {midas.description && midas.description.split('\n\n').map((para, i) => (
                 <p key={i} className="text-sm text-gray-600 leading-relaxed mb-4 last:mb-0">{para}</p>
               ))}
             </div>

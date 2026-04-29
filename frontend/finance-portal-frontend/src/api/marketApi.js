@@ -1,7 +1,9 @@
 import client from './client';
 
-export async function getStocks(page = 0, size = 20) {
-  const { data: w } = await client.get('/api/market/stocks', { params: { page, size } });
+export async function getStocks(page = 0, size = 20, index = '') {
+  const params = { page, size };
+  if (index) params.index = index;
+  const { data: w } = await client.get('/api/market/stocks', { params });
   return w.data ?? {};
 }
 
@@ -51,6 +53,11 @@ export async function getStockMidasDetail(symbol) {
 export async function getStockChart(symbol, range = '1d', interval = '1m') {
   const { data: w } = await client.get(`/api/market/stocks/${symbol}/chart`, { params: { range, interval } });
   return w.data ?? null;
+}
+
+export async function getStockOhlc(symbol, range = '3mo', interval = '1d') {
+  const { data: w } = await client.get(`/api/market/stocks/${encodeURIComponent(symbol)}/ohlc`, { params: { range, interval } });
+  return w.data ?? [];
 }
 
 export async function getAllStocks() {

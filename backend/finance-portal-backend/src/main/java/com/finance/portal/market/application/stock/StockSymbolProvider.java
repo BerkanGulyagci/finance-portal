@@ -1,72 +1,89 @@
 package com.finance.portal.market.application.stock;
 
+import com.finance.portal.market.infrastructure.external.midas.MidasStockClient;
+import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
+/**
+ * BIST hisse sembol listesi.
+ * Uygulama başlangıcında ve her gün gece yarısı Midas'tan dinamik olarak çekilir.
+ * Midas erişilemezse önceki liste korunur.
+ */
 @Component
 public class StockSymbolProvider {
 
-    private static final List<String> BIST_SYMBOLS = List.of(
-            // BIST 30
-            "THYAO.IS", "AKBNK.IS", "ASELS.IS", "EREGL.IS", "FROTO.IS",
-            "ISCTR.IS", "KCHOL.IS", "PETKM.IS", "SAHOL.IS",
-            "GARAN.IS", "HALKB.IS", "VAKBN.IS", "YKBNK.IS", "SISE.IS",
-            "TOASO.IS", "TUPRS.IS", "BIMAS.IS", "MGROS.IS", "ARCLK.IS",
-            "TCELL.IS", "TTKOM.IS", "ENKAI.IS", "EKGYO.IS", "PGSUS.IS",
-            "TAVHL.IS", "VESTL.IS", "KRDMD.IS", "SOKM.IS",
-            // BIST endeksleri
-            "XU100.IS",
-            // BIST 50 ek
-            "AEFES.IS", "AGHOL.IS", "ALARK.IS", "BRISA.IS",
-            "CCOLA.IS", "CIMSA.IS", "DOHOL.IS", "ENJSA.IS", "GESAN.IS",
-            "GUBRF.IS", "HEKTS.IS", "ISGYO.IS", "KARSN.IS", "LOGO.IS",
-            "MAVI.IS", "OTKAR.IS", "OYAKC.IS", "SASA.IS", "SKBNK.IS",
-            "TSKB.IS", "ULKER.IS", "ZOREN.IS", "ODAS.IS", "PARSN.IS",
-            // BIST 100 ek
-            "A1CAP.IS", "AKSA.IS", "AKSEN.IS", "ALKIM.IS", "BANVT.IS",
-            "BERA.IS", "BIZIM.IS", "BJKAS.IS", "BUCIM.IS", "BURCE.IS",
-            "CEMAS.IS", "CLEBI.IS", "DESA.IS", "DEVA.IS", "DITAS.IS",
-            "ECILC.IS", "ECZYT.IS", "EGEEN.IS", "EMKEL.IS", "ERBOS.IS",
-            "ESCAR.IS", "FENER.IS", "GSRAY.IS", "HDFGS.IS", "HUBVC.IS",
-            "IHEVA.IS", "IHLAS.IS", "IMASM.IS", "INDES.IS", "INFO.IS",
-            "ISATR.IS", "ISBIR.IS", "ISDMR.IS", "ISFIN.IS",
-            "ISGSY.IS", "JANTS.IS", "KAREL.IS", "KATMR.IS", "KBORU.IS",
-            "KENT.IS", "KLKIM.IS", "KLMSN.IS", "KONKA.IS",
-            "KONYA.IS", "KORDS.IS", "KOTON.IS", "KRDMA.IS", "KRDMB.IS",
-            "LIDER.IS", "LILAK.IS", "LUKSK.IS", "MAALT.IS",
-            "MAGEN.IS", "MAKIM.IS", "MARKA.IS", "MARTI.IS", "MEDTR.IS",
-            "MEGAP.IS", "MERCN.IS", "MERIT.IS", "MERKO.IS", "METRO.IS",
-            "MNDRS.IS", "MOBTL.IS", "MPARK.IS", "NATEN.IS", "NETAS.IS",
-            "NUHCM.IS", "ORGE.IS", "OSTIM.IS", "PENGD.IS",
-            "PENTA.IS", "PETUN.IS", "PKART.IS", "PKENT.IS", "PRKAB.IS",
-            "PRKME.IS", "QUAGR.IS", "RAYSG.IS", "RGYAS.IS", "ROYAL.IS",
-            "SAFKR.IS", "SAMAT.IS", "SANEL.IS", "SANFM.IS", "SARKY.IS",
-            "SAYAS.IS", "SELEC.IS", "SELVA.IS", "SILVR.IS",
-            "SMART.IS", "SOKE.IS", "SONME.IS", "SUMAS.IS", "SUWEN.IS",
-            "TABGD.IS", "TATGD.IS", "TEKTU.IS", "TKFEN.IS", "TKNSA.IS",
-            "TLMAN.IS", "TMPOL.IS", "TMSN.IS", "TRCAS.IS", "TRILC.IS",
-            "TTRAK.IS", "TUKAS.IS", "TUREX.IS", "ULUFA.IS", "ULUSE.IS",
-            "ULUUN.IS", "UMPAS.IS", "UNLU.IS", "USAK.IS", "VAKKO.IS",
-            "VESBE.IS", "YAPRK.IS", "YATAS.IS", "YEOTK.IS", "YONGA.IS",
-            "YUNSA.IS"
-    );
+    private static final Logger log = LoggerFactory.getLogger(StockSymbolProvider.class);
+
+    private final MidasStockClient midasStockClient;
+
+    // Thread-safe listeler
+    private final AtomicReference<List<String>> allSymbols   = new AtomicReference<>(List.of());
+    private final AtomicReference<List<String>> bist30       = new AtomicReference<>(List.of());
+    private final AtomicReference<List<String>> bist50       = new AtomicReference<>(List.of());
+    private final AtomicReference<List<String>> bist100      = new AtomicReference<>(List.of());
+
+    public StockSymbolProvider(MidasStockClient midasStockClient) {
+        this.midasStockClient = midasStockClient;
+    }
+
+    @PostConstruct
+    public void init() {
+        refreshSymbols();
+    }
+
+    /** Her gün 02:00'de güncelle (endeks bileşenleri 3 ayda bir değişir) */
+    @Scheduled(cron = "0 0 2 * * *")
+    public void refreshSymbols() {
+        log.info("Refreshing BIST symbol lists from Midas...");
+        try {
+            List<String> all  = midasStockClient.fetchSymbols("");
+            List<String> b30  = midasStockClient.fetchSymbols("xu030-bist-30-hisseleri");
+            List<String> b50  = midasStockClient.fetchSymbols("xu050-bist-50-hisseleri");
+            List<String> b100 = midasStockClient.fetchSymbols("xu100-bist-100-hisseleri");
+
+            if (!all.isEmpty())  { allSymbols.set(all);   log.info("Loaded {} total BIST symbols", all.size()); }
+            if (!b30.isEmpty())  { bist30.set(b30);        log.info("Loaded {} BIST30 symbols", b30.size()); }
+            if (!b50.isEmpty())  { bist50.set(b50);        log.info("Loaded {} BIST50 symbols", b50.size()); }
+            if (!b100.isEmpty()) { bist100.set(b100);      log.info("Loaded {} BIST100 symbols", b100.size()); }
+        } catch (Exception e) {
+            log.error("Failed to refresh symbol lists: {}", e.getMessage());
+        }
+    }
 
     public int getTotalElements() {
-        return BIST_SYMBOLS.size();
+        return allSymbols.get().size();
     }
 
     public List<String> getAllSymbols() {
-        return BIST_SYMBOLS;
+        return allSymbols.get();
+    }
+
+    public List<String> getBist30Symbols() {
+        return bist30.get();
+    }
+
+    public List<String> getBist50Symbols() {
+        return bist50.get();
+    }
+
+    public List<String> getBist100Symbols() {
+        return bist100.get();
     }
 
     public List<String> getPagedSymbols(int page, int size) {
         if (page < 0) throw new IllegalArgumentException("page must be >= 0");
-        if (size < 1 || size > 100) throw new IllegalArgumentException("size must be between 1 and 100");
-        int total = BIST_SYMBOLS.size();
+        if (size < 1 || size > 250) throw new IllegalArgumentException("size must be between 1 and 250");
+        List<String> all = allSymbols.get();
+        int total = all.size();
         int start = page * size;
         if (start >= total) return Collections.emptyList();
-        return BIST_SYMBOLS.subList(start, Math.min(start + size, total));
+        return all.subList(start, Math.min(start + size, total));
     }
 }

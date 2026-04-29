@@ -35,16 +35,14 @@ public class MarketStockController {
     @GetMapping
     public ResponseEntity<ApiResponse<StockPageResponse>> getStockPage(
             @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
+            @RequestParam(defaultValue = "20") @Min(1) @Max(250) int size,
+            @RequestParam(required = false) String index
     ) {
-        StockPageResponse stockPage = stockQueryService.getPagedStockSummaries(page, size);
+        StockPageResponse stockPage = (index != null && !index.isBlank())
+                ? stockQueryService.getPagedStockSummariesByIndex(page, size, index.toUpperCase())
+                : stockQueryService.getPagedStockSummaries(page, size);
 
-        ApiResponse<StockPageResponse> response = ApiResponse.success(
-                stockPage,
-                "Stock page retrieved successfully"
-        );
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success(stockPage, "Stock page retrieved successfully"));
     }
 
     @GetMapping("/{symbol}")
@@ -77,18 +75,25 @@ public class MarketStockController {
         if (symbol == null || symbol.trim().isEmpty()) {
             throw new IllegalArgumentException("symbol must not be empty");
         }
-
         String normalizedSymbol = symbol.trim().toUpperCase();
         validateSymbol(normalizedSymbol);
-
         StockChartResponse chart = stockQueryService.getStockChartWithParams(normalizedSymbol, range, interval);
+        return ResponseEntity.ok(ApiResponse.success(chart, "Stock chart retrieved successfully"));
+    }
 
-        ApiResponse<StockChartResponse> response = ApiResponse.success(
-                chart,
-                "Stock chart retrieved successfully"
-        );
-
-        return ResponseEntity.ok(response);
+    @GetMapping("/{symbol}/ohlc")
+    public ResponseEntity<ApiResponse<List<java.util.Map<String, Object>>>> getStockOhlc(
+            @PathVariable("symbol") String symbol,
+            @RequestParam(defaultValue = "3mo") String range,
+            @RequestParam(defaultValue = "1d") String interval
+    ) {
+        if (symbol == null || symbol.trim().isEmpty()) {
+            throw new IllegalArgumentException("symbol must not be empty");
+        }
+        String normalizedSymbol = symbol.trim().toUpperCase();
+        validateSymbol(normalizedSymbol);
+        List<java.util.Map<String, Object>> data = stockQueryService.getStockOhlc(normalizedSymbol, range, interval);
+        return ResponseEntity.ok(ApiResponse.success(data, "OHLC data retrieved"));
     }
 
     @GetMapping("/{symbol}/midas")

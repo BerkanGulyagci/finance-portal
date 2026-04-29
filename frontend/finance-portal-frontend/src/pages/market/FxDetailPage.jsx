@@ -1,9 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, RefreshCw, TrendingUp, TrendingDown, Star, ArrowLeftRight, Newspaper, BarChart2 } from 'lucide-react';
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-} from 'recharts';
 import { getFxHistory, getFxTcmb } from '../../api/marketApi';
 import { getBloombergHtNews } from '../../api/newsApi';
 import { FX_META, FlagImg } from '../../utils/fxMeta.jsx';
@@ -17,21 +14,121 @@ function fmt(v, dec = 4) {
 const RANGES = ['1W', '1M', '3M', '6M', '1Y', 'ALL'];
 const RANGE_LABELS = { '1W': '1H', '1M': '1A', '3M': '3A', '6M': '6A', '1Y': '1Y', 'ALL': 'Tümü' };
 
-// ── Custom Tooltip ────────────────────────────────────────────────────────────
-function ChartTooltip({ active, payload, label }) {
-  if (!active || !payload?.length) return null;
-  const val = payload[0]?.value;
-  return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-lg px-4 py-3 text-sm min-w-[160px]">
-      <p className="text-gray-500 text-xs font-semibold mb-1.5 border-b border-gray-100 pb-1.5">{label}</p>
-      <div className="flex justify-between gap-4">
-        <span className="text-gray-500 text-xs">Değer:</span>
-        <span className="font-bold text-gray-900 text-xs">
-          {val != null ? parseFloat(val).toLocaleString('tr-TR', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) : '-'}
-        </span>
-      </div>
-    </div>
-  );
+// ── ECharts Area Chart ────────────────────────────────────────────────────────
+function FxEChart({ chartPoints, lineColor, formatDate }) {
+  const chartRef = useRef(null);
+  const instanceRef = useRef(null);
+
+  useEffect(() => {
+    if (!chartRef.current || !chartPoints.length) return;
+
+    import('echarts').then(echarts => {
+      if (instanceRef.current) {
+        instanceRef.current.dispose();
+      }
+
+      const chart = echarts.init(chartRef.current, null, { renderer: 'canvas' });
+      instanceRef.current = chart;
+
+      const labels = chartPoints.map(p => formatDate(p.date));
+      const values = chartPoints.map(p => p.value);
+
+      const option = {
+        backgroundColor: '#ffffff',
+        animation: false,
+        grid: { top: 20, right: 20, bottom: 80, left: 70 },
+        xAxis: {
+          type: 'category',
+          data: labels,
+          axisLine: { lineStyle: { color: '#e5e7eb' } },
+          axisTick: { show: false },
+          axisLabel: { color: '#9ca3af', fontSize: 10, interval: 'auto' },
+          splitLine: { show: false },
+        },
+        yAxis: {
+          type: 'value',
+          min: 'dataMin',
+          max: 'dataMax',
+          axisLine: { show: false },
+          axisTick: { show: false },
+          axisLabel: {
+            color: '#9ca3af',
+            fontSize: 10,
+            formatter: v => parseFloat(v).toLocaleString('tr-TR', { minimumFractionDigits: 4, maximumFractionDigits: 4 }),
+          },
+          splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } },
+        },
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: { type: 'cross', lineStyle: { color: '#9ca3af', type: 'dashed' } },
+          backgroundColor: '#ffffff',
+          borderColor: '#e5e7eb',
+          borderRadius: 12,
+          padding: [10, 14],
+          formatter: params => {
+            if (!params?.length) return '';
+            const p = params[0];
+            const val = p.value;
+            return `<div style="font-size:11px;color:#6b7280;font-weight:600;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #f0f0f0">${p.axisValue}</div>
+              <div style="display:flex;justify-content:space-between;gap:16px;align-items:center">
+                <span style="font-size:11px;color:#6b7280">Değer:</span>
+                <span style="font-weight:700;font-size:11px;color:#111827">${val != null ? parseFloat(val).toLocaleString('tr-TR', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) : '-'}</span>
+              </div>`;
+          },
+        },
+        dataZoom: [
+          { type: 'inside', xAxisIndex: 0, start: 0, end: 100, zoomOnMouseWheel: true },
+          {
+            type: 'slider',
+            xAxisIndex: 0,
+            start: 0,
+            end: 100,
+            height: 18,
+            bottom: 8,
+            borderColor: '#e5e7eb',
+            fillerColor: 'rgba(9,62,170,0.08)',
+            handleStyle: { color: '#093eaa' },
+            showDetail: false,
+          },
+        ],
+        series: [
+          {
+            type: 'line',
+            data: values,
+            smooth: false,
+            symbol: 'none',
+            lineStyle: { width: 2, color: lineColor },
+            areaStyle: {
+              color: {
+                type: 'linear',
+                x: 0, y: 0, x2: 0, y2: 1,
+                colorStops: [
+                  { offset: 0, color: lineColor + '33' },
+                  { offset: 1, color: lineColor + '00' },
+                ],
+              },
+            },
+          },
+        ],
+      };
+
+      chart.setOption(option);
+
+      const ro = new ResizeObserver(() => chart.resize());
+      ro.observe(chartRef.current);
+
+      return () => { ro.disconnect(); };
+    });
+
+    return () => {
+      if (instanceRef.current) {
+        instanceRef.current.dispose();
+        instanceRef.current = null;
+      }
+    };
+  }, [chartPoints, lineColor, formatDate]);
+
+  return <div ref={chartRef} style={{ width: '100%', height: '100%' }} />;
 }
 
 // ── Döviz Çevirici ────────────────────────────────────────────────────────────
@@ -262,19 +359,17 @@ export default function FxDetailPage() {
 
   useEffect(() => { setLoading(true); loadHistory(); }, [loadHistory]);
 
-  // Chart
+  // Chart data
   const chartPoints = history?.points?.map(p => ({ date: p.date, value: parseFloat(p.close) })) ?? [];
   const isUp = chartPoints.length > 1 && chartPoints[chartPoints.length - 1].value >= chartPoints[0].value;
   const strokeColor = isUp ? '#10b981' : '#ef4444';
-  const chartMin = chartPoints.length > 0 ? Math.min(...chartPoints.map(p => p.value)) * 0.998 : 0;
-  const chartMax = chartPoints.length > 0 ? Math.max(...chartPoints.map(p => p.value)) * 1.002 : 0;
 
-  function formatDate(d) {
+  const formatDate = useCallback((d) => {
     if (!d) return '';
     const parts = d.split('-');
     if (range === '1W' || range === '1M') return `${parts[2]}/${parts[1]}`;
     return `${parts[1]}/${parts[0]?.slice(2)}`;
-  }
+  }, [range]);
 
   const buy  = currentRate?.buy;
   const sell = currentRate?.sell;
@@ -379,24 +474,11 @@ export default function FxDetailPage() {
               </div>
             )}
             {!loading && chartPoints.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartPoints} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-                  <defs>
-                    <linearGradient id="fxGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor={strokeColor} stopOpacity={0.15} />
-                      <stop offset="95%" stopColor={strokeColor} stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} tickFormatter={formatDate} interval="preserveStartEnd" />
-                  <YAxis domain={[chartMin, chartMax]} tick={{ fontSize: 10, fill: '#9ca3af' }}
-                    tickFormatter={v => parseFloat(v).toLocaleString('tr-TR', { minimumFractionDigits: 4, maximumFractionDigits: 4 })}
-                    width={80} />
-                  <Tooltip content={<ChartTooltip />} />
-                  <Area type="monotone" dataKey="value" stroke={strokeColor} strokeWidth={1.5}
-                    fill="url(#fxGrad)" dot={false} activeDot={{ r: 4 }} />
-                </AreaChart>
-              </ResponsiveContainer>
+              <FxEChart
+                chartPoints={chartPoints}
+                lineColor={strokeColor}
+                formatDate={formatDate}
+              />
             ) : !loading && (
               <div className="flex items-center justify-center h-full text-gray-400 text-sm">
                 Grafik verisi yüklenemedi.

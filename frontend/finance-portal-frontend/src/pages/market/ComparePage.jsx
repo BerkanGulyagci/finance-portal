@@ -1,10 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { X, Plus, TrendingUp, TrendingDown, BarChart2 } from 'lucide-react';
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Legend,
-} from 'recharts';
 import { getFxHistory } from '../../api/marketApi';
 import { FX_META, FlagImg } from '../../utils/fxMeta.jsx';
 
@@ -30,27 +26,125 @@ const SUGGESTIONS = [
 const RANGES = ['1W', '1M', '3M', '6M', '1Y'];
 const RANGE_LABELS = { '1W': '1H', '1M': '1A', '3M': '3A', '6M': '6A', '1Y': '1Y' };
 
-// ── Custom Tooltip ────────────────────────────────────────────────────────────
-function CompareTooltip({ active, payload, label }) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-lg px-4 py-3 text-sm min-w-[180px]">
-      <p className="text-gray-500 text-xs font-semibold mb-2 border-b border-gray-100 pb-1.5">{label}</p>
-      <div className="space-y-1">
-        {payload.map((p, i) => (
-          <div key={i} className="flex justify-between gap-4 items-center">
-            <span className="flex items-center gap-1.5 text-xs text-gray-600">
-              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: p.color }} />
-              {p.name}
-            </span>
-            <span className="font-bold text-xs" style={{ color: p.color }}>
-              {p.value >= 0 ? '+' : ''}{p.value?.toFixed(2)}%
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+// ── ECharts Compare Chart ─────────────────────────────────────────────────────
+function EChartsCompareChart({ chartData, instruments, formatDate }) {
+  const chartRef = useRef(null);
+  const instanceRef = useRef(null);
+
+  useEffect(() => {
+    if (!chartRef.current || !chartData.length) return;
+
+    import('echarts').then(echarts => {
+      if (instanceRef.current) {
+        instanceRef.current.dispose();
+      }
+
+      const chart = echarts.init(chartRef.current, null, { renderer: 'canvas' });
+      instanceRef.current = chart;
+
+      const labels = chartData.map(d => formatDate(d.date));
+
+      const series = instruments.map((inst, idx) => ({
+        name: inst.label,
+        type: 'line',
+        data: chartData.map(d => d[inst.key] ?? null),
+        smooth: false,
+        symbol: 'none',
+        lineStyle: { width: 2, color: COLORS[idx % COLORS.length] },
+        itemStyle: { color: COLORS[idx % COLORS.length] },
+        connectNulls: true,
+      }));
+
+      const option = {
+        backgroundColor: '#ffffff',
+        animation: false,
+        grid: { top: 20, right: 20, bottom: 80, left: 70 },
+        xAxis: {
+          type: 'category',
+          data: labels,
+          axisLine: { lineStyle: { color: '#e5e7eb' } },
+          axisTick: { show: false },
+          axisLabel: { color: '#9ca3af', fontSize: 10, interval: 'auto' },
+          splitLine: { show: false },
+        },
+        yAxis: {
+          type: 'value',
+          min: 'dataMin',
+          max: 'dataMax',
+          axisLine: { show: false },
+          axisTick: { show: false },
+          axisLabel: {
+            color: '#9ca3af',
+            fontSize: 10,
+            formatter: v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`,
+          },
+          splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } },
+        },
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: { type: 'cross', lineStyle: { color: '#9ca3af', type: 'dashed' } },
+          backgroundColor: '#ffffff',
+          borderColor: '#e5e7eb',
+          borderRadius: 12,
+          padding: [10, 14],
+          formatter: params => {
+            if (!params?.length) return '';
+            let html = `<div style="font-size:11px;color:#6b7280;font-weight:600;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #f0f0f0">${params[0].axisValue}</div>`;
+            params.forEach(p => {
+              if (p.value == null) return;
+              const isPos = p.value >= 0;
+              const pctColor = isPos ? '#10b981' : '#ef4444';
+              html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${p.color};flex-shrink:0"></span>
+                <span style="font-size:11px;color:#374151;font-weight:600;min-width:70px">${p.seriesName}:</span>
+                <span style="font-weight:700;font-size:11px;color:${pctColor};margin-left:auto">${isPos ? '+' : ''}${p.value.toFixed(2)}%</span>
+              </div>`;
+            });
+            return html;
+          },
+        },
+        legend: {
+          bottom: 32,
+          textStyle: { color: '#6b7280', fontSize: 12 },
+          icon: 'circle',
+          itemWidth: 10,
+          itemHeight: 10,
+        },
+        dataZoom: [
+          { type: 'inside', xAxisIndex: 0, start: 0, end: 100, zoomOnMouseWheel: true },
+          {
+            type: 'slider',
+            xAxisIndex: 0,
+            start: 0,
+            end: 100,
+            height: 18,
+            bottom: 8,
+            borderColor: '#e5e7eb',
+            fillerColor: 'rgba(9,62,170,0.08)',
+            handleStyle: { color: '#093eaa' },
+            showDetail: false,
+          },
+        ],
+        series,
+      };
+
+      chart.setOption(option);
+
+      const ro = new ResizeObserver(() => chart.resize());
+      ro.observe(chartRef.current);
+
+      return () => { ro.disconnect(); };
+    });
+
+    return () => {
+      if (instanceRef.current) {
+        instanceRef.current.dispose();
+        instanceRef.current = null;
+      }
+    };
+  }, [chartData, instruments, formatDate]);
+
+  return <div ref={chartRef} style={{ width: '100%', height: '320px' }} />;
 }
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
@@ -338,39 +432,14 @@ export default function ComparePage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="font-bold text-gray-900">Göreceli Performans (%)</h2>
-              <p className="text-xs text-gray-400 mt-0.5">Dönem başına göre yüzde değişim (rebased)</p>
+              <p className="text-xs text-gray-400 mt-0.5">Dönem başına göre yüzde değişim (rebased) · Scroll ile zoom</p>
             </div>
           </div>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }}
-                  tickFormatter={formatDate} interval="preserveStartEnd" />
-                <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }}
-                  tickFormatter={v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`}
-                  width={60} />
-                <Tooltip content={<CompareTooltip />} />
-                <Legend formatter={(value) => {
-                  const inst = instruments.find(i => i.key === value);
-                  return inst?.label ?? value;
-                }} />
-                {instruments.map((inst, idx) => (
-                  <Line
-                    key={inst.key}
-                    type="monotone"
-                    dataKey={inst.key}
-                    name={inst.key}
-                    stroke={COLORS[idx % COLORS.length]}
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4 }}
-                    connectNulls
-                  />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          <EChartsCompareChart
+            chartData={chartData}
+            instruments={instruments}
+            formatDate={formatDate}
+          />
         </div>
       )}
 

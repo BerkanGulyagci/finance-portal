@@ -65,16 +65,6 @@ public class TefasFundAnalysisScraper {
             String html = response.getBody();
             if (html == null || html.isBlank()) return result;
 
-            // Risk değeri debug — Fonun Risk Değeri etrafındaki HTML'i logla
-            int riskIdx = html.toLowerCase().indexOf("fonun risk de");
-            if (riskIdx >= 0) {
-                log.info("RISK_DEBUG for {}: ...{}...",
-                        code, html.substring(riskIdx, Math.min(riskIdx + 200, html.length()))
-                                  .replaceAll("\\s+", " "));
-            } else {
-                log.info("RISK_DEBUG for {}: 'Fonun Risk Değeri' not found in HTML", code);
-            }
-
             // 4 dönem getirisi: 1A, 3A, 6A, 1Y sırasıyla
             Matcher m = RETURN_PATTERN.matcher(html);
             String[] keys = {"return1M", "return3M", "return6M", "return1Y"};

@@ -69,13 +69,31 @@ public class StockQueryService {
             key = "'page:' + #page + ':size:' + #size"
     )
     public StockPageResponse getPagedStockSummaries(int page, int size) {
-        int totalElements = stockSymbolProvider.getTotalElements();
-        List<String> symbols = stockSymbolProvider.getPagedSymbols(page, size);
+        return fetchPage(stockSymbolProvider.getPagedSymbols(page, size),
+                stockSymbolProvider.getTotalElements(), page, size);
+    }
 
+    @Cacheable(
+            cacheNames = "market.stocks.page",
+            key = "'index:' + #index + ':page:' + #page + ':size:' + #size"
+    )
+    public StockPageResponse getPagedStockSummariesByIndex(int page, int size, String index) {
+        List<String> allSymbols = switch (index) {
+            case "BIST30"  -> stockSymbolProvider.getBist30Symbols();
+            case "BIST50"  -> stockSymbolProvider.getBist50Symbols();
+            case "BIST100" -> stockSymbolProvider.getBist100Symbols();
+            default        -> stockSymbolProvider.getAllSymbols();
+        };
+        int total = allSymbols.size();
+        int start = page * size;
+        List<String> paged = start >= total ? List.of()
+                : allSymbols.subList(start, Math.min(start + size, total));
+        return fetchPage(paged, total, page, size);
+    }
+
+    private StockPageResponse fetchPage(List<String> symbols, int totalElements, int page, int size) {
         List<StockSummary> content = new java.util.ArrayList<>();
-
         if (!symbols.isEmpty()) {
-            // Paralel fetch with bounded thread pool (max 5 concurrent)
             java.util.concurrent.ExecutorService executor =
                 java.util.concurrent.Executors.newFixedThreadPool(5);
             try {
@@ -88,7 +106,6 @@ public class StockQueryService {
                         }
                     }))
                     .toList();
-
                 for (java.util.concurrent.Future<StockSummary> f : futures) {
                     try {
                         StockSummary s = f.get(5, java.util.concurrent.TimeUnit.SECONDS);
@@ -101,16 +118,13 @@ public class StockQueryService {
                 executor.shutdown();
             }
         }
-
         int totalPages = size > 0 ? (int) Math.ceil((double) totalElements / size) : 0;
-
         StockPageResponse response = new StockPageResponse();
         response.setContent(content);
         response.setPage(page);
         response.setSize(size);
         response.setTotalElements(totalElements);
         response.setTotalPages(totalPages);
-
         return response;
     }
 
@@ -169,8 +183,7 @@ public class StockQueryService {
         return midasStockClient.fetchDetail(symbol);
     }
 
-    public StockChartResponse getStockChartWithParams(String symbol, String range, String interval) {
-        YahooChartResponseDto response = yahooStockPort.fetchChartWithParams(symbol, range, interval);
+    public StockChartResponse getStockChartWithParams(String symbol, String range, String interval) {        YahooChartResponseDto response = yahooStockPort.fetchChartWithParams(symbol, range, interval);
 
         if (response == null || response.getChart() == null
                 || response.getChart().getResult() == null
@@ -202,6 +215,49 @@ public class StockQueryService {
         chartResponse.setTimestamps(filteredTs);
         chartResponse.setClosePrices(filteredCl);
         return chartResponse;
+    }
+
+    /**
+     * OHLC (mum grafiği) verisi döndürür.
+     * Her eleman: {time, open, high, low, close, volume}
+     */
+    public List<java.util.Map<String, Object>> getStockOhlc(String symbol, String range, String interval) {
+        YahooChartResponseDto response = yahooStockPort.fetchChartWithParams(symbol, range, interval);
+        if (response == null || response.getChart() == null
+                || response.getChart().getResult() == null
+                || response.getChart().getResult().isEmpty()) {
+            throw new ResourceNotFoundException("OHLC data not found for symbol: " + symbol);
+        }
+        YahooChartResponseDto.Result result = response.getChart().getResult().get(0);
+        List<Long> timestamps = result.getTimestamp();
+        if (timestamps == null || result.getIndicators() == null
+                || result.getIndicators().getQuote() == null
+                || result.getIndicators().getQuote().isEmpty()) {
+            return List.of();
+        }
+        YahooChartResponseDto.Quote q = result.getIndicators().getQuote().get(0);
+        List<java.util.Map<String, Object>> data = new java.util.ArrayList<>();
+        for (int i = 0; i < timestamps.size(); i++) {
+            BigDecimal o = safeGet(q.getOpen(), i);
+            BigDecimal h = safeGet(q.getHigh(), i);
+            BigDecimal l = safeGet(q.getLow(), i);
+            BigDecimal c = safeGet(q.getClose(), i);
+            if (o == null || h == null || l == null || c == null) continue;
+            java.util.Map<String, Object> candle = new java.util.LinkedHashMap<>();
+            candle.put("time", timestamps.get(i));
+            candle.put("open",  o);
+            candle.put("high",  h);
+            candle.put("low",   l);
+            candle.put("close", c);
+            Long vol = (q.getVolume() != null && i < q.getVolume().size()) ? q.getVolume().get(i) : null;
+            candle.put("volume", vol);
+            data.add(candle);
+        }
+        return data;
+    }
+
+    private BigDecimal safeGet(List<BigDecimal> list, int i) {
+        return (list != null && i < list.size()) ? list.get(i) : null;
     }
 
     private YahooChartResponseDto.Meta fetchMetaOrThrow(String symbol) {

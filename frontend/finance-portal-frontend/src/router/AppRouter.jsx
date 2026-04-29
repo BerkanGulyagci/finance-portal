@@ -21,6 +21,7 @@ import FxPage from '../pages/market/FxPage';
 import FxDetailPage from '../pages/market/FxDetailPage';
 import BondsPage from '../pages/market/BondsPage';
 import GoldPage from '../pages/market/GoldPage';
+import StockComparePage from '../pages/market/StockComparePage';
 import ComparePage from '../pages/market/ComparePage';
 import NewsPage from '../pages/NewsPage';
 import NotFoundPage from '../pages/NotFoundPage';
@@ -40,6 +41,7 @@ export default function AppRouter() {
           <Route path="/dashboard"         element={<DashboardPage />} />
           <Route path="/market"            element={<MarketPage />} />
           <Route path="/market/stocks"     element={<StocksPage />} />
+          <Route path="/market/stocks/compare" element={<StockComparePage />} />
           <Route path="/market/stocks/:symbol" element={<StockDetailPage />} />
           <Route path="/market/crypto"     element={<CryptoPage />} />
           <Route path="/market/crypto/:coinId" element={<CryptoDetailPage />} />
