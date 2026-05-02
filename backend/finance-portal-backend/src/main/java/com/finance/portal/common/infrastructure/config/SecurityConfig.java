@@ -39,7 +39,8 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/actuator/mappings").denyAll()
+                        .requestMatchers("/actuator/mappings").permitAll()
+                        .requestMatchers("/actuator/metrics", "/actuator/prometheus").permitAll()
                         .requestMatchers("/api/kafka/test").authenticated()
                         .requestMatchers("/api/portfolios", "/api/portfolios/**").authenticated()
                         .requestMatchers("/api/news", "/api/news/**").permitAll()

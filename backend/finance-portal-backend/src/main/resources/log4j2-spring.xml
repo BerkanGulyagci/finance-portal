@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" monitorInterval="30">
+
+    <Appenders>
+        <Console name="ConsoleJsonAppender" target="SYSTEM_OUT">
+            <JsonTemplateLayout eventTemplateUri="classpath:log4j2-json-template.json" />
+        </Console>
+    </Appenders>
+
+    <Loggers>
+        <Logger name="org.springframework" level="INFO" additivity="false">
+            <AppenderRef ref="ConsoleJsonAppender" />
+        </Logger>
+        <Logger name="org.springframework.security" level="WARN" additivity="false">
+            <AppenderRef ref="ConsoleJsonAppender" />
+        </Logger>
+        <Logger name="org.hibernate" level="WARN" additivity="false">
+            <AppenderRef ref="ConsoleJsonAppender" />
+        </Logger>
+        <Logger name="org.apache.kafka" level="WARN" additivity="false">
+            <AppenderRef ref="ConsoleJsonAppender" />
+        </Logger>
+        <Logger name="io.lettuce" level="WARN" additivity="false">
+            <AppenderRef ref="ConsoleJsonAppender" />
+        </Logger>
+        <Logger name="io.netty" level="WARN" additivity="false">
+            <AppenderRef ref="ConsoleJsonAppender" />
+        </Logger>
+        <Logger name="com.zaxxer.hikari" level="WARN" additivity="false">
+            <AppenderRef ref="ConsoleJsonAppender" />
+        </Logger>
+        <Logger name="com.finance.portal.market.infrastructure.external" level="WARN" additivity="false">
+            <AppenderRef ref="ConsoleJsonAppender" />
+        </Logger>
+        <Logger name="com.finance.portal" level="INFO" additivity="false">
+            <AppenderRef ref="ConsoleJsonAppender" />
+        </Logger>
+        <!-- Kafka publisher debug logları — başarı/hata görünsün -->
+        <Logger name="com.finance.portal.common.infrastructure.logging" level="DEBUG" additivity="false">
+            <AppenderRef ref="ConsoleJsonAppender" />
+        </Logger>
+        <Root level="WARN">
+            <AppenderRef ref="ConsoleJsonAppender" />
+        </Root>
+    </Loggers>
+
+</Configuration>

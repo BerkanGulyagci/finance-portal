@@ -31,6 +31,15 @@ spring:
       port: ${REDIS_PORT:6379}
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: "0"
+      retries: 0
+      properties:
+        max.block.ms: 2000
+        request.timeout.ms: 2000
+        delivery.timeout.ms: 3000
   security:
     oauth2:
       resourceserver:
@@ -41,13 +50,20 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,mappings
+        include: health,info,mappings,metrics,prometheus
   endpoint:
     health:
       show-details: when-authorized
+    prometheus:
+      enabled: true
 
 application:
   version: 1.0.0
+
+app:
+  logging:
+    kafka:
+      topic: finance-portal-logs
 
 news:
   api:

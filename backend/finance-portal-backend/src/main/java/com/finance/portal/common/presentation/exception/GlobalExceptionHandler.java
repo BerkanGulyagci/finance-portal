@@ -3,8 +3,8 @@ package com.finance.portal.common.presentation.exception;
 import com.finance.portal.common.infrastructure.exception.ExternalApiException;
 import com.finance.portal.common.infrastructure.exception.ResourceNotFoundException;
 import com.finance.portal.common.presentation.dto.ApiResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -18,13 +18,16 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static final Logger logger = LogManager.getLogger(GlobalExceptionHandler.class);
 
+    /**
+     * Validation hataları — kullanıcı girdisi yanlış, WARN yeterli.
+     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationExceptions(
             MethodArgumentNotValidException ex) {
 
-        logger.warn("Validation error occurred: {}", ex.getMessage());
+        logger.warn("Validation failed: {}", ex.getMessage());
 
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach((error) -> {
@@ -33,50 +36,55 @@ public class GlobalExceptionHandler {
             errors.put(fieldName, errorMessage);
         });
 
-        ApiResponse<Map<String, String>> response = ApiResponse.error(
-            "Validation failed", errors);
-
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(ApiResponse.error("Validation failed", errors), HttpStatus.BAD_REQUEST);
     }
 
+    /**
+     * Geçersiz argüman — istemci hatası, WARN yeterli.
+     */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<Object>> handleIllegalArgumentException(
             IllegalArgumentException ex) {
 
-        logger.warn("Illegal argument exception: {}", ex.getMessage());
+        logger.warn("Illegal argument: {}", ex.getMessage());
 
-        ApiResponse<Object> response = ApiResponse.error(ex.getMessage());
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(ApiResponse.error(ex.getMessage()), HttpStatus.BAD_REQUEST);
     }
 
+    /**
+     * Kaynak bulunamadı — 404, WARN seviyesi.
+     * INFO değil WARN: bulunamayan kaynak bir uyarı sinyalidir.
+     */
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResponse<Object>> handleResourceNotFoundException(
             ResourceNotFoundException ex) {
 
-        logger.info("Resource not found: {}", ex.getMessage());
+        logger.warn("Resource not found: {}", ex.getMessage());
 
-        ApiResponse<Object> response = ApiResponse.error(ex.getMessage());
-        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+        return new ResponseEntity<>(ApiResponse.error(ex.getMessage()), HttpStatus.NOT_FOUND);
     }
 
+    /**
+     * Dış API hatası — servis bağımlılığı başarısız, ERROR + stack trace.
+     */
     @ExceptionHandler(ExternalApiException.class)
     public ResponseEntity<ApiResponse<Object>> handleExternalApiException(ExternalApiException ex) {
 
-        logger.error("External API error occurred", ex);
+        logger.error("External API error: {}", ex.getMessage(), ex);
 
-        ApiResponse<Object> response = ApiResponse.failure(ex.getMessage());
-
-        return new ResponseEntity<>(response, HttpStatus.SERVICE_UNAVAILABLE);
+        return new ResponseEntity<>(ApiResponse.failure(ex.getMessage()), HttpStatus.SERVICE_UNAVAILABLE);
     }
 
+    /**
+     * Beklenmeyen hata — her zaman ERROR + full stack trace.
+     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleGenericException(Exception ex) {
 
-        logger.error("Unexpected error occurred", ex);
+        logger.error("Unexpected error: {}", ex.getMessage(), ex);
 
-        ApiResponse<Object> response = ApiResponse.error(
-            "An unexpected error occurred. Please try again later.");
-
-        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<>(
+                ApiResponse.error("An unexpected error occurred. Please try again later."),
+                HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

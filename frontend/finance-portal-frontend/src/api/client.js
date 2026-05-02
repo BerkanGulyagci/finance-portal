@@ -3,7 +3,10 @@ import axios from 'axios';
 const TOKEN_KEY = 'auth_token';
 
 const client = axios.create({
-  baseURL: 'http://localhost:8080',
+  // Boş baseURL → relative path kullanır.
+  // Docker'da Nginx /api/* isteklerini backend:8080'e proxy'ler.
+  // Local dev'de vite.config.js proxy'si devreye girer.
+  baseURL: '',
 });
 
 client.interceptors.request.use((config) => {
