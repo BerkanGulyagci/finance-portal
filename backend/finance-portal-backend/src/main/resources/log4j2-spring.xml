@@ -35,8 +35,8 @@
         <Logger name="com.finance.portal" level="INFO" additivity="false">
             <AppenderRef ref="ConsoleJsonAppender" />
         </Logger>
-        <!-- Kafka publisher debug logları — başarı/hata görünsün -->
-        <Logger name="com.finance.portal.common.infrastructure.logging" level="DEBUG" additivity="false">
+        <!-- Kafka publisher logları — sadece önemli mesajlar -->
+        <Logger name="com.finance.portal.common.infrastructure.logging" level="INFO" additivity="false">
             <AppenderRef ref="ConsoleJsonAppender" />
         </Logger>
         <Root level="WARN">

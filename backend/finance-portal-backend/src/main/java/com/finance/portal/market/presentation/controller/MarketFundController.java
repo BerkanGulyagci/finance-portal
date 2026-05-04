@@ -3,8 +3,11 @@ package com.finance.portal.market.presentation.controller;
 import com.finance.portal.common.presentation.dto.ApiResponse;
 import com.finance.portal.market.application.funds.model.FundChartResponse;
 import com.finance.portal.market.application.funds.model.FundDetail;
+import com.finance.portal.market.application.funds.model.FundHistoryResponse;
 import com.finance.portal.market.application.funds.model.FundPageResponse;
+import com.finance.portal.market.application.funds.model.FundPeriod;
 import com.finance.portal.market.application.funds.model.TefasFundHistoryResponse;
+import com.finance.portal.market.application.funds.model.TefasFundItem;
 import com.finance.portal.market.application.funds.model.TefasFundPageResponse;
 import com.finance.portal.market.application.funds.service.FundQueryService;
 import com.finance.portal.market.application.funds.service.TefasFundService;
@@ -45,8 +48,8 @@ public class MarketFundController {
 
     @GetMapping("/tefas/{code}")
     public ResponseEntity<ApiResponse<Object>> getTefasFundDetail(@PathVariable String code) {
-        var items = tefasFundService.getFundByCode(code.toUpperCase());
-        return ResponseEntity.ok(ApiResponse.success(items.isEmpty() ? null : items.get(0), "TEFAS fund detail retrieved"));
+        TefasFundItem item = tefasFundService.getFundDetail(code.toUpperCase());
+        return ResponseEntity.ok(ApiResponse.success(item, "TEFAS fund detail retrieved"));
     }
 
     @GetMapping("/tefas/{code}/history")
@@ -56,6 +59,39 @@ public class MarketFundController {
     ) {
         TefasFundHistoryResponse result = fundQueryService.getTefasFundHistory(code, range);
         return ResponseEntity.ok(ApiResponse.success(result, "TEFAS fund history retrieved"));
+    }
+
+    /**
+     * Fon grafik verisi — HangiKredi chart API üzerinden.
+     * GET /api/market/funds/{fundCode}/history?period=THREE_YEARS
+     */
+    @GetMapping("/{fundCode}/history")
+    public ResponseEntity<ApiResponse<FundHistoryResponse>> getFundHistory(
+            @PathVariable String fundCode,
+            @RequestParam(defaultValue = "ONE_MONTH") String period
+    ) {
+        FundPeriod fundPeriod;
+        try {
+            fundPeriod = FundPeriod.valueOf(period.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            // Eski range formatını da destekle (1M, 3M vb.)
+            fundPeriod = mapLegacyRange(period);
+        }
+        FundHistoryResponse result = tefasFundService.getFundHistory(fundCode.toUpperCase(), fundPeriod);
+        return ResponseEntity.ok(ApiResponse.success(result, "Fund history retrieved"));
+    }
+
+    private FundPeriod mapLegacyRange(String range) {
+        return switch (range.toUpperCase()) {
+            case "1W"  -> FundPeriod.ONE_WEEK;
+            case "1M"  -> FundPeriod.ONE_MONTH;
+            case "3M"  -> FundPeriod.THREE_MONTHS;
+            case "6M"  -> FundPeriod.SIX_MONTHS;
+            case "1Y"  -> FundPeriod.ONE_YEAR;
+            case "3Y"  -> FundPeriod.THREE_YEARS;
+            case "5Y"  -> FundPeriod.FIVE_YEARS;
+            default    -> FundPeriod.ONE_MONTH;
+        };
     }
 
     @GetMapping

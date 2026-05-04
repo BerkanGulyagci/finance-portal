@@ -7,6 +7,7 @@ import java.io.Serializable;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ViopContract implements Serializable {
 
+    // Akbank'tan gelen ana alanlar (güvenilir)
     private String name;
     private String changePercent;
     private String lastPrice;
@@ -20,6 +21,7 @@ public class ViopContract implements Serializable {
 
     public ViopContract() {}
 
+    // Akbank alanları
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
     public String getChangePercent() { return changePercent; }

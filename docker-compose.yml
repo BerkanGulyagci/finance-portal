@@ -11,6 +11,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   backend:
     build:
@@ -24,6 +29,8 @@ services:
       - REDIS_PORT=6379
       - NEWS_API_KEY=${NEWS_API_KEY:-a708be2ff81e432d98abb8a2586fedc1}
       - NEWS_CACHE_TTL_SECONDS=${NEWS_CACHE_TTL_SECONDS:-300}
+      - EVDS_API_KEY=${EVDS_API_KEY}
+      - EVDS_BASE_URL=${EVDS_BASE_URL:-https://evds3.tcmb.gov.tr/igmevdsms-dis}
       - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/finance_portal
       - SPRING_DATASOURCE_USERNAME=berkan
@@ -38,6 +45,8 @@ services:
       # traceId/spanId MDC'ye inject edilsin (Log4j2 ile uyumlu)
       - OTEL_INSTRUMENTATION_LOG4J_APPENDER_ENABLED=false
       - OTEL_PROPAGATORS=tracecontext,baggage
+      # TEFAS scraping için proxy bypass
+      - JAVA_TOOL_OPTIONS=-Djdk.http.auth.tunneling.disabledSchemes="" -Djava.net.useSystemProxies=false
     depends_on:
       redis:
         condition: service_healthy
@@ -45,6 +54,11 @@ services:
         condition: service_healthy
     networks:
       - finance-portal-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   frontend:
     build:
@@ -58,6 +72,11 @@ services:
     networks:
       - finance-portal-network
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   kafka:
     image: apache/kafka:4.1.1
@@ -84,6 +103,11 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
     networks:
       - finance-portal-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   postgres:
     image: postgres:17
@@ -105,6 +129,11 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
@@ -131,6 +160,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 20
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   apacheds:
     image: openmicroscopy/apacheds
@@ -141,6 +175,11 @@ services:
       - ./docker/apacheds/data:/var/lib/apacheds
     networks:
       - finance-portal-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   opensearch:
     image: opensearchproject/opensearch:2.11.0
@@ -157,6 +196,11 @@ services:
     networks:
       - finance-portal-network
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   opensearch-dashboards:
     image: opensearchproject/opensearch-dashboards:2.11.0
@@ -171,6 +215,11 @@ services:
     networks:
       - finance-portal-network
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   log-consumer:
     build:
@@ -187,6 +236,11 @@ services:
     networks:
       - finance-portal-network
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.96.0
@@ -201,6 +255,11 @@ services:
     networks:
       - finance-portal-network
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
   finance-portal-network:

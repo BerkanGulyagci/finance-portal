@@ -29,6 +29,7 @@ public class AkbankViopClient {
 
     public List<ViopContract> fetchContracts() {
         try {
+            log.info("Fetching VIOP contracts from Akbank...");
             HttpHeaders headers = new HttpHeaders();
             headers.set(HttpHeaders.USER_AGENT, USER_AGENT);
             headers.set(HttpHeaders.ACCEPT, "text/html,application/xhtml+xml");
@@ -37,11 +38,19 @@ public class AkbankViopClient {
 
             ResponseEntity<String> response = restTemplate.exchange(URL, HttpMethod.GET, entity, String.class);
             String html = response.getBody();
-            if (html == null) return List.of();
-
-            return parseHtml(html);
+            
+            if (html == null) {
+                log.warn("Akbank returned null response");
+                return List.of();
+            }
+            
+            log.info("Received HTML response, length: {} chars", html.length());
+            List<ViopContract> contracts = parseHtml(html);
+            log.info("Successfully parsed {} VIOP contracts", contracts.size());
+            
+            return contracts;
         } catch (Exception e) {
-            log.warn("Failed to fetch VIOP contracts: {}", e.getMessage());
+            log.error("Failed to fetch VIOP contracts: {}", e.getMessage(), e);
             return List.of();
         }
     }

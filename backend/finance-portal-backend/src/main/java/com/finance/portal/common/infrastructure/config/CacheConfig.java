@@ -47,6 +47,18 @@ public class CacheConfig {
     @Value("${cache.market.futures.ttl-seconds:600}")
     private long marketFuturesTtlSeconds;
 
+    @Value("${cache.market.evds.bonds.active-series-ttl-seconds:43200}")
+    private long evdsBondsActiveSeriesTtlSeconds;
+
+    @Value("${cache.market.evds.bonds.list-ttl-seconds:3600}")
+    private long evdsBondsListTtlSeconds;
+
+    @Value("${cache.market.evds.bonds.detail-ttl-seconds:3600}")
+    private long evdsBondsDetailTtlSeconds;
+
+    @Value("${cache.market.evds.bonds.history-ttl-seconds:7200}")
+    private long evdsBondsHistoryTtlSeconds;
+
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
         return new LettuceConnectionFactory(redisHost, redisPort);
@@ -130,16 +142,36 @@ public class CacheConfig {
                 .withCacheConfiguration("market.tefas.funds", marketFundsCacheConfig)
                 .withCacheConfiguration("market.ipo", marketFundsCacheConfig)
                 .withCacheConfiguration("market.viop", marketFundsCacheConfig)
-                .withCacheConfiguration("market.bonds", marketFundsCacheConfig)
                 .withCacheConfiguration("market.indicators", marketFxTcmbCacheConfig)
                 .withCacheConfiguration("market.gold.spot", marketFxTcmbCacheConfig)
                 .withCacheConfiguration("market.gold.history", marketFundsCacheConfig)
                 .withCacheConfiguration("market.tefas.history", marketFundsCacheConfig)
+                .withCacheConfiguration("market.fund.history", marketFundsCacheConfig)
                 .withCacheConfiguration("market.funds.page", marketFundsCacheConfig)
                 .withCacheConfiguration("market.funds.detail", marketFundsCacheConfig)
                 .withCacheConfiguration("market.funds.chart", marketFundsCacheConfig)
                 .withCacheConfiguration("market.futures.page", marketFuturesCacheConfig)
                 .withCacheConfiguration("cryptoMarketsCache", cryptoMarketsCacheConfig)
+                .withCacheConfiguration("market.evds.bonds.active-series",
+                        RedisCacheConfiguration.defaultCacheConfig()
+                                .entryTtl(Duration.ofSeconds(evdsBondsActiveSeriesTtlSeconds))
+                                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(
+                                        new GenericJackson2JsonRedisSerializer())))
+                .withCacheConfiguration("market.evds.bonds.list",
+                        RedisCacheConfiguration.defaultCacheConfig()
+                                .entryTtl(Duration.ofSeconds(evdsBondsListTtlSeconds))
+                                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(
+                                        new GenericJackson2JsonRedisSerializer())))
+                .withCacheConfiguration("market.evds.bonds.detail",
+                        RedisCacheConfiguration.defaultCacheConfig()
+                                .entryTtl(Duration.ofSeconds(evdsBondsDetailTtlSeconds))
+                                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(
+                                        new GenericJackson2JsonRedisSerializer())))
+                .withCacheConfiguration("market.evds.bonds.history",
+                        RedisCacheConfiguration.defaultCacheConfig()
+                                .entryTtl(Duration.ofSeconds(evdsBondsHistoryTtlSeconds))
+                                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(
+                                        new GenericJackson2JsonRedisSerializer())))
                 .build();
     }
 }

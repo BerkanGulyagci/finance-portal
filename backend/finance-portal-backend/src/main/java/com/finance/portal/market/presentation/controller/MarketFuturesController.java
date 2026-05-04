@@ -5,6 +5,8 @@ import com.finance.portal.market.application.futures.FuturesPageResponse;
 import com.finance.portal.market.application.futures.FuturesQueryService;
 import com.finance.portal.market.application.stock.StockChartResponse;
 import com.finance.portal.market.application.stock.StockQueryService;
+import com.finance.portal.market.application.viop.ViopService;
+import com.finance.portal.market.presentation.dto.ViopContractDetailDto;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.http.ResponseEntity;
@@ -24,10 +26,14 @@ public class MarketFuturesController {
 
     private final FuturesQueryService futuresQueryService;
     private final StockQueryService stockQueryService;
+    private final ViopService viopService;
 
-    public MarketFuturesController(FuturesQueryService futuresQueryService, StockQueryService stockQueryService) {
+    public MarketFuturesController(FuturesQueryService futuresQueryService, 
+                                   StockQueryService stockQueryService,
+                                   ViopService viopService) {
         this.futuresQueryService = futuresQueryService;
         this.stockQueryService = stockQueryService;
+        this.viopService = viopService;
     }
 
     @GetMapping
@@ -61,6 +67,58 @@ public class MarketFuturesController {
         ApiResponse<StockChartResponse> response = ApiResponse.success(
                 chart,
                 "Futures chart retrieved successfully"
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * VIOP kontrat listesi (Akbank'tan)
+     */
+    @GetMapping("/viop/contracts")
+    public ResponseEntity<ApiResponse<?>> getViopContracts() {
+        var contracts = viopService.getAllContracts();
+
+        ApiResponse<?> response = ApiResponse.success(
+                contracts,
+                "VIOP contracts retrieved successfully"
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Belirli bir hisse senedine ait VİOP kontratlarını getir
+     */
+    @GetMapping("/viop/contracts/by-underlying/{symbol}")
+    public ResponseEntity<ApiResponse<?>> getViopContractsByUnderlying(@PathVariable String symbol) {
+        var contracts = viopService.getContractsByUnderlyingAsset(symbol.toUpperCase());
+
+        ApiResponse<?> response = ApiResponse.success(
+                contracts,
+                "Related VIOP contracts retrieved successfully"
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * VIOP kontrat detayı (Akbank'tan)
+     * Query parameter ile kontrat adı alınır
+     */
+    @GetMapping("/viop")
+    public ResponseEntity<ApiResponse<ViopContractDetailDto>> getViopContractDetail(
+            @RequestParam("name") String contractName
+    ) {
+        if (contractName == null || contractName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Contract name must not be empty");
+        }
+
+        ViopContractDetailDto detail = viopService.getContractDetail(contractName);
+
+        ApiResponse<ViopContractDetailDto> response = ApiResponse.success(
+                detail,
+                "VIOP contract detail retrieved successfully"
         );
 
         return ResponseEntity.ok(response);

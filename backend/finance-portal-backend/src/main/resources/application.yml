@@ -92,6 +92,12 @@ cache:
       ttl-seconds: 300
     futures:
       ttl-seconds: 300
+    evds:
+      bonds:
+        active-series-ttl-seconds: ${CACHE_EVDS_BONDS_ACTIVE_SERIES_TTL_SECONDS:43200}
+        list-ttl-seconds: ${CACHE_EVDS_BONDS_LIST_TTL_SECONDS:3600}
+        detail-ttl-seconds: ${CACHE_EVDS_BONDS_DETAIL_TTL_SECONDS:3600}
+        history-ttl-seconds: ${CACHE_EVDS_BONDS_HISTORY_TTL_SECONDS:7200}
 
 market:
   fx:
@@ -116,6 +122,19 @@ ldap:
   base-dn: ${LDAP_BASE_DN:dc=openmicroscopy,dc=org}
   admin-dn: ${LDAP_ADMIN_DN:uid=admin,ou=system}
   admin-password: ${LDAP_ADMIN_PASSWORD:secret}
+
+evds:
+  base-url: ${EVDS_BASE_URL:https://evds3.tcmb.gov.tr/igmevdsms-dis}
+  api-key: ${EVDS_API_KEY:}
+  data-group: bie_pydibs
+  use-whitelist: false          # true → sadece bond-instruments çalışır; false → aktif tüm seriler
+  active-bonds-limit: 300       # güvenlik limiti; 0 = limitsiz
+  bond-instruments:
+    - TRD070727K10
+    - TRB170626T13
+    - TRT180237T13
+    - TRT210235T10
+    - TRT270934T18
 
 coingecko:
   base-url: https://api.coingecko.com/api/v3

@@ -43,7 +43,7 @@ public class LogConsumerService {
 
     @KafkaListener(topics = "finance-portal-logs", groupId = "log-consumer-group-v4")
     public void consume(String message) {
-        log.info("Received Kafka log message. length={}, payload={}", message.length(), message);
+        log.debug("Received Kafka log message. length={}", message.length());
         try {
             Map<String, Object> doc = objectMapper.readValue(
                     message, new TypeReference<Map<String, Object>>() {});
@@ -60,7 +60,7 @@ public class LogConsumerService {
             );
 
             var response = openSearchClient.index(request);
-            log.info("Indexed to OpenSearch: index={} id={} result={}", indexName, response.id(), response.result());
+            log.debug("Indexed to OpenSearch: index={} id={} result={}", indexName, response.id(), response.result());
 
         } catch (Exception e) {
             log.error("Failed to process Kafka message. class={} message={}", e.getClass().getName(), e.getMessage(), e);

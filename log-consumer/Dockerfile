@@ -3,8 +3,12 @@ FROM maven:3.9.6-eclipse-temurin-17-alpine AS builder
 
 WORKDIR /app
 
-# Copy everything and build
-COPY . .
+# pom.xml önce kopyala — dependency layer cache'lenir
+COPY pom.xml .
+RUN mvn dependency:go-offline -B
+
+# Kaynak kodu sonra kopyala — sadece src değişince bu layer yenilenir
+COPY src ./src
 RUN mvn package -DskipTests -B
 
 # ── Stage 2: Run ──────────────────────────────────────────────────────────────

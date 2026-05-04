@@ -2,8 +2,6 @@ package com.finance.portal.news.application.service;
 
 import com.finance.portal.news.infrastructure.external.NewsApiClient;
 import com.finance.portal.news.infrastructure.external.dto.NewsApiResponse;
-import com.finance.portal.news.infrastructure.messaging.event.NewsCacheUpdatedEvent;
-import com.finance.portal.news.infrastructure.messaging.producer.NewsEventProducer;
 import com.finance.portal.news.presentation.dto.NewsItemDto;
 import com.finance.portal.news.presentation.dto.NewsResponse;
 import org.slf4j.Logger;
@@ -11,7 +9,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,13 +18,11 @@ public class NewsService {
     private static final Logger logger = LoggerFactory.getLogger(NewsService.class);
 
     private final NewsApiClient newsApiClient;
-    private final NewsEventProducer newsEventProducer;
     private final com.finance.portal.news.infrastructure.external.BloombergHtRssClient bloombergHtRssClient;
 
-    public NewsService(NewsApiClient newsApiClient, NewsEventProducer newsEventProducer,
+    public NewsService(NewsApiClient newsApiClient,
                        com.finance.portal.news.infrastructure.external.BloombergHtRssClient bloombergHtRssClient) {
         this.newsApiClient = newsApiClient;
-        this.newsEventProducer = newsEventProducer;
         this.bloombergHtRssClient = bloombergHtRssClient;
     }
 
@@ -55,16 +50,6 @@ public class NewsService {
         int totalPages = (int) Math.ceil((double) totalElements / pageSize);
 
         NewsResponse response = new NewsResponse(newsItems, page, pageSize, totalElements, totalPages);
-
-        try {
-            NewsCacheUpdatedEvent event = new NewsCacheUpdatedEvent(
-                    LocalDateTime.now(),
-                    totalElements
-            );
-            newsEventProducer.sendNewsCacheUpdatedEvent(event);
-        } catch (Exception e) {
-            logger.warn("Failed to publish news cache updated event to Kafka: {}", e.getMessage());
-        }
 
         return response;
     }
