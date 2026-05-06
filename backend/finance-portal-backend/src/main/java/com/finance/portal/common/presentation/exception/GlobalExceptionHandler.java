@@ -3,6 +3,7 @@ package com.finance.portal.common.presentation.exception;
 import com.finance.portal.common.infrastructure.exception.ExternalApiException;
 import com.finance.portal.common.infrastructure.exception.ResourceNotFoundException;
 import com.finance.portal.common.presentation.dto.ApiResponse;
+import com.finance.portal.market.application.viop.UnsupportedViopContractException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.http.HttpStatus;
@@ -37,6 +38,15 @@ public class GlobalExceptionHandler {
         });
 
         return new ResponseEntity<>(ApiResponse.error("Validation failed", errors), HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Desteklenmeyen VİOP sözleşmesi — grafik gösterilemiyor, 422 Unprocessable.
+     */
+    @ExceptionHandler(UnsupportedViopContractException.class)
+    public ResponseEntity<ApiResponse<Object>> handleUnsupportedViopContract(UnsupportedViopContractException ex) {
+        logger.warn("Unsupported VIOP contract for chart: {}", ex.getMessage());
+        return new ResponseEntity<>(ApiResponse.error(ex.getMessage()), HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     /**

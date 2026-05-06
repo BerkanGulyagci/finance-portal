@@ -5,10 +5,14 @@ import com.finance.portal.market.application.futures.FuturesPageResponse;
 import com.finance.portal.market.application.futures.FuturesQueryService;
 import com.finance.portal.market.application.stock.StockChartResponse;
 import com.finance.portal.market.application.stock.StockQueryService;
+import com.finance.portal.market.application.viop.ViopChartPeriod;
+import com.finance.portal.market.application.viop.ViopChartService;
 import com.finance.portal.market.application.viop.ViopService;
+import com.finance.portal.market.presentation.dto.ViopChartPointDto;
 import com.finance.portal.market.presentation.dto.ViopContractDetailDto;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +20,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @Validated
 @RestController
@@ -27,13 +33,16 @@ public class MarketFuturesController {
     private final FuturesQueryService futuresQueryService;
     private final StockQueryService stockQueryService;
     private final ViopService viopService;
+    private final ViopChartService viopChartService;
 
-    public MarketFuturesController(FuturesQueryService futuresQueryService, 
+    public MarketFuturesController(FuturesQueryService futuresQueryService,
                                    StockQueryService stockQueryService,
-                                   ViopService viopService) {
+                                   ViopService viopService,
+                                   ViopChartService viopChartService) {
         this.futuresQueryService = futuresQueryService;
         this.stockQueryService = stockQueryService;
         this.viopService = viopService;
+        this.viopChartService = viopChartService;
     }
 
     @GetMapping
@@ -129,6 +138,38 @@ public class MarketFuturesController {
             throw new IllegalArgumentException(
                     "Symbol must match pattern " + FUTURES_SYMBOL_REGEX + " (e.g. ES=F)");
         }
+    }
+
+    /**
+     * VİOP sözleşmesi grafik verisi (İş Yatırım'dan).
+     * Sadece hisse senedi dayanaklı sözleşmeler desteklenir.
+     * <p>
+     * Örnek: GET /api/market/futures/viop/chart?name=THYAO%20(30%20Haz%2026)%20Vadeli%20FIZ.&period=ONE_WEEK
+     */
+    @GetMapping(value = "/viop/chart", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ApiResponse<List<ViopChartPointDto>>> getViopChart(
+            @RequestParam("name") String contractName,
+            @RequestParam(value = "period", defaultValue = "ONE_WEEK") String periodStr
+    ) {
+        if (contractName == null || contractName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Contract name must not be empty");
+        }
+
+        ViopChartPeriod period;
+        try {
+            period = ViopChartPeriod.valueOf(periodStr.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(
+                    "Invalid period: '" + periodStr + "'. Valid values: ONE_WEEK, ONE_MONTH, THREE_MONTHS, SIX_MONTHS, ONE_YEAR");
+        }
+
+        List<ViopChartPointDto> points = viopChartService.getChart(contractName.trim(), period);
+
+        String message = points.isEmpty()
+                ? "Bu dönem için VİOP grafik verisi bulunamadı."
+                : "VIOP chart data retrieved successfully";
+
+        return ResponseEntity.ok(ApiResponse.success(points, message));
     }
 }
 

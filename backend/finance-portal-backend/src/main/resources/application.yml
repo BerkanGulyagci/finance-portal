@@ -1,5 +1,10 @@
 server:
   port: 8080
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
 
 spring:
   mvc:
@@ -108,6 +113,13 @@ market:
   stocks:
     yahoo:
       base-url: https://query1.finance.yahoo.com/v8/finance/chart
+  funds:
+    rasyonet:
+      filter-url: ${RASYONET_FILTER_URL:https://api.rasyonet.com/service-yatirimdirekt-home/web-fund/fund-filter}
+      card-url: ${RASYONET_CARD_URL:https://api.rasyonet.com/service-yatirimdirekt-home/web-fund/card}
+      osmanli-bulletin-url: ${RASYONET_OSMANLI_BULLETIN_URL:https://api.rasyonet.com/service-yatirimdirekt-home/web-menu/osmanli-fund-bulletin}
+      source-code: ${RASYONET_SOURCE_CODE:TMF}
+      timeout-seconds: ${RASYONET_TIMEOUT_SECONDS:15}
 
 keycloak:
   admin:

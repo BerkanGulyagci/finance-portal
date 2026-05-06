@@ -1,32 +1,51 @@
 import { useEffect, useState } from 'react';
-import { useParams, useLocation, Link, useNavigate } from 'react-router-dom';
+import { useParams, useLocation, Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import ViopContractHeader from './components/ViopContractHeader';
 import ViopContractStats from './components/ViopContractStats';
 import ViopPriceRange from './components/ViopPriceRange';
 import ViopOpenPositions from './components/ViopOpenPositions';
 import ViopContractInfo from './components/ViopContractInfo';
+import ViopPriceChart from './components/ViopPriceChart';
+import { getViopContracts } from '../../../api/marketApi';
 
 export default function FuturesDetailPage() {
   const { symbol } = useParams();
   const location = useLocation();
-  const navigate = useNavigate();
   const [contract, setContract] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // React Router state'inden contract verisini al
     if (location.state?.contract) {
+      // Normal akış: listeden tıklandı, state mevcut
       setContract(location.state.contract);
       setLoading(false);
       setError(null);
+    } else if (symbol) {
+      // Direkt URL ile gelindi: symbol param'ından contract name'i decode et
+      // URL encode: encodeURIComponent(r.name) → decode ederek Akbank listesinde ara
+      const decodedName = decodeURIComponent(symbol);
+      setLoading(true);
+      getViopContracts()
+        .then(contracts => {
+          const found = contracts.find(c =>
+            c.name === decodedName || c.name?.toLowerCase() === decodedName.toLowerCase()
+          );
+          if (found) {
+            setContract(found);
+            setError(null);
+          } else {
+            setError('Sözleşme bulunamadı. Lütfen listeden tekrar seçin.');
+          }
+        })
+        .catch(() => setError('Sözleşme verisi alınamadı. Lütfen daha sonra tekrar deneyin.'))
+        .finally(() => setLoading(false));
     } else {
-      // State yoksa (direkt URL ile gelindiyse), listeye yönlendir
       setError('Lütfen sözleşme listesinden bir sözleşme seçin');
       setLoading(false);
     }
-  }, [location.state, symbol, navigate]);
+  }, [location.state, symbol]);
 
   if (loading) {
     return (
@@ -68,7 +87,21 @@ export default function FuturesDetailPage() {
   }
 
   if (!contract) {
-    return null;
+    return (
+      <div className="space-y-6">
+        <Link to="/market/futures" className="inline-flex items-center gap-1.5 text-sm text-[#093eaa] font-semibold hover:underline">
+          <ArrowLeft className="w-4 h-4" /> Vadeli İşlemler
+        </Link>
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-12">
+          <div className="text-center">
+            <p className="text-rose-600 font-semibold mb-2">Sözleşme verisi bulunamadı.</p>
+            <p className="text-sm text-gray-500">
+              <Link to="/market/futures" className="text-[#093eaa] hover:underline">Listeye dönün</Link>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -80,6 +113,9 @@ export default function FuturesDetailPage() {
 
       {/* Header */}
       <ViopContractHeader contract={contract} />
+
+      {/* Grafik — Header'dan hemen sonra, tam genişlik */}
+      <ViopPriceChart contractName={contract.name} />
 
       {/* Main content grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

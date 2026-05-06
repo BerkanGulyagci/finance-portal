@@ -39,9 +39,9 @@ const dropdownMenus = [
   {
     label: 'Yatırım Fonları',
     items: [
-      { label: 'TEFAS Fonları', path: '/market/tefas', desc: 'Türkiye yatırım fonları' },
+      { label: 'Tüm Fonlar',      path: '/market/tefas',         desc: 'TEFAS · BES · OKS · Osmanlı Portföy' },
       { label: 'Fon Karşılaştır', path: '/market/tefas/compare', desc: 'Fonları karşılaştır' },
-      { label: 'Global Fonlar', path: '/market/funds', desc: 'ETF ve yatırım fonları' },
+      { label: 'Global Fonlar',   path: '/market/funds',         desc: 'ETF ve yatırım fonları' },
     ],
   },
 ];

@@ -1,12 +1,11 @@
 import { useEffect, useState, useMemo } from 'react';
-import { getCryptos, getStocks, getFutures, getFunds, getTefasFunds, getFxTcmb } from '../api/marketApi';
+import { getCryptos, getStocks, getFutures, getFunds, getFxTcmb } from '../api/marketApi';
 
 const TABS = [
   { key: 'crypto',  label: '🪙 Kripto' },
   { key: 'stocks',  label: '📈 Hisse' },
   { key: 'futures', label: '📊 Vadeli' },
   { key: 'funds',   label: '🏦 Global Fonlar' },
-  { key: 'tefas',   label: '🇹🇷 TEFAS Fonları' },
   { key: 'fx',      label: '💱 Döviz' },
 ];
 
@@ -81,31 +80,6 @@ function StockTable({ items }) {
               <Td className="text-gray-600">{num(r.dayLow)}</Td>
               <Td className="text-gray-600">{r.volume == null ? '-' : Number(r.volume).toLocaleString('tr-TR')}</Td>
               <Td className="text-gray-400 text-xs">{r.exchange ?? '-'}</Td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function TefasTable({ items }) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead className="bg-gray-50"><tr>
-          {['Kod', 'Fon Adı', 'Fiyat (TL)', 'Günlük %', 'Portföy Büyüklüğü', 'Yatırımcı', 'Tarih'].map(h => <Th key={h}>{h}</Th>)}
-        </tr></thead>
-        <tbody className="bg-white">
-          {items.map(r => (
-            <tr key={r.code} className="hover:bg-gray-50 transition-colors">
-              <Td><span className="font-bold text-[#093eaa]">{r.code}</span></Td>
-              <Td className="text-gray-700 max-w-xs truncate">{r.title ?? '-'}</Td>
-              <Td className="font-semibold">{num(r.price, 6)}</Td>
-              <Td>{pct(r.dailyReturnPercent)}</Td>
-              <Td className="text-gray-600">{r.marketCap == null ? '-' : num(r.marketCap, 0)}</Td>
-              <Td className="text-gray-600">{r.numberOfInvestors == null ? '-' : Number(r.numberOfInvestors).toLocaleString('tr-TR')}</Td>
-              <Td className="text-gray-400 text-xs">{r.date ?? '-'}</Td>
             </tr>
           ))}
         </tbody>
@@ -198,7 +172,6 @@ export default function MarketPage() {
       stocks:  () => getStocks(0, 20).then(r => r.content ?? []),
       futures: () => getFutures(0, 20).then(r => r.content ?? []),
       funds:   () => getFunds(0, 30).then(r => r.content ?? []),
-      tefas:   () => getTefasFunds('YAT', 0, 500).then(r => r.content ?? []),
       fx:      () => getFxTcmb(),
     };
     fetchers[tab]()
@@ -258,11 +231,6 @@ export default function MarketPage() {
               <SearchableList items={current} placeholder="Sembol veya isim ara..."
                 searchFn={(s, q) => s.symbol?.toLowerCase().includes(q) || s.name?.toLowerCase().includes(q)}
                 renderTable={items => <StockTable items={items} />} />
-            )}
-            {activeTab === 'tefas' && (
-              <SearchableList items={current} placeholder="Fon kodu veya adı ara..."
-                searchFn={(f, q) => f.code?.toLowerCase().includes(q) || f.title?.toLowerCase().includes(q)}
-                renderTable={items => <TefasTable items={items} />} />
             )}
           </div>
         )}

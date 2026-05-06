@@ -1,8 +1,6 @@
 package com.finance.portal.market.application;
 
 import com.finance.portal.common.infrastructure.exception.ResourceNotFoundException;
-import com.finance.portal.market.application.funds.service.FundQueryService;
-import com.finance.portal.market.application.funds.model.FundSummary;
 import com.finance.portal.market.application.service.MarketFxService;
 import com.finance.portal.market.application.stock.StockQueryService;
 import com.finance.portal.market.application.stock.StockSummary;
@@ -24,7 +22,7 @@ import java.time.LocalDateTime;
  * - STOCK   → Yahoo Finance (StockQueryService)
  * - CRYPTO  → CoinGecko (CryptoMarketService) — TRY bazlı
  * - FX      → TCMB (MarketFxService) — symbol: USD, EUR, GBP vb.
- * - FUND    → Yahoo Finance (FundQueryService) — ETF/fon
+ * - FUND    → Yahoo Finance (StockQueryService) — ETF/fon (SPY, QQQ, GLD vb.)
  * - FUTURE  → Yahoo Finance (StockQueryService) — ES=F, GC=F vb.
  */
 @Service
@@ -35,16 +33,13 @@ public class DefaultAssetPriceQueryService implements AssetPriceQueryService {
     private final StockQueryService stockQueryService;
     private final CryptoMarketService cryptoMarketService;
     private final MarketFxService marketFxService;
-    private final FundQueryService fundQueryService;
 
     public DefaultAssetPriceQueryService(StockQueryService stockQueryService,
                                          CryptoMarketService cryptoMarketService,
-                                         MarketFxService marketFxService,
-                                         FundQueryService fundQueryService) {
-        this.stockQueryService = stockQueryService;
+                                         MarketFxService marketFxService) {
+        this.stockQueryService   = stockQueryService;
         this.cryptoMarketService = cryptoMarketService;
-        this.marketFxService = marketFxService;
-        this.fundQueryService = fundQueryService;
+        this.marketFxService     = marketFxService;
     }
 
     @Override
@@ -65,9 +60,8 @@ public class DefaultAssetPriceQueryService implements AssetPriceQueryService {
     private AssetPriceSnapshot fetchStockPrice(String symbol) {
         log.debug("Fetching stock price for symbol: {}", symbol);
         StockSummary summary = stockQueryService.getStockSummary(symbol.toUpperCase());
-        LocalDateTime asOf = parseDateTime(summary.getAsOf());
         return new AssetPriceSnapshot(AssetType.STOCK, summary.getSymbol(),
-                summary.getPrice(), summary.getCurrency(), asOf);
+                summary.getPrice(), summary.getCurrency(), parseDateTime(summary.getAsOf()));
     }
 
     // ── CRYPTO ────────────────────────────────────────────────────────────────
@@ -95,7 +89,6 @@ public class DefaultAssetPriceQueryService implements AssetPriceQueryService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "FX rate not found for symbol: " + upperSymbol));
 
-        // Normalize: TCMB bazı kurları 100 birim üzerinden verir (örn. JPY)
         BigDecimal price = rate.getSell();
         if (rate.getUnit() > 1) {
             price = price.divide(BigDecimal.valueOf(rate.getUnit()), 6, RoundingMode.HALF_UP);
@@ -106,15 +99,15 @@ public class DefaultAssetPriceQueryService implements AssetPriceQueryService {
 
     // ── FUND ──────────────────────────────────────────────────────────────────
     /**
-     * Yahoo Finance'den ETF/fon fiyatı çeker.
+     * Yahoo Finance'den ETF/global fon fiyatı çeker.
      * symbol: "SPY", "QQQ", "GLD" vb.
+     * ETF'ler Yahoo'da hisse gibi chart endpoint'i üzerinden çalışır.
      */
     private AssetPriceSnapshot fetchFundPrice(String symbol) {
         log.debug("Fetching fund price for symbol: {}", symbol);
-        FundSummary summary = fundQueryService.getFundSummary(symbol.toUpperCase());
-        LocalDateTime asOf = parseDateTime(summary.getAsOf());
+        StockSummary summary = stockQueryService.getStockSummary(symbol.toUpperCase());
         return new AssetPriceSnapshot(AssetType.FUND, summary.getSymbol(),
-                summary.getPrice(), summary.getCurrency(), asOf);
+                summary.getPrice(), summary.getCurrency(), parseDateTime(summary.getAsOf()));
     }
 
     // ── FUTURE ────────────────────────────────────────────────────────────────
@@ -124,11 +117,9 @@ public class DefaultAssetPriceQueryService implements AssetPriceQueryService {
      */
     private AssetPriceSnapshot fetchFuturePrice(String symbol) {
         log.debug("Fetching future price for symbol: {}", symbol);
-        // Futures Yahoo'da STOCK gibi chart endpoint'i kullanır
         StockSummary summary = stockQueryService.getStockSummary(symbol.toUpperCase());
-        LocalDateTime asOf = parseDateTime(summary.getAsOf());
         return new AssetPriceSnapshot(AssetType.FUTURE, summary.getSymbol(),
-                summary.getPrice(), summary.getCurrency(), asOf);
+                summary.getPrice(), summary.getCurrency(), parseDateTime(summary.getAsOf()));
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

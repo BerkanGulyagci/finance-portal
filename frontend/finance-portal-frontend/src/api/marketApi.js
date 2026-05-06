@@ -93,33 +93,87 @@ export async function getViopContractsByUnderlying(symbol) {
   return data.data ?? [];
 }
 
+/**
+ * VİOP sözleşmesi grafik verisi (İş Yatırım'dan).
+ * period: ONE_WEEK | ONE_MONTH | THREE_MONTHS | SIX_MONTHS | ONE_YEAR
+ * Desteklenmeyen sözleşmeler için backend success=false döner.
+ */
+export async function getViopChart(contractName, period = 'ONE_WEEK') {
+  const { data } = await client.get('/api/market/futures/viop/chart', {
+    params: { name: contractName, period },
+  });
+  // Backend success=false dönebilir (desteklenmeyen sözleşme) — ham response'u döndür
+  return data;
+}
+
 export async function getFunds(page = 0, size = 20) {
   const { data } = await client.get('/api/market/funds', { params: { page, size } });
   return data.data ?? {};
 }
 
-export async function getTefasFunds(kind = 'YAT', page = 0, size = 50) {
-  const { data } = await client.get('/api/market/funds/tefas', { params: { kind, page, size } });
-  return data.data ?? {};
-}
-
-export async function getTefasFundDetail(code) {
-  const { data } = await client.get(`/api/market/funds/tefas/${encodeURIComponent(code)}`);
-  return data.data ?? null;
-}
-
-export async function getTefasFundHistory(code, range = '1M') {
-  const { data } = await client.get(`/api/market/funds/tefas/${encodeURIComponent(code)}/history`, { params: { range } });
-  return data.data ?? null;
+/**
+ * Tüm TEFAS fonlarını Rasyonet'ten çeker.
+ * GET /api/market/funds/tefas/all
+ */
+export async function getAllTefasFunds() {
+  const { data } = await client.get('/api/market/funds/tefas/all');
+  return data.data ?? [];
 }
 
 /**
- * Fon grafik verisi — HangiKredi chart API üzerinden.
- * period: ONE_WEEK | ONE_MONTH | THREE_MONTHS | SIX_MONTHS | ONE_YEAR | THREE_YEARS | FIVE_YEARS
+ * Tüm BES (Bireysel Emeklilik) fonlarını çeker — SourceCode: TPF
+ * GET /api/market/funds/bes/all
  */
-export async function getFundHistory(code, period = 'ONE_MONTH') {
-  const { data } = await client.get(`/api/market/funds/${encodeURIComponent(code)}/history`, { params: { period } });
+export async function getAllBesFunds() {
+  const { data } = await client.get('/api/market/funds/bes/all');
+  return data.data ?? [];
+}
+
+/**
+ * Tüm OKS (Otomatik Katılım) fonlarını çeker — SourceCode: TAF
+ * GET /api/market/funds/oks/all
+ */
+export async function getAllOksFunds() {
+  const { data } = await client.get('/api/market/funds/oks/all');
+  return data.data ?? [];
+}
+
+/**
+ * Osmanlı Portföy fon bültenini çeker.
+ * GET /api/market/funds/osmanli/bulletin
+ */
+export async function getOsmanliFundBulletin() {
+  const { data } = await client.get('/api/market/funds/osmanli/bulletin');
+  return data.data ?? [];
+}
+
+/**
+ * Rasyonet card endpoint'inden zengin fon detayı çeker.
+ * GET /api/market/funds/tefas/{code}?sourceCode={sourceCode}
+ * sourceCode: TMF (default/TEFAS) | TPF (BES) | TAF (OKS)
+ */
+export async function getRasyonetFundDetail(code, sourceCode = 'TMF') {
+  const { data } = await client.get(`/api/market/funds/tefas/${encodeURIComponent(code)}`, {
+    params: { sourceCode },
+  });
   return data.data ?? null;
+}
+
+/** Alias — TefasComparePage uyumluluğu için */
+export async function getTefasFundDetail(code) {
+  return getRasyonetFundDetail(code);
+}
+
+/** TefasComparePage'de kullanılıyor — şimdilik boş dizi döndür (HangiKredi history kaldırıldı) */
+export async function getTefasFundHistory(code, range = '1M') {
+  // HangiKredi history endpoint'i kaldırıldı. Rasyonet'te günlük fiyat geçmişi
+  // fon detay sayfasında priceHistory olarak geliyor.
+  return { points: [] };
+}
+
+/** FundPriceChart.jsx uyumluluğu için — HangiKredi chart kaldırıldı */
+export async function getFundHistory(code, period = 'ONE_MONTH') {
+  return { points: [] };
 }
 
 export async function getFxTcmb() {

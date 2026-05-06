@@ -1,16 +1,10 @@
 package com.finance.portal.market.presentation.controller;
 
 import com.finance.portal.common.presentation.dto.ApiResponse;
-import com.finance.portal.market.application.funds.model.FundChartResponse;
-import com.finance.portal.market.application.funds.model.FundDetail;
-import com.finance.portal.market.application.funds.model.FundHistoryResponse;
-import com.finance.portal.market.application.funds.model.FundPageResponse;
-import com.finance.portal.market.application.funds.model.FundPeriod;
-import com.finance.portal.market.application.funds.model.TefasFundHistoryResponse;
-import com.finance.portal.market.application.funds.model.TefasFundItem;
-import com.finance.portal.market.application.funds.model.TefasFundPageResponse;
-import com.finance.portal.market.application.funds.service.FundQueryService;
-import com.finance.portal.market.application.funds.service.TefasFundService;
+import com.finance.portal.market.application.funds.model.RasyonetFundDetailDto;
+import com.finance.portal.market.application.funds.model.RasyonetFundDto;
+import com.finance.portal.market.application.funds.model.RasyonetOsmanliFundBulletinDto;
+import com.finance.portal.market.application.funds.service.RasyonetFundService;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.http.ResponseEntity;
@@ -21,108 +15,75 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
+/**
+ * Fon API controller.
+ * Tüm veri kaynağı: Rasyonet / YatırımDirekt
+ *
+ * Endpoints:
+ *   GET /api/market/funds/tefas/all          → TMF (TEFAS yatırım fonları)
+ *   GET /api/market/funds/bes/all            → TPF (BES fonları)
+ *   GET /api/market/funds/oks/all            → TAF (OKS fonları)
+ *   GET /api/market/funds/osmanli/bulletin   → Osmanlı Portföy fon bülteni
+ *   GET /api/market/funds/tefas/{code}       → Fon detayı (Rasyonet card)
+ */
 @Validated
 @RestController
 @RequestMapping("/api/market/funds")
 public class MarketFundController {
 
-    private static final String SYMBOL_REGEX = "^[A-Z.]{1,10}$";
+    private final RasyonetFundService rasyonetFundService;
 
-    private final FundQueryService fundQueryService;
-    private final TefasFundService tefasFundService;
-
-    public MarketFundController(FundQueryService fundQueryService, TefasFundService tefasFundService) {
-        this.fundQueryService = fundQueryService;
-        this.tefasFundService = tefasFundService;
+    public MarketFundController(RasyonetFundService rasyonetFundService) {
+        this.rasyonetFundService = rasyonetFundService;
     }
 
-    @GetMapping("/tefas")
-    public ResponseEntity<ApiResponse<TefasFundPageResponse>> getTefasFunds(
-            @RequestParam(defaultValue = "YAT") String kind,
-            @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "50") @Min(1) @Max(2000) int size
-    ) {
-        TefasFundPageResponse result = tefasFundService.getPagedFunds(kind, page, size);
-        return ResponseEntity.ok(ApiResponse.success(result, "TEFAS funds retrieved successfully"));
+    /** GET /api/market/funds/tefas/all — TMF yatırım fonları */
+    @GetMapping("/tefas/all")
+    public ResponseEntity<ApiResponse<List<RasyonetFundDto>>> getAllTefasFunds() {
+        List<RasyonetFundDto> funds = rasyonetFundService.getAllFunds();
+        return ResponseEntity.ok(ApiResponse.success(funds,
+                "TEFAS funds retrieved via Rasyonet (" + funds.size() + " funds)"));
     }
 
-    @GetMapping("/tefas/{code}")
-    public ResponseEntity<ApiResponse<Object>> getTefasFundDetail(@PathVariable String code) {
-        TefasFundItem item = tefasFundService.getFundDetail(code.toUpperCase());
-        return ResponseEntity.ok(ApiResponse.success(item, "TEFAS fund detail retrieved"));
+    /** GET /api/market/funds/bes/all — TPF BES fonları */
+    @GetMapping("/bes/all")
+    public ResponseEntity<ApiResponse<List<RasyonetFundDto>>> getAllBesFunds() {
+        List<RasyonetFundDto> funds = rasyonetFundService.getAllBesFunds();
+        return ResponseEntity.ok(ApiResponse.success(funds,
+                "BES funds retrieved via Rasyonet (" + funds.size() + " funds)"));
     }
 
-    @GetMapping("/tefas/{code}/history")
-    public ResponseEntity<ApiResponse<TefasFundHistoryResponse>> getTefasFundHistory(
-            @PathVariable String code,
-            @RequestParam(defaultValue = "1M") String range
-    ) {
-        TefasFundHistoryResponse result = fundQueryService.getTefasFundHistory(code, range);
-        return ResponseEntity.ok(ApiResponse.success(result, "TEFAS fund history retrieved"));
+    /** GET /api/market/funds/oks/all — TAF OKS fonları */
+    @GetMapping("/oks/all")
+    public ResponseEntity<ApiResponse<List<RasyonetFundDto>>> getAllOksFunds() {
+        List<RasyonetFundDto> funds = rasyonetFundService.getAllOksFunds();
+        return ResponseEntity.ok(ApiResponse.success(funds,
+                "OKS funds retrieved via Rasyonet (" + funds.size() + " funds)"));
+    }
+
+    /** GET /api/market/funds/osmanli/bulletin — Osmanlı Portföy fon bülteni */
+    @GetMapping("/osmanli/bulletin")
+    public ResponseEntity<ApiResponse<List<RasyonetOsmanliFundBulletinDto>>> getOsmanliFundBulletin() {
+        List<RasyonetOsmanliFundBulletinDto> funds = rasyonetFundService.getOsmanliFundBulletin();
+        return ResponseEntity.ok(ApiResponse.success(funds,
+                "Osmanlı fund bulletin retrieved (" + funds.size() + " funds)"));
     }
 
     /**
-     * Fon grafik verisi — HangiKredi chart API üzerinden.
-     * GET /api/market/funds/{fundCode}/history?period=THREE_YEARS
+     * GET /api/market/funds/tefas/{code}?sourceCode=TMF — Fon detayı (Rasyonet card endpoint)
+     * sourceCode: TMF (TEFAS/default) | TPF (BES) | TAF (OKS)
+     * Fon kodu regex: büyük harf + rakam, 2-6 karakter. "all" bu pattern'e uymaz.
      */
-    @GetMapping("/{fundCode}/history")
-    public ResponseEntity<ApiResponse<FundHistoryResponse>> getFundHistory(
-            @PathVariable String fundCode,
-            @RequestParam(defaultValue = "ONE_MONTH") String period
-    ) {
-        FundPeriod fundPeriod;
-        try {
-            fundPeriod = FundPeriod.valueOf(period.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            // Eski range formatını da destekle (1M, 3M vb.)
-            fundPeriod = mapLegacyRange(period);
+    @GetMapping("/tefas/{code:[A-Z0-9]{2,6}}")
+    public ResponseEntity<ApiResponse<RasyonetFundDetailDto>> getTefasFundDetail(
+            @PathVariable String code,
+            @RequestParam(defaultValue = "TMF") String sourceCode) {
+        RasyonetFundDetailDto detail = rasyonetFundService.getFundDetailRich(code.toUpperCase(), sourceCode.toUpperCase());
+        if (detail == null) {
+            return ResponseEntity.ok(ApiResponse.success(null, "Fon bulunamadı: " + code));
         }
-        FundHistoryResponse result = tefasFundService.getFundHistory(fundCode.toUpperCase(), fundPeriod);
-        return ResponseEntity.ok(ApiResponse.success(result, "Fund history retrieved"));
-    }
-
-    private FundPeriod mapLegacyRange(String range) {
-        return switch (range.toUpperCase()) {
-            case "1W"  -> FundPeriod.ONE_WEEK;
-            case "1M"  -> FundPeriod.ONE_MONTH;
-            case "3M"  -> FundPeriod.THREE_MONTHS;
-            case "6M"  -> FundPeriod.SIX_MONTHS;
-            case "1Y"  -> FundPeriod.ONE_YEAR;
-            case "3Y"  -> FundPeriod.THREE_YEARS;
-            case "5Y"  -> FundPeriod.FIVE_YEARS;
-            default    -> FundPeriod.ONE_MONTH;
-        };
-    }
-
-    @GetMapping
-    public ResponseEntity<ApiResponse<FundPageResponse>> getFundPage(
-            @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(50) int size
-    ) {
-        FundPageResponse fundPage = fundQueryService.getPagedFunds(page, size);
-        return ResponseEntity.ok(ApiResponse.success(fundPage, "Fund page retrieved successfully"));
-    }
-
-    @GetMapping("/{symbol}")
-    public ResponseEntity<ApiResponse<FundDetail>> getFundDetail(@PathVariable String symbol) {
-        String s = normalize(symbol);
-        return ResponseEntity.ok(ApiResponse.success(fundQueryService.getFundDetail(s), "Fund detail retrieved successfully"));
-    }
-
-    @GetMapping("/{symbol}/chart")
-    public ResponseEntity<ApiResponse<FundChartResponse>> getFundChart(
-            @PathVariable String symbol,
-            @RequestParam(defaultValue = "1mo") String range,
-            @RequestParam(defaultValue = "1d") String interval
-    ) {
-        String s = normalize(symbol);
-        return ResponseEntity.ok(ApiResponse.success(fundQueryService.getFundChart(s, range, interval), "Fund chart retrieved successfully"));
-    }
-
-    private String normalize(String symbol) {
-        if (symbol == null || symbol.trim().isEmpty()) throw new IllegalArgumentException("symbol must not be empty");
-        String s = symbol.trim().toUpperCase();
-        if (!s.matches(SYMBOL_REGEX)) throw new IllegalArgumentException("Symbol must match pattern " + SYMBOL_REGEX);
-        return s;
+        return ResponseEntity.ok(ApiResponse.success(detail, "Fund detail retrieved via Rasyonet"));
     }
 }
