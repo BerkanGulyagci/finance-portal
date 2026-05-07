@@ -97,14 +97,33 @@ cache:
       ttl-seconds: 300
     futures:
       ttl-seconds: 300
+    commodity:
+      spot:
+        ttl-seconds: ${MARKET_COMMODITY_SPOT_TTL_SECONDS:60}
+      history:
+        ttl-seconds: ${MARKET_COMMODITY_HISTORY_TTL_SECONDS:600}
     evds:
       bonds:
         active-series-ttl-seconds: ${CACHE_EVDS_BONDS_ACTIVE_SERIES_TTL_SECONDS:43200}
         list-ttl-seconds: ${CACHE_EVDS_BONDS_LIST_TTL_SECONDS:3600}
         detail-ttl-seconds: ${CACHE_EVDS_BONDS_DETAIL_TTL_SECONDS:3600}
         history-ttl-seconds: ${CACHE_EVDS_BONDS_HISTORY_TTL_SECONDS:7200}
+    currency:
+      banks:
+        ttl-seconds: ${CACHE_MARKET_CURRENCY_BANKS_TTL_SECONDS:120}
 
 market:
+  gold:
+    bist:
+      url: ${MARKET_GOLD_BIST_URL:https://www.borsaistanbul.com/veri-sorgulama.php}
+  precious:
+    bist:
+      metal-url: ${MARKET_PRECIOUS_BIST_METAL_URL:https://www.borsaistanbul.com/metal-fiyatlari.php}
+  commodity:
+    spot:
+      ttl-seconds: ${MARKET_COMMODITY_SPOT_TTL_SECONDS:60}
+    history:
+      ttl-seconds: ${MARKET_COMMODITY_HISTORY_TTL_SECONDS:600}
   fx:
     tcmb:
       url: ${MARKET_FX_TCMB_URL:https://www.tcmb.gov.tr/kurlar/today.xml}

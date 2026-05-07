@@ -26,14 +26,29 @@ const dropdownMenus = [
     items: [
       { label: 'TCMB Kurları', path: '/market/fx', desc: 'Resmi döviz kurları' },
       { label: 'Open Exchange Rates', path: '/market/fx', desc: 'Gerçek zamanlı kurlar' },
+      { label: 'Banka Kurları', path: '/market/fx?tab=banks', desc: 'Türk bankalarının alış/satış kurları' },
       { label: 'Karşılaştır', path: '/market/compare', desc: 'Dövizleri karşılaştır' },
     ],
   },
   {
-    label: 'Altın',
-    items: [
-      { label: 'Altın Detay', path: '/market/gold', desc: 'Ons, gram, çeyrek altın fiyatları' },
-      { label: 'Küresel Fonlar', path: '/market/funds', desc: 'GLD, SLV ETF\'leri' },
+    label: 'Emtia',
+    groups: [
+      {
+        title: 'Kıymetli Madenler',
+        items: [
+          { label: 'Altın',    path: '/market/gold',      desc: 'Ons, gram, çeyrek altın' },
+          { label: 'Gümüş',   path: '/market/silver',    desc: 'Gram, kg, ons gümüş' },
+          { label: 'Platin',  path: '/market/platinum',  desc: 'TL/Gram, USD/Ons' },
+          { label: 'Paladyum',path: '/market/palladium', desc: 'TL/Gram, USD/Ons' },
+        ],
+      },
+      {
+        title: 'Analiz',
+        items: [
+          { label: 'Emtia Karşılaştırma', path: '/market/commodities/compare', desc: 'Normalize performans karşılaştırması' },
+          { label: 'Diğer Emtialar', path: '/market/commodities', desc: 'Enerji, tarım, sanayi metalleri' },
+        ],
+      },
     ],
   },
   {
@@ -48,6 +63,31 @@ const dropdownMenus = [
 
 // ── Generic Dropdown ──────────────────────────────────────────────────────────
 function NavDropdown({ menu, onClose }) {
+  // groups varsa gruplu render, yoksa düz liste
+  if (menu.groups) {
+    return (
+      <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50">
+        {menu.groups.map(group => (
+          <div key={group.title}>
+            {/* Grup başlığı */}
+            <div className="px-4 pt-2 pb-1">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                {group.title}
+              </span>
+            </div>
+            {group.items.map(item => (
+              <Link key={item.path + item.label} to={item.path} onClick={onClose}
+                className="flex flex-col px-4 py-2.5 hover:bg-gray-50 transition-colors group pl-6">
+                <span className="text-sm font-semibold text-gray-900 group-hover:text-[#093eaa]">{item.label}</span>
+                <span className="text-xs text-gray-400 mt-0.5">{item.desc}</span>
+              </Link>
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50">
       {menu.items.map(item => (
@@ -167,12 +207,25 @@ export function Header() {
             {dropdownMenus.map(menu => (
               <div key={menu.label} className="px-4 py-2">
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{menu.label}</p>
-                {menu.items.map(item => (
-                  <Link key={item.path + item.label} to={item.path} onClick={() => setMobileOpen(false)}
-                    className="block py-1.5 text-sm font-semibold text-gray-700 hover:text-[#093eaa] transition-colors">
-                    {item.label}
-                  </Link>
-                ))}
+                {menu.groups
+                  ? menu.groups.map(group => (
+                      <div key={group.title} className="mb-2">
+                        <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest mb-1 pl-1">{group.title}</p>
+                        {group.items.map(item => (
+                          <Link key={item.path + item.label} to={item.path} onClick={() => setMobileOpen(false)}
+                            className="block py-1.5 pl-3 text-sm font-semibold text-gray-700 hover:text-[#093eaa] transition-colors">
+                            {item.label}
+                          </Link>
+                        ))}
+                      </div>
+                    ))
+                  : menu.items.map(item => (
+                      <Link key={item.path + item.label} to={item.path} onClick={() => setMobileOpen(false)}
+                        className="block py-1.5 text-sm font-semibold text-gray-700 hover:text-[#093eaa] transition-colors">
+                        {item.label}
+                      </Link>
+                    ))
+                }
               </div>
             ))}
           </div>

@@ -176,6 +176,35 @@ export async function getFundHistory(code, period = 'ONE_MONTH') {
   return { points: [] };
 }
 
+// ── Banka Döviz Kurları (Hesapkurdu) ─────────────────────────────────────────
+
+/**
+ * Tüm banka döviz kurlarını döndürür.
+ * GET /api/market/currency/banks
+ */
+export async function getBankCurrencyRates() {
+  const { data } = await client.get('/api/market/currency/banks');
+  return data.data ?? [];
+}
+
+/**
+ * Belirli bir döviz koduna göre banka kurlarını döndürür.
+ * GET /api/market/currency/banks?currency=USD
+ */
+export async function getBankCurrencyRatesByCurrency(currency) {
+  const { data } = await client.get('/api/market/currency/banks', { params: { currency } });
+  return data.data ?? [];
+}
+
+/**
+ * Belirli bir bankanın kurlarını döndürür.
+ * GET /api/market/currency/banks/{bankName}
+ */
+export async function getBankCurrencyRatesByBank(bankName) {
+  const { data } = await client.get(`/api/market/currency/banks/${encodeURIComponent(bankName)}`);
+  return data.data ?? [];
+}
+
 export async function getFxTcmb() {
   const { data } = await client.get('/api/market/fx/tcmb/latest');
   return data.data ?? {};
@@ -245,6 +274,45 @@ export async function getGoldSpot() {
 
 export async function getGoldHistory(range = '1M', currency = 'USD') {
   const { data } = await client.get('/api/gold/history', { params: { range, currency } });
+  return data.data ?? null;
+}
+
+export async function getSilverSpot() {
+  const { data } = await client.get('/api/silver/spot');
+  return data.data ?? null;
+}
+
+export async function getSilverHistory(range = '1M', currency = 'TRY') {
+  const { data } = await client.get('/api/silver/history', { params: { range, currency } });
+  return data.data ?? null;
+}
+
+export async function getPreciousMetalSpot(metal) {
+  const { data } = await client.get(`/api/precious-metals/${metal}/spot`);
+  return data.data ?? null;
+}
+
+export async function getPreciousMetalHistory(metal, range = '1M', currency = 'TRY') {
+  const { data } = await client.get(`/api/precious-metals/${metal}/history`, { params: { range, currency } });
+  return data.data ?? null;
+}
+
+// ── Global Emtia (Yahoo Finance Futures) ─────────────────────────────────────
+
+export async function getCommodityList() {
+  const { data } = await client.get('/api/commodities/list');
+  return data.data ?? [];
+}
+
+export async function getCommoditySpot(symbol) {
+  const { data } = await client.get('/api/commodities/spot', { params: { symbol } });
+  return data.data ?? null;
+}
+
+export async function getCommodityHistory(symbol, range = '1M', interval = null) {
+  const params = { symbol, range };
+  if (interval) params.interval = interval;
+  const { data } = await client.get('/api/commodities/history', { params });
   return data.data ?? null;
 }
 

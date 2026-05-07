@@ -8,8 +8,10 @@ import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.time.Duration;
 
@@ -47,6 +49,12 @@ public class CacheConfig {
     @Value("${cache.market.futures.ttl-seconds:600}")
     private long marketFuturesTtlSeconds;
 
+    @Value("${cache.market.commodity.spot.ttl-seconds:60}")
+    private long marketCommoditySpotTtlSeconds;
+
+    @Value("${cache.market.commodity.history.ttl-seconds:600}")
+    private long marketCommodityHistoryTtlSeconds;
+
     @Value("${cache.market.evds.bonds.active-series-ttl-seconds:43200}")
     private long evdsBondsActiveSeriesTtlSeconds;
 
@@ -63,6 +71,13 @@ public class CacheConfig {
     public RedisConnectionFactory redisConnectionFactory() {
         return new LettuceConnectionFactory(redisHost, redisPort);
     }
+
+    /**
+     * String key / String value RedisTemplate.
+     * BankCurrencyService tarafından manuel JSON cache için kullanılır.
+     * NOT: Spring Boot RedisAutoConfiguration zaten stringRedisTemplate bean'i sağlar.
+     * Bu bean burada tanımlanmaz — Spring Boot'un otomatik bean'i kullanılır.
+     */
 
     @Bean
     public RedisCacheManager cacheManager(RedisConnectionFactory redisConnectionFactory) {
@@ -120,6 +135,24 @@ public class CacheConfig {
                         )
                 );
 
+        RedisCacheConfiguration marketCommoditySpotCacheConfig = RedisCacheConfiguration
+                .defaultCacheConfig()
+                .entryTtl(Duration.ofSeconds(marketCommoditySpotTtlSeconds))
+                .serializeValuesWith(
+                        RedisSerializationContext.SerializationPair.fromSerializer(
+                                new GenericJackson2JsonRedisSerializer()
+                        )
+                );
+
+        RedisCacheConfiguration marketCommodityHistoryCacheConfig = RedisCacheConfiguration
+                .defaultCacheConfig()
+                .entryTtl(Duration.ofSeconds(marketCommodityHistoryTtlSeconds))
+                .serializeValuesWith(
+                        RedisSerializationContext.SerializationPair.fromSerializer(
+                                new GenericJackson2JsonRedisSerializer()
+                        )
+                );
+
         RedisCacheConfiguration cryptoMarketsCacheConfig = RedisCacheConfiguration
                 .defaultCacheConfig()
                 .entryTtl(Duration.ofSeconds(marketCryptoTtlSeconds))
@@ -145,12 +178,18 @@ public class CacheConfig {
                 .withCacheConfiguration("market.indicators", marketFxTcmbCacheConfig)
                 .withCacheConfiguration("market.gold.spot", marketFxTcmbCacheConfig)
                 .withCacheConfiguration("market.gold.history", marketFundsCacheConfig)
+                .withCacheConfiguration("market.silver.spot", marketFxTcmbCacheConfig)
+                .withCacheConfiguration("market.silver.history", marketFundsCacheConfig)
+                .withCacheConfiguration("market.precious.spot", marketFxTcmbCacheConfig)
+                .withCacheConfiguration("market.precious.history", marketFundsCacheConfig)
                 .withCacheConfiguration("market.tefas.history", marketFundsCacheConfig)
                 .withCacheConfiguration("market.fund.history", marketFundsCacheConfig)
                 .withCacheConfiguration("market.funds.page", marketFundsCacheConfig)
                 .withCacheConfiguration("market.funds.detail", marketFundsCacheConfig)
                 .withCacheConfiguration("market.funds.chart", marketFundsCacheConfig)
                 .withCacheConfiguration("market.futures.page", marketFuturesCacheConfig)
+                .withCacheConfiguration("market.commodity.spot", marketCommoditySpotCacheConfig)
+                .withCacheConfiguration("market.commodity.history", marketCommodityHistoryCacheConfig)
                 .withCacheConfiguration("cryptoMarketsCache", cryptoMarketsCacheConfig)
                 .withCacheConfiguration("market.evds.bonds.active-series",
                         RedisCacheConfiguration.defaultCacheConfig()

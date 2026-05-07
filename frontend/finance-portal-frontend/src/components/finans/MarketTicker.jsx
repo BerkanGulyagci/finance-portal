@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { getFxTcmb, getCryptos, getEconomicIndicators, getGoldSpot } from '../../api/marketApi';
+import { getFxTcmb, getCryptos, getEconomicIndicators, getGoldSpot, getBankCurrencyRatesByCurrency } from '../../api/marketApi';
 
 function Sparkline({ data, color }) {
   if (!data || data.length < 2) return null;
@@ -49,11 +49,14 @@ export function MarketTicker() {
   useEffect(() => {
     async function load() {
       try {
-        const [fx, cryptos, indicators, goldSpot] = await Promise.all([
+        const [fx, cryptos, indicators, goldSpot, bankUsd, bankEur, bankGbp] = await Promise.all([
           getFxTcmb().catch(() => null),
           getCryptos(0, 50).catch(() => []),
           getEconomicIndicators().catch(() => ({})),
           getGoldSpot().catch(() => null),
+          getBankCurrencyRatesByCurrency('USD').catch(() => []),
+          getBankCurrencyRatesByCurrency('EUR').catch(() => []),
+          getBankCurrencyRatesByCurrency('GBP').catch(() => []),
         ]);
 
         const result = [];
@@ -83,6 +86,26 @@ export function MarketTicker() {
         // FAİZ
         const faiz = parseFloat(indicators?.policyRate ?? 37);
         result.push({ label: 'FAİZ', value: `${faiz.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}%`, change: null, dir: null, spark: makeSparkline(faiz, 0) });
+
+        // Banka kurları — USD, EUR, GBP ortalama satış
+        const addBankRate = (rates, sym) => {
+          if (!rates || rates.length === 0) return;
+          const sells = rates.map(r => r.sellRate).filter(v => v != null && v > 0);
+          if (sells.length === 0) return;
+          const avg = sells.reduce((a, b) => a + b, 0) / sells.length;
+          const changes = rates.map(r => r.dailyChangePercent).filter(v => v != null);
+          const avgChg = changes.length > 0 ? changes.reduce((a, b) => a + b, 0) / changes.length : 0;
+          result.push({
+            label: `${sym}/TRY 🏦`,
+            value: avg.toLocaleString('tr-TR', { minimumFractionDigits: 4, maximumFractionDigits: 4 }),
+            change: avgChg !== 0 ? avgChg : null,
+            dir: avgChg > 0 ? 'up' : avgChg < 0 ? 'down' : null,
+            spark: makeSparkline(avg, avgChg * avg / 100),
+          });
+        };
+        addBankRate(bankUsd, 'USD');
+        addBankRate(bankEur, 'EUR');
+        addBankRate(bankGbp, 'GBP');
 
         // Altın/ONS — /api/gold/spot'tan (scrape ile aynı kaynak)
         if (goldSpot?.price) {
