@@ -5,8 +5,8 @@ import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
 import AuthCallbackPage from '../pages/AuthCallbackPage';
 import DashboardPage from '../pages/DashboardPage';
-import PortfolioPage from '../pages/PortfolioPage';
-import PortfolioDetailPage from '../pages/PortfolioDetailPage';
+import PortfolioPage from '../pages/portfolio/PortfolioPage';
+import PortfolioDetailPage from '../pages/portfolio/PortfolioDetailPage';
 import MarketPage from '../pages/MarketPage';
 import StocksPage from '../pages/market/stock/StocksPage';
 import StockDetailPage from '../pages/market/stock/StockDetailPage';
@@ -23,6 +23,12 @@ import FxDetailPage from '../pages/market/fx/FxDetailPage';
 import BondsPage from '../pages/market/bonds/BondsPage';
 import BondDetailPage from '../pages/market/bonds/BondDetailPage';
 import GoldPage from '../pages/market/gold/GoldPage';
+import SilverPage from '../pages/market/silver/SilverPage';
+import PlatinumPage from '../pages/market/precious/PlatinumPage';
+import PalladiumPage from '../pages/market/precious/PalladiumPage';
+import CommodityComparePage from '../pages/market/precious/CommodityComparePage';
+import CommoditiesPage from '../pages/market/commodities/CommoditiesPage';
+import CommodityDetailPage from '../pages/market/commodities/CommodityDetailPage';
 import StockComparePage from '../pages/market/stock/StockComparePage';
 import ComparePage from '../pages/market/fx/ComparePage';
 import NewsPage from '../pages/NewsPage';
@@ -58,6 +64,12 @@ export default function AppRouter() {
           <Route path="/market/bonds"         element={<BondsPage />} />
           <Route path="/market/bonds/:symbol"  element={<BondDetailPage />} />
           <Route path="/market/gold"       element={<GoldPage />} />
+          <Route path="/market/silver"     element={<SilverPage />} />
+          <Route path="/market/platinum"   element={<PlatinumPage />} />
+          <Route path="/market/palladium"  element={<PalladiumPage />} />
+          <Route path="/market/commodities/compare" element={<CommodityComparePage />} />
+          <Route path="/market/commodities" element={<CommoditiesPage />} />
+          <Route path="/market/commodities/:symbol" element={<CommodityDetailPage />} />
           <Route path="/market/compare"    element={<ComparePage />} />
         </Route>
 

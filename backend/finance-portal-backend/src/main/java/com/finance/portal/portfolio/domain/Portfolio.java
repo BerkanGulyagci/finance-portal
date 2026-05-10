@@ -3,6 +3,8 @@ package com.finance.portal.portfolio.domain;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
@@ -40,6 +42,10 @@ public class Portfolio {
 
     @Column(name = "currency", nullable = false, length = 3)
     private String currency = "USD";
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "portfolio_type", nullable = false, length = 20)
+    private PortfolioType portfolioType = PortfolioType.HOLDINGS;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

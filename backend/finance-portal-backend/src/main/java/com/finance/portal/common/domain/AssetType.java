@@ -5,5 +5,8 @@ public enum AssetType {
     FUND,
     FX,
     FUTURE,
-    CRYPTO
+    CRYPTO,
+    GOLD,
+    COMMODITY,
+    BOND
 }

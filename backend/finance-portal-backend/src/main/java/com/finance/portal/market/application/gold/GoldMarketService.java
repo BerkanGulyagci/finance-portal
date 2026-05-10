@@ -1,13 +1,15 @@
 package com.finance.portal.market.application.gold;
 
 import com.finance.portal.market.application.stock.port.YahooStockPort;
-import com.finance.portal.market.infrastructure.external.fx.TcmbFxClient;
-import com.finance.portal.market.infrastructure.external.fx.dto.TcmbCurrencyDto;
-import com.finance.portal.market.infrastructure.external.gold.GoldPriceEntry;
-import com.finance.portal.market.infrastructure.external.gold.GoldScraper;
+import com.finance.portal.market.infrastructure.external.precious.BistMetalDailyPoint;
+import com.finance.portal.market.infrastructure.external.precious.BistMetalFiyatlariClient;
+import com.finance.portal.market.infrastructure.external.precious.BistPreciousMetalPoint;
+import com.finance.portal.market.infrastructure.external.precious.BistPreciousMetalsClient;
+import com.finance.portal.market.infrastructure.external.precious.PreciousMetalType;
+import com.finance.portal.market.infrastructure.external.precious.PriceUnit;
 import com.finance.portal.market.infrastructure.external.yahoo.YahooChartResponseDto;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -16,281 +18,321 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
+/**
+ * Altın piyasa servisi.
+ *
+ * <b>Kaynak hiyerarşisi:</b>
+ * <ol>
+ *   <li>Borsa İstanbul Kıymetli Madenler (birincil, resmi)</li>
+ *   <li>Yahoo Finance GC=F (fallback — sadece BIST erişilemezse)</li>
+ * </ol>
+ *
+ * <b>canlialtinfiyatlari.com scraping kaldırıldı.</b>
+ * GoldScraper bean'i hâlâ Spring context'te var ama bu servis tarafından kullanılmıyor.
+ */
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class GoldMarketService {
 
-    private static final Logger log = LoggerFactory.getLogger(GoldMarketService.class);
-
-    // 1 troy ons = 31.1035 gram
-    private static final BigDecimal TROY_OZ_TO_GRAM = new BigDecimal("31.1035");
+    // ── Sabitler ──────────────────────────────────────────────────────────────
 
     private static final String GOLD_SYMBOL = "GC=F";
     private static final ZoneId ISTANBUL = ZoneId.of("Europe/Istanbul");
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-    private final YahooStockPort yahooStockPort;
-    private final TcmbFxClient tcmbFxClient;
-    private final GoldScraper goldScraper;
-
-    // Saatte 1 guncellenen scrape cache
-    private volatile Map<String, GoldPriceEntry> scrapeCache = null;
-    private volatile String scrapedAt = null;
-
-    public GoldMarketService(YahooStockPort yahooStockPort,
-                             TcmbFxClient tcmbFxClient,
-                             GoldScraper goldScraper) {
-        this.yahooStockPort = yahooStockPort;
-        this.tcmbFxClient = tcmbFxClient;
-        this.goldScraper = goldScraper;
-    }
-
-    // ── Saatte 1 scrape ───────────────────────────────────────────────────────
+    /** 1 troy ons = 31.1035 gram */
+    private static final BigDecimal TROY_OZ_TO_GRAM = new BigDecimal("31.1035");
 
     /**
-     * Saatte bir canlialtinfiyatlari.com'dan fiyatlari ceker ve cache'i temizler.
-     * Uygulama baslarken de calisir (initialDelay=0).
+     * Teorik fiyat hesaplama sabitleri.
+     * 22 ayar için 0.9166, 14 ayar için 0.5850 kullanılır (22/24 veya 14/24 değil).
      */
-    @Scheduled(initialDelay = 0, fixedRate = 3_600_000) // her saat
-    @CacheEvict(cacheNames = "market.gold.spot", allEntries = true)
-    public void refreshScrapeCache() {
-        log.info("Refreshing gold scrape cache from canlialtinfiyatlari.com...");
-        Map<String, GoldPriceEntry> fresh = goldScraper.fetchAll();
-        if (!fresh.isEmpty()) {
-            scrapeCache = fresh;
-            scrapedAt = LocalDateTime.now(ISTANBUL).toString();
-            log.info("Gold scrape cache updated: {} entries at {}", fresh.size(), scrapedAt);
-        } else {
-            log.warn("Gold scrape returned empty, keeping previous cache");
-        }
+    private static final BigDecimal FINENESS_22K = new BigDecimal("0.9166");
+    private static final BigDecimal FINENESS_14K = new BigDecimal("0.5850");
+
+    private static final BigDecimal GROSS_WEIGHT_QUARTER  = new BigDecimal("1.754");
+    private static final BigDecimal GROSS_WEIGHT_HALF     = new BigDecimal("3.508");
+    private static final BigDecimal GROSS_WEIGHT_ZIYNET   = new BigDecimal("7.016");
+    private static final BigDecimal GROSS_WEIGHT_REPUBLIC = new BigDecimal("7.216");
+
+    private static final String DISCLAIMER =
+            "Bu fiyatlar Borsa İstanbul resmi metal fiyatından hesaplanan teorik referans " +
+            "değerlerdir. Serbest piyasa alış/satış, işçilik, basım primi ve makas dahil değildir.";
+
+    // ── Bağımlılıklar ─────────────────────────────────────────────────────────
+
+    private final BistPreciousMetalsClient bistClient;
+    private final BistMetalFiyatlariClient metalClient;
+    private final YahooStockPort yahooStockPort;
+
+    // ── Cache temizleme — her saat ────────────────────────────────────────────
+
+    @Scheduled(initialDelay = 0, fixedRate = 3_600_000)
+    @CacheEvict(cacheNames = {"market.gold.spot", "market.gold.history"}, allEntries = true)
+    public void evictGoldCaches() {
+        log.info("Gold caches evicted (hourly)");
     }
 
-    // ── Spot Data ─────────────────────────────────────────────────────────────
+    // ── Spot ─────────────────────────────────────────────────────────────────
 
+    /**
+     * GET /api/gold/spot
+     *
+     * BIST'ten son işlem günü verisi alınır, teorik türev fiyatlar hesaplanır.
+     * BIST erişilemezse Yahoo GC=F fallback devreye girer.
+     */
     @Cacheable(cacheNames = "market.gold.spot", key = "'spot'")
     public GoldSpotResponse getSpotGold() {
-        // Scrape cache yoksa hemen cek
-        if (scrapeCache == null || scrapeCache.isEmpty()) {
-            log.info("Scrape cache empty, fetching now...");
-            scrapeCache = goldScraper.fetchAll();
-            scrapedAt = LocalDateTime.now(ISTANBUL).toString();
-        }
+        // 1. BIST TL/Kg → gram referans
+        BistPreciousMetalPoint latestGram = bistClient.fetchLatestValidPoint(
+                PreciousMetalType.GOLD, PriceUnit.TRY_KG);
 
-        Map<String, GoldPriceEntry> prices = scrapeCache;
+        if (latestGram != null && latestGram.getGramWeightedAverageTry() != null) {
+            GoldSpotResponse resp = buildSpotFromBist(latestGram);
 
-        // Temel fiyatlar scrape'den
-        GoldPriceEntry onsEntry   = prices.get("ALTIN_ONS");
-        GoldPriceEntry gramEntry  = prices.get("GRAM_ALTIN");
-        GoldPriceEntry hasEntry   = prices.get("HAS_ALTIN");
-        GoldPriceEntry ceyrekEntry = prices.get("CEYREK_ALTIN");
-        GoldPriceEntry yarimEntry  = prices.get("YARIM_ALTIN");
-        GoldPriceEntry tamEntry    = prices.get("TAM_ALTIN");
-        GoldPriceEntry ataEntry    = prices.get("ATA_ALTIN");
-        GoldPriceEntry ayar14Entry = prices.get("AYAR_14");
-        GoldPriceEntry ayar22Entry = prices.get("AYAR_22");
-
-        // USD/TRY kuru (TCMB)
-        BigDecimal usdTry = getUsdTryRate();
-
-        // ONS fiyati USD — scrape'den alış/satış ortalamasi
-        BigDecimal onsUsd = BigDecimal.ZERO;
-        BigDecimal onsBid = BigDecimal.ZERO;
-        BigDecimal onsAsk = BigDecimal.ZERO;
-        BigDecimal changePercent = BigDecimal.ZERO;
-
-        if (onsEntry != null) {
-            onsBid = onsEntry.getBuy();
-            onsAsk = onsEntry.getSell();
-            onsUsd = onsEntry.getMid();
-            if (onsEntry.getChangePercent() != null) changePercent = onsEntry.getChangePercent();
-        } else {
-            // Fallback: Yahoo'dan cek
-            try {
-                YahooChartResponseDto chart = yahooStockPort.fetchChartWithParams(GOLD_SYMBOL, "1d", "1m");
-                YahooChartResponseDto.Meta meta = chart.getChart().getResult().get(0).getMeta();
-                onsUsd = safeDecimal(meta.getRegularMarketPrice());
-                onsBid = onsUsd.subtract(new BigDecimal("0.50"));
-                onsAsk = onsUsd.add(new BigDecimal("0.50"));
-                BigDecimal prevClose = safeDecimal(meta.getPreviousClose());
-                if (prevClose.compareTo(BigDecimal.ZERO) != 0) {
-                    changePercent = onsUsd.subtract(prevClose)
-                            .divide(prevClose, 4, RoundingMode.HALF_UP)
-                            .multiply(BigDecimal.valueOf(100))
-                            .setScale(2, RoundingMode.HALF_UP);
-                }
-            } catch (Exception e) {
-                log.error("Yahoo fallback also failed: {}", e.getMessage());
+            // 2. BIST USD/Ons → ons spot
+            BistPreciousMetalPoint latestOns = bistClient.fetchLatestValidPoint(
+                    PreciousMetalType.GOLD, PriceUnit.USD_ONS);
+            if (latestOns != null && latestOns.getCloseUsdOns() != null) {
+                enrichWithBistOns(resp, latestOns);
+            } else {
+                enrichWithYahooOns(resp);
             }
+            return resp;
         }
 
-        // Gram altin TRY — scrape'den, yoksa ONS'tan hesapla
-        BigDecimal gramTl;
-        if (gramEntry != null) {
-            gramTl = gramEntry.getMid();
-        } else if (hasEntry != null) {
-            gramTl = hasEntry.getMid();
-        } else {
-            gramTl = onsUsd.divide(TROY_OZ_TO_GRAM, 8, RoundingMode.HALF_UP)
-                    .multiply(usdTry).setScale(2, RoundingMode.HALF_UP);
+        log.warn("BIST spot unavailable, falling back to Yahoo GC=F");
+        return buildSpotFromYahooFallback();
+    }
+
+    // ── History ───────────────────────────────────────────────────────────────
+
+    /**
+     * GET /api/gold/history?range=&currency=
+     *
+     * currency=TRY → BIST f_tipit=L/K (gram TL), Yahoo fallback
+     * currency=USD → BIST f_tipit=$/O (ons USD), Yahoo fallback
+     */
+    @Cacheable(cacheNames = "market.gold.history", key = "#range + ':' + #currency")
+    public GoldHistoryResponse getGoldHistory(String range, String currency) {
+        boolean isTry = !"USD".equalsIgnoreCase(currency);
+        String normalizedRange = range == null ? "1M" : range.toUpperCase();
+
+        // ALL ve 5Y için metal-fiyatlari (AU) endpoint'i kullan — 2011'den veri var
+        // Diğer range'ler için veri-sorgulama (OHLC destekli)
+        boolean useMetalRef = "ALL".equals(normalizedRange) || "5Y".equals(normalizedRange);
+
+        if (useMetalRef) {
+            return getGoldHistoryFromMetalRef(normalizedRange, isTry ? "TRY" : "USD");
         }
 
-        // Ceyrek, Yarim, Tam — scrape'den, yoksa gramTl'den hesapla
-        BigDecimal ceyrekTl = ceyrekEntry != null ? ceyrekEntry.getMid()
-                : gramTl.multiply(new BigDecimal("1.75"))
-                        .multiply(new BigDecimal("22").divide(new BigDecimal("24"), 8, RoundingMode.HALF_UP))
-                        .setScale(2, RoundingMode.HALF_UP);
+        return isTry
+                ? getGoldHistoryGramFromBist(normalizedRange)
+                : getGoldHistoryOnsFromBist(normalizedRange);
+    }
 
-        BigDecimal yarimTl = yarimEntry != null ? yarimEntry.getMid()
-                : gramTl.multiply(new BigDecimal("3.50"))
-                        .multiply(new BigDecimal("22").divide(new BigDecimal("24"), 8, RoundingMode.HALF_UP))
-                        .setScale(2, RoundingMode.HALF_UP);
+    // ── AU metal-fiyatlari history (ALL / 5Y) ─────────────────────────────────
 
-        BigDecimal tamTl = tamEntry != null ? tamEntry.getMid()
-                : gramTl.multiply(new BigDecimal("7.00"))
-                        .multiply(new BigDecimal("22").divide(new BigDecimal("24"), 8, RoundingMode.HALF_UP))
-                        .setScale(2, RoundingMode.HALF_UP);
+    private GoldHistoryResponse getGoldHistoryFromMetalRef(String range, String currency) {
+        String[] dates = rangeToBistDates(range);
+        List<BistMetalDailyPoint> raw = metalClient.fetchMetalPrices(
+                PreciousMetalType.GOLD, dates[0], dates[1]);
 
-        // Cumhuriyet (Ata) altini — scrape'den
-        BigDecimal cumhuriyetTl = ataEntry != null ? ataEntry.getMid()
-                : gramTl.multiply(new BigDecimal("7.216"))
-                        .multiply(new BigDecimal("22").divide(new BigDecimal("24"), 8, RoundingMode.HALF_UP))
-                        .setScale(2, RoundingMode.HALF_UP);
+        List<BistMetalDailyPoint> valid = raw.stream()
+                .filter(BistMetalDailyPoint::isValidPrice)
+                .toList();
 
-        // 14/22 Ayar bilezik — scrape'den, yoksa gramTl'den
-        BigDecimal ayar14Tl = ayar14Entry != null ? ayar14Entry.getMid()
-                : gramTl.multiply(new BigDecimal("14").divide(new BigDecimal("24"), 8, RoundingMode.HALF_UP))
-                        .setScale(2, RoundingMode.HALF_UP);
+        log.info("Gold AU ref history [{}] {}: {} raw, {} valid [{} → {}]",
+                currency, range, raw.size(), valid.size(), dates[0], dates[1]);
 
-        BigDecimal ayar22Tl = ayar22Entry != null ? ayar22Entry.getMid()
-                : gramTl.multiply(new BigDecimal("22").divide(new BigDecimal("24"), 8, RoundingMode.HALF_UP))
-                        .setScale(2, RoundingMode.HALF_UP);
+        List<GoldHistoryPoint> points = new ArrayList<>(valid.size());
+        BigDecimal prevClose = null;
 
-        // ONS TL karsiligi
-        BigDecimal priceTl = onsUsd.multiply(usdTry).setScale(2, RoundingMode.HALF_UP);
+        for (BistMetalDailyPoint bp : valid) {
+            GoldHistoryPoint pt = new GoldHistoryPoint();
+            pt.setDate(bp.getDate());
 
-        // Degisim miktari (USD)
-        BigDecimal change = onsUsd.multiply(changePercent)
-                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-
-        // High/Low/PreviousClose — Yahoo'dan almaya devam et (history icin)
-        BigDecimal high = onsUsd;
-        BigDecimal low = onsUsd;
-        BigDecimal previousClose = onsUsd;
-        try {
-            YahooChartResponseDto chart = yahooStockPort.fetchChartWithParams(GOLD_SYMBOL, "1d", "1m");
-            YahooChartResponseDto.Meta meta = chart.getChart().getResult().get(0).getMeta();
-            high = safeDecimal(meta.getRegularMarketDayHigh());
-            low  = safeDecimal(meta.getRegularMarketDayLow());
-            previousClose = safeDecimal(meta.getPreviousClose());
-            if (previousClose.compareTo(BigDecimal.ZERO) == 0) previousClose = onsUsd;
-        } catch (Exception e) {
-            log.warn("Could not fetch Yahoo high/low/prevClose: {}", e.getMessage());
+            if ("USD".equals(currency)) {
+                BigDecimal close = bp.getUsdOns();
+                pt.setClose(close);
+                pt.setOpen(prevClose != null ? prevClose : close);
+                pt.setHigh(close);
+                pt.setLow(close);
+                pt.setWeightedAverageUsdOns(bp.getUsdOns());
+                prevClose = close;
+            } else {
+                BigDecimal gramClose = bp.getTryGram();
+                pt.setClose(gramClose);
+                pt.setOpen(prevClose != null ? prevClose : gramClose);
+                pt.setHigh(gramClose);
+                pt.setLow(gramClose);
+                pt.setWeightedAverage(gramClose);
+                pt.setCloseTryKg(bp.getTryKg());
+                pt.setWeightedAverageTryKg(bp.getTryKg());
+                prevClose = gramClose;
+            }
+            points.add(pt);
         }
 
-        GoldSpotResponse resp = new GoldSpotResponse();
-        resp.setSymbol(GOLD_SYMBOL);
-        resp.setName("Altin/Ons");
-        resp.setCurrency("USD");
-        resp.setPrice(onsUsd.setScale(2, RoundingMode.HALF_UP));
-        resp.setChange(change);
-        resp.setChangePercent(changePercent);
-        resp.setHigh(high.setScale(2, RoundingMode.HALF_UP));
-        resp.setLow(low.setScale(2, RoundingMode.HALF_UP));
-        resp.setPreviousClose(previousClose.setScale(2, RoundingMode.HALF_UP));
-        resp.setBid(onsBid.setScale(2, RoundingMode.HALF_UP));
-        resp.setAsk(onsAsk.setScale(2, RoundingMode.HALF_UP));
-        resp.setPriceTl(priceTl);
-        resp.setGramTl(gramTl.setScale(2, RoundingMode.HALF_UP));
-        resp.setCeyrekTl(ceyrekTl);
-        resp.setYarimTl(yarimTl);
-        resp.setTamTl(tamTl);
-        resp.setCumhuriyetTl(cumhuriyetTl);
-        resp.setAyar14Tl(ayar14Tl);
-        resp.setAyar22Tl(ayar22Tl);
-        resp.setUsdTry(usdTry);
-
-        // Gerçek alış/satış — scrape'den, yoksa mid ± %0.1 fallback
-        resp.setGramBuy(gramEntry  != null ? gramEntry.getBuy()   : gramTl.multiply(new BigDecimal("0.999")).setScale(2, RoundingMode.HALF_UP));
-        resp.setGramSell(gramEntry != null ? gramEntry.getSell()  : gramTl.multiply(new BigDecimal("1.001")).setScale(2, RoundingMode.HALF_UP));
-        resp.setCeyrekBuy(ceyrekEntry  != null ? ceyrekEntry.getBuy()  : ceyrekTl.multiply(new BigDecimal("0.999")).setScale(2, RoundingMode.HALF_UP));
-        resp.setCeyrekSell(ceyrekEntry != null ? ceyrekEntry.getSell() : ceyrekTl.multiply(new BigDecimal("1.001")).setScale(2, RoundingMode.HALF_UP));
-        resp.setYarimBuy(yarimEntry  != null ? yarimEntry.getBuy()  : yarimTl.multiply(new BigDecimal("0.999")).setScale(2, RoundingMode.HALF_UP));
-        resp.setYarimSell(yarimEntry != null ? yarimEntry.getSell() : yarimTl.multiply(new BigDecimal("1.001")).setScale(2, RoundingMode.HALF_UP));
-        resp.setTamBuy(tamEntry  != null ? tamEntry.getBuy()  : tamTl.multiply(new BigDecimal("0.999")).setScale(2, RoundingMode.HALF_UP));
-        resp.setTamSell(tamEntry != null ? tamEntry.getSell() : tamTl.multiply(new BigDecimal("1.001")).setScale(2, RoundingMode.HALF_UP));
-        resp.setCumhuriyetBuy(ataEntry  != null ? ataEntry.getBuy()  : cumhuriyetTl.multiply(new BigDecimal("0.999")).setScale(2, RoundingMode.HALF_UP));
-        resp.setCumhuriyetSell(ataEntry != null ? ataEntry.getSell() : cumhuriyetTl.multiply(new BigDecimal("1.001")).setScale(2, RoundingMode.HALF_UP));
-        resp.setAyar14Buy(ayar14Entry  != null ? ayar14Entry.getBuy()  : ayar14Tl.multiply(new BigDecimal("0.999")).setScale(2, RoundingMode.HALF_UP));
-        resp.setAyar14Sell(ayar14Entry != null ? ayar14Entry.getSell() : ayar14Tl.multiply(new BigDecimal("1.001")).setScale(2, RoundingMode.HALF_UP));
-        resp.setAyar22Buy(ayar22Entry  != null ? ayar22Entry.getBuy()  : ayar22Tl.multiply(new BigDecimal("0.999")).setScale(2, RoundingMode.HALF_UP));
-        resp.setAyar22Sell(ayar22Entry != null ? ayar22Entry.getSell() : ayar22Tl.multiply(new BigDecimal("1.001")).setScale(2, RoundingMode.HALF_UP));
-        resp.setUpdatedAt(scrapedAt != null ? scrapedAt : LocalDateTime.now(ISTANBUL).toString());
-
+        GoldHistoryResponse resp = new GoldHistoryResponse();
+        resp.setSymbol("BIST/ALTIN-REF");
+        resp.setRange(range);
+        resp.setCurrency(currency);
+        resp.setSource("Borsa İstanbul");
+        resp.setOfficial(true);
+        resp.setFallback(false);
+        resp.setStale(false);
+        resp.setLastUpdated(LocalDateTime.now(ISTANBUL).toString());
+        resp.setDisclaimer(DISCLAIMER);
+        resp.setPoints(points);
         return resp;
     }
 
-    // ── History Data — Yahoo Finance (degismez) ───────────────────────────────
+    // ── BIST gram (TL/Kg) history ─────────────────────────────────────────────
 
-    @Cacheable(cacheNames = "market.gold.history", key = "#range + ':' + #currency")
-    public GoldHistoryResponse getGoldHistory(String range, String currency) {
+    private GoldHistoryResponse getGoldHistoryGramFromBist(String range) {
+        String[] dates = rangeToBistDates(range);
+        List<BistPreciousMetalPoint> bistPoints =
+                bistClient.fetchHistory(PreciousMetalType.GOLD, PriceUnit.TRY_KG, dates[0], dates[1]);
+        // validPrice filtresi
+        bistPoints = bistPoints.stream().filter(BistPreciousMetalPoint::isValidPrice).toList();
+
+        if (!bistPoints.isEmpty()) {
+            return buildHistoryFromBistGram(bistPoints, range);
+        }
+
+        log.warn("BIST gram history empty for range={}, falling back to Yahoo", range);
+        GoldHistoryResponse fallback = getGoldHistoryFromYahoo(range, "TRY");
+        fallback.setFallback(true);
+        fallback.setSource("Yahoo Finance Fallback");
+        fallback.setOfficial(false);
+        return fallback;
+    }
+
+    private GoldHistoryResponse buildHistoryFromBistGram(
+            List<BistPreciousMetalPoint> bistPoints, String range) {
+
+        List<GoldHistoryPoint> points = new ArrayList<>(bistPoints.size());
+        BigDecimal prevClose = null;
+
+        for (BistPreciousMetalPoint bp : bistPoints) {
+            GoldHistoryPoint pt = new GoldHistoryPoint();
+            pt.setDate(bp.getDate());
+            pt.setClose(bp.getGramClose());
+            pt.setHigh(bp.getGramHigh());
+            pt.setLow(bp.getGramLow());
+            pt.setWeightedAverage(bp.getGramWeightedAverage());
+            pt.setCloseTryKg(bp.getCloseRaw());
+            pt.setWeightedAverageTryKg(bp.getWeightedAverageRaw());
+            pt.setOpen(prevClose != null ? prevClose : bp.getGramClose());
+            prevClose = bp.getGramClose();
+            if (bp.getQuantityKg() != null) {
+                pt.setVolume(bp.getQuantityKg().multiply(BigDecimal.valueOf(1000)).longValue());
+            }
+            points.add(pt);
+        }
+
+        GoldHistoryResponse resp = new GoldHistoryResponse();
+        resp.setSymbol("BIST/ALTIN");
+        resp.setRange(range);
+        resp.setCurrency("TRY");
+        resp.setSource("Borsa İstanbul");
+        resp.setOfficial(true);
+        resp.setFallback(false);
+        resp.setStale(false);
+        resp.setLastUpdated(LocalDateTime.now(ISTANBUL).toString());
+        resp.setDisclaimer(DISCLAIMER);
+        resp.setPoints(points);
+        return resp;
+    }
+
+    // ── BIST ons (USD/Ons) history ────────────────────────────────────────────
+
+    private GoldHistoryResponse getGoldHistoryOnsFromBist(String range) {
+        String[] dates = rangeToBistDates(range);
+        List<BistPreciousMetalPoint> bistPoints =
+                bistClient.fetchHistory(PreciousMetalType.GOLD, PriceUnit.USD_ONS, dates[0], dates[1]);
+        bistPoints = bistPoints.stream().filter(BistPreciousMetalPoint::isValidPrice).toList();
+
+        if (!bistPoints.isEmpty()) {
+            return buildHistoryFromBistOns(bistPoints, range);
+        }
+
+        log.warn("BIST ons history empty for range={}, falling back to Yahoo", range);
+        return getGoldHistoryFromYahoo(range, "USD");
+    }
+
+    private GoldHistoryResponse buildHistoryFromBistOns(
+            List<BistPreciousMetalPoint> bistPoints, String range) {
+
+        List<GoldHistoryPoint> points = new ArrayList<>(bistPoints.size());
+        BigDecimal prevClose = null;
+
+        for (BistPreciousMetalPoint bp : bistPoints) {
+            GoldHistoryPoint pt = new GoldHistoryPoint();
+            pt.setDate(bp.getDate());
+            pt.setClose(bp.getCloseUsdOns());
+            pt.setHigh(bp.getHighUsdOns());
+            pt.setLow(bp.getLowUsdOns());
+            pt.setWeightedAverageUsdOns(bp.getWeightedAverageUsdOns());
+            pt.setVolumeUsd(bp.getVolumeUsd());
+            pt.setQuantityKg(bp.getQuantityKg());
+            pt.setOpen(prevClose != null ? prevClose : bp.getCloseUsdOns());
+            prevClose = bp.getCloseUsdOns();
+            if (bp.getQuantityKg() != null) {
+                pt.setVolume(bp.getQuantityKg().multiply(BigDecimal.valueOf(1000)).longValue());
+            }
+            points.add(pt);
+        }
+
+        GoldHistoryResponse resp = new GoldHistoryResponse();
+        resp.setSymbol("BIST/ALTIN-ONS");
+        resp.setRange(range);
+        resp.setCurrency("USD");
+        resp.setSource("Borsa İstanbul");
+        resp.setOfficial(true);
+        resp.setFallback(false);
+        resp.setStale(false);
+        resp.setLastUpdated(LocalDateTime.now(ISTANBUL).toString());
+        resp.setDisclaimer(
+                "Mum grafikte açılış değeri BIST tarafından verilmediği için " +
+                "önceki gün kapanışından sentetik olarak üretilmiştir.");
+        resp.setPoints(points);
+        return resp;
+    }
+
+    // ── Yahoo history (ONS/USD veya fallback) ─────────────────────────────────
+
+    private GoldHistoryResponse getGoldHistoryFromYahoo(String range, String currency) {
         try {
             String[] params = rangeToYahooParams(range);
             String yahooRange = params[0];
-            String interval = params[1];
-
-            boolean isTry = "TRY".equalsIgnoreCase(currency);
+            String interval   = params[1];
 
             YahooChartResponseDto goldChart = yahooStockPort.fetchChartWithParams(GOLD_SYMBOL, yahooRange, interval);
-            YahooChartResponseDto.Result goldResult = goldChart.getChart().getResult().get(0);
+            YahooChartResponseDto.Result result = goldChart.getChart().getResult().get(0);
 
-            java.util.Map<String, BigDecimal> usdTryByDate = new java.util.HashMap<>();
-            if (isTry) {
-                try {
-                    YahooChartResponseDto fxChart = yahooStockPort.fetchChartWithParams("USDTRY=X", yahooRange, interval);
-                    YahooChartResponseDto.Result fxResult = fxChart.getChart().getResult().get(0);
-                    List<Long> fxTs = fxResult.getTimestamp();
-                    List<BigDecimal> fxCloses = null;
-                    if (fxResult.getIndicators() != null && fxResult.getIndicators().getQuote() != null
-                            && !fxResult.getIndicators().getQuote().isEmpty()) {
-                        fxCloses = fxResult.getIndicators().getQuote().get(0).getClose();
-                    }
-                    if (fxTs != null && fxCloses != null) {
-                        for (int i = 0; i < Math.min(fxTs.size(), fxCloses.size()); i++) {
-                            if (fxTs.get(i) != null && fxCloses.get(i) != null) {
-                                String d = Instant.ofEpochSecond(fxTs.get(i)).atZone(ISTANBUL).toLocalDate().format(DATE_FMT);
-                                usdTryByDate.put(d, fxCloses.get(i));
-                            }
-                        }
-                    }
-                } catch (Exception e) {
-                    log.warn("Failed to fetch USDTRY history: {}", e.getMessage());
-                }
-                if (usdTryByDate.isEmpty()) {
-                    usdTryByDate.put("__default__", getUsdTryRate());
-                }
-            }
-
-            List<Long> timestamps = goldResult.getTimestamp();
+            List<Long> timestamps = result.getTimestamp();
             List<BigDecimal> closes = null, opens = null, highs = null, lows = null;
             List<Long> volumes = null;
 
-            if (goldResult.getIndicators() != null && goldResult.getIndicators().getQuote() != null
-                    && !goldResult.getIndicators().getQuote().isEmpty()) {
-                YahooChartResponseDto.Quote q = goldResult.getIndicators().getQuote().get(0);
-                closes = q.getClose();
-                opens  = q.getOpen();
-                highs  = q.getHigh();
-                lows   = q.getLow();
+            if (result.getIndicators() != null && result.getIndicators().getQuote() != null
+                    && !result.getIndicators().getQuote().isEmpty()) {
+                YahooChartResponseDto.Quote q = result.getIndicators().getQuote().get(0);
+                closes  = q.getClose();
+                opens   = q.getOpen();
+                highs   = q.getHigh();
+                lows    = q.getLow();
                 volumes = q.getVolume();
             }
-
-            BigDecimal fallbackRate = usdTryByDate.getOrDefault("__default__", getUsdTryRate());
 
             List<GoldHistoryPoint> points = new ArrayList<>();
             int size = timestamps != null ? timestamps.size() : 0;
@@ -302,38 +344,246 @@ public class GoldMarketService {
 
                 String date = Instant.ofEpochSecond(ts).atZone(ISTANBUL).toLocalDate().format(DATE_FMT);
 
-                BigDecimal finalClose = close;
-                if (isTry) {
-                    BigDecimal dayRate = usdTryByDate.getOrDefault(date, fallbackRate);
-                    finalClose = close.divide(TROY_OZ_TO_GRAM, 8, RoundingMode.HALF_UP)
-                            .multiply(dayRate).setScale(2, RoundingMode.HALF_UP);
-                }
-
                 GoldHistoryPoint pt = new GoldHistoryPoint();
                 pt.setDate(date);
-                pt.setClose(finalClose.setScale(2, RoundingMode.HALF_UP));
+                pt.setClose(close.setScale(2, RoundingMode.HALF_UP));
                 if (opens  != null && i < opens.size()  && opens.get(i)  != null) pt.setOpen(opens.get(i).setScale(2, RoundingMode.HALF_UP));
                 if (highs  != null && i < highs.size()  && highs.get(i)  != null) pt.setHigh(highs.get(i).setScale(2, RoundingMode.HALF_UP));
                 if (lows   != null && i < lows.size()   && lows.get(i)   != null) pt.setLow(lows.get(i).setScale(2, RoundingMode.HALF_UP));
                 if (volumes != null && i < volumes.size()) pt.setVolume(volumes.get(i));
-
                 points.add(pt);
             }
 
             GoldHistoryResponse resp = new GoldHistoryResponse();
             resp.setSymbol(GOLD_SYMBOL);
             resp.setRange(range);
-            resp.setCurrency(currency != null ? currency.toUpperCase() : "USD");
+            resp.setCurrency("USD".equalsIgnoreCase(currency) ? "USD" : "TRY");
+            resp.setSource("Yahoo Finance Fallback");
+            resp.setOfficial(false);
+            resp.setFallback(true);
+            resp.setLastUpdated(LocalDateTime.now(ISTANBUL).toString());
             resp.setPoints(points);
             return resp;
 
         } catch (Exception e) {
-            log.error("Failed to fetch gold history for range={}: {}", range, e.getMessage());
-            throw new RuntimeException("Altin tarihsel verisi alinamadi: " + e.getMessage(), e);
+            log.error("Yahoo gold history failed for range={}: {}", range, e.getMessage());
+            GoldHistoryResponse empty = new GoldHistoryResponse();
+            empty.setRange(range);
+            empty.setCurrency(currency);
+            empty.setSource("Yahoo Finance Fallback");
+            empty.setFallback(true);
+            empty.setPoints(new ArrayList<>());
+            return empty;
         }
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // ── Spot builders ─────────────────────────────────────────────────────────
+
+    private GoldSpotResponse buildSpotFromBist(BistPreciousMetalPoint latest) {
+        BigDecimal officialGramTry = latest.getGramWeightedAverage();
+
+        GoldSpotResponse resp = new GoldSpotResponse();
+        resp.setSource("Borsa İstanbul");
+        resp.setOfficial(true);
+        resp.setFallback(false);
+        resp.setStale(false);
+        resp.setLastUpdated(LocalDateTime.now(ISTANBUL).toString());
+        resp.setDisclaimer(DISCLAIMER);
+        resp.setBistDate(latest.getDate());
+
+        // BIST ham değerler
+        resp.setOfficialPureGoldGramTry(officialGramTry);
+        resp.setGramCloseTry(latest.getGramClose());
+        resp.setGramLowTry(latest.getGramLow());
+        resp.setGramHighTry(latest.getGramHigh());
+        resp.setVolumeTry(latest.getVolumeRaw());
+        resp.setQuantityKg(latest.getQuantityKg());
+        resp.setTransactionCount(latest.getTransactionCount());
+
+        // Teorik türev fiyatlar
+        BigDecimal gramGold     = officialGramTry;
+        BigDecimal quarterGold  = officialGramTry.multiply(GROSS_WEIGHT_QUARTER).multiply(FINENESS_22K).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal halfGold     = officialGramTry.multiply(GROSS_WEIGHT_HALF).multiply(FINENESS_22K).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal ziynetGold   = officialGramTry.multiply(GROSS_WEIGHT_ZIYNET).multiply(FINENESS_22K).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal republicGold = officialGramTry.multiply(GROSS_WEIGHT_REPUBLIC).multiply(FINENESS_22K).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal bracelet14k  = officialGramTry.multiply(FINENESS_14K).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal bracelet22k  = officialGramTry.multiply(FINENESS_22K).setScale(2, RoundingMode.HALF_UP);
+
+        resp.setGramGoldTry(gramGold.setScale(2, RoundingMode.HALF_UP));
+        resp.setQuarterGoldTry(quarterGold);
+        resp.setHalfGoldTry(halfGold);
+        resp.setZiynetGoldTry(ziynetGold);
+        resp.setRepublicGoldTry(republicGold);
+        resp.setFourteenKBraceletTry(bracelet14k);
+        resp.setTwentyTwoKBraceletTry(bracelet22k);
+
+        // Geriye dönük uyumluluk — eski frontend alanları
+        resp.setGramTl(gramGold.setScale(2, RoundingMode.HALF_UP));
+        resp.setCeyrekTl(quarterGold);
+        resp.setYarimTl(halfGold);
+        resp.setTamTl(ziynetGold);
+        resp.setCumhuriyetTl(republicGold);
+        resp.setAyar14Tl(bracelet14k);
+        resp.setAyar22Tl(bracelet22k);
+        resp.setUpdatedAt(LocalDateTime.now(ISTANBUL).toString());
+
+        // ONS — Yahoo'dan çek (fallback olarak)
+        enrichWithYahooOns(resp);
+
+        return resp;
+    }
+
+    private GoldSpotResponse buildSpotFromYahooFallback() {
+        GoldSpotResponse resp = new GoldSpotResponse();
+        resp.setSource("Yahoo Finance Fallback");
+        resp.setOfficial(false);
+        resp.setFallback(true);
+        resp.setDisclaimer("BIST verisi alınamadığı için Yahoo Finance GC=F fallback verisi gösteriliyor.");
+
+        try {
+            YahooChartResponseDto chart = yahooStockPort.fetchChartWithParams(GOLD_SYMBOL, "1d", "1m");
+            YahooChartResponseDto.Meta meta = chart.getChart().getResult().get(0).getMeta();
+
+            BigDecimal onsUsd = safe(meta.getRegularMarketPrice());
+            BigDecimal prevClose = safe(meta.getPreviousClose());
+            BigDecimal changePercent = BigDecimal.ZERO;
+            if (prevClose.compareTo(BigDecimal.ZERO) != 0) {
+                changePercent = onsUsd.subtract(prevClose)
+                        .divide(prevClose, 4, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100))
+                        .setScale(2, RoundingMode.HALF_UP);
+            }
+
+            resp.setOnsUsd(onsUsd.setScale(2, RoundingMode.HALF_UP));
+            resp.setOnsChangePercent(changePercent);
+            resp.setOnsChange(onsUsd.subtract(prevClose).setScale(2, RoundingMode.HALF_UP));
+            resp.setOnsHigh(safe(meta.getRegularMarketDayHigh()).setScale(2, RoundingMode.HALF_UP));
+            resp.setOnsLow(safe(meta.getRegularMarketDayLow()).setScale(2, RoundingMode.HALF_UP));
+            resp.setOnsPreviousClose(prevClose.setScale(2, RoundingMode.HALF_UP));
+
+            // Geriye dönük uyumluluk
+            resp.setPrice(onsUsd.setScale(2, RoundingMode.HALF_UP));
+            resp.setChange(resp.getOnsChange());
+            resp.setChangePercent(changePercent);
+            resp.setHigh(resp.getOnsHigh());
+            resp.setLow(resp.getOnsLow());
+            resp.setPreviousClose(prevClose.setScale(2, RoundingMode.HALF_UP));
+            resp.setBid(onsUsd.subtract(new BigDecimal("0.50")).setScale(2, RoundingMode.HALF_UP));
+            resp.setAsk(onsUsd.add(new BigDecimal("0.50")).setScale(2, RoundingMode.HALF_UP));
+
+        } catch (Exception e) {
+            log.error("Yahoo fallback also failed: {}", e.getMessage());
+        }
+
+        resp.setLastUpdated(LocalDateTime.now(ISTANBUL).toString());
+        resp.setUpdatedAt(resp.getLastUpdated());
+        return resp;
+    }
+
+    /** BIST USD/Ons son noktasından ons verilerini spot response'a ekler. */
+    private void enrichWithBistOns(GoldSpotResponse resp, BistPreciousMetalPoint ons) {
+        BigDecimal close    = ons.getCloseUsdOns();
+        BigDecimal high     = ons.getHighUsdOns();
+        BigDecimal low      = ons.getLowUsdOns();
+        BigDecimal wa       = ons.getWeightedAverageUsdOns();
+
+        resp.setOnsUsd(close);
+        resp.setOnsHigh(high);
+        resp.setOnsLow(low);
+
+        // Önceki kapanış için Yahoo'ya fallback (BIST önceki gün verisi ayrı sorgu gerektirir)
+        // Şimdilik ons change hesabı Yahoo'dan alınır
+        try {
+            YahooChartResponseDto chart = yahooStockPort.fetchChartWithParams(GOLD_SYMBOL, "1d", "1m");
+            YahooChartResponseDto.Meta meta = chart.getChart().getResult().get(0).getMeta();
+            BigDecimal prevClose = safe(meta.getPreviousClose());
+            BigDecimal changePercent = BigDecimal.ZERO;
+            if (prevClose.compareTo(BigDecimal.ZERO) != 0) {
+                changePercent = close.subtract(prevClose)
+                        .divide(prevClose, 4, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100))
+                        .setScale(2, RoundingMode.HALF_UP);
+            }
+            resp.setOnsChangePercent(changePercent);
+            resp.setOnsChange(close.subtract(prevClose).setScale(2, RoundingMode.HALF_UP));
+            resp.setOnsPreviousClose(prevClose.setScale(2, RoundingMode.HALF_UP));
+        } catch (Exception e) {
+            log.warn("Could not get prevClose from Yahoo for ons change: {}", e.getMessage());
+            resp.setOnsChangePercent(BigDecimal.ZERO);
+            resp.setOnsChange(BigDecimal.ZERO);
+        }
+
+        // Geriye dönük uyumluluk
+        resp.setPrice(close);
+        resp.setChange(resp.getOnsChange());
+        resp.setChangePercent(resp.getOnsChangePercent());
+        resp.setHigh(high);
+        resp.setLow(low);
+        resp.setPreviousClose(resp.getOnsPreviousClose());
+        resp.setBid(close != null ? close.subtract(new BigDecimal("0.50")).setScale(2, RoundingMode.HALF_UP) : null);
+        resp.setAsk(close != null ? close.add(new BigDecimal("0.50")).setScale(2, RoundingMode.HALF_UP) : null);
+    }
+
+    /** ONS/USD verisini Yahoo'dan alıp spot response'a ekler (fallback). */
+    private void enrichWithYahooOns(GoldSpotResponse resp) {
+        try {
+            YahooChartResponseDto chart = yahooStockPort.fetchChartWithParams(GOLD_SYMBOL, "1d", "1m");
+            YahooChartResponseDto.Meta meta = chart.getChart().getResult().get(0).getMeta();
+
+            BigDecimal onsUsd    = safe(meta.getRegularMarketPrice());
+            BigDecimal prevClose = safe(meta.getPreviousClose());
+            BigDecimal high      = safe(meta.getRegularMarketDayHigh());
+            BigDecimal low       = safe(meta.getRegularMarketDayLow());
+
+            BigDecimal changePercent = BigDecimal.ZERO;
+            if (prevClose.compareTo(BigDecimal.ZERO) != 0) {
+                changePercent = onsUsd.subtract(prevClose)
+                        .divide(prevClose, 4, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100))
+                        .setScale(2, RoundingMode.HALF_UP);
+            }
+
+            resp.setOnsUsd(onsUsd.setScale(2, RoundingMode.HALF_UP));
+            resp.setOnsChangePercent(changePercent);
+            resp.setOnsChange(onsUsd.subtract(prevClose).setScale(2, RoundingMode.HALF_UP));
+            resp.setOnsHigh(high.setScale(2, RoundingMode.HALF_UP));
+            resp.setOnsLow(low.setScale(2, RoundingMode.HALF_UP));
+            resp.setOnsPreviousClose(prevClose.setScale(2, RoundingMode.HALF_UP));
+
+            // Geriye dönük uyumluluk
+            resp.setPrice(onsUsd.setScale(2, RoundingMode.HALF_UP));
+            resp.setChange(resp.getOnsChange());
+            resp.setChangePercent(changePercent);
+            resp.setHigh(high.setScale(2, RoundingMode.HALF_UP));
+            resp.setLow(low.setScale(2, RoundingMode.HALF_UP));
+            resp.setPreviousClose(prevClose.setScale(2, RoundingMode.HALF_UP));
+            resp.setBid(onsUsd.subtract(new BigDecimal("0.50")).setScale(2, RoundingMode.HALF_UP));
+            resp.setAsk(onsUsd.add(new BigDecimal("0.50")).setScale(2, RoundingMode.HALF_UP));
+
+        } catch (Exception e) {
+            log.warn("Could not enrich spot with Yahoo ONS data: {}", e.getMessage());
+        }
+    }
+
+    // ── Range helpers ─────────────────────────────────────────────────────────
+
+    /**
+     * Range string'ini BIST tarih aralığına çevirir.
+     * @return [startDate, endDate] yyyy-MM-dd
+     */
+    private String[] rangeToBistDates(String range) {
+        LocalDate today = LocalDate.now(ISTANBUL);
+        LocalDate start = switch (range == null ? "1M" : range.toUpperCase()) {
+            case "1D"  -> today.minusDays(5);   // son 5 gün (hafta sonu güvencesi)
+            case "1W"  -> today.minusDays(10);
+            case "3M"  -> today.minusMonths(3);
+            case "1Y"  -> today.minusYears(1);
+            case "5Y"  -> today.minusYears(5);
+            case "ALL" -> LocalDate.of(2011, 1, 1); // BIST başlangıç tarihi
+            default    -> today.minusMonths(1); // 1M
+        };
+        return new String[]{start.format(DATE_FMT), today.format(DATE_FMT)};
+    }
 
     private String[] rangeToYahooParams(String range) {
         return switch (range == null ? "1M" : range.toUpperCase()) {
@@ -346,21 +596,7 @@ public class GoldMarketService {
         };
     }
 
-    private BigDecimal getUsdTryRate() {
-        try {
-            TcmbCurrencyDto usd = tcmbFxClient.fetchLatestRates().getCurrencies().stream()
-                    .filter(c -> "USD".equals(c.getCurrencyCode()))
-                    .findFirst().orElse(null);
-            if (usd != null && usd.getForexSelling() != null) {
-                return new BigDecimal(usd.getForexSelling());
-            }
-        } catch (Exception e) {
-            log.warn("Failed to get USD/TRY rate: {}", e.getMessage());
-        }
-        return new BigDecimal("44.50");
-    }
-
-    private BigDecimal safeDecimal(BigDecimal v) {
+    private BigDecimal safe(BigDecimal v) {
         return v != null ? v : BigDecimal.ZERO;
     }
 }

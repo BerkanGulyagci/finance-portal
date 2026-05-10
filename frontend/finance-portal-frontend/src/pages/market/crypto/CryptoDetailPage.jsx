@@ -6,9 +6,11 @@ import {
   ResponsiveContainer, LineChart, Line, Brush,
   ComposedChart, Area, Bar,
 } from 'recharts';
-import { getCryptoChart, getCryptoDetail, getAllCryptos } from '../../../api/marketApi';
+import { getCryptoChart, getCryptoDetail, getAllCryptos, getCryptoOhlc } from '../../../api/marketApi';
 import { useAuth } from '../../../context/AuthContext';
 import { init as klineInit, dispose as klineDispose } from 'klinecharts';
+import CommodityDetailChart   from '../commodities/components/CommodityDetailChart';
+import CommodityDetailToolbar from '../commodities/components/CommodityDetailToolbar';
 
 const RANGES = [
   { label: '1G', days: 1 },
@@ -187,6 +189,13 @@ function CryptoLineChart({ chartData, currency, range, compareCoins, compareData
   const chartRef = useRef(null);
   const isComparing = compareCoins && compareCoins.length > 0;
 
+  // Hover tooltip state
+  const [hoverData, setHoverData] = useState(null);
+
+  // Karşılaştırma için normalize edilmiş veri ref (tooltip'te kullanmak için)
+  const normalizedDataRef = useRef([]);
+  const compareOverlayRef = useRef({}); // {coinId: [{ts, value}]}
+
   useEffect(() => {
     if (!chartData || chartData.length === 0) return;
 
@@ -215,12 +224,28 @@ function CryptoLineChart({ chartData, currency, range, compareCoins, compareData
 
       if (normalizedData.length === 0) return;
 
+      // Normalize data'yı ref'e kaydet (tooltip için)
+      normalizedDataRef.current = normalizedData;
+
       // Ana coin için line style
       chart.setStyles({
-        candle: { type: 'area' },
+        candle: {
+          type: 'area',
+          tooltip: {
+            showRule: 'none',   // OHLC satırını kapat
+          },
+          priceMark: {
+            last: { show: false },  // Sağdaki son fiyat etiketini kapat
+          },
+        },
         indicator: {
           lastValueMark: { show: false },
-          tooltip: { showRule: 'always', showType: 'rect' },
+          tooltip: { showRule: 'none' },
+        },
+        crosshair: {
+          horizontal: {
+            text: { show: false },
+          },
         },
       });
 
@@ -271,7 +296,7 @@ function CryptoLineChart({ chartData, currency, range, compareCoins, compareData
             calcParams: [1], // Dummy MA, sadece çizgi çizmek için
             figures: [{
               key: 'ma',
-              title: c.symbol?.toUpperCase() || c.id,
+              title: '',   // Grafik üzerindeki coin adı yazısını kapat
               type: 'line',
               baseValue: 0,
               styles: (data, indicator, defaultStyles) => {
@@ -294,7 +319,47 @@ function CryptoLineChart({ chartData, currency, range, compareCoins, compareData
         } catch (e) {
           console.error('Error adding compare line:', e);
         }
+
+        // Overlay data'yı ref'e kaydet (tooltip için)
+        compareOverlayRef.current[c.id] = overlayData;
       });
+
+      // Crosshair hover event — floating tooltip için
+      try {
+        chart.subscribeAction('onCrosshairChange', (data) => {
+          if (!data || data.dataIndex == null || data.dataIndex < 0) {
+            setHoverData(null);
+            return;
+          }
+          const idx = data.dataIndex;
+          const mainPoint = normalizedDataRef.current[idx];
+          if (!mainPoint) { setHoverData(null); return; }
+
+          const date = new Date(mainPoint.timestamp).toLocaleString('tr-TR', {
+            month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit',
+          });
+
+          const entries = [
+            {
+              symbol: mainCoinSymbol?.toUpperCase() ?? coinId,
+              value: mainPoint.close,
+              color: COMPARE_COLORS[0],
+            },
+            ...compareCoins.map((c, ci) => {
+              const overlay = compareOverlayRef.current[c.id] ?? [];
+              const pt = overlay[idx];
+              return {
+                symbol: c.symbol?.toUpperCase() ?? c.id,
+                value: pt?.value ?? null,
+                color: COMPARE_COLORS[ci + 1] || '#6b7280',
+              };
+            }),
+          ];
+
+          setHoverData({ date, entries });
+        });
+      } catch (_) {}
 
     } else {
       // Tek coin modu: Normal area chart + MA
@@ -359,8 +424,30 @@ function CryptoLineChart({ chartData, currency, range, compareCoins, compareData
   }
 
   return (
-    <div>
+    <div
+      className="relative"
+      onMouseLeave={() => setHoverData(null)}
+    >
       <div id={chartId.current} style={{ width: '100%', height: '520px' }} />
+
+      {/* Hover tooltip — sadece karşılaştırma modunda */}
+      {isComparing && hoverData && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gray-900/95 text-white rounded-xl px-4 py-3 shadow-xl text-xs min-w-[180px] pointer-events-none z-10">
+          <p className="text-gray-400 mb-2 font-medium">{hoverData.date}</p>
+          {hoverData.entries.map(entry => (
+            <div key={entry.symbol} className="flex justify-between gap-4 mb-1">
+              <span style={{ color: entry.color }} className="font-semibold">{entry.symbol}</span>
+              <span className={`font-bold ${
+                entry.value == null ? 'text-gray-400' :
+                entry.value >= 0 ? 'text-emerald-400' : 'text-rose-400'
+              }`}>
+                {entry.value == null ? '-' : `${entry.value >= 0 ? '+' : ''}${entry.value.toFixed(2)}%`}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
       <p className="text-xs text-gray-400 mt-2">
         Kaynak: CoinGecko · {currency} bazlı{isComparing ? ' · % değişim bazlı karşılaştırma' : ''}
       </p>
@@ -465,9 +552,10 @@ export default function CryptoDetailPage() {
   const [coin, setCoin]           = useState(null);
   const [detail, setDetail]       = useState(null);
   const [chartData, setChartData] = useState([]);
+  const [ohlcData,  setOhlcData]  = useState([]);   // mum grafik için
   const [range, setRange]         = useState(7);
   const [currency, setCurrency]   = useState('TRY');
-  const [chartMode, setChartMode] = useState('tv');
+  const [chartMode, setChartMode] = useState('line');
   const [chartLoading, setChartLoading] = useState(false);
   const [loading, setLoading]     = useState(true);
   const [showDesc, setShowDesc]   = useState(false);
@@ -527,10 +615,34 @@ export default function CryptoDetailPage() {
     finally { setChartLoading(false); }
   }, [coinId, range, currency]);
 
+  // Mum grafik verisi
+  const loadOhlcChart = useCallback(async () => {
+    setChartLoading(true);
+    try {
+      const raw = await getCryptoOhlc(coinId, range, currency.toLowerCase());
+      // Format: [timestamp_ms, open, high, low, close]
+      const points = (raw ?? []).map(d => ({
+        timestamp: Math.floor(d[0] / 1000), // ms → saniye (CommodityDetailChart saniye bekliyor)
+        displayOpen:  d[1],
+        displayHigh:  d[2],
+        displayLow:   d[3],
+        displayClose: d[4],
+        rawOpen:  d[1],
+        rawHigh:  d[2],
+        rawLow:   d[3],
+        rawClose: d[4],
+        volume: 0,
+      })).filter(p => p.displayClose > 0);
+      setOhlcData(points);
+    } catch (e) { console.error(e); }
+    finally { setChartLoading(false); }
+  }, [coinId, range, currency]);
+
   useEffect(() => {
     if (chartMode === 'line') loadLineChart();
+    else if (chartMode === 'candle') loadOhlcChart();
     setActiveMA([]); // range değişince MA seçimini sıfırla
-  }, [chartMode, loadLineChart]);
+  }, [chartMode, loadLineChart, loadOhlcChart]);
 
   // Karşılaştırma coin'lerinin chart verilerini çek
   useEffect(() => {
@@ -647,6 +759,20 @@ export default function CryptoDetailPage() {
 
   const displayData = isComparing ? normalizedChartData() : chartData;
   const isLoading = chartLoading || compareLoading;
+
+  // CommodityDetailChart için points formatına çevir (çizgi grafik)
+  const linePoints = useMemo(() => {
+    if (chartMode !== 'line') return [];
+    return chartData.map(d => ({
+      timestamp: Math.floor(d.ts / 1000),
+      displayClose: d.price,
+      rawClose: d.price,
+      displayOpen: d.price,
+      displayHigh: d.price,
+      displayLow: d.price,
+      volume: d.volume ?? 0,
+    })).filter(p => p.displayClose > 0);
+  }, [chartData, chartMode]);
 
   return (
     <div className="space-y-6">
@@ -827,8 +953,9 @@ export default function CryptoDetailPage() {
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             {/* Grafik toolbar */}
             <div className="flex items-center gap-2 px-6 pt-5 pb-3 flex-wrap">
+              {/* Grafik modu */}
               <div className="flex gap-1">
-                {[{ key: 'tv', label: 'TradingView' }, { key: 'line', label: 'Çizgi' }].map(m => (
+                {[{ key: 'line', label: '〰 Çizgi' }, { key: 'candle', label: '🕯 Mum' }].map(m => (
                   <button key={m.key} onClick={() => setChartMode(m.key)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${chartMode === m.key ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                     {m.label}
@@ -846,36 +973,15 @@ export default function CryptoDetailPage() {
                 />
               )}
 
-              {/* MA butonları — sadece çizgi modunda ve karşılaştırma yokken */}
-              {chartMode === 'line' && !isComparing && (
-                <div className="flex gap-1">
-                  {MA_OPTIONS.filter(m => (MA_FOR_RANGE[range] ?? [7]).includes(m.period)).map(({ period, label, color }) => (
-                    <button key={label}
-                      onClick={() => setActiveMA(prev =>
-                        prev.includes(period) ? prev.filter(p => p !== period) : [...prev, period]
-                      )}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all border ${
-                        activeMA.includes(period)
-                          ? 'text-white border-transparent'
-                          : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
-                      }`}
-                      style={activeMA.includes(period) ? { backgroundColor: color, borderColor: color } : {}}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {chartMode === 'line' && (
-                <div className="flex gap-1 ml-auto">
-                  {RANGES.map(r => (
-                    <button key={r.days} onClick={() => setRange(r.days)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${range === r.days ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                      {r.label}
-                    </button>
-                  ))}
-                </div>
-              )}
+              {/* Range butonları */}
+              <div className="flex gap-1 ml-auto">
+                {RANGES.map(r => (
+                  <button key={r.days} onClick={() => setRange(r.days)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${range === r.days ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                    {r.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Karşılaştırma legend */}
@@ -897,40 +1003,44 @@ export default function CryptoDetailPage() {
               </div>
             )}
 
-            {chartMode === 'tv' && <TradingViewChart coinId={coinId} symbol={coin?.symbol ?? coinId} />}
-
-            {chartMode === 'line' && (
-              <div className="px-6 pb-6">
-                {isLoading && (
-                  <div className="flex items-center justify-center h-[520px] bg-white/70">
-                    <div className="flex gap-1.5">
-                      <div className="w-2 h-2 bg-[#093eaa] rounded-full animate-bounce" />
-                      <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
-                      <div className="w-2 h-2 bg-[#093eaa]/30 rounded-full animate-bounce [animation-delay:200ms]" />
+            {/* Grafik */}
+            <div className="px-6 pb-6">
+              {/* Karşılaştırma modu: CryptoLineChart ile normalize % grafik */}
+              {chartMode === 'line' && isComparing ? (
+                <>
+                  {(chartLoading || compareLoading) && (
+                    <div className="flex items-center justify-center h-[520px] bg-white/70">
+                      <div className="flex gap-1.5">
+                        <div className="w-2 h-2 bg-[#093eaa] rounded-full animate-bounce" />
+                        <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
+                        <div className="w-2 h-2 bg-[#093eaa]/30 rounded-full animate-bounce [animation-delay:200ms]" />
+                      </div>
                     </div>
-                  </div>
-                )}
-                
-                {!isLoading && displayData.length > 0 && (
-                  <CryptoLineChart 
-                    chartData={chartData} 
-                    currency={currency} 
-                    range={range}
-                    compareCoins={compareCoins}
-                    compareData={compareData}
-                    coinId={coinId}
-                    mainCoinSymbol={coin?.symbol}
-                    activeMAs={activeMA}
-                  />
-                )}
-                
-                {!isLoading && displayData.length === 0 && (
-                  <div className="flex items-center justify-center h-[520px] text-gray-400 text-sm">
-                    Grafik verisi yüklenemedi.
-                  </div>
-                )}
-              </div>
-            )}
+                  )}
+                  {!(chartLoading || compareLoading) && (
+                    <CryptoLineChart
+                      chartData={chartData}
+                      currency={currency}
+                      range={range}
+                      compareCoins={compareCoins}
+                      compareData={compareData}
+                      coinId={coinId}
+                      mainCoinSymbol={coin?.symbol}
+                      activeMAs={activeMA}
+                    />
+                  )}
+                </>
+              ) : (
+                /* Normal mod: CommodityDetailChart */
+                <CommodityDetailChart
+                  key={`${coinId}-${range}-${chartMode}-${currency}`}
+                  points={chartMode === 'candle' ? ohlcData : linePoints}
+                  chartMode={chartMode}
+                  loading={chartLoading || compareLoading}
+                />
+              )}
+              <p className="text-xs text-gray-400 mt-1">Kaynak: CoinGecko · {currency} bazlı</p>
+            </div>
           </div>
 
           {shortDesc && (

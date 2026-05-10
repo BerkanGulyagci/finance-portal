@@ -1,5 +1,6 @@
 package com.finance.portal.portfolio.dto;
 
+import com.finance.portal.portfolio.domain.PortfolioType;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -18,6 +19,7 @@ public class PortfolioResponse {
     private String name;
     private String description;
     private String currency;
+    private PortfolioType portfolioType;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<PortfolioTransactionResponse> transactions;
@@ -25,4 +27,7 @@ public class PortfolioResponse {
     private BigDecimal totalCost;
     private BigDecimal totalMarketValue;
     private BigDecimal totalProfitLoss;
+
+    /** Sadece WATCHLIST portföyler için dolar; HOLDINGS'da null. */
+    private Long watchlistItemCount;
 }

@@ -1,6 +1,9 @@
 package com.finance.portal.market.application;
 
 import com.finance.portal.common.infrastructure.exception.ResourceNotFoundException;
+import com.finance.portal.market.application.funds.model.RasyonetFundDetailDto;
+import com.finance.portal.market.application.funds.model.RasyonetFundDto;
+import com.finance.portal.market.application.funds.service.RasyonetFundService;
 import com.finance.portal.market.application.service.MarketFxService;
 import com.finance.portal.market.application.stock.StockQueryService;
 import com.finance.portal.market.application.stock.StockSummary;
@@ -16,13 +19,14 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Desteklenen asset type'lar ve veri kaynakları:
  * - STOCK   → Yahoo Finance (StockQueryService)
  * - CRYPTO  → CoinGecko (CryptoMarketService) — TRY bazlı
  * - FX      → TCMB (MarketFxService) — symbol: USD, EUR, GBP vb.
- * - FUND    → Yahoo Finance (StockQueryService) — ETF/fon (SPY, QQQ, GLD vb.)
+ * - FUND    → Rasyonet (TEFAS/BES/OKS listeleri + card detayı)
  * - FUTURE  → Yahoo Finance (StockQueryService) — ES=F, GC=F vb.
  */
 @Service
@@ -33,13 +37,16 @@ public class DefaultAssetPriceQueryService implements AssetPriceQueryService {
     private final StockQueryService stockQueryService;
     private final CryptoMarketService cryptoMarketService;
     private final MarketFxService marketFxService;
+    private final RasyonetFundService rasyonetFundService;
 
     public DefaultAssetPriceQueryService(StockQueryService stockQueryService,
                                          CryptoMarketService cryptoMarketService,
-                                         MarketFxService marketFxService) {
+                                         MarketFxService marketFxService,
+                                         RasyonetFundService rasyonetFundService) {
         this.stockQueryService   = stockQueryService;
         this.cryptoMarketService = cryptoMarketService;
         this.marketFxService     = marketFxService;
+        this.rasyonetFundService = rasyonetFundService;
     }
 
     @Override
@@ -53,6 +60,8 @@ public class DefaultAssetPriceQueryService implements AssetPriceQueryService {
             case FX      -> fetchFxPrice(symbol);
             case FUND    -> fetchFundPrice(symbol);
             case FUTURE  -> fetchFuturePrice(symbol);
+            case GOLD, COMMODITY, BOND -> throw new UnsupportedOperationException(
+                    "Live price is not supported for assetType=" + assetType + " symbol=" + symbol);
         };
     }
 
@@ -99,15 +108,44 @@ public class DefaultAssetPriceQueryService implements AssetPriceQueryService {
 
     // ── FUND ──────────────────────────────────────────────────────────────────
     /**
-     * Yahoo Finance'den ETF/global fon fiyatı çeker.
-     * symbol: "SPY", "QQQ", "GLD" vb.
-     * ETF'ler Yahoo'da hisse gibi chart endpoint'i üzerinden çalışır.
+     * TEFAS/BES/OKS fon kodları için Rasyonet (liste + gerekirse card).
      */
     private AssetPriceSnapshot fetchFundPrice(String symbol) {
-        log.debug("Fetching fund price for symbol: {}", symbol);
-        StockSummary summary = stockQueryService.getStockSummary(symbol.toUpperCase());
-        return new AssetPriceSnapshot(AssetType.FUND, summary.getSymbol(),
-                summary.getPrice(), summary.getCurrency(), parseDateTime(summary.getAsOf()));
+        log.debug("Fetching fund price from Rasyonet for symbol: {}", symbol);
+        String code = symbol.trim().toUpperCase();
+
+        RasyonetFundDto listed = findRasyonetFundByCode(code);
+        if (listed != null && listed.getPrice() != null
+                && listed.getPrice().compareTo(BigDecimal.ZERO) > 0) {
+            return new AssetPriceSnapshot(AssetType.FUND, code, listed.getPrice(),
+                    "TRY", LocalDateTime.now());
+        }
+
+        for (String sc : List.of("TMF", "TPF", "TAF")) {
+            RasyonetFundDetailDto d = rasyonetFundService.getFundDetailRich(code, sc);
+            if (d != null && d.getPrice() != null && d.getPrice().compareTo(BigDecimal.ZERO) > 0) {
+                String cur = d.getCurrencyCode();
+                String currency = cur != null && !cur.isBlank() ? cur : "TRY";
+                return new AssetPriceSnapshot(AssetType.FUND, code, d.getPrice(),
+                        currency, LocalDateTime.now());
+            }
+        }
+
+        throw new ResourceNotFoundException("Fund price not found for code: " + code);
+    }
+
+    private RasyonetFundDto findRasyonetFundByCode(String fundCode) {
+        String u = fundCode.toUpperCase();
+        for (RasyonetFundDto f : rasyonetFundService.getAllFunds()) {
+            if (f.getCode() != null && u.equalsIgnoreCase(f.getCode())) return f;
+        }
+        for (RasyonetFundDto f : rasyonetFundService.getAllBesFunds()) {
+            if (f.getCode() != null && u.equalsIgnoreCase(f.getCode())) return f;
+        }
+        for (RasyonetFundDto f : rasyonetFundService.getAllOksFunds()) {
+            if (f.getCode() != null && u.equalsIgnoreCase(f.getCode())) return f;
+        }
+        return null;
     }
 
     // ── FUTURE ────────────────────────────────────────────────────────────────

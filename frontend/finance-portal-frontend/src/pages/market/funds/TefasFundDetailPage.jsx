@@ -38,6 +38,15 @@ function fmtBig(v) {
   return n.toFixed(2);
 }
 
+/** API bazen uzun float string döner; yüzde olarak kısa göster */
+function fmtPercentField(raw) {
+  if (raw == null || raw === '') return '-';
+  const s = String(raw).trim().replace(/\s/g, '').replace(',', '.').replace(/%/g, '');
+  const n = parseFloat(s);
+  if (Number.isNaN(n)) return String(raw);
+  return `%${n.toFixed(2)}`;
+}
+
 // ── Risk göstergesi ───────────────────────────────────────────────────────────
 
 function RiskMeter({ level }) {
@@ -751,21 +760,6 @@ export default function TefasFundDetailPage() {
         </div>
       </div>
 
-      {/* ── Getiri özet kartları ── */}
-      {d && (
-        <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
-          <ReturnCard label="Günlük"  value={d.returnOneDay} />
-          <ReturnCard label="Haftalık" value={d.returnOneWeek} />
-          <ReturnCard label="1 Ay"    value={d.returnOneMonth} />
-          <ReturnCard label="3 Ay"    value={d.returnThreeMonths} />
-          <ReturnCard label="6 Ay"    value={d.returnSixMonths} />
-          <ReturnCard label="YBG"     value={d.returnYearToDate} />
-          <ReturnCard label="1 Yıl"   value={d.returnOneYear} />
-          <ReturnCard label="3 Yıl"   value={d.returnThreeYears} />
-          <ReturnCard label="5 Yıl"   value={d.returnFiveYears} />
-        </div>
-      )}
-
       {/* ── Loading / Error ── */}
       {loading && (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-12 flex items-center justify-center">
@@ -798,6 +792,18 @@ export default function TefasFundDetailPage() {
           {/* ── Performans tab ── */}
           {activeTab === 'performance' && (
             <div className="space-y-5">
+              <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
+                <ReturnCard label="Günlük" value={d.returnOneDay} />
+                <ReturnCard label="Haftalık" value={d.returnOneWeek} />
+                <ReturnCard label="1 Ay" value={d.returnOneMonth} />
+                <ReturnCard label="3 Ay" value={d.returnThreeMonths} />
+                <ReturnCard label="6 Ay" value={d.returnSixMonths} />
+                <ReturnCard label="YBG" value={d.returnYearToDate} />
+                <ReturnCard label="1 Yıl" value={d.returnOneYear} />
+                <ReturnCard label="3 Yıl" value={d.returnThreeYears} />
+                <ReturnCard label="5 Yıl" value={d.returnFiveYears} />
+              </div>
+
               {/* Aylık getiri grafiği */}
               {d.monthlyReturns && d.monthlyReturns.length > 0 && (
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
@@ -830,28 +836,29 @@ export default function TefasFundDetailPage() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
 
-              {/* Varlık dağılımı */}
+          {/* ── Grafik tab ── */}
+          {activeTab === 'chart' && (
+            <div className="space-y-5">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="font-bold text-gray-900">Fiyat Grafiği</h2>
+                  {d.priceHistory && (
+                    <span className="text-xs text-gray-400">{d.priceHistory.length} veri noktası</span>
+                  )}
+                </div>
+                <FundPriceChart priceHistory={d.priceHistory} />
+                <p className="text-xs text-gray-400 mt-3">Kaynak: Rasyonet · YatırımDirekt</p>
+              </div>
+
               {d.assetAllocation && d.assetAllocation.length > 0 && (
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
                   <h2 className="font-bold text-gray-900 mb-4">Varlık Dağılımı</h2>
                   <AssetAllocationChart assetAllocation={d.assetAllocation} />
                 </div>
               )}
-            </div>
-          )}
-
-          {/* ── Grafik tab ── */}
-          {activeTab === 'chart' && (
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="font-bold text-gray-900">Fiyat Grafiği</h2>
-                {d.priceHistory && (
-                  <span className="text-xs text-gray-400">{d.priceHistory.length} veri noktası</span>
-                )}
-              </div>
-              <FundPriceChart priceHistory={d.priceHistory} />
-              <p className="text-xs text-gray-400 mt-3">Kaynak: Rasyonet · YatırımDirekt</p>
             </div>
           )}
 
@@ -863,26 +870,25 @@ export default function TefasFundDetailPage() {
                 <h2 className="font-bold text-gray-900 mb-4">Fon Temel Bilgileri</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-0">
                   {[
-                    ['Fon Kodu', d.code],
-                    ['Fon Adı', d.name],
-                    ['Fon Tipi', d.fundType],
-                    ['Fiyat (TL)', fmt(d.price, 6)],
-                    ['Fon Büyüklüğü (TL)', fmtBig(d.marketCap)],
-                    ['Fon Büyüklüğü (USD)', fmtBig(d.marketCapUsd)],
+                    ['Fon Kodu', d.code ?? '-'],
+                    ['Fon Adı', d.name ?? '-'],
+                    ['Fon Türü', d.fundType ?? '-'],
+                    ['Birim Pay Değeri', fmt(d.price, 6)],
+                    ['Fon Büyüklüğü', d.marketCap != null ? `${fmtBig(d.marketCap)} TL` : '-'],
+                    ['Fon Büyüklüğü USD', d.marketCapUsd != null ? `${fmtBig(d.marketCapUsd)} USD` : '-'],
                     ['Alım Valörü', d.buySettlement ? `T+${d.buySettlement}` : '-'],
                     ['Satım Valörü', d.sellSettlement ? `T+${d.sellSettlement}` : '-'],
-                    ['Min. Alım Miktarı', d.minimumQuantitySales],
-                    ['Yıllık Yönetim Ücreti', d.managementFeeAnnual ? `%${d.managementFeeAnnual}` : '-'],
-                    ['Komisyon', d.commission],
-                    ['Kıstas', d.benchmarkName],
-                    ['Fon Yöneticisi', d.managerName],
-                    ['Kurucu', d.founderName],
-                  ].map(([label, value]) => value ? (
+                    ['Min. Alım Miktarı', d.minimumQuantitySales ?? '-'],
+                    ['Yıllık Yönetim Ücreti', fmtPercentField(d.managementFeeAnnual)],
+                    ['Komisyon', d.commission != null && d.commission !== '' ? fmtPercentField(d.commission) : '-'],
+                    ['Fon Yöneticisi', d.managerName ?? '-'],
+                    ['Kurucu', d.founderName ?? '-'],
+                  ].map(([label, value]) => (
                     <div key={label} className="flex justify-between items-start py-3 border-b border-gray-100 px-1">
                       <span className="text-sm text-gray-500 w-44 shrink-0">{label}</span>
                       <span className="text-sm text-gray-900 font-medium text-right">{value}</span>
                     </div>
-                  ) : null)}
+                  ))}
                 </div>
               </div>
 

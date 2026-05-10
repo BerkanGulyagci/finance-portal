@@ -81,6 +81,10 @@ news:
 cache:
   news:
     ttl-seconds: ${NEWS_CACHE_TTL_SECONDS:300}
+  portfolio:
+    list-ttl-seconds: ${CACHE_PORTFOLIO_LIST_TTL_SECONDS:30}
+    detail-ttl-seconds: ${CACHE_PORTFOLIO_DETAIL_TTL_SECONDS:30}
+    watchlist-ttl-seconds: ${CACHE_PORTFOLIO_WATCHLIST_TTL_SECONDS:60}
   market:
     fx:
       tcmb:

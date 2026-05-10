@@ -19,4 +19,10 @@ public class CreatePortfolioRequest {
 
     @Size(min = 3, max = 3, message = "currency must be exactly 3 characters")
     private String currency;
+
+    /**
+     * Portföy tipi. Frontend göndermezse null olabilir.
+     * Service katmanında null ise HOLDINGS default kullanılır.
+     */
+    private String portfolioType;
 }
