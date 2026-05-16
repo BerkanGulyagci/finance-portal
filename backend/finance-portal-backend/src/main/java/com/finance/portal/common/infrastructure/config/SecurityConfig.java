@@ -33,7 +33,7 @@ public class SecurityConfig {
         log.info("/api/portfolios/** requires authentication");
         log.info("/api/kafka/test requires authentication");
         http
-                .cors(cors -> cors.disable())
+                .cors(cors -> {})
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

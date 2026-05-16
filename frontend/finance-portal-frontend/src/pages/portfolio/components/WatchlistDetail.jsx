@@ -142,7 +142,7 @@ export default function WatchlistDetail({ portfolio }) {
     { key: 'GOLD', label: 'Altın', variant: 'default', tone: 'yellow' },
     { key: 'FUTURE', label: 'Vadeli', variant: 'default', tone: 'slate' },
     { key: 'FX', label: 'Döviz', variant: 'fx', tone: 'cyan' },
-    { key: 'BOND', label: 'Tahvil', variant: 'bond', tone: 'rose' },
+    { key: 'BOND', label: 'DİBS', variant: 'bond', tone: 'rose' },
   ];
 
   function toneClasses(tone) {

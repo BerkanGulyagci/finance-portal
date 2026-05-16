@@ -163,7 +163,9 @@ evds:
   api-key: ${EVDS_API_KEY:}
   data-group: bie_pydibs
   use-whitelist: false          # true → sadece bond-instruments çalışır; false → aktif tüm seriler
-  active-bonds-limit: 300       # güvenlik limiti; 0 = limitsiz
+  active-bonds-limit: 300       # güvenlik limiti; 0 = limitsiz (tüm aktif seriler — yavaş olabilir)
+  # EVDS liste toplu çekiminde eşzamanlı HTTP sayısı (TCMB'yi aşırı yüklememek için 4–16 arası önerilir)
+  bond-fetch-parallelism: 8
   bond-instruments:
     - TRD070727K10
     - TRB170626T13

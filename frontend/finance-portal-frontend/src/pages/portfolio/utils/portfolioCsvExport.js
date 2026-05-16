@@ -13,7 +13,7 @@ const ASSET_LABELS = {
   FUTURE: 'Vadeli',
   GOLD: 'Altın',
   COMMODITY: 'Emtia',
-  BOND: 'Tahvil',
+  BOND: 'DİBS',
 };
 
 /** Türkçe Excel ile uyumlu sütun ayırıcı */

@@ -128,8 +128,7 @@ public class StockQueryService {
         return response;
     }
 
-    public StockChartResponse getStockChart(String symbol) {
-        YahooChartResponseDto response = yahooStockPort.fetchChart(symbol);
+    public StockChartResponse getStockChart(String symbol) {        YahooChartResponseDto response = yahooStockPort.fetchChart(symbol);
 
         if (response == null
                 || response.getChart() == null
@@ -183,6 +182,10 @@ public class StockQueryService {
         return midasStockClient.fetchDetail(symbol);
     }
 
+    @Cacheable(
+            cacheNames = "market.stocks.chart",
+            key = "#symbol + ':' + #range + ':' + #interval"
+    )
     public StockChartResponse getStockChartWithParams(String symbol, String range, String interval) {        YahooChartResponseDto response = yahooStockPort.fetchChartWithParams(symbol, range, interval);
 
         if (response == null || response.getChart() == null

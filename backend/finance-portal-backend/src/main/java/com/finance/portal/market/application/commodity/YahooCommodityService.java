@@ -1,7 +1,10 @@
 package com.finance.portal.market.application.commodity;
 
+import com.finance.portal.market.application.service.MarketFxService;
 import com.finance.portal.market.infrastructure.external.yahoo.YahooChartClient;
 import com.finance.portal.market.infrastructure.external.yahoo.YahooChartResponseDto;
+import com.finance.portal.market.presentation.dto.FxLatestResponse;
+import com.finance.portal.market.presentation.dto.FxRateItemDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -41,6 +44,7 @@ public class YahooCommodityService {
     private static final ZoneId     UTC     = ZoneOffset.UTC;
 
     private final YahooChartClient yahooChartClient;
+    private final MarketFxService marketFxService;
 
     // ── Cache temizleme ───────────────────────────────────────────────────────
 
@@ -129,6 +133,8 @@ public class YahooCommodityService {
                     dto.setChangePercent(pct);
                 }
             }
+
+            applyTryDisplayPrices(dto);
 
             dto.setLastUpdated(LocalDateTime.now(ZoneId.of("Europe/Istanbul")).toString());
             dto.setStale(false);
@@ -272,6 +278,59 @@ public class YahooCommodityService {
         if (value == null) return null;
         if (isCent) return value.divide(HUNDRED, 6, RoundingMode.HALF_UP);
         return value;
+    }
+
+    /** Yahoo USD gösterim fiyatlarını TCMB satış kuru ile TL'ye çevirir (portföy / modal). */
+    private void applyTryDisplayPrices(CommoditySpotDto dto) {
+        BigDecimal usdTry = resolveTcmbUsdTry();
+        if (usdTry == null || dto.getDisplayPrice() == null) {
+            return;
+        }
+        dto.setDisplayPrice(scaleUsdToTry(dto.getDisplayPrice(), usdTry));
+        dto.setDisplayCurrency("TRY");
+        if (dto.getPreviousClose() != null) {
+            dto.setPreviousClose(scaleUsdToTry(dto.getPreviousClose(), usdTry));
+        }
+        if (dto.getDayHigh() != null) {
+            dto.setDayHigh(scaleUsdToTry(dto.getDayHigh(), usdTry));
+        }
+        if (dto.getDayLow() != null) {
+            dto.setDayLow(scaleUsdToTry(dto.getDayLow(), usdTry));
+        }
+        if (dto.getWeekHigh52() != null) {
+            dto.setWeekHigh52(scaleUsdToTry(dto.getWeekHigh52(), usdTry));
+        }
+        if (dto.getWeekLow52() != null) {
+            dto.setWeekLow52(scaleUsdToTry(dto.getWeekLow52(), usdTry));
+        }
+        if (dto.getChange() != null) {
+            dto.setChange(scaleUsdToTry(dto.getChange(), usdTry));
+        }
+    }
+
+    private BigDecimal scaleUsdToTry(BigDecimal usdAmount, BigDecimal usdTry) {
+        if (usdAmount == null || usdTry == null) {
+            return null;
+        }
+        return usdAmount.multiply(usdTry).setScale(4, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal resolveTcmbUsdTry() {
+        try {
+            FxLatestResponse fx = marketFxService.getTcmbLatestRates("USD");
+            if (fx.getRates() == null) {
+                return null;
+            }
+            return fx.getRates().stream()
+                    .filter(r -> "USD".equalsIgnoreCase(r.getSymbol()))
+                    .map(FxRateItemDto::getSell)
+                    .filter(v -> v != null && v.compareTo(BigDecimal.ZERO) > 0)
+                    .findFirst()
+                    .orElse(null);
+        } catch (Exception e) {
+            log.warn("TCMB USD/TRY unavailable for commodity conversion: {}", e.getMessage());
+            return null;
+        }
     }
 
     private YahooChartResponseDto.Result firstResult(YahooChartResponseDto resp) {

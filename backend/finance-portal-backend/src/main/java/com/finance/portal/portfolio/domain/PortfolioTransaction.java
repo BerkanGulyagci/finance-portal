@@ -34,7 +34,7 @@ public class PortfolioTransaction {
     @JoinColumn(name = "portfolio_id", nullable = false)
     private Portfolio portfolio;
 
-    @Column(name = "symbol", nullable = false, length = 20)
+    @Column(name = "symbol", nullable = false, length = 255)
     private String symbol;
 
     @Enumerated(EnumType.STRING)

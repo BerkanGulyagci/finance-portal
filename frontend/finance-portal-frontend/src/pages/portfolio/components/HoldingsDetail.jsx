@@ -1,15 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Plus, TrendingUp, TrendingDown } from 'lucide-react';
 import HoldingsTable from './HoldingsTable';
 import TransactionsTable from './TransactionsTable';
 import AddTransactionModal from './AddTransactionModal';
 import { deleteTransaction, getPortfolioById } from '../../../api/portfolioApi';
+import { getCommoditySpot } from '../../../api/marketApi';
+import { isYahooCommoditySymbol } from '../../../utils/commodityPriceUtils';
 
 function fmt(v, dec = 2) {
   if (v == null) return '-';
   const n = parseFloat(v);
   if (isNaN(n)) return '-';
   return n.toLocaleString('tr-TR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
+
+function toNumberOrNull(v) {
+  if (v == null || v === '') return null;
+  const n = typeof v === 'number' ? v : parseFloat(v);
+  return Number.isFinite(n) ? n : null;
 }
 
 const TABS = [
@@ -37,20 +45,85 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
     onInitialInstrumentConsumed?.();
   }, [initialInstrument, onInitialInstrumentConsumed]);
 
-  const pnl  = parseFloat(portfolio.totalProfitLoss ?? 0);
-  const mv   = parseFloat(portfolio.totalMarketValue ?? 0);
-  const cost = parseFloat(portfolio.totalCost ?? 0);
+  const holdingsRows = portfolio.holdings ?? [];
+  const [commoditySpots, setCommoditySpots] = useState({});
+
+  const yahooCommoditySymbols = useMemo(
+    () => holdingsRows
+      .filter(h => h.assetType === 'COMMODITY' && isYahooCommoditySymbol(h.symbol))
+      .map(h => h.symbol),
+    [holdingsRows],
+  );
+
+  useEffect(() => {
+    if (!yahooCommoditySymbols.length) {
+      setCommoditySpots({});
+      return;
+    }
+    let cancelled = false;
+    Promise.allSettled(
+      yahooCommoditySymbols.map(sym =>
+        getCommoditySpot(sym).then(spot => ({ sym, spot })),
+      ),
+    ).then(results => {
+      if (cancelled) return;
+      const map = {};
+      results.forEach(r => {
+        if (r.status === 'fulfilled' && r.value?.spot) {
+          map[r.value.sym] = r.value.spot;
+        }
+      });
+      setCommoditySpots(map);
+    });
+    return () => { cancelled = true; };
+  }, [yahooCommoditySymbols.join('|')]);
+
+  const computedMv = holdingsRows.reduce((acc, h) => {
+    const v = toNumberOrNull(h.marketValue);
+    return v != null ? acc + v : acc;
+  }, 0);
+  const computedHasMv = holdingsRows.some(h => toNumberOrNull(h.marketValue) != null);
+
+  const backendMv = toNumberOrNull(portfolio.totalMarketValue);
+  const mv = backendMv != null && backendMv > 0 ? backendMv : (computedHasMv ? computedMv : 0);
+
+  const cost = toNumberOrNull(portfolio.totalCost) ?? 0;
+  const backendPnl = toNumberOrNull(portfolio.totalProfitLoss);
+  const pnl = backendPnl != null && (backendMv ?? 0) > 0
+    ? backendPnl
+    : (computedHasMv ? computedMv - cost : 0);
+
   const pnlPct = cost > 0 ? ((pnl / cost) * 100).toFixed(2) : null;
   const isPos = pnl >= 0;
 
   async function handleDeleteTx(txId) {
+    if (!txId) {
+      alert('Bu satırda işlem kimliği yok; sayfayı yenileyip tekrar deneyin.');
+      return;
+    }
     if (!window.confirm('Bu işlemi silmek istediğinizden emin misiniz?')) return;
     setDeletingTxId(txId);
     try {
       const updated = await deleteTransaction(portfolio.id, txId);
       onPortfolioUpdate(updated);
-    } catch {
-      alert('İşlem silinemedi.');
+    } catch (err) {
+      const msg =
+        (typeof err.response?.data?.message === 'string' && err.response.data.message) ||
+        (err.response?.data?.data && typeof err.response.data.data === 'object' &&
+          Object.values(err.response.data.data).filter(Boolean).join(' ')) ||
+        '';
+      const notFound =
+        typeof msg === 'string' &&
+        (msg.includes('Transaction not found') || msg.includes('İşlem bulunamadı'));
+      if (notFound) {
+        try {
+          const fresh = await getPortfolioById(portfolio.id);
+          onPortfolioUpdate(fresh);
+        } catch {
+          /* yoksay */
+        }
+      }
+      alert(msg ? `İşlem silinemedi: ${msg}` : 'İşlem silinemedi. Bağlantınızı kontrol edip tekrar deneyin.');
     } finally {
       setDeletingTxId(null);
     }
@@ -63,6 +136,7 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
           portfolioId={portfolio.id}
           portfolioName={portfolio.name}
           initialInstrument={initialInstrument}
+          holdings={holdingsRows}
           onClose={() => setShowAddTx(false)}
           onAdded={updated => { onPortfolioUpdate(updated); setShowAddTx(false); }}
         />
@@ -125,7 +199,7 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
       {/* Tab içerikleri */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         {activeTab === 'holdings' && (
-          <HoldingsTable holdings={portfolio.holdings ?? []} />
+          <HoldingsTable holdings={holdingsRows} commoditySpots={commoditySpots} />
         )}
         {activeTab === 'transactions' && (
           <TransactionsTable

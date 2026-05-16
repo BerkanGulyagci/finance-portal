@@ -7,11 +7,38 @@ function fmt(v, dec = 2) {
   return n.toLocaleString('tr-TR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 }
 
+/** Quantity için değerin büyüklüğüne göre yeterli basamak seçer. */
+function fmtQty(v) {
+  if (v == null) return '-';
+  const n = parseFloat(v);
+  if (isNaN(n)) return '-';
+  const abs = Math.abs(n);
+  let dec;
+  if (abs === 0)       dec = 2;
+  else if (abs >= 100) dec = 2;
+  else if (abs >= 1)   dec = 4;
+  else if (abs >= 0.01)    dec = 4;
+  else if (abs >= 0.0001)  dec = 6;
+  else if (abs >= 0.000001) dec = 8;
+  else dec = 10;
+  return n.toLocaleString('tr-TR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
+
 const ASSET_LABELS = {
   STOCK: 'Hisse', CRYPTO: 'Kripto', FX: 'Döviz',
   FUND: 'Fon', FUTURE: 'Vadeli', GOLD: 'Altın',
-  COMMODITY: 'Emtia', BOND: 'Tahvil',
+  COMMODITY: 'Emtia', BOND: 'DİBS',
 };
+
+function txBondMix(transactions) {
+  if (!transactions?.length) {
+    return { hasBond: false, onlyBond: false, mixed: false };
+  }
+  const hasBond = transactions.some(t => String(t.assetType ?? '').toUpperCase() === 'BOND');
+  const onlyBond = hasBond && transactions.every(t => String(t.assetType ?? '').toUpperCase() === 'BOND');
+  const mixed = hasBond && !onlyBond;
+  return { hasBond, onlyBond, mixed };
+}
 
 /**
  * Props:
@@ -28,12 +55,21 @@ export default function TransactionsTable({ transactions = [], onDelete, deletin
     );
   }
 
+  const mix = txBondMix(transactions);
+  const priceHeader = mix.onlyBond
+    ? 'Gösterge Değeri'
+    : mix.mixed
+      ? 'Fiyat / Gösterge'
+      : 'Fiyat';
+
+  const headers = ['Tarih', 'İşlem', 'Sembol', 'Tür', 'Miktar', priceHeader, 'Toplam', 'Komisyon', ''];
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
         <thead className="bg-gray-50">
           <tr>
-            {['Tarih', 'İşlem', 'Sembol', 'Tür', 'Miktar', 'Fiyat', 'Toplam', 'Komisyon', ''].map(h => (
+            {headers.map(h => (
               <th key={h} className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap">
                 {h}
               </th>
@@ -41,11 +77,12 @@ export default function TransactionsTable({ transactions = [], onDelete, deletin
           </tr>
         </thead>
         <tbody>
-          {transactions.map((t, i) => {
+          {transactions.map((t) => {
             const total = parseFloat(t.quantity ?? 0) * parseFloat(t.price ?? 0);
             const isBuy = t.transactionType === 'BUY';
+            const rowKey = t.id ?? `${t.transactionDate}-${t.symbol}-${t.transactionType}`;
             return (
-              <tr key={i} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
+              <tr key={rowKey} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
                 <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">
                   {t.transactionDate?.split('T')[0] ?? '-'}
                 </td>
@@ -62,17 +99,18 @@ export default function TransactionsTable({ transactions = [], onDelete, deletin
                     {ASSET_LABELS[t.assetType] ?? t.assetType}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-sm font-mono">{fmt(t.quantity, 4)}</td>
+                <td className="px-4 py-3 text-sm font-mono">{fmtQty(t.quantity)}</td>
                 <td className="px-4 py-3 text-sm">{fmt(t.price)}</td>
                 <td className="px-4 py-3 text-sm font-semibold">{fmt(total)}</td>
                 <td className="px-4 py-3 text-sm text-gray-400">{fmt(t.commission)}</td>
                 <td className="px-4 py-3">
                   {onDelete && (
                     <button
+                      type="button"
                       onClick={() => onDelete(t.id)}
-                      disabled={deletingId === t.id}
-                      className="text-gray-300 hover:text-rose-500 transition-colors disabled:opacity-40"
-                      title="İşlemi sil"
+                      disabled={!t.id || deletingId === t.id}
+                      className="text-gray-500 hover:text-rose-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      title={t.id ? 'İşlemi sil' : 'İşlem kimliği eksik — sayfayı yenileyin'}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>

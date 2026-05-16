@@ -1,5 +1,11 @@
 import client from './client';
 
+function normalizeBistSymbol(symbol) {
+  const raw = String(symbol ?? '').trim().toUpperCase();
+  if (!raw) return raw;
+  return raw.includes('.') ? raw : `${raw}.IS`;
+}
+
 export async function getStocks(page = 0, size = 20, index = '') {
   const params = { page, size };
   if (index) params.index = index;
@@ -46,17 +52,20 @@ export async function getCryptoDetail(coinId) {
 }
 
 export async function getStockMidasDetail(symbol) {
-  const { data } = await client.get(`/api/market/stocks/${symbol}/midas`);
+  const normalized = normalizeBistSymbol(symbol);
+  const { data } = await client.get(`/api/market/stocks/${encodeURIComponent(normalized)}/midas`);
   return data.data ?? null;
 }
 
 export async function getStockChart(symbol, range = '1d', interval = '1m') {
-  const { data } = await client.get(`/api/market/stocks/${symbol}/chart`, { params: { range, interval } });
+  const normalized = normalizeBistSymbol(symbol);
+  const { data } = await client.get(`/api/market/stocks/${encodeURIComponent(normalized)}/chart`, { params: { range, interval } });
   return data.data ?? null;
 }
 
 export async function getStockOhlc(symbol, range = '3mo', interval = '1d') {
-  const { data } = await client.get(`/api/market/stocks/${encodeURIComponent(symbol)}/ohlc`, { params: { range, interval } });
+  const normalized = normalizeBistSymbol(symbol);
+  const { data } = await client.get(`/api/market/stocks/${encodeURIComponent(normalized)}/ohlc`, { params: { range, interval } });
   return data.data ?? [];
 }
 
@@ -236,7 +245,7 @@ export async function getEvdsBonds({
   if (type)                params.type   = type;
   if (minRemainingDays != null) params.minRemainingDays = minRemainingDays;
   if (maxRemainingDays != null) params.maxRemainingDays = maxRemainingDays;
-  const { data } = await client.get('/api/market/bonds/evds', { params });
+  const { data } = await client.get('/api/market/bonds/evds', { params, timeout: 240_000 });
   return data.data ?? { items: [], totalItems: 0, totalPages: 0, page: 0, size, hasNext: false, hasPrevious: false };
 }
 

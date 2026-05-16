@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Wallet, Search, ChevronDown, Menu, X } from 'lucide-react';
+import { Search, ChevronDown, Menu, X } from 'lucide-react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
@@ -126,15 +126,25 @@ export function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
 
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 shrink-0">
-            <div className="bg-[#093eaa] p-1.5 rounded-lg">
-              <Wallet className="w-5 h-5 text-white" />
-            </div>
-            <h1 className="text-lg font-bold tracking-tight">
+          {/* Logo + marka adı */}
+          <Link
+            to="/"
+            className="flex items-center gap-2.5 sm:gap-3 shrink-0 min-w-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#093eaa]/40 rounded-lg"
+            aria-label="FinansPortalı — ana sayfa"
+          >
+            <img
+              src="/brand-logo.png"
+              alt=""
+              role="presentation"
+              className="h-10 w-auto sm:h-11 max-w-[min(190px,42vw)] sm:max-w-[210px] object-contain object-center shrink-0"
+              width={210}
+              height={44}
+              decoding="async"
+            />
+            <span className="text-lg font-bold tracking-tight truncate leading-tight flex items-center">
               <span className="text-[#093eaa]">Finans</span>
               <span className="text-gray-900">Portalı</span>
-            </h1>
+            </span>
           </Link>
 
           {/* Desktop Nav */}

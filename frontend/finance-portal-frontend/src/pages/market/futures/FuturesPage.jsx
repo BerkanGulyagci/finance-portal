@@ -123,11 +123,11 @@ export default function FuturesPage() {
       <div className="flex gap-2 mb-4">
         <button onClick={() => handleTab('viop')}
           className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === 'viop' ? 'bg-[#093eaa] text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>
-          🇹🇷 Türkiye VİOP
+          Türkiye VİOP
         </button>
         <button onClick={() => handleTab('global')}
           className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === 'global' ? 'bg-[#093eaa] text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>
-          🌍 Küresel Vadeli
+          Küresel Vadeli
         </button>
       </div>
 

@@ -5,6 +5,7 @@ import com.finance.portal.market.infrastructure.external.viop.IsYatirimViopChart
 import com.finance.portal.market.presentation.dto.ViopChartPointDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -46,6 +47,11 @@ public class ViopChartService {
      * @return Normalize edilmiş grafik noktaları
      * @throws UnsupportedViopContractException Desteklenmeyen sözleşme türü
      */
+    @Cacheable(
+            cacheNames = "market.viop.chart",
+            key = "#contractName + '|' + #period.name()",
+            unless = "#result == null || #result.isEmpty()"
+    )
     public List<ViopChartPointDto> getChart(String contractName, ViopChartPeriod period) {
         log.info("ViopChartService.getChart: contractName='{}', period={}", contractName, period);
 

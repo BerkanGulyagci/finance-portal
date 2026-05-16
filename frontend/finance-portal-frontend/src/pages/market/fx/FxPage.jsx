@@ -112,9 +112,9 @@ export default function FxPage() {
   const bankTh  = (key, label, align = 'left') => ({ label, sortKey: key, currentKey: bankSortKey,  currentDir: bankSortDir,  onSort: handleBankSort,  align });
 
   const tabs = [
-    { key: 'tcmb',  label: '🏦 TCMB Resmi Kurlar' },
-    { key: 'open',  label: '🌍 Open Exchange Rates' },
-    { key: 'banks', label: '🏛️ Banka Kurları' },
+    { key: 'tcmb',  label: 'TCMB Resmi Kurlar' },
+    { key: 'open',  label: 'Open Exchange Rates' },
+    { key: 'banks', label: 'Banka Kurları' },
   ];
 
   return (

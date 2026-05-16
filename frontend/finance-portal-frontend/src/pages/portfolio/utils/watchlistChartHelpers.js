@@ -11,7 +11,7 @@ export const WATCHLIST_ASSET_LABELS = {
   GOLD: 'Altın',
   FUTURE: 'Vadeli',
   FX: 'Döviz',
-  BOND: 'Tahvil',
+  BOND: 'DİBS',
   OTHER: 'Diğer',
 };
 
@@ -28,13 +28,16 @@ const COMMODITY_NAMES = {
 };
 
 const GOLD_NAMES = {
-  GOLD: 'Altın (Ons)',
   GRAM: 'Gram Altın',
   CEYREK: 'Çeyrek Altın',
   YARIM: 'Yarım Altın',
-  TAM: 'Tam Altın',
-  CUMHUR: 'Cumhuriyet Altını',
-  ATA: 'Ata Altın',
+  ATA: 'Ata Lira (Cumhuriyet)',
+  CUMHUR: 'Ata Lira (Cumhuriyet)',
+  TAM: 'Tam Altın (Ziynet)',
+  ZIYNET: 'Tam Altın (Ziynet)',
+  GOLD: 'Ons Altın',
+  '14AYAR': '14 Ayar Bilezik',
+  '22AYAR': '22 Ayar Bilezik',
 };
 
 const PRECIOUS_NAMES = {

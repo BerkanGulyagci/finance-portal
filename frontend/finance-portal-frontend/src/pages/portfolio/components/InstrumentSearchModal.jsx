@@ -1,6 +1,13 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+﻿import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Search, X, ChevronRight } from 'lucide-react';
 import client from '../../../api/client';
+import { parseTrNumber } from '../../../utils/numberFormat';
+import {
+  pickCommoditySpotPriceTry,
+  pickCommoditySpotPriceUsd,
+  isYahooCommoditySymbol,
+} from '../../../utils/commodityPriceUtils';
+import { pickSilverGramCloseTry } from '../../../utils/silverPriceUtils';
 
 /**
  * Yeniden kullanılabilir enstrüman arama modal'ı.
@@ -9,7 +16,7 @@ import client from '../../../api/client';
  * - Sonsuz kaydırma: aşağı kaydırdıkça daha fazla sonuç yüklenir
  * - FON → Rasyonet TEFAS fonları
  * - VADELİ → VİOP sözleşmeleri
- * - EMTİA → önce 6 öne çıkan BİST kıymetli maden (gram ₺ / ons $), genişletince Kg·EUR·Yahoo emtialar
+ * - EMTİA → BİST kıymetli maden (yalnızca ₺) + Yahoo emtialar (TCMB kuru ile ₺)
  */
 
 const ASSET_TYPES = [
@@ -20,7 +27,7 @@ const ASSET_TYPES = [
   { value: 'FUTURE',    label: 'Vadeli',   placeholder: 'XAUTRYM26, F_THYAO...' },
   { value: 'GOLD',      label: 'Altın',    placeholder: 'GOLD, XAU, gram altın...' },
   { value: 'COMMODITY', label: 'Emtia',    placeholder: 'Gram Gümüş, WTI Ham Petrol, Bakır...' },
-  { value: 'BOND',      label: 'Tahvil',   placeholder: 'TRD070727K10...' },
+  { value: 'BOND',      label: 'DİBS',    placeholder: 'TRD070727K10...' },
 ];
 
 const SEE_ALL_LINKS = {
@@ -31,26 +38,27 @@ const SEE_ALL_LINKS = {
   FUTURE:    { label: 'Tüm vadeli sözleşmeleri gör', path: '/market/futures' },
   GOLD:      { label: 'Altın fiyatlarını gör', path: '/market/gold' },
   COMMODITY: { label: 'Tüm emtiaları gör', path: '/market/commodities' },
-  BOND:      { label: 'Tahvil/Bono listesini gör', path: '/market/bonds' },
+  BOND:      { label: 'DİBS listesini gör', path: '/market/bonds' },
 };
 
 // Statik listeler — API desteklemeyen tipler için
 const STATIC_GOLD = [
-  { symbol: 'GOLD',    name: 'Altın (Ons)' },
   { symbol: 'GRAM',    name: 'Gram Altın' },
   { symbol: 'CEYREK',  name: 'Çeyrek Altın' },
   { symbol: 'YARIM',   name: 'Yarım Altın' },
-  { symbol: 'TAM',     name: 'Tam Altın' },
-  { symbol: 'CUMHUR',  name: 'Cumhuriyet Altını' },
-  { symbol: 'ATA',     name: 'Ata Altın' },
+  { symbol: 'ATA',     name: 'Ata Lira (Cumhuriyet)' },
+  { symbol: 'TAM',     name: 'Tam Altın (Ziynet)' },
+  { symbol: 'GOLD',    name: 'Ons Altın' },
+  { symbol: '14AYAR',  name: '14 Ayar Bilezik' },
+  { symbol: '22AYAR',  name: '22 Ayar Bilezik' },
 ];
 
 const STATIC_BOND = [
-  { symbol: 'TRD070727K10', name: 'Devlet Tahvili 2027' },
-  { symbol: 'TRB170626T13', name: 'Devlet Tahvili 2026' },
-  { symbol: 'TRT180237T13', name: 'Devlet Tahvili 2037' },
-  { symbol: 'TRT210235T10', name: 'Devlet Tahvili 2035' },
-  { symbol: 'TRT270934T18', name: 'Devlet Tahvili 2034' },
+  { symbol: 'TRD070727K10', name: 'Devlet Tahvili 2027', type: 'Devlet Tahvili' },
+  { symbol: 'TRB170626T13', name: 'Devlet Tahvili 2026', type: 'Devlet Tahvili' },
+  { symbol: 'TRT180237T13', name: 'Devlet Tahvili 2037', type: 'Devlet Tahvili' },
+  { symbol: 'TRT210235T10', name: 'Devlet Tahvili 2035', type: 'Devlet Tahvili' },
+  { symbol: 'TRT270934T18', name: 'Devlet Tahvili 2034', type: 'Devlet Tahvili' },
 ];
 
 // Kıymetli madenler — BIST kategorileri (SilverPage/PreciousMetals ile aynı yapı)
@@ -72,15 +80,15 @@ const PRECIOUS_METALS_BIST = [
   { symbol: 'PALLADIUM:EUR_ONS',  name: 'Ons Paladyum (€)',  metal: 'palladium', category: 'EUR_ONS'  },
 ];
 
-/** İlk görünüm + arama önceliği: gram ₺ ve ons $ (Kg / EUR ons burada değil) */
-const FEATURED_PRECIOUS_SYMBOLS = new Set([
-  'SILVER:GRAM_TRY',
-  'SILVER:USD_ONS',
-  'PLATINUM:GRAM_TRY',
-  'PLATINUM:USD_ONS',
-  'PALLADIUM:GRAM_TRY',
-  'PALLADIUM:USD_ONS',
-]);
+/** Portföy modalında yalnızca TL cinsinden BIST kıymetli madenler */
+const PRECIOUS_METALS_TRY = PRECIOUS_METALS_BIST.filter(
+  (p) => p.category === 'GRAM_TRY' || p.category === 'KG_TRY',
+);
+
+/** İlk görünüm: gram ₺ (gümüş, platin, paladyum) */
+const FEATURED_PRECIOUS_SYMBOLS = new Set(
+  PRECIOUS_METALS_TRY.filter((p) => p.category === 'GRAM_TRY').map((p) => p.symbol),
+);
 
 // Yahoo Finance emtia sembolleri — sadece commodities sayfasındakiler, Türkçe isimli
 const YAHOO_COMMODITIES = [
@@ -113,7 +121,7 @@ const FX_NAMES = {
   PKR: 'Pakistan Rupisi', QAR: 'Katar Riyali', OMR: 'Umman Riyali',
   BHD: 'Bahreyn Dinarı', JOD: 'Ürdün Dinarı', LYD: 'Libya Dinarı',
   MAD: 'Fas Dirhemi', DZD: 'Cezayir Dinarı', TND: 'Tunus Dinarı',
-  EGP: 'Mısır Poundu', ILS: 'İsrail Şekeli', IRR: 'İran Riyali',
+  EGP: 'Mısır Poundu', ILS: 'İsrail Şekeli', IRR: 'İran Riyali',
   IQD: 'Irak Dinarı', SYP: 'Suriye Poundu', LBP: 'Lübnan Poundu',
   YER: 'Yemen Riyali', AFN: 'Afgan Afganisi', AZN: 'Azerbaycan Manatı',
   GEL: 'Gürcistan Larisi', KZT: 'Kazakistan Tengesi', UZS: 'Özbek Somu',
@@ -122,6 +130,44 @@ const FX_NAMES = {
 };
 
 const PAGE_SIZE = 15;
+
+/** BIST altın spot — sembole göre TL referans fiyatı. */
+function pickGoldSpotPrice(symbol, g) {
+  if (!g || typeof g !== 'object') return null;
+  const s = (symbol || '').toUpperCase();
+  const pick = (v) => {
+    if (v == null || v === '') return null;
+    if (typeof v === 'number' && Number.isFinite(v) && v > 0) return v;
+    const n = parseTrNumber(v);
+    return n != null && n > 0 ? n : null;
+  };
+  switch (s) {
+    case 'GOLD':
+      return pick(g.onsTry) ?? pick(g.priceTl) ?? pick(g.gramGoldTry);
+    case 'GRAM':
+      return pick(g.gramGoldTry) ?? pick(g.gramTl) ?? pick(g.officialPureGoldGramTry);
+    case 'CEYREK':
+      return pick(g.quarterGoldTry) ?? pick(g.ceyrekTl);
+    case 'YARIM':
+      return pick(g.halfGoldTry) ?? pick(g.yarimTl);
+    case 'TAM':
+      return pick(g.ziynetGoldTry) ?? pick(g.tamTl);
+    case '14AYAR':
+    case 'AYAR14':
+      return pick(g.fourteenKBraceletTry) ?? pick(g.ayar14Tl);
+    case '22AYAR':
+    case 'AYAR22':
+      return pick(g.twentyTwoKBraceletTry) ?? pick(g.ayar22Tl);
+    case 'ZIYNET':
+      return pick(g.ziynetGoldTry) ?? pick(g.tamTl);
+    case 'CUMHUR':
+      return pick(g.republicGoldTry) ?? pick(g.cumhuriyetTl);
+    case 'ATA':
+      return pick(g.republicGoldTry) ?? pick(g.cumhuriyetTl);
+    default:
+      return pick(g.gramGoldTry) ?? pick(g.officialPureGoldGramTry);
+  }
+}
 
 // ── Veri çekme fonksiyonları ──────────────────────────────────────────────────
 
@@ -222,10 +268,17 @@ async function fetchAll(type) {
         const { data } = await client.get('/api/market/futures/viop/contracts');
         const contracts = data.data ?? [];
         if (contracts.length > 0) {
-          return contracts.map(c => ({
-            symbol: c.contractName ?? c.name ?? '',
-            name: c.underlyingAsset ?? c.contractName ?? '',
-          })).filter(c => c.symbol);
+          return contracts.map((c) => {
+            const fullName = (c.name ?? c.contractName ?? '').trim();
+            const shortLabel =
+              fullName.includes(' (') ? fullName.split(' (')[0].trim() : fullName;
+            return {
+              symbol: fullName,
+              name: shortLabel || fullName,
+              lastPrice: c.lastPrice,
+              settlementPrice: c.settlementPrice,
+            };
+          }).filter((c) => c.symbol);
         }
       } catch {
         // VİOP API başarısız olursa statik listeye düş
@@ -255,9 +308,7 @@ async function fetchAll(type) {
     }
 
     if (type === 'COMMODITY') {
-      // Kıymetli madenler (BIST) + Yahoo emtialar — API'ye gerek yok, statik liste yeterli
-      // API'den gelen liste zaten YAHOO_COMMODITIES ile aynı semboller
-      return [...PRECIOUS_METALS_BIST, ...YAHOO_COMMODITIES];
+      return [...PRECIOUS_METALS_TRY, ...YAHOO_COMMODITIES];
     }
 
     if (type === 'BOND') {
@@ -268,7 +319,9 @@ async function fetchAll(type) {
         if (items.length > 0) {
           return items.map(b => ({
             symbol: b.instrumentCode ?? '',
-            name: b.name ?? b.instrumentCode ?? '',
+            name: b.instrumentCode ?? '',
+            type: b.type ?? null,
+            indicatorValue: b.indicatorValue != null ? Number(b.indicatorValue) : null,
           })).filter(b => b.symbol);
         }
       } catch { /* fallback */ }
@@ -285,9 +338,9 @@ function normalize(str) {
     .toLowerCase()
     .replace(/İ/g, 'i')
     .replace(/I/g, 'ı')
-    .replace(/Ğ/g, 'ğ')
+    .replace(/Ğ/g, 'ğ')
     .replace(/Ü/g, 'ü')
-    .replace(/Ş/g, 'ş')
+    .replace(/Ş/g, 'ş')
     .replace(/Ö/g, 'ö')
     .replace(/Ç/g, 'ç');
 }
@@ -305,7 +358,7 @@ function preciousSortKey(symbol) {
   if (!symbol?.includes(':')) return 999;
   const [metal, cat] = symbol.split(':');
   const mo = { SILVER: 0, PLATINUM: 1, PALLADIUM: 2 }[metal] ?? 5;
-  const co = { GRAM_TRY: 0, USD_ONS: 1, KG_TRY: 2, EUR_ONS: 3 }[cat] ?? 9;
+  const co = { GRAM_TRY: 0, KG_TRY: 1 }[cat] ?? 9;
   return mo * 10 + co;
 }
 
@@ -314,8 +367,7 @@ function sortPreciousByTier(items) {
 }
 
 /**
- * Emtia: öne çıkan 6 kıymetli maden (+ ilk görünümde gizli Kg/EUR/Yahoo),
- * aramada önce gram/ons ($), sonra diğerleri.
+ * Emtia: öne çıkan gram ₺ madenler; genişletince Kg ₺ + Yahoo (TRY).
  */
 function buildCommoditySections(allItems, query, expanded) {
   const q = query.trim();
@@ -408,6 +460,7 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
   const listRef = useRef(null);
   const searchRef = useRef(null);
   const searchTimer = useRef(null);
+  const selectSeqRef = useRef(0);
 
   // Tüm veriyi yükle
   const loadAll = useCallback(async (type) => {
@@ -482,9 +535,13 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
   }
 
   async function handleSelect(item) {
+    const seq = ++selectSeqRef.current;
     setPriceLoading(true);
     try {
       let price = null;
+      let commoditySpot = null;
+      let fxBuy = null;   // TCMB alış kuru  (kullanıcı satarken alacağı birim fiyat)
+      let fxSell = null;  // TCMB satış kuru (kullanıcı alırken ödeyeceği birim fiyat)
       try {
         if (activeType === 'STOCK') {
           const { data } = await client.get(`/api/market/stocks/${encodeURIComponent(item.symbol)}`);
@@ -496,54 +553,141 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
         } else if (activeType === 'FX') {
           const { data } = await client.get('/api/market/fx/tcmb/latest');
           const rate = (data.data?.rates ?? []).find(r => r.symbol === item.symbol.toUpperCase());
-          price = rate?.sell ?? null;
-        } else if (activeType === 'COMMODITY' || activeType === 'FUTURE' || activeType === 'GOLD') {
+          if (rate) {
+            const unit = rate.unit && rate.unit > 1 ? rate.unit : 1;
+            // Olası alan isimleri için geniş fallback — TCMB için buy/sell yeterli,
+            // ileride başka FX kaynağı eklenirse de uyumlu kalır
+            const rawSell = rate.sell ?? rate.selling ?? rate.forexSelling ?? rate.sellRate
+              ?? rate.ask ?? rate.currencySelling ?? rate.currentSellPrice ?? null;
+            const rawBuy  = rate.buy  ?? rate.buying  ?? rate.forexBuying  ?? rate.buyRate
+              ?? rate.bid ?? rate.currencyBuying  ?? rate.currentBuyPrice  ?? null;
+            fxSell = rawSell != null ? rawSell / unit : null;
+            fxBuy  = rawBuy  != null ? rawBuy  / unit : null;
+            // BUY varsayılan → kurum dövizi kullanıcıya satar → forexSelling kullanılır
+            price  = fxSell;
+          }
+        } else if (activeType === 'FUTURE') {
+          const sym = (item.symbol ?? '').trim();
+          const yahooStyle = /^[A-Z0-9.=]{1,15}$/i.test(sym);
           try {
-            // BIST kıymetli maden mi? (SILVER:GRAM_TRY formatı)
+            if (yahooStyle) {
+              const { data } = await client.get('/api/commodities/spot', { params: { symbol: sym } });
+              commoditySpot = data.data ?? null;
+              price = pickCommoditySpotPriceUsd(commoditySpot);
+            } else if (sym) {
+              const fromList =
+                parseTrNumber(item.lastPrice) ??
+                parseTrNumber(item.settlementPrice);
+              if (fromList != null) {
+                price = fromList;
+              } else {
+                const { data } = await client.get('/api/market/futures/viop', {
+                  params: { name: sym },
+                });
+                const d = data.data;
+                price =
+                  parseTrNumber(d?.lastPrice) ??
+                  parseTrNumber(d?.settlementPrice) ??
+                  parseTrNumber(d?.prevSettlementPrice) ??
+                  null;
+              }
+            }
+          } catch { /* fiyat bulunamazsa null */ }
+        } else if (activeType === 'GOLD') {
+          try {
+            const { data } = await client.get('/api/gold/spot');
+            price = pickGoldSpotPrice(item.symbol, data.data);
+          } catch { /* fiyat bulunamazsa null */ }
+        } else if (activeType === 'COMMODITY') {
+          try {
             if (item.symbol.includes(':')) {
               const [metal, cat] = item.symbol.split(':');
               const metalKey = metal.toLowerCase();
               let spotData = null;
               if (metalKey === 'silver') {
-                const { data } = await client.get('/api/silver/spot');
-                spotData = data.data;
+                const [spotRes, histRes] = await Promise.all([
+                  client.get('/api/silver/spot'),
+                  cat === 'GRAM_TRY'
+                    ? client.get('/api/silver/history', { params: { range: '1W', currency: 'TRY' } })
+                    : Promise.resolve({ data: { data: null } }),
+                ]);
+                spotData = spotRes.data?.data;
+                if (cat === 'GRAM_TRY') {
+                  price = pickSilverGramCloseTry(spotData, histRes.data?.data?.points);
+                }
               } else {
                 const { data } = await client.get(`/api/precious-metals/${metalKey}/spot`);
                 spotData = data.data;
               }
-              if (spotData) {
-                if (cat === 'GRAM_TRY') price = spotData.tryGram ?? spotData.silverGramTry ?? spotData.gramTry ?? null;
-                else if (cat === 'KG_TRY') price = spotData.tryKg ?? spotData.closeTryKg ?? spotData.weightedAverageTryKg ?? null;
-                else if (cat === 'USD_ONS') price = spotData.usdOns ?? spotData.silverUsdOns ?? null;
-                else if (cat === 'EUR_ONS') price = spotData.eurOns ?? null;
+              if (spotData && price == null) {
+                if (cat === 'GRAM_TRY') {
+                  price = pickSilverGramCloseTry(spotData, null);
+                } else if (cat === 'KG_TRY') {
+                  price = spotData.closeTryKg ?? spotData.weightedAverageTryKg ?? spotData.tryKg ?? null;
+                }
               }
             } else {
-              // Yahoo Finance emtia
               const { data } = await client.get('/api/commodities/spot', { params: { symbol: item.symbol } });
-              price = data.data?.price ?? null;
+              commoditySpot = data.data ?? null;
+              price = pickCommoditySpotPriceTry(commoditySpot);
             }
           } catch { /* fiyat bulunamazsa null */ }
         } else if (activeType === 'FUND') {
           try {
-            // Fon fiyatı için sourceCode belirle
             const sourceCode = item.category === 'BES' ? 'TPF' : item.category === 'OKS' ? 'TAF' : 'TMF';
             const { data } = await client.get(`/api/market/funds/tefas/${encodeURIComponent(item.symbol)}`, {
               params: { sourceCode },
             });
             price = data.data?.price ?? null;
           } catch { /* fiyat bulunamazsa null */ }
+        } else if (activeType === 'BOND') {
+          try {
+            const raw =
+              item.indicatorValue ??
+              item.evdsValue ??
+              item.price;
+            if (raw != null && raw !== '') {
+              const n = typeof raw === 'number' ? raw : parseFloat(String(raw).replace(/\s/g, '').replace(',', '.'));
+              if (Number.isFinite(n) && n > 0) price = n;
+            }
+            if ((price == null || !Number.isFinite(price)) && item.symbol) {
+              const { data } = await client.get(`/api/market/bonds/evds/${encodeURIComponent(item.symbol)}`);
+              const d = data?.data;
+              if (d?.indicatorValue != null) {
+                const n = Number(d.indicatorValue);
+                if (Number.isFinite(n) && n > 0) price = n;
+              }
+            }
+          } catch { /* fiyat bulunamazsa null */ }
         }
       } catch { /* fiyat bulunamazsa null */ }
+
+      if (seq !== selectSeqRef.current) return;
+
+      const currency =
+        activeType === 'GOLD' || activeType === 'COMMODITY' || activeType === 'BOND'
+          ? 'TRY'
+          : activeType === 'FX'
+            ? item.symbol
+            : activeType === 'FUTURE' && isYahooCommoditySymbol(item.symbol)
+              ? 'USD'
+              : undefined;
 
       onSelect({
         symbol: item.symbol,
         assetType: activeType,
         name: item.name ?? item.symbol,
         price,
+        currency,
+        fxBuy,
+        fxSell,
         category: item.category,
+        commoditySpot: activeType === 'COMMODITY' && isYahooCommoditySymbol(item.symbol)
+          ? commoditySpot
+          : null,
       });
     } finally {
-      setPriceLoading(false);
+      if (seq === selectSeqRef.current) setPriceLoading(false);
     }
   }
 
@@ -586,7 +730,7 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
             )}
           </div>
           <p className="text-xs text-gray-500 mt-0.5">
-            {currentType?.label}
+            {activeType === 'BOND' && item.type ? item.type : currentType?.label}
             {item.category && (
               <span className={`ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold ${
                 item.category === 'BES'     ? 'bg-emerald-500/20 text-emerald-400' :
@@ -606,7 +750,7 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
         </div>
         <div className="flex items-center gap-2 ml-2 shrink-0">
           <span className="text-xs text-gray-500 bg-[#2f3650] px-2 py-0.5 rounded">
-            {currentType?.label?.toLowerCase()}
+            {activeType === 'BOND' ? 'dibs' : currentType?.label?.toLowerCase()}
           </span>
           <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
         </div>

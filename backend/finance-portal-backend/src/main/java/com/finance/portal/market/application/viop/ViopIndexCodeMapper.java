@@ -32,7 +32,7 @@ public class ViopIndexCodeMapper {
      * Grup 4: yıl (2 rakam)
      */
     private static final Pattern FUTURES_PATTERN = Pattern.compile(
-            "^([A-ZÇĞİÖŞÜ0-9]{4,7})\\s*\\((\\d{2})\\s+(\\S+)\\s+(\\d{2})\\).*Vadeli",
+            "^([A-ZÇĞİÖŞÜ0-9]{4,7})\\s*\\((\\d{2})\\s+(\\S+)\\s+(\\d{2})\\).*(?i)vadeli",
             Pattern.UNICODE_CHARACTER_CLASS
     );
 

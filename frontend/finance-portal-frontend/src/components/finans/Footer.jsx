@@ -1,4 +1,4 @@
-import { Wallet, Globe, Share2 } from 'lucide-react';
+import { Globe, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const footerLinks = {
@@ -29,13 +29,19 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
           <div className="md:col-span-1">
             <div className="flex items-center gap-3 mb-6">
-              <div className="bg-[#093eaa] p-1.5 rounded-lg">
-                <Wallet className="w-5 h-5 text-white" />
-              </div>
-              <h1 className="text-lg font-bold tracking-tight">
+              <img
+                src="/brand-logo.png"
+                alt=""
+                role="presentation"
+                className="h-10 w-auto sm:h-11 max-w-[190px] sm:max-w-[210px] object-contain object-center shrink-0"
+                width={210}
+                height={44}
+                decoding="async"
+              />
+              <div className="text-lg font-bold tracking-tight leading-tight flex items-center">
                 <span className="text-[#093eaa]">Finans</span>
                 <span className="text-gray-900">Portalı</span>
-              </h1>
+              </div>
             </div>
             <p className="text-sm text-gray-500 mb-6">
               Türkiye'nin ve dünyanın en güncel finans haberlerini, verilerini ve analizlerini sunan bağımsız platform.

@@ -4,7 +4,7 @@ import { getCryptos, getStocks, getFutures, getFunds, getFxTcmb } from '../api/m
 const TABS = [
   { key: 'crypto',  label: '🪙 Kripto' },
   { key: 'stocks',  label: '📈 Hisse' },
-  { key: 'futures', label: '📊 Vadeli' },
+  { key: 'futures', label: 'Vadeli' },
   { key: 'funds',   label: '🏦 Global Fonlar' },
   { key: 'fx',      label: '💱 Döviz' },
 ];

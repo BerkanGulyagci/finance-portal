@@ -58,7 +58,7 @@ registerOverlay({
 const RANGES = [
   { label: '1G', range: '1d',  interval: '5m'  },  // ~78 nokta
   { label: '1H', range: '5d',  interval: '15m' },  // ~130 nokta
-  { label: '1A', range: '1mo', interval: '1h'  },  // ~160 nokta
+  { label: '1A', range: '1mo', interval: '1d'  },  // BIST'te daha stabil
   { label: '3A', range: '3mo', interval: '1d'  },  // ~63 nokta
   { label: '1Y', range: '1y',  interval: '1d'  },  // ~252 nokta
   { label: '5Y', range: '5y',  interval: '1wk' },  // ~260 nokta
@@ -539,20 +539,30 @@ function LineChart({ symbol }) {
       .then(res => {
         const ts     = res?.timestamps  ?? [];
         const prices = res?.closePrices ?? [];
-        if (!ts.length) { setError(true); setLoading(false); return; }
+        if (!ts.length || !prices.length) { setError(true); setLoading(false); return; }
 
         const klineData = ts
-          .map((t, i) => ({
-            timestamp: Number(t) * 1000,
-            open:  parseFloat(prices[i] ?? 0),
-            high:  parseFloat(prices[i] ?? 0),
-            low:   parseFloat(prices[i] ?? 0),
-            close: parseFloat(prices[i] ?? 0),
-            volume: 0,
-            turnover: 0,
-          }))
-          .filter(d => !isNaN(d.close) && d.close > 0)
+          .map((t, i) => {
+            const p = parseFloat(prices[i]);
+            if (!Number.isFinite(p) || p <= 0) return null;
+            return {
+              timestamp: Number(t) * 1000,
+              open: p,
+              high: p,
+              low: p,
+              close: p,
+              volume: 0,
+              turnover: 0,
+            };
+          })
+          .filter(Boolean)
           .sort((a, b) => a.timestamp - b.timestamp);
+
+        if (!klineData.length) {
+          setError(true);
+          setLoading(false);
+          return;
+        }
 
         const isUp = klineData[klineData.length - 1].close >= klineData[0].close;
         const color = isUp ? '#10b981' : '#ef4444';

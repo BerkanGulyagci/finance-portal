@@ -92,7 +92,7 @@ function buildDisplayPoints(historyPoints, activeTab, chartMode) {
         acc.push({ ...p, displayClose: candle.close, displayOpen: candle.open,
           displayHigh: candle.high, displayLow: candle.low, displayWa: wa, normalized: candle.normalized });
       } else {
-        const lineVal = (wa != null && wa > 0) ? wa : close;
+        const lineVal = (close != null && close > 0) ? close : wa;
         acc.push({ ...p, displayClose: lineVal, displayOpen: null, displayHigh: null, displayLow: null, displayWa: wa });
       }
       return acc;
@@ -110,11 +110,11 @@ function buildDisplayPoints(historyPoints, activeTab, chartMode) {
     } else {
       const wa    = p.weightedAverage != null ? parseFloat(p.weightedAverage) * mult : null;
       const close = p.close != null ? parseFloat(p.close) * mult : null;
-      // Referans endpoint'ten gelen tryGram/usdOns alanlarını da dene
       const refVal = p.tryGram != null ? parseFloat(p.tryGram) * (activeTab.key === 'try_gram' ? 1 : 1000)
                    : p.value   != null ? parseFloat(p.value)   * mult
                    : null;
-      const lineVal = (wa != null && wa > 0) ? wa : (close != null && close > 0) ? close : refVal;
+      // Çizgi grafik: kapanış öncelikli (portföy / modal ile aynı mantık)
+      const lineVal = (close != null && close > 0) ? close : (wa != null && wa > 0) ? wa : refVal;
       if (!lineVal || lineVal <= 0) return acc;
       acc.push({ ...p, displayClose: lineVal, displayOpen: null, displayHigh: null, displayLow: null, displayWa: wa ?? lineVal });
     }
@@ -217,12 +217,20 @@ export default function SilverPage() {
   const changePct = stats?.first && stats?.last
     ? ((stats.last - stats.first) / stats.first) * 100 : null;
 
-  const currentPrice = (() => {
+  /** BIST spot kapanış — grafik yüklenmeden önce gösterim */
+  const spotClosePrice = useMemo(() => {
     if (!spot) return null;
-    if (activeTab.isUsd) return spot.silverUsdOns;
-    if (activeTab.key === 'try_gram') return spot.silverGramTry;
-    return spot.weightedAverageTryKg ?? spot.closeTryKg;
-  })();
+    if (activeTab.isUsd) return spot.silverUsdOns != null ? parseFloat(spot.silverUsdOns) : null;
+    if (activeTab.key === 'try_gram') {
+      const c = spot.silverGramCloseTry ?? spot.silverGramTry;
+      return c != null ? parseFloat(c) : null;
+    }
+    const kg = spot.closeTryKg ?? spot.weightedAverageTryKg;
+    return kg != null ? parseFloat(kg) : null;
+  }, [spot, activeTab]);
+
+  /** Seçili aralığın son kapanışı; yoksa spot kapanış */
+  const displayPrice = stats?.last ?? spotClosePrice;
 
   const sym = activeTab.sym;
 
@@ -276,7 +284,7 @@ export default function SilverPage() {
                 </div>
                 <div className="flex items-baseline gap-3 flex-wrap">
                   <span className={`text-4xl font-black ${isDown ? 'text-rose-600' : 'text-emerald-600'}`}>
-                    {sym}{fmt(currentPrice)}
+                    {sym}{fmt(displayPrice)}
                   </span>
                   {changePct != null && (
                     <span className={`flex items-center gap-1 text-sm font-semibold ${isDown ? 'text-rose-600' : 'text-emerald-600'}`}>
@@ -292,11 +300,11 @@ export default function SilverPage() {
 
               {/* İstatistikler */}
               <div className="grid grid-cols-2 gap-x-8 gap-y-0 border-t border-gray-100 pt-4 mb-6">
-                <StatRow label="Güncel Fiyat"       value={currentPrice != null ? `${sym}${fmt(currentPrice)}` : '-'} />
-                <StatRow label="En Yüksek"          value={stats?.high != null ? `${sym}${fmt(stats.high)}` : '-'} />
-                <StatRow label="En Düşük"           value={stats?.low  != null ? `${sym}${fmt(stats.low)}`  : '-'} />
-                <StatRow label="Kapanış"            value={stats?.last != null ? `${sym}${fmt(stats.last)}` : '-'} />
-                <StatRow label="Ağırlıklı Ortalama" value={stats?.wa   != null ? `${sym}${fmt(stats.wa)}`   : '-'} />
+                <StatRow label="Güncel Fiyat (Kapanış)" value={displayPrice != null ? `${sym}${fmt(displayPrice)}` : '-'} />
+                <StatRow label="En Yüksek"              value={stats?.high != null ? `${sym}${fmt(stats.high)}` : '-'} />
+                <StatRow label="En Düşük"               value={stats?.low  != null ? `${sym}${fmt(stats.low)}`  : '-'} />
+                <StatRow label="Dönem Kapanış"          value={stats?.last != null ? `${sym}${fmt(stats.last)}` : '-'} />
+                <StatRow label="Dönem Ağırlıklı Ort." value={stats?.wa   != null ? `${sym}${fmt(stats.wa)}`   : '-'} />
                 <StatRow label="Dönem Değişimi"
                   value={changePct != null ? `${changePct >= 0 ? '+' : ''}${fmt(changePct)}%` : '-'}
                   colored={changePct != null} positive={changePct != null && changePct >= 0} />
@@ -369,8 +377,8 @@ export default function SilverPage() {
       {spot && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { label: 'Gram Gümüş (₺)', value: spot.silverGramTry,                          sym: '₺' },
-            { label: 'Kg Gümüş (₺)',   value: spot.weightedAverageTryKg ?? spot.closeTryKg, sym: '₺', dec: 0 },
+            { label: 'Gram Gümüş (₺)', value: spot.silverGramCloseTry ?? spot.silverGramTry, sym: '₺' },
+            { label: 'Kg Gümüş (₺)',   value: spot.closeTryKg ?? spot.weightedAverageTryKg, sym: '₺', dec: 0 },
             { label: 'Ons Gümüş ($)',  value: spot.silverUsdOns,                            sym: '$' },
           ].map(card => (
             <div key={card.label} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 text-center">

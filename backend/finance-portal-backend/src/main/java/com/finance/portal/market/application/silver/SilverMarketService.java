@@ -14,6 +14,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -106,7 +107,41 @@ public class SilverMarketService {
             resp.setSilverUsdOnsWeightedAverage(latestUsd.getWeightedAverageUsdOns());
         }
 
+        alignGramCloseFromLatestHistory(resp);
         return resp;
+    }
+
+    /**
+     * Portföy / modal ile detay sayfası aynı "güncel kapanış"ı kullansın:
+     * spot BIST günü ile grafik son noktası farklı olabiliyor → history son close öncelikli.
+     */
+    private void alignGramCloseFromLatestHistory(SilverSpotResponse resp) {
+        if (resp == null) {
+            return;
+        }
+        try {
+            SilverHistoryResponse hist = getSilverHistory("1W", "TRY");
+            if (hist == null || hist.getPoints() == null || hist.getPoints().isEmpty()) {
+                return;
+            }
+            SilverHistoryPoint last = hist.getPoints().get(hist.getPoints().size() - 1);
+            if (last.getClose() == null || last.getClose().compareTo(BigDecimal.ZERO) <= 0) {
+                return;
+            }
+            BigDecimal gramClose = last.getClose().setScale(2, RoundingMode.HALF_UP);
+            resp.setSilverGramCloseTry(gramClose);
+            if (last.getHigh() != null) {
+                resp.setSilverGramHighTry(last.getHigh().setScale(2, RoundingMode.HALF_UP));
+            }
+            if (last.getLow() != null) {
+                resp.setSilverGramLowTry(last.getLow().setScale(2, RoundingMode.HALF_UP));
+            }
+            if (last.getDate() != null && !last.getDate().isBlank()) {
+                resp.setLastValidDate(last.getDate());
+            }
+        } catch (Exception e) {
+            log.debug("Silver spot gram close align from history skipped: {}", e.getMessage());
+        }
     }
 
     // ── History ───────────────────────────────────────────────────────────────

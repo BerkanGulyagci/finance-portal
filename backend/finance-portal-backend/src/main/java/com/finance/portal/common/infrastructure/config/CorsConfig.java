@@ -22,7 +22,7 @@ public class CorsConfig {
                 "http://localhost:80",     // docker frontend container
                 "http://localhost"         // docker frontend (port 80 default)
         ));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);

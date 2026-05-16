@@ -65,14 +65,13 @@ public class HesapkurduBankCurrencyClient {
 
             HesapkurduFxResponse parsed = objectMapper.readValue(json, HesapkurduFxResponse.class);
 
-            if (!parsed.isSuccess()
-                    || parsed.getResponse() == null
-                    || parsed.getResponse().getData() == null) {
+            List<HesapkurduFxItem> allItems = parsed.resolveDataList();
+            if (!parsed.isSuccess() || allItems == null) {
                 log.warn("Hesapkurdu response is unsuccessful or data is null");
                 return Collections.emptyList();
             }
 
-            List<HesapkurduFxItem> bankRates = parsed.getResponse().getData().stream()
+            List<HesapkurduFxItem> bankRates = allItems.stream()
                     .filter(item -> EXCHANGE_BANK.equals(item.getExchange()))
                     .toList();
 

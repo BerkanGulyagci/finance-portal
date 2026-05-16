@@ -9,7 +9,11 @@
  */
 export function parseTrNumber(value) {
   if (value === null || value === undefined || value === "") return null;
-  
+
+  // API'den gelen JSON sayıları (örn. BigDecimal → 55.91) doğrudan kabul et.
+  // Aksi halde "55.91" string'i Türk binlik sanılıp "5591"e dönüşürdü.
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+
   // String'e çevir ve trim
   const str = String(value).trim();
   

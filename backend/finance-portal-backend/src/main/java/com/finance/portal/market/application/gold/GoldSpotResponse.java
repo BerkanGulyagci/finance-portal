@@ -97,6 +97,8 @@ public class GoldSpotResponse implements Serializable {
     // ── ONS (Yahoo) ───────────────────────────────────────────────────────────
 
     private BigDecimal onsUsd;
+    /** Ons altın TL (onsUsd × TCMB USD/TRY), portföy ve modal için */
+    private BigDecimal onsTry;
     private BigDecimal onsChangePercent;
     private BigDecimal onsChange;
     private BigDecimal onsHigh;

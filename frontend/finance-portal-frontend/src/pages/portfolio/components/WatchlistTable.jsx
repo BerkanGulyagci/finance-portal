@@ -17,13 +17,16 @@ const COMMODITY_NAMES = {
 };
 
 const GOLD_NAMES = {
-  GOLD: 'Altın (Ons)',
   GRAM: 'Gram Altın',
   CEYREK: 'Çeyrek Altın',
   YARIM: 'Yarım Altın',
-  TAM: 'Tam Altın',
-  CUMHUR: 'Cumhuriyet Altını',
-  ATA: 'Ata Altın',
+  ATA: 'Ata Lira (Cumhuriyet)',
+  CUMHUR: 'Ata Lira (Cumhuriyet)',
+  TAM: 'Tam Altın (Ziynet)',
+  ZIYNET: 'Tam Altın (Ziynet)',
+  GOLD: 'Ons Altın',
+  '14AYAR': '14 Ayar Bilezik',
+  '22AYAR': '22 Ayar Bilezik',
 };
 
 const PRECIOUS_NAMES = {
@@ -198,7 +201,7 @@ export default function WatchlistTable({
                       <span className="text-xs text-gray-400">{getDisplayName(item).subtitle}</span>
                     )}
                   </div>
-                </td>
+              </td>
               )}
 
               {variant === 'fund' ? null : variant === 'fx' ? (
@@ -244,16 +247,16 @@ export default function WatchlistTable({
                       Varlıklarıma Ekle
                     </button>
                   )}
-                  {onDelete && (
-                    <button
-                      onClick={() => onDelete(item.id)}
-                      disabled={deletingId === item.id}
+                {onDelete && (
+                  <button
+                    onClick={() => onDelete(item.id)}
+                    disabled={deletingId === item.id}
                       className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-gray-200 text-gray-400 hover:text-rose-500 hover:border-rose-200 hover:bg-rose-50 transition-colors disabled:opacity-40"
-                      title="Listeden çıkar"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
+                    title="Listeden çıkar"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
                 </div>
               </td>
             </tr>

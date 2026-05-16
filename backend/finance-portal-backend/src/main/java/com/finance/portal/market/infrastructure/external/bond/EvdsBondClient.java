@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -59,7 +60,8 @@ public class EvdsBondClient {
     @Value("${evds.data-group:bie_pydibs}")
     private String dataGroup;
 
-    public EvdsBondClient(RestTemplate restTemplate, ObjectMapper objectMapper) {
+    public EvdsBondClient(@Qualifier("evdsRestTemplate") RestTemplate restTemplate,
+                          ObjectMapper objectMapper) {
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
     }

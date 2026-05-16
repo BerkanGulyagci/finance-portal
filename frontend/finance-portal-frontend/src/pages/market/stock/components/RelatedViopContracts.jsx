@@ -39,8 +39,7 @@ export default function RelatedViopContracts({ symbol }) {
   if (loading) {
     return (
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-        <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-          <span className="text-lg">📊</span>
+        <h2 className="font-bold text-gray-900 mb-4">
           İlişkili VİOP Kontratları
         </h2>
         <div className="flex items-center justify-center py-8">
@@ -54,8 +53,7 @@ export default function RelatedViopContracts({ symbol }) {
   if (error) {
     return (
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-        <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-          <span className="text-lg">📊</span>
+        <h2 className="font-bold text-gray-900 mb-4">
           İlişkili VİOP Kontratları
         </h2>
         <div className="bg-red-50 border border-red-200 rounded-xl p-4">
@@ -68,8 +66,7 @@ export default function RelatedViopContracts({ symbol }) {
   if (contracts.length === 0) {
     return (
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-        <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-          <span className="text-lg">📊</span>
+        <h2 className="font-bold text-gray-900 mb-4">
           İlişkili VİOP Kontratları
         </h2>
         <div className="bg-gray-50 rounded-xl p-4">
@@ -81,8 +78,7 @@ export default function RelatedViopContracts({ symbol }) {
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-      <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-        <span className="text-lg">📊</span>
+      <h2 className="font-bold text-gray-900 mb-4">
         İlişkili VİOP Kontratları
       </h2>
 

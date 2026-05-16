@@ -1,6 +1,9 @@
 package com.finance.portal.market.application.gold;
 
+import com.finance.portal.market.application.service.MarketFxService;
 import com.finance.portal.market.application.stock.port.YahooStockPort;
+import com.finance.portal.market.presentation.dto.FxLatestResponse;
+import com.finance.portal.market.presentation.dto.FxRateItemDto;
 import com.finance.portal.market.infrastructure.external.precious.BistMetalDailyPoint;
 import com.finance.portal.market.infrastructure.external.precious.BistMetalFiyatlariClient;
 import com.finance.portal.market.infrastructure.external.precious.BistPreciousMetalPoint;
@@ -72,6 +75,7 @@ public class GoldMarketService {
     private final BistPreciousMetalsClient bistClient;
     private final BistMetalFiyatlariClient metalClient;
     private final YahooStockPort yahooStockPort;
+    private final MarketFxService marketFxService;
 
     // ── Cache temizleme — her saat ────────────────────────────────────────────
 
@@ -106,11 +110,14 @@ public class GoldMarketService {
             } else {
                 enrichWithYahooOns(resp);
             }
+            finalizeGoldSpotForTry(resp);
             return resp;
         }
 
         log.warn("BIST spot unavailable, falling back to Yahoo GC=F");
-        return buildSpotFromYahooFallback();
+        GoldSpotResponse fallback = buildSpotFromYahooFallback();
+        finalizeGoldSpotForTry(fallback);
+        return fallback;
     }
 
     // ── History ───────────────────────────────────────────────────────────────
@@ -562,6 +569,42 @@ public class GoldMarketService {
 
         } catch (Exception e) {
             log.warn("Could not enrich spot with Yahoo ONS data: {}", e.getMessage());
+        }
+    }
+
+    /** Portföy / modal: ons ve legacy alanları TCMB kuru ile TL'ye çevirir. */
+    private void finalizeGoldSpotForTry(GoldSpotResponse resp) {
+        if (resp == null) {
+            return;
+        }
+        BigDecimal usdTry = resolveTcmbUsdTry();
+        if (usdTry == null) {
+            return;
+        }
+        resp.setUsdTry(usdTry);
+        resp.setCurrency("TRY");
+        if (resp.getOnsUsd() != null) {
+            BigDecimal onsTry = resp.getOnsUsd().multiply(usdTry).setScale(2, RoundingMode.HALF_UP);
+            resp.setOnsTry(onsTry);
+            resp.setPriceTl(onsTry);
+        }
+    }
+
+    private BigDecimal resolveTcmbUsdTry() {
+        try {
+            FxLatestResponse fx = marketFxService.getTcmbLatestRates("USD");
+            if (fx.getRates() == null) {
+                return null;
+            }
+            return fx.getRates().stream()
+                    .filter(r -> "USD".equalsIgnoreCase(r.getSymbol()))
+                    .map(FxRateItemDto::getSell)
+                    .filter(v -> v != null && v.compareTo(BigDecimal.ZERO) > 0)
+                    .findFirst()
+                    .orElse(null);
+        } catch (Exception e) {
+            log.warn("TCMB USD/TRY unavailable for gold ons conversion: {}", e.getMessage());
+            return null;
         }
     }
 

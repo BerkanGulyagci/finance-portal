@@ -15,6 +15,7 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
@@ -40,6 +41,7 @@ public class YahooChartClient implements YahooStockPort {
 
     private static final String USER_AGENT =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36";
+    private static final String FALLBACK_BASE_URL = "https://query2.finance.yahoo.com/v8/finance/chart";
 
     private final RestTemplate restTemplate;
 
@@ -78,8 +80,18 @@ public class YahooChartClient implements YahooStockPort {
                 .build(true)
                 .toUri();
 
+        URI fallbackUri = UriComponentsBuilder
+                .fromUriString(FALLBACK_BASE_URL)
+                .pathSegment(encodePathSegment(trimmedSymbol))
+                .queryParam("range", range != null ? range : "1mo")
+                .queryParam("interval", interval != null ? interval : "1d")
+                .build(true)
+                .toUri();
+
         HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.USER_AGENT, USER_AGENT);
+        headers.add(HttpHeaders.ACCEPT, "application/json,text/plain,*/*");
+        headers.add(HttpHeaders.ACCEPT_LANGUAGE, "en-US,en;q=0.9,tr-TR;q=0.8,tr;q=0.7");
 
         HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
 
@@ -87,25 +99,18 @@ public class YahooChartClient implements YahooStockPort {
                 trimmedSymbol, range, interval, uri);
 
         try {
-            ResponseEntity<YahooChartResponseDto> response = restTemplate.exchange(
-                    uri,
-                    HttpMethod.GET,
-                    requestEntity,
-                    YahooChartResponseDto.class
-            );
-
-            YahooChartResponseDto body = response.getBody();
-            if (body == null
-                    || body.getChart() == null
-                    || body.getChart().getResult() == null
-                    || body.getChart().getResult().isEmpty()
-                    || body.getChart().getResult().get(0).getMeta() == null) {
-                throw new ExternalApiException(
-                        "Yahoo Finance API returned empty chart result for symbol: " + trimmedSymbol);
-            }
-
-            return body;
+            return exchangeChart(uri, requestEntity, trimmedSymbol);
         } catch (HttpClientErrorException ex) {
+            if (ex.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
+                log.warn("Yahoo rate limited query1 for {}. Trying query2 fallback.", trimmedSymbol);
+                try {
+                    return exchangeChart(fallbackUri, requestEntity, trimmedSymbol);
+                } catch (Exception fallbackEx) {
+                    throw new ExternalApiException(
+                            "Yahoo Finance API rate limit reached for symbol "
+                                    + trimmedSymbol + " (query1 and query2)", fallbackEx);
+                }
+            }
             throw new ExternalApiException(
                     "Yahoo Finance API returned a client error for symbol "
                             + trimmedSymbol + ": " + ex.getStatusCode(), ex);
@@ -122,6 +127,26 @@ public class YahooChartClient implements YahooStockPort {
                     "Unexpected error while calling Yahoo Finance API for symbol "
                             + trimmedSymbol + ": " + ex.getMessage(), ex);
         }
+    }
+
+    private YahooChartResponseDto exchangeChart(URI uri, HttpEntity<Void> requestEntity, String symbol) {
+        ResponseEntity<YahooChartResponseDto> response = restTemplate.exchange(
+                uri,
+                HttpMethod.GET,
+                requestEntity,
+                YahooChartResponseDto.class
+        );
+
+        YahooChartResponseDto body = response.getBody();
+        if (body == null
+                || body.getChart() == null
+                || body.getChart().getResult() == null
+                || body.getChart().getResult().isEmpty()
+                || body.getChart().getResult().get(0).getMeta() == null) {
+            throw new ExternalApiException(
+                    "Yahoo Finance API returned empty chart result for symbol: " + symbol);
+        }
+        return body;
     }
 
     public YahooChartResponseDto fallbackChart(String symbol, Throwable t) {

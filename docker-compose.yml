@@ -148,6 +148,10 @@ services:
       KC_DB_PASSWORD: "123"
       KC_HTTP_ENABLED: "true"
       TZ: Europe/Istanbul
+      KC_SPI_THEME_CACHE_THEMES: "false"
+      KC_SPI_THEME_CACHE_TEMPLATES: "false"
+    volumes:
+      - ./docker/keycloak/themes:/opt/keycloak/themes
     ports:
       - "8081:8080"
     depends_on:

@@ -10,6 +10,8 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
+        /** İlk EVDS liste cache doldurma uzun sürebilir — varsayılan proxy zaman aşımını aşmaması için */
+        timeout: 300_000,
       },
     },
   },
