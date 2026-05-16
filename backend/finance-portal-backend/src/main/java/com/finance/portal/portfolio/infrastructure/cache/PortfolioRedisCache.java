@@ -2,8 +2,9 @@ package com.finance.portal.portfolio.infrastructure.cache;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.finance.portal.portfolio.dto.PortfolioResponse;
-import com.finance.portal.portfolio.dto.WatchlistItemResponse;
+import com.finance.portal.portfolio.application.port.PortfolioCachePort;
+import com.finance.portal.portfolio.presentation.dto.PortfolioResponse;
+import com.finance.portal.portfolio.presentation.dto.WatchlistItemResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,7 +21,7 @@ import java.util.UUID;
  * Anahtarlar kullanıcıya özeldir: {@code portfolio:list:{userId}}, vb.
  */
 @Component
-public class PortfolioRedisCache {
+public class PortfolioRedisCache implements PortfolioCachePort {
 
     private static final Logger log = LoggerFactory.getLogger(PortfolioRedisCache.class);
 
@@ -61,36 +62,44 @@ public class PortfolioRedisCache {
         return WATCHLIST_PREFIX + userId + ":" + portfolioId;
     }
 
+    @Override
     public Optional<List<PortfolioResponse>> getPortfolioList(String userId) {
         return readJson(listKey(userId), new TypeReference<>() {});
     }
 
+    @Override
     public void putPortfolioList(String userId, List<PortfolioResponse> value) {
         writeJson(listKey(userId), value, listTtl);
     }
 
+    @Override
     public Optional<PortfolioResponse> getPortfolioDetail(String userId, UUID portfolioId) {
         return readJson(detailKey(userId, portfolioId), new TypeReference<>() {});
     }
 
+    @Override
     public void putPortfolioDetail(String userId, UUID portfolioId, PortfolioResponse value) {
         writeJson(detailKey(userId, portfolioId), value, detailTtl);
     }
 
+    @Override
     public Optional<List<WatchlistItemResponse>> getWatchlist(String userId, UUID portfolioId) {
         return readJson(watchlistKey(userId, portfolioId), new TypeReference<>() {});
     }
 
+    @Override
     public void putWatchlist(String userId, UUID portfolioId, List<WatchlistItemResponse> value) {
         writeJson(watchlistKey(userId, portfolioId), value, watchlistTtl);
     }
 
     /** createPortfolio */
+    @Override
     public void evictList(String userId) {
         deleteSafe(listKey(userId));
     }
 
     /** deletePortfolio; addWatchlistItem; deleteWatchlistItem */
+    @Override
     public void evictListDetailAndWatchlist(String userId, UUID portfolioId) {
         evictList(userId);
         deleteSafe(detailKey(userId, portfolioId));
@@ -98,6 +107,7 @@ public class PortfolioRedisCache {
     }
 
     /** addTransaction; deleteTransaction */
+    @Override
     public void evictListAndDetail(String userId, UUID portfolioId) {
         evictList(userId);
         deleteSafe(detailKey(userId, portfolioId));

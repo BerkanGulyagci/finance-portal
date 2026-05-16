@@ -1,11 +1,11 @@
 package com.finance.portal.portfolio.service;
 
-import com.finance.portal.portfolio.dto.AddTransactionRequest;
-import com.finance.portal.portfolio.dto.AddWatchlistItemRequest;
-import com.finance.portal.portfolio.dto.CreatePortfolioRequest;
-import com.finance.portal.portfolio.dto.PortfolioResponse;
-import com.finance.portal.portfolio.dto.UpdatePortfolioRequest;
-import com.finance.portal.portfolio.dto.WatchlistItemResponse;
+import com.finance.portal.portfolio.presentation.dto.AddTransactionRequest;
+import com.finance.portal.portfolio.presentation.dto.AddWatchlistItemRequest;
+import com.finance.portal.portfolio.presentation.dto.CreatePortfolioRequest;
+import com.finance.portal.portfolio.presentation.dto.PortfolioResponse;
+import com.finance.portal.portfolio.presentation.dto.UpdatePortfolioRequest;
+import com.finance.portal.portfolio.presentation.dto.WatchlistItemResponse;
 
 import java.util.List;
 import java.util.UUID;

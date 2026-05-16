@@ -1,6 +1,7 @@
 package com.finance.portal.news.infrastructure.external;
 
-import com.finance.portal.news.presentation.dto.NewsItemDto;
+import com.finance.portal.news.application.model.NewsArticle;
+import com.finance.portal.news.application.port.BloombergNewsPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
@@ -24,13 +25,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Component
-public class BloombergHtRssClient {
+public class BloombergHtRssClient implements BloombergNewsPort {
 
     private static final Logger log = LoggerFactory.getLogger(BloombergHtRssClient.class);
     private static final String RSS_URL = "https://www.bloomberght.com/rss";
     private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
 
-    // og:image pattern in HTML
     private static final Pattern OG_IMAGE_PATTERN =
             Pattern.compile("<meta[^>]+property=[\"']og:image[\"'][^>]+content=[\"']([^\"']+)[\"']", Pattern.CASE_INSENSITIVE);
     private static final Pattern OG_IMAGE_PATTERN2 =
@@ -42,12 +42,15 @@ public class BloombergHtRssClient {
         this.restTemplate = restTemplate;
     }
 
-    public List<NewsItemDto> fetchNews() {
+    @Override
+    public List<NewsArticle> fetchNews() {
         try {
             byte[] bytes = restTemplate.getForObject(RSS_URL, byte[].class);
-            if (bytes == null || bytes.length == 0) return List.of();
+            if (bytes == null || bytes.length == 0) {
+                return List.of();
+            }
             String xml = new String(bytes, StandardCharsets.UTF_8);
-            List<NewsItemDto> items = parseRss(xml);
+            List<NewsArticle> items = parseRss(xml);
             enrichWithOgImages(items);
             return items;
         } catch (Exception e) {
@@ -56,22 +59,22 @@ public class BloombergHtRssClient {
         }
     }
 
-    /**
-     * For items without a valid image, fetch og:image from the article page.
-     * Only fetches for first 10 items to avoid too many requests.
-     */
-    private void enrichWithOgImages(List<NewsItemDto> items) {
+    private void enrichWithOgImages(List<NewsArticle> items) {
+        NewsArticle[] slots = items.toArray(NewsArticle[]::new);
         List<CompletableFuture<Void>> futures = new ArrayList<>();
 
-        for (int i = 0; i < items.size(); i++) {
-            final NewsItemDto item = items.get(i);
-            if (item.getUrl() == null) continue;
+        for (int i = 0; i < slots.length; i++) {
+            final int index = i;
+            final NewsArticle item = slots[index];
+            if (item == null || item.getUrl() == null) {
+                continue;
+            }
 
             futures.add(CompletableFuture.runAsync(() -> {
                 try {
                     String ogImage = fetchOgImage(item.getUrl());
                     if (ogImage != null) {
-                        item.setImageUrl(ogImage);
+                        slots[index] = item.withImageUrl(ogImage);
                     }
                 } catch (Exception e) {
                     log.debug("Failed to fetch og:image for {}: {}", item.getUrl(), e.getMessage());
@@ -79,12 +82,16 @@ public class BloombergHtRssClient {
             }));
         }
 
-        // Wait for all with timeout
         try {
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
                     .get(30, java.util.concurrent.TimeUnit.SECONDS);
         } catch (Exception e) {
             log.debug("og:image enrichment timed out or failed: {}", e.getMessage());
+        }
+
+        items.clear();
+        for (NewsArticle slot : slots) {
+            items.add(slot);
         }
     }
 
@@ -97,16 +104,21 @@ public class BloombergHtRssClient {
 
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
             String html = response.getBody();
-            if (html == null) return null;
+            if (html == null) {
+                return null;
+            }
 
-            // Only search first 5KB for og:image (it's in <head>)
             String head = html.length() > 5000 ? html.substring(0, 5000) : html;
 
             Matcher m = OG_IMAGE_PATTERN.matcher(head);
-            if (m.find()) return m.group(1);
+            if (m.find()) {
+                return m.group(1);
+            }
 
             m = OG_IMAGE_PATTERN2.matcher(head);
-            if (m.find()) return m.group(1);
+            if (m.find()) {
+                return m.group(1);
+            }
 
             return null;
         } catch (Exception e) {
@@ -114,29 +126,29 @@ public class BloombergHtRssClient {
         }
     }
 
-    private List<NewsItemDto> parseRss(String xml) throws Exception {
+    private List<NewsArticle> parseRss(String xml) throws Exception {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
         DocumentBuilder builder = factory.newDocumentBuilder();
         Document doc = builder.parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
 
         NodeList items = doc.getElementsByTagName("item");
-        List<NewsItemDto> result = new ArrayList<>();
+        List<NewsArticle> result = new ArrayList<>();
 
         for (int i = 0; i < items.getLength(); i++) {
             Element item = (Element) items.item(i);
-            String title       = directChildText(item, "title");
+            String title = directChildText(item, "title");
             String description = directChildText(item, "description");
-            String link        = directChildText(item, "link");
-            String pubDate     = directChildText(item, "pubDate");
+            String link = directChildText(item, "link");
+            String pubDate = directChildText(item, "pubDate");
 
-            result.add(new NewsItemDto(title, description, link, null, pubDate, "BloombergHT", null));
+            result.add(new NewsArticle(title, description, link, null, pubDate, "BloombergHT", null));
         }
         return result;
     }
 
     private String directChildText(Element parent, String tag) {
-        org.w3c.dom.NodeList children = parent.getChildNodes();
+        NodeList children = parent.getChildNodes();
         for (int i = 0; i < children.getLength(); i++) {
             org.w3c.dom.Node node = children.item(i);
             if (node.getNodeType() == org.w3c.dom.Node.ELEMENT_NODE

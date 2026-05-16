@@ -74,16 +74,16 @@ The application starts on port `8080` by default.
 
 ### Configuration
 
-Configuration is managed through `src/main/resources/application.yml`:
+Configuration is managed through `src/main/resources/application.yml`.
 
-```yaml
-server:
-  port: 8080
+**Gizli anahtarlar (EVDS vb.):** `backend/finance-portal-backend/.env.local` dosyasına yazın (git'e girmez). İlk kurulum:
 
-spring:
-  application:
-    name: finance-portal-backend
+```bash
+cp .env.local.example .env.local
+# .env.local içinde EVDS_API_KEY değerini doldurun
 ```
+
+`mvn spring-boot:run` bu dosyayı otomatik okur. Docker Compose da aynı dosyayı `env_file` ile backend konteynerine aktarır.
 
 ## Testing
 

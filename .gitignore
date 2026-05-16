@@ -36,6 +36,7 @@ build/
 .env
 .env.local
 .env.*.local
+backend/finance-portal-backend/.env.local
 
 ### Frontend ###
 frontend/**/node_modules/
