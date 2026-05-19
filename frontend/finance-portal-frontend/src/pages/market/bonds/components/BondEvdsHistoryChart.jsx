@@ -5,19 +5,15 @@ import { getEvdsBondHistory, getEvdsBondDetail } from '../../../../api/marketApi
 import BondCompareSelector   from './BondCompareSelector';
 import BondComparisonSummary from './BondComparisonSummary';
 import {
+  BOND_CHART_PERIODS,
   toKlineData, normalizeSeries, mergeByDate,
   findCommonStartDate, calculatePeriodChangePercent,
+  prepareBondLineChartPoints,
+  filterBondHistoryByDays,
   fmtNum, fmtPct,
 } from './bondChartUtils';
 
-// ── Sabitler ──────────────────────────────────────────────────────────────────
-const PERIODS = [
-  { key: 'ONE_WEEK',     label: '1 Hafta', days: 7   },
-  { key: 'ONE_MONTH',    label: '1 Ay',    days: 30  },
-  { key: 'THREE_MONTHS', label: '3 Ay',    days: 90  },
-  { key: 'SIX_MONTHS',   label: '6 Ay',    days: 180 },
-  { key: 'ONE_YEAR',     label: '1 Yıl',   days: 365 },
-];
+const PERIODS = BOND_CHART_PERIODS;
 
 const MAIN_COLOR    = '#093eaa';
 const COMPARE_COLOR = '#f97316';
@@ -349,33 +345,37 @@ export default function BondEvdsHistoryChart({
     }
   }, [compareCode]);
 
-  // Period'a göre filtrele
-  const filteredPoints = useMemo(() => {
-    const periodDef = PERIODS.find(p => p.key === period);
-    if (!periodDef) return allPoints;
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - periodDef.days);
-    const cutoffStr = cutoff.toISOString().slice(0, 10);
-    return allPoints.filter(p => p.date >= cutoffStr);
-  }, [allPoints, period]);
+  const periodDays = useMemo(
+    () => (PERIODS.find((p) => p.key === period) ?? PERIODS[1]).days,
+    [period],
+  );
 
-  const filteredComparePoints = useMemo(() => {
-    if (!comparePoints.length) return [];
-    const periodDef = PERIODS.find(p => p.key === period);
-    if (!periodDef) return comparePoints;
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - periodDef.days);
-    const cutoffStr = cutoff.toISOString().slice(0, 10);
-    return comparePoints.filter(p => p.date >= cutoffStr);
-  }, [comparePoints, period]);
+  const statsPoints = useMemo(
+    () => filterBondHistoryByDays(allPoints, periodDays),
+    [allPoints, periodDays],
+  );
+  const statsComparePoints = useMemo(
+    () => filterBondHistoryByDays(comparePoints, periodDays),
+    [comparePoints, periodDays],
+  );
+
+  const { points: filteredPoints, usesWeeklySampling } = useMemo(
+    () => prepareBondLineChartPoints(allPoints, period),
+    [allPoints, period],
+  );
+
+  const { points: filteredComparePoints } = useMemo(
+    () => prepareBondLineChartPoints(comparePoints, period),
+    [comparePoints, period],
+  );
 
   const mainPeriodPct = useMemo(
-    () => calculatePeriodChangePercent(filteredPoints),
-    [filteredPoints]
+    () => calculatePeriodChangePercent(statsPoints),
+    [statsPoints],
   );
   const comparePeriodPct = useMemo(
-    () => calculatePeriodChangePercent(filteredComparePoints),
-    [filteredComparePoints]
+    () => calculatePeriodChangePercent(statsComparePoints),
+    [statsComparePoints],
   );
   const periodPos = (mainPeriodPct ?? 0) >= 0;
   const currentPeriod = PERIODS.find(p => p.key === period) ?? PERIODS[1];
@@ -556,6 +556,12 @@ export default function BondEvdsHistoryChart({
           compareHistory={filteredComparePoints}
           period={currentPeriod.label}
         />
+      )}
+
+      {period === 'FIVE_YEARS' && usesWeeklySampling && (
+        <p className="text-xs text-amber-700/90 mt-2">
+          5Y görünüm: EVDS günlük verisi haftalık son değerle sadeleştirildi (okunabilirlik).
+        </p>
       )}
 
       <p className="text-xs text-gray-400 mt-3">

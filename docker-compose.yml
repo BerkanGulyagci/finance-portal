@@ -140,6 +140,9 @@ services:
     image: quay.io/keycloak/keycloak:26.0
     container_name: finance-portal-keycloak
     command: ["start-dev"]
+    env_file:
+      - path: .env.local
+        required: false
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
@@ -148,6 +151,9 @@ services:
       KC_DB_USERNAME: berkan
       KC_DB_PASSWORD: "123"
       KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME: ${KC_HOSTNAME:-localhost}
+      KC_HOSTNAME_PORT: ${KC_HOSTNAME_PORT:-8081}
+      KC_HOSTNAME_STRICT: ${KC_HOSTNAME_STRICT:-false}
       TZ: Europe/Istanbul
       KC_SPI_THEME_CACHE_THEMES: "false"
       KC_SPI_THEME_CACHE_TEMPLATES: "false"

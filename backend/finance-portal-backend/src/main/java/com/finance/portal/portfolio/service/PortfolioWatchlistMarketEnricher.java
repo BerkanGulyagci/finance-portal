@@ -20,12 +20,15 @@ import com.finance.portal.market.application.silver.SilverMarketService;
 import com.finance.portal.market.application.silver.SilverSpotResponse;
 import com.finance.portal.market.application.stock.StockQueryService;
 import com.finance.portal.market.application.stock.StockSummary;
+import com.finance.portal.market.application.viop.ViopContract;
+import com.finance.portal.market.application.viop.ViopService;
+import com.finance.portal.market.application.viop.model.ViopContractDetail;
 import com.finance.portal.market.application.service.MarketFxService;
-import com.finance.portal.market.crypto.application.CryptoMarketItem;
-import com.finance.portal.market.crypto.application.CryptoMarketService;
-import com.finance.portal.market.infrastructure.external.precious.PreciousMetalType;
-import com.finance.portal.market.presentation.dto.FxLatestResponse;
-import com.finance.portal.market.presentation.dto.FxRateItemDto;
+import com.finance.portal.market.application.crypto.CryptoMarketService;
+import com.finance.portal.market.application.crypto.model.CryptoMarketItem;
+import com.finance.portal.market.application.precious.model.PreciousMetalType;
+import com.finance.portal.market.application.fx.model.FxLatestRates;
+import com.finance.portal.market.application.fx.model.FxRateItem;
 import com.finance.portal.portfolio.application.port.WatchlistMarketEnrichmentPort;
 import com.finance.portal.portfolio.presentation.dto.WatchlistItemResponse;
 import com.finance.portal.portfolio.service.support.PortfolioDateTimeParse;
@@ -41,6 +44,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * İzleme listesi satırları için canlı piyasa alanlarını doldurur (portfolio holding mantığından ayrı).
@@ -59,6 +63,7 @@ public class PortfolioWatchlistMarketEnricher implements WatchlistMarketEnrichme
     private final YahooCommodityService yahooCommodityService;
     private final GoldMarketService goldMarketService;
     private final EvdsBondService evdsBondService;
+    private final ViopService viopService;
 
     public PortfolioWatchlistMarketEnricher(CryptoMarketService cryptoMarketService,
                                             StockQueryService stockQueryService,
@@ -68,7 +73,8 @@ public class PortfolioWatchlistMarketEnricher implements WatchlistMarketEnrichme
                                             PreciousMetalService preciousMetalService,
                                             YahooCommodityService yahooCommodityService,
                                             GoldMarketService goldMarketService,
-                                            EvdsBondService evdsBondService) {
+                                            EvdsBondService evdsBondService,
+                                            ViopService viopService) {
         this.cryptoMarketService = cryptoMarketService;
         this.stockQueryService = stockQueryService;
         this.marketFxService = marketFxService;
@@ -78,6 +84,7 @@ public class PortfolioWatchlistMarketEnricher implements WatchlistMarketEnrichme
         this.yahooCommodityService = yahooCommodityService;
         this.goldMarketService = goldMarketService;
         this.evdsBondService = evdsBondService;
+        this.viopService = viopService;
     }
 
     @Override
@@ -91,7 +98,8 @@ public class PortfolioWatchlistMarketEnricher implements WatchlistMarketEnrichme
 
             switch (type) {
                 case CRYPTO -> enrichCrypto(r, symbol);
-                case STOCK, FUTURE -> enrichStockLike(r, symbol);
+                case STOCK -> enrichStockLike(r, symbol);
+                case FUTURE -> enrichFuture(r, symbol);
                 case FUND -> enrichFund(r, symbol);
                 case FX -> enrichFx(r, symbol);
                 case GOLD -> enrichGold(r, symbol);
@@ -109,8 +117,8 @@ public class PortfolioWatchlistMarketEnricher implements WatchlistMarketEnrichme
 
     private void enrichFx(WatchlistItemResponse r, String symbol) {
         String sym = symbol.toUpperCase();
-        FxLatestResponse fx = marketFxService.getTcmbLatestRates(sym);
-        FxRateItemDto rate = fx.getRates().stream()
+        FxLatestRates fx = marketFxService.getTcmbLatestRates(sym);
+        FxRateItem rate = fx.getRates().stream()
                 .filter(x -> sym.equalsIgnoreCase(x.getSymbol()))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("FX rate not found: " + sym));
@@ -153,6 +161,51 @@ public class PortfolioWatchlistMarketEnricher implements WatchlistMarketEnrichme
     private void enrichStockLike(WatchlistItemResponse r, String symbol) {
         StockSummary s = stockQueryService.getStockSummary(symbol.toUpperCase());
         applyStockSummary(r, s);
+    }
+
+    /**
+     * VİOP kontratları Akbank listesinden; Yahoo vadelileri (ES=F vb.) hisse özeti ile.
+     */
+    private void enrichFuture(WatchlistItemResponse r, String symbol) {
+        String contractName = symbol != null ? symbol.trim() : "";
+        if (contractName.isBlank()) {
+            return;
+        }
+        Optional<ViopContract> match = viopService.findMatchingContract(contractName);
+        if (match.isPresent()) {
+            applyViopDetail(r, viopService.buildDetailDto(match.get()));
+            return;
+        }
+        enrichStockLike(r, symbol);
+    }
+
+    private void applyViopDetail(WatchlistItemResponse r, ViopContractDetail d) {
+        BigDecimal current = d.getLastPrice();
+        if (current == null) {
+            current = d.getSettlementPrice();
+        }
+        if (current == null) {
+            throw new IllegalArgumentException("VIOP price not available for: " + r.getSymbol());
+        }
+
+        r.setLastPrice(current);
+        r.setCurrency("TRY");
+        r.setHigh(d.getHigh());
+        r.setLow(d.getLow());
+        r.setChangePercent(d.getChangePercent());
+
+        BigDecimal prevSet = d.getPrevSettlementPrice();
+        if (prevSet != null) {
+            r.setChange(current.subtract(prevSet).setScale(4, RoundingMode.HALF_UP));
+            r.setOpen(prevSet);
+        }
+
+        if (d.getOpenPositionCount() != null) {
+            r.setVolume(d.getOpenPositionCount());
+        }
+
+        LocalDateTime asOf = PortfolioDateTimeParse.parseLenient(d.getTime());
+        r.setAsOf(asOf != null ? asOf : LocalDateTime.now());
     }
 
     private void applyStockSummary(WatchlistItemResponse r, StockSummary s) {

@@ -1,8 +1,8 @@
 package com.finance.portal.market.application.viop;
 
-import com.finance.portal.common.infrastructure.exception.ResourceNotFoundException;
-import com.finance.portal.market.infrastructure.external.viop.AkbankViopClient;
-import com.finance.portal.market.presentation.dto.ViopContractDetailDto;
+import com.finance.portal.common.application.exception.ResourceNotFoundException;
+import com.finance.portal.market.application.viop.model.ViopContractDetail;
+import com.finance.portal.market.application.viop.port.ViopContractListPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.Cacheable;
@@ -49,17 +49,17 @@ public class ViopService {
         // Sadece bilinen ve doğrulanmış sembolleri ekleyin
     }
 
-    private final AkbankViopClient akbankViopClient;
+    private final ViopContractListPort viopContractListPort;
     private final ViopService self;
 
-    public ViopService(AkbankViopClient akbankViopClient, @Lazy ViopService self) {
-        this.akbankViopClient = akbankViopClient;
+    public ViopService(ViopContractListPort viopContractListPort, @Lazy ViopService self) {
+        this.viopContractListPort = viopContractListPort;
         this.self = self;
     }
 
     @Cacheable(cacheNames = "market.viop.contracts", key = "'all'")
     public List<ViopContract> getAllContracts() {
-        List<ViopContract> list = akbankViopClient.fetchContracts();
+        List<ViopContract> list = viopContractListPort.fetchContracts();
         return list != null ? list : List.of();
     }
 
@@ -141,7 +141,7 @@ public class ViopService {
     /**
      * Ham {@link ViopContract} → detay DTO (portföy enrichment; listeden doğrudan).
      */
-    public ViopContractDetailDto buildDetailDto(ViopContract contract) {
+    public ViopContractDetail buildDetailDto(ViopContract contract) {
         if (contract == null) {
             throw new IllegalArgumentException("contract must not be null");
         }
@@ -153,7 +153,7 @@ public class ViopService {
      * HTTP / istemci: kontrat detayı. Beklenmeyen hataları yutup 404 benzeri mesaj (500 önleme).
      * Önbellek: {@link #getContractDetailCached} (proxy üzerinden).
      */
-    public ViopContractDetailDto getContractDetail(String symbol) {
+    public ViopContractDetail getContractDetail(String symbol) {
         if (symbol == null || symbol.trim().isEmpty()) {
             throw new IllegalArgumentException("VIOP kontrat adı boş olamaz");
         }
@@ -178,7 +178,7 @@ public class ViopService {
             cacheNames = "market.viop.detail",
             key = "T(org.springframework.util.DigestUtils).md5DigestAsHex(#p0.getBytes(T(java.nio.charset.StandardCharsets).UTF_8))"
     )
-    public ViopContractDetailDto getContractDetailCached(String symbol) {
+    public ViopContractDetail getContractDetailCached(String symbol) {
         List<ViopContract> contracts = getAllContracts();
 
         if (contracts.isEmpty()) {
@@ -383,8 +383,8 @@ public class ViopService {
         };
     }
 
-    private ViopContractDetailDto mapToDetailDto(ViopContract contract, String symbol) {
-        ViopContractDetailDto dto = new ViopContractDetailDto();
+    private ViopContractDetail mapToDetailDto(ViopContract contract, String symbol) {
+        ViopContractDetail dto = new ViopContractDetail();
         dto.setName(contract.getName());
         dto.setSymbol(symbol);
         dto.setLastPrice(parseBigDecimal(contract.getLastPrice()));

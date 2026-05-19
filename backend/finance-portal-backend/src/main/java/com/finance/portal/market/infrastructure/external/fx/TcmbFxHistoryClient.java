@@ -1,6 +1,7 @@
 package com.finance.portal.market.infrastructure.external.fx;
 
-import com.finance.portal.market.presentation.dto.FxHistoryPoint;
+import com.finance.portal.market.application.fx.model.FxHistoryPoint;
+import com.finance.portal.market.application.fx.port.TcmbFxHistoryPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -33,7 +34,7 @@ import java.util.concurrent.TimeUnit;
  * Tüm iş günleri paralel çekilir (flat parallelism, deadlock yok).
  */
 @Component
-public class TcmbFxHistoryClient {
+public class TcmbFxHistoryClient implements TcmbFxHistoryPort {
 
     private static final Logger log = LoggerFactory.getLogger(TcmbFxHistoryClient.class);
     private static final String BASE_URL = "https://www.tcmb.gov.tr/kurlar";
@@ -54,6 +55,7 @@ public class TcmbFxHistoryClient {
      * Belirtilen tarih aralığı için döviz kuru tarihsel verisini döndürür.
      * Tüm iş günleri tek seferde paralel çekilir.
      */
+    @Override
     public List<FxHistoryPoint> fetchHistory(String currencyCode, LocalDate from, LocalDate to) {
         // Tüm iş günlerini listele
         List<LocalDate> workdays = new ArrayList<>();

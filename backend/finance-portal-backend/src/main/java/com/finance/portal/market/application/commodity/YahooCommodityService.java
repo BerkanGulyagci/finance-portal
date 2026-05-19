@@ -1,10 +1,12 @@
 package com.finance.portal.market.application.commodity;
 
 import com.finance.portal.market.application.service.MarketFxService;
-import com.finance.portal.market.infrastructure.external.yahoo.YahooChartClient;
-import com.finance.portal.market.infrastructure.external.yahoo.YahooChartResponseDto;
-import com.finance.portal.market.presentation.dto.FxLatestResponse;
-import com.finance.portal.market.presentation.dto.FxRateItemDto;
+import com.finance.portal.market.application.stock.model.YahooChartSnapshot;
+import com.finance.portal.market.application.stock.model.YahooQuoteSeries;
+import com.finance.portal.market.application.stock.model.YahooStockMeta;
+import com.finance.portal.market.application.stock.port.YahooStockPort;
+import com.finance.portal.market.application.fx.model.FxLatestRates;
+import com.finance.portal.market.application.fx.model.FxRateItem;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -43,7 +45,7 @@ public class YahooCommodityService {
     private static final BigDecimal HUNDRED = new BigDecimal("100");
     private static final ZoneId     UTC     = ZoneOffset.UTC;
 
-    private final YahooChartClient yahooChartClient;
+    private final YahooStockPort yahooStockPort;
     private final MarketFxService marketFxService;
 
     // ── Cache temizleme ───────────────────────────────────────────────────────
@@ -90,17 +92,15 @@ public class YahooCommodityService {
         CommoditySpotDto dto = buildBaseSpot(cs);
 
         try {
-            YahooChartResponseDto resp = yahooChartClient.fetchChartWithParams(
-                    cs.getSymbol(), "1d", "1m");
+            YahooChartSnapshot resp = yahooStockPort.fetchChartWithParams(cs.getSymbol(), "1d", "1m");
 
-            YahooChartResponseDto.Result result = firstResult(resp);
-            if (result == null) {
+            if (!resp.hasMeta()) {
                 log.warn("Yahoo returned empty result for {}", cs.getSymbol());
                 dto.setStale(true);
                 return dto;
             }
 
-            YahooChartResponseDto.Meta meta = result.getMeta();
+            YahooStockMeta meta = resp.getMeta();
             String yahooCurrency = meta.getCurrency();
             boolean isCent = "USX".equalsIgnoreCase(yahooCurrency) || cs.isNeedsCentConversion();
 
@@ -179,20 +179,19 @@ public class YahooCommodityService {
         resp.setPoints(new ArrayList<>());
 
         try {
-            YahooChartResponseDto yahooResp = yahooChartClient.fetchChartWithParams(
+            YahooChartSnapshot yahooResp = yahooStockPort.fetchChartWithParams(
                     cs.getSymbol(), yahooRange, yahooInterval);
 
-            YahooChartResponseDto.Result result = firstResult(yahooResp);
-            if (result == null || result.getTimestamp() == null) {
+            if (yahooResp.getTimestamps() == null || yahooResp.getTimestamps().isEmpty()) {
                 log.warn("Yahoo returned empty history for {}", cs.getSymbol());
                 return resp;
             }
 
-            String yahooCurrency = result.getMeta() != null ? result.getMeta().getCurrency() : null;
+            String yahooCurrency = yahooResp.getMeta() != null ? yahooResp.getMeta().getCurrency() : null;
             boolean isCent = "USX".equalsIgnoreCase(yahooCurrency) || cs.isNeedsCentConversion();
 
-            List<Long>       timestamps = result.getTimestamp();
-            YahooChartResponseDto.Quote quote = firstQuote(result);
+            List<Long> timestamps = yahooResp.getTimestamps();
+            YahooQuoteSeries quote = yahooResp.getQuote();
 
             List<CommodityHistoryPointDto> points = new ArrayList<>();
 
@@ -317,13 +316,13 @@ public class YahooCommodityService {
 
     private BigDecimal resolveTcmbUsdTry() {
         try {
-            FxLatestResponse fx = marketFxService.getTcmbLatestRates("USD");
+            FxLatestRates fx = marketFxService.getTcmbLatestRates("USD");
             if (fx.getRates() == null) {
                 return null;
             }
             return fx.getRates().stream()
                     .filter(r -> "USD".equalsIgnoreCase(r.getSymbol()))
-                    .map(FxRateItemDto::getSell)
+                    .map(FxRateItem::getSell)
                     .filter(v -> v != null && v.compareTo(BigDecimal.ZERO) > 0)
                     .findFirst()
                     .orElse(null);
@@ -331,20 +330,6 @@ public class YahooCommodityService {
             log.warn("TCMB USD/TRY unavailable for commodity conversion: {}", e.getMessage());
             return null;
         }
-    }
-
-    private YahooChartResponseDto.Result firstResult(YahooChartResponseDto resp) {
-        if (resp == null || resp.getChart() == null) return null;
-        List<YahooChartResponseDto.Result> results = resp.getChart().getResult();
-        if (results == null || results.isEmpty()) return null;
-        return results.get(0);
-    }
-
-    private YahooChartResponseDto.Quote firstQuote(YahooChartResponseDto.Result result) {
-        if (result.getIndicators() == null) return null;
-        List<YahooChartResponseDto.Quote> quotes = result.getIndicators().getQuote();
-        if (quotes == null || quotes.isEmpty()) return null;
-        return quotes.get(0);
     }
 
     private BigDecimal safeGet(List<BigDecimal> list, int i) {

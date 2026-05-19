@@ -3,6 +3,8 @@ import client from './client';
 function normalizeBistSymbol(symbol) {
   const raw = String(symbol ?? '').trim().toUpperCase();
   if (!raw) return raw;
+  // Yahoo kripto: BTC-USD, ETH-EUR — BIST .IS ekleme
+  if (raw.includes('-')) return raw;
   return raw.includes('.') ? raw : `${raw}.IS`;
 }
 
@@ -41,9 +43,42 @@ export async function getCryptoOhlc(coinId, days = 7, currency = 'try') {
   return data.data ?? [];
 }
 
-export async function getCryptoChart(coinId, days = 7, currency = 'try') {
-  const { data } = await client.get(`/api/market/crypto/${encodeURIComponent(coinId)}/chart`, { params: { days, currency } });
+export async function getCryptoChart(coinId, days = 7, currency = 'try', interval, aggregate) {
+  const params = { days, currency };
+  if (interval) params.interval = interval;
+  if (aggregate) params.aggregate = aggregate;
+  const { data } = await client.get(`/api/market/crypto/${encodeURIComponent(coinId)}/chart`, { params });
   return data.data ?? {};
+}
+
+/** TRY 5Y / Tüm — Binance Spot klines (boşsa Yahoo fallback) */
+export async function getCryptoBinanceCandles(symbol, range, currency = 'try') {
+  const { data } = await client.get(
+    `/api/market/crypto/${encodeURIComponent(String(symbol).toLowerCase())}/candles`,
+    { params: { range, currency: (currency ?? 'try').toLowerCase() } },
+  );
+  if (data?.success === false) {
+    throw new Error(data?.message ?? 'Binance candles request failed');
+  }
+  return data?.data ?? [];
+}
+
+/** USD/EUR 5Y / Tüm — Yahoo Finance OHLC (BTC-USD, BTC-EUR) */
+export async function getCryptoYahooOhlc(symbol, range, currency) {
+  const { data } = await client.get(
+    `/api/market/crypto/${encodeURIComponent(symbol)}/yahoo/ohlc`,
+    { params: { range, currency: (currency ?? 'usd').toLowerCase() } },
+  );
+  return data.data ?? [];
+}
+
+/** USD/EUR 5Y / Tüm — Yahoo Finance çizgi grafik */
+export async function getCryptoYahooChart(symbol, range, currency) {
+  const { data } = await client.get(
+    `/api/market/crypto/${encodeURIComponent(symbol)}/yahoo/chart`,
+    { params: { range, currency: (currency ?? 'usd').toLowerCase() } },
+  );
+  return data.data ?? null;
 }
 
 export async function getCryptoDetail(coinId) {
@@ -261,6 +296,7 @@ export async function getEvdsBondDetail(instrumentCode) {
 /**
  * Kıymetin tarihsel EVDS gösterge değerlerini döndürür.
  * GET /api/market/bonds/evds/{instrumentCode}/history?period={period}
+ * period: ONE_WEEK | ONE_MONTH | THREE_MONTHS | SIX_MONTHS | ONE_YEAR | FIVE_YEARS
  * period: ONE_WEEK | ONE_MONTH | THREE_MONTHS | SIX_MONTHS | ONE_YEAR
  */
 export async function getEvdsBondHistory(instrumentCode, period = 'ONE_MONTH') {

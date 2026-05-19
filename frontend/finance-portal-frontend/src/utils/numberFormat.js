@@ -49,6 +49,35 @@ export function formatPrice(value) {
 }
 
 /**
+ * klinecharts y-ekseni / OHLC tooltip için ondalık hassasiyeti.
+ * Varsayılan 2 ondalık, ~0.00001 TRY gibi mikro fiyatları 0.00 gösterir.
+ */
+export function computeKlinePricePrecision(values) {
+  const nums = (Array.isArray(values) ? values : [])
+    .map((v) => Number(v))
+    .filter((v) => Number.isFinite(v) && v > 0);
+  if (!nums.length) return 2;
+  const min = Math.min(...nums);
+  if (min >= 100) return 2;
+  if (min >= 1) return 4;
+  if (min >= 0.01) return 4;
+  const exp = Math.floor(Math.log10(min));
+  return Math.min(12, Math.max(4, -exp + 3));
+}
+
+export function computeKlineVolumePrecision(values) {
+  const nums = (Array.isArray(values) ? values : [])
+    .map((v) => Number(v))
+    .filter((v) => Number.isFinite(v) && v > 0);
+  if (!nums.length) return 2;
+  const max = Math.max(...nums);
+  if (max >= 1_000_000) return 0;
+  if (max >= 1) return 2;
+  const exp = Math.floor(Math.log10(max));
+  return Math.min(8, Math.max(2, -exp + 2));
+}
+
+/**
  * Adet/Sözleşme formatı (ondalık yok)
  */
 export function formatQuantity(value) {

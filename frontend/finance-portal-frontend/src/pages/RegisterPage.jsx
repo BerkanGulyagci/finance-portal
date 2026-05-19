@@ -41,7 +41,7 @@ export default function RegisterPage() {
         firstName: form.firstName,
         lastName: form.lastName,
       });
-      setSuccess('Kayıt başarılı! Giriş sayfasına yönlendiriliyorsunuz...');
+      setSuccess('Kayıt başarılı! Devam etmek için email adresinizi doğrulayın. Giriş sayfasına yönlendiriliyorsunuz...');
       setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
       setError(err.message);

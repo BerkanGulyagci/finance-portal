@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { getStocks, getStockChart, getAllStocks } from '../../../api/marketApi';
 import { useSortable } from '../../../hooks/useSortable';
 import SortableTh from '../../../components/common/SortableTh';
+import { STOCK_CHART_RANGES, formatStockChartTimeLabel } from './stockChartRanges';
 
 const PAGE_SIZE = 20;
 
@@ -13,14 +14,7 @@ const INDEX_FILTERS = [
   { key: 'BIST100', label: 'BIST 100',     size: 100,       indexSymbol: 'XU100.IS' },
 ];
 
-const CHART_RANGES = [
-  { label: '1G',  range: '1d',  interval: '5m'  },  // ~78 nokta
-  { label: '1H',  range: '5d',  interval: '15m' },  // ~130 nokta
-  { label: '1A',  range: '1mo', interval: '1h'  },  // ~160 nokta
-  { label: '3A',  range: '3mo', interval: '1d'  },  // ~63 nokta
-  { label: '1Y',  range: '1y',  interval: '1d'  },  // ~252 nokta
-  { label: '5Y',  range: '5y',  interval: '1wk' },  // ~260 nokta
-];
+const CHART_RANGES = STOCK_CHART_RANGES;
 
 function IndexChart({ symbol, label }) {
   const [data, setData]         = useState([]);
@@ -40,18 +34,10 @@ function IndexChart({ symbol, label }) {
         const ts     = res?.timestamps  ?? [];
         const prices = res?.closePrices ?? [];
         setData(
-          ts.map((t, i) => {
-            const d = new Date(t * 1000);
-            let label;
-            if (activeRange.range === '1d') {
-              label = d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-            } else if (['5d', '1mo', '3mo'].includes(activeRange.range)) {
-              label = d.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' });
-            } else {
-              label = d.toLocaleDateString('tr-TR', { month: '2-digit', year: '2-digit' });
-            }
-            return { label, price: prices[i] != null ? parseFloat(prices[i]) : null };
-          }).filter(d => d.price != null)
+          ts.map((t, i) => ({
+            label: formatStockChartTimeLabel(t, activeRange.range, activeRange.interval),
+            price: prices[i] != null ? parseFloat(prices[i]) : null,
+          })).filter(d => d.price != null)
         );
       })
       .catch(() => setData([]))

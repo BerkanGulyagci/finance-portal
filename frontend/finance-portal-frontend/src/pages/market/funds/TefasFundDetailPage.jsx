@@ -3,6 +3,7 @@ import { useParams, useLocation, Link } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown } from 'lucide-react';
 import { init as klineInit, dispose as klineDispose } from 'klinecharts';
 import { getRasyonetFundDetail } from '../../../api/marketApi';
+import { FUND_CHART_RANGES, buildFundChartSeries } from './fundChartSeries';
 
 // ── Yardımcılar ───────────────────────────────────────────────────────────────
 
@@ -80,14 +81,6 @@ function ReturnCard({ label, value }) {
 }
 
 // ── Fiyat grafiği (KLineCharts) — zaman filtreli ─────────────────────────────
-
-const CHART_RANGES = [
-  { key: '1W',  label: '1H',   days: 7   },
-  { key: '1M',  label: '1 Ay', days: 30  },
-  { key: '3M',  label: '3 Ay', days: 90  },
-  { key: '6M',  label: '6 Ay', days: 180 },
-  { key: '1Y',  label: '1 Yıl',days: 365 },
-];
 
 /* ─── Drawing Toolbar (hisse sayfasıyla aynı yapı) ─── */
 const FUND_DRAWING_TOOLS = [
@@ -167,7 +160,7 @@ const FUND_MA_DEFS = [
   { period: 90, color: '#8b5cf6', label: 'MA90' },
 ];
 
-function FundPriceChart({ priceHistory }) {
+function FundPriceChart({ priceHistory, monthlyReturns }) {
   const [range, setRange]           = useState('1Y');
   const [activeMAs, setActiveMAs]   = useState([]);
   const [showTrend, setShowTrend]   = useState(false);
@@ -176,15 +169,10 @@ function FundPriceChart({ priceHistory }) {
   const chartRef       = useRef(null);
   const trendOverlayId = useRef(null);
 
-  // Seçili range'e göre slice
-  const filtered = useMemo(() => {
-    if (!priceHistory || priceHistory.length === 0) return [];
-    const sel = CHART_RANGES.find(r => r.key === range);
-    if (!sel) return priceHistory;
-    const cutoff = Date.now() - sel.days * 86400_000;
-    const result = priceHistory.filter(p => new Date(p.date).getTime() >= cutoff);
-    return result.length > 0 ? result : priceHistory.slice(-sel.days);
-  }, [priceHistory, range]);
+  const { points: filtered, usesMonthlyExtension } = useMemo(
+    () => buildFundChartSeries(priceHistory, monthlyReturns, range),
+    [priceHistory, monthlyReturns, range],
+  );
 
   // Trend hesabı — filtrelenmiş veri üzerinden
   const trendInfo = useMemo(() => {
@@ -419,15 +407,18 @@ function FundPriceChart({ priceHistory }) {
             </span>
           )}
         </div>
-        <div className="flex gap-1">
-          {CHART_RANGES.map(r => (
-            <button key={r.key} onClick={() => setRange(r.key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                range === r.key ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}>
-              {r.label}
-            </button>
-          ))}
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          <span className="text-xs text-gray-400">{filtered.length} veri noktası</span>
+          <div className="flex gap-1">
+            {FUND_CHART_RANGES.map(r => (
+              <button key={r.key} onClick={() => setRange(r.key)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  range === r.key ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}>
+                {r.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -481,6 +472,12 @@ function FundPriceChart({ priceHistory }) {
         )}
         <div id={chartId.current} style={{ width: '100%', height: '320px' }} />
       </div>
+
+      {range === '5Y' && usesMonthlyExtension && (
+        <p className="text-xs text-amber-700/90 mt-2">
+          5Y görünüm: son ~1 yıl günlük fiyat; daha eski dönem aylık getirilerden tahmini seri (Rasyonet).
+        </p>
+      )}
     </div>
   );
 }
@@ -843,13 +840,8 @@ export default function TefasFundDetailPage() {
           {activeTab === 'chart' && (
             <div className="space-y-5">
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <h2 className="font-bold text-gray-900">Fiyat Grafiği</h2>
-                  {d.priceHistory && (
-                    <span className="text-xs text-gray-400">{d.priceHistory.length} veri noktası</span>
-                  )}
-                </div>
-                <FundPriceChart priceHistory={d.priceHistory} />
+                <h2 className="font-bold text-gray-900 mb-2">Fiyat Grafiği</h2>
+                <FundPriceChart priceHistory={d.priceHistory} monthlyReturns={d.monthlyReturns} />
                 <p className="text-xs text-gray-400 mt-3">Kaynak: Rasyonet · YatırımDirekt</p>
               </div>
 

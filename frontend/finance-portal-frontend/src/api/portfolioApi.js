@@ -46,6 +46,16 @@ export async function deleteTransaction(portfolioId, transactionId) {
   return wrapper.data;
 }
 
+// ── Performance chart ───────────────────────────────────────────────────────
+
+export async function getPortfolioPerformance(portfolioId, range, metric) {
+  const { data: wrapper } = await client.get(
+    `/api/portfolios/${portfolioId}/performance`,
+    { params: { range, metric } },
+  );
+  return wrapper.data;
+}
+
 // ── Watchlist ─────────────────────────────────────────────────────────────────
 
 export async function getWatchlistItems(portfolioId) {

@@ -24,7 +24,8 @@ import java.util.List;
 @RequestMapping("/api/market/stocks")
 public class MarketStockController {
 
-    private static final String SYMBOL_REGEX = "^[A-Z0-9.=]{1,15}$";
+    /** BIST (.IS) ve Yahoo kripto (BTC-USD) sembolleri */
+    private static final String SYMBOL_REGEX = "^[A-Z0-9.=^-]{1,20}$";
 
     private final StockQueryService stockQueryService;
 

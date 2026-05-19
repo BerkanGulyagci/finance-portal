@@ -1,7 +1,7 @@
 package com.finance.portal.common.presentation.filter;
 
-import com.finance.portal.common.infrastructure.logging.RequestLogEvent;
-import com.finance.portal.common.infrastructure.logging.RequestLogKafkaPublisher;
+import com.finance.portal.common.application.logging.model.RequestLogEvent;
+import com.finance.portal.common.application.logging.port.RequestLogPublisherPort;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanContext;
 import jakarta.servlet.FilterChain;
@@ -46,11 +46,10 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
 
     private static final String ACTUATOR_PREFIX = "/actuator";
 
-    private final RequestLogKafkaPublisher kafkaPublisher;
+    private final RequestLogPublisherPort requestLogPublisher;
 
-    // Constructor injection — @Autowired(required=false) field injection filter'larda güvenilmez
-    public RequestLoggingFilter(@Autowired(required = false) RequestLogKafkaPublisher kafkaPublisher) {
-        this.kafkaPublisher = kafkaPublisher;
+    public RequestLoggingFilter(@Autowired(required = false) RequestLogPublisherPort requestLogPublisher) {
+        this.requestLogPublisher = requestLogPublisher;
     }
 
     @Override
@@ -136,7 +135,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             log.info(message);
 
             // Kafka'ya async/best-effort gönder
-            if (kafkaPublisher != null) {
+            if (requestLogPublisher != null) {
                 try {
                     RequestLogEvent event = RequestLogEvent.builder()
                             .timestamp(ISO_FMT.format(Instant.ofEpochMilli(startTime)))
@@ -153,7 +152,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
                             .traceId(traceId)
                             .spanId(spanId)
                             .build();
-                    kafkaPublisher.publish(event);
+                    requestLogPublisher.publish(event);
                 } catch (Exception e) {
                     // Kafka gönderimi hiçbir zaman filter'ı crash etmemeli
                     System.err.println("[RequestLoggingFilter] Kafka publish error: " + e.getMessage());

@@ -1,5 +1,6 @@
 package com.finance.portal.market.infrastructure.external.fx.hesapkurdu;
 
+import com.finance.portal.market.application.currency.model.HesapkurduFxItem;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 

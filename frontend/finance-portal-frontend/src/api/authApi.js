@@ -9,12 +9,47 @@ const AUTH_ENDPOINT = `${KEYCLOAK_URL}/realms/${REALM}/protocol/openid-connect/a
 const TOKEN_ENDPOINT = `${KEYCLOAK_URL}/realms/${REALM}/protocol/openid-connect/token`;
 const LOGOUT_ENDPOINT = `${KEYCLOAK_URL}/realms/${REALM}/protocol/openid-connect/logout`;
 
+const PKCE_VERIFIER_KEY = 'pkce_verifier';
+const OAUTH_STATE_KEY = 'oauth_state';
+
+export const OAUTH_ACTION_COMPLETE_MESSAGE =
+  'Şifre sıfırlama işlemi tamamlandıysa lütfen yeni şifrenizle tekrar giriş yapın.';
+
+/**
+ * Keycloak forgot-password / required-action redirectleri PKCE login state'i taşımaz.
+ * Normal login callback'inden ayırt etmek için kullanılır.
+ */
+export class OAuthActionCompleteError extends Error {
+  constructor(message = OAUTH_ACTION_COMPLETE_MESSAGE) {
+    super(message);
+    this.name = 'OAuthActionCompleteError';
+  }
+}
+
+export function isOAuthLoginPending() {
+  return !!(
+    sessionStorage.getItem(PKCE_VERIFIER_KEY) && sessionStorage.getItem(OAUTH_STATE_KEY)
+  );
+}
+
+export function clearOAuthPkceSession() {
+  sessionStorage.removeItem(PKCE_VERIFIER_KEY);
+  sessionStorage.removeItem(OAUTH_STATE_KEY);
+}
+
 // ── PKCE helpers ──────────────────────────────────────────────────────────────
+function bytesToBase64Url(bytes) {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 1) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
 function generateCodeVerifier() {
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
-  return btoa(String.fromCharCode(...array))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  return bytesToBase64Url(array);
 }
 
 async function generateCodeChallenge(verifier) {
@@ -30,13 +65,21 @@ async function generateCodeChallenge(verifier) {
  * Redirects user to Keycloak login page (Authorization Code + PKCE).
  * Keycloak handles password + TOTP in its own UI.
  */
-export async function redirectToLogin() {
+/**
+ * PKCE login başlatır ve Keycloak authorize URL'ine yönlendirir.
+ * @param {Event} [event] React click event (opsiyonel)
+ */
+export async function redirectToLogin(event) {
+  event?.preventDefault?.();
+
+  clearOAuthPkceSession();
+
   const verifier = generateCodeVerifier();
   const challenge = await generateCodeChallenge(verifier);
-  const state = generateCodeVerifier(); // random state for CSRF
+  const state = generateCodeVerifier();
 
-  sessionStorage.setItem('pkce_verifier', verifier);
-  sessionStorage.setItem('oauth_state', state);
+  sessionStorage.setItem(PKCE_VERIFIER_KEY, verifier);
+  sessionStorage.setItem(OAUTH_STATE_KEY, state);
 
   const params = new URLSearchParams({
     response_type: 'code',
@@ -48,21 +91,34 @@ export async function redirectToLogin() {
     code_challenge_method: 'S256',
   });
 
-  window.location.href = `${AUTH_ENDPOINT}?${params}`;
+  window.location.assign(`${AUTH_ENDPOINT}?${params}`);
 }
 
 /**
  * Exchanges authorization code for tokens (called on /auth/callback).
  */
 export async function exchangeCodeForToken(code, state) {
-  const savedState = sessionStorage.getItem('oauth_state');
-  const verifier = sessionStorage.getItem('pkce_verifier');
+  const savedState = sessionStorage.getItem(OAUTH_STATE_KEY);
+  const verifier = sessionStorage.getItem(PKCE_VERIFIER_KEY);
+  const loginPending = isOAuthLoginPending();
 
-  if (state !== savedState) throw new Error('Güvenlik hatası: state uyuşmuyor.');
-  if (!verifier) throw new Error('PKCE verifier bulunamadı.');
+  if (state !== savedState) {
+    if (!loginPending) {
+      clearOAuthPkceSession();
+      throw new OAuthActionCompleteError();
+    }
+    throw new Error('Güvenlik hatası: state uyuşmuyor.');
+  }
 
-  sessionStorage.removeItem('pkce_verifier');
-  sessionStorage.removeItem('oauth_state');
+  if (!verifier) {
+    if (!loginPending) {
+      clearOAuthPkceSession();
+      throw new OAuthActionCompleteError();
+    }
+    throw new Error('PKCE verifier bulunamadı.');
+  }
+
+  clearOAuthPkceSession();
 
   const body = new URLSearchParams({
     grant_type: 'authorization_code',

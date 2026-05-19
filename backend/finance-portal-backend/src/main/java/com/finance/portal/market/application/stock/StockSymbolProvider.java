@@ -1,6 +1,6 @@
 package com.finance.portal.market.application.stock;
 
-import com.finance.portal.market.infrastructure.external.midas.MidasStockClient;
+import com.finance.portal.market.application.stock.port.MidasStockPort;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +21,7 @@ public class StockSymbolProvider {
 
     private static final Logger log = LoggerFactory.getLogger(StockSymbolProvider.class);
 
-    private final MidasStockClient midasStockClient;
+    private final MidasStockPort midasStockPort;
 
     // Thread-safe listeler
     private final AtomicReference<List<String>> allSymbols   = new AtomicReference<>(List.of());
@@ -29,8 +29,8 @@ public class StockSymbolProvider {
     private final AtomicReference<List<String>> bist50       = new AtomicReference<>(List.of());
     private final AtomicReference<List<String>> bist100      = new AtomicReference<>(List.of());
 
-    public StockSymbolProvider(MidasStockClient midasStockClient) {
-        this.midasStockClient = midasStockClient;
+    public StockSymbolProvider(MidasStockPort midasStockPort) {
+        this.midasStockPort = midasStockPort;
     }
 
     @PostConstruct
@@ -43,10 +43,10 @@ public class StockSymbolProvider {
     public void refreshSymbols() {
         log.info("Refreshing BIST symbol lists from Midas...");
         try {
-            List<String> all  = midasStockClient.fetchSymbols("");
-            List<String> b30  = midasStockClient.fetchSymbols("xu030-bist-30-hisseleri");
-            List<String> b50  = midasStockClient.fetchSymbols("xu050-bist-50-hisseleri");
-            List<String> b100 = midasStockClient.fetchSymbols("xu100-bist-100-hisseleri");
+            List<String> all  = midasStockPort.fetchSymbols("");
+            List<String> b30  = midasStockPort.fetchSymbols("xu030-bist-30-hisseleri");
+            List<String> b50  = midasStockPort.fetchSymbols("xu050-bist-50-hisseleri");
+            List<String> b100 = midasStockPort.fetchSymbols("xu100-bist-100-hisseleri");
 
             if (!all.isEmpty())  { allSymbols.set(all);   log.info("Loaded {} total BIST symbols", all.size()); }
             if (!b30.isEmpty())  { bist30.set(b30);        log.info("Loaded {} BIST30 symbols", b30.size()); }

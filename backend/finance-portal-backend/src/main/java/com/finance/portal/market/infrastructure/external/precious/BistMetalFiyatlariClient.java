@@ -3,6 +3,8 @@ package com.finance.portal.market.infrastructure.external.precious;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.finance.portal.market.application.precious.model.BistMetalDailyPoint;
+import com.finance.portal.market.application.precious.model.PreciousMetalType;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;

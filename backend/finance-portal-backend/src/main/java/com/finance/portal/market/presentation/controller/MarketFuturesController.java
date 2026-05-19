@@ -8,8 +8,11 @@ import com.finance.portal.market.application.stock.StockQueryService;
 import com.finance.portal.market.application.viop.ViopChartPeriod;
 import com.finance.portal.market.application.viop.ViopChartService;
 import com.finance.portal.market.application.viop.ViopService;
+import com.finance.portal.market.application.viop.model.ViopChartPoint;
+import com.finance.portal.market.application.viop.model.ViopContractDetail;
 import com.finance.portal.market.presentation.dto.ViopChartPointDto;
 import com.finance.portal.market.presentation.dto.ViopContractDetailDto;
+import com.finance.portal.market.presentation.mapper.MarketViopPresentationMapper;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.http.MediaType;
@@ -34,15 +37,18 @@ public class MarketFuturesController {
     private final StockQueryService stockQueryService;
     private final ViopService viopService;
     private final ViopChartService viopChartService;
+    private final MarketViopPresentationMapper viopMapper;
 
     public MarketFuturesController(FuturesQueryService futuresQueryService,
                                    StockQueryService stockQueryService,
                                    ViopService viopService,
-                                   ViopChartService viopChartService) {
+                                   ViopChartService viopChartService,
+                                   MarketViopPresentationMapper viopMapper) {
         this.futuresQueryService = futuresQueryService;
         this.stockQueryService = stockQueryService;
         this.viopService = viopService;
         this.viopChartService = viopChartService;
+        this.viopMapper = viopMapper;
     }
 
     @GetMapping
@@ -123,10 +129,11 @@ public class MarketFuturesController {
             throw new IllegalArgumentException("Contract name must not be empty");
         }
 
-        ViopContractDetailDto detail = viopService.getContractDetail(contractName);
+        ViopContractDetail detail = viopService.getContractDetail(contractName);
+        ViopContractDetailDto detailDto = viopMapper.toViopContractDetailDto(detail);
 
         ApiResponse<ViopContractDetailDto> response = ApiResponse.success(
-                detail,
+                detailDto,
                 "VIOP contract detail retrieved successfully"
         );
 
@@ -163,13 +170,14 @@ public class MarketFuturesController {
                     "Invalid period: '" + periodStr + "'. Valid values: ONE_WEEK, ONE_MONTH, THREE_MONTHS, SIX_MONTHS, ONE_YEAR");
         }
 
-        List<ViopChartPointDto> points = viopChartService.getChart(contractName.trim(), period);
+        List<ViopChartPoint> points = viopChartService.getChart(contractName.trim(), period);
+        List<ViopChartPointDto> pointDtos = viopMapper.toViopChartPointDtoList(points);
 
-        String message = points.isEmpty()
+        String message = pointDtos.isEmpty()
                 ? "Bu dönem için VİOP grafik verisi bulunamadı."
                 : "VIOP chart data retrieved successfully";
 
-        return ResponseEntity.ok(ApiResponse.success(points, message));
+        return ResponseEntity.ok(ApiResponse.success(pointDtos, message));
     }
 }
 

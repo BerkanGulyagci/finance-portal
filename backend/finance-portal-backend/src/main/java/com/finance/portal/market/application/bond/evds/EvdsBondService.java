@@ -1,8 +1,8 @@
 package com.finance.portal.market.application.bond.evds;
 
-import com.finance.portal.market.infrastructure.external.bond.EvdsBondClient;
-import com.finance.portal.market.infrastructure.external.bond.EvdsSeriesInfo;
-import com.finance.portal.market.infrastructure.external.bond.EvdsSeriesPoint;
+import com.finance.portal.market.application.bond.evds.port.EvdsBondPort;
+import com.finance.portal.market.application.bond.evds.model.EvdsSeriesInfo;
+import com.finance.portal.market.application.bond.evds.model.EvdsSeriesPoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -56,7 +56,7 @@ public class EvdsBondService {
 
     private static final DateTimeFormatter DATE_TEXT_FMT = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
-    private final EvdsBondClient evdsBondClient;
+    private final EvdsBondPort evdsBondPort;
     private final ExecutorService evdsBondFetchExecutor;
 
     @Value("${evds.use-whitelist:false}")
@@ -68,9 +68,9 @@ public class EvdsBondService {
     @Value("${evds.active-bonds-limit:300}")
     private int activeBondsLimit;
 
-    public EvdsBondService(EvdsBondClient evdsBondClient,
+    public EvdsBondService(EvdsBondPort evdsBondPort,
                            @Qualifier("evdsBondFetchExecutor") ExecutorService evdsBondFetchExecutor) {
-        this.evdsBondClient = evdsBondClient;
+        this.evdsBondPort = evdsBondPort;
         this.evdsBondFetchExecutor = evdsBondFetchExecutor;
     }
 
@@ -87,7 +87,7 @@ public class EvdsBondService {
     public List<EvdsBondInstrument> getEvdsBondsAll() {
         log.info("[EvdsBondService] getEvdsBondsAll başlatıldı. useWhitelist={}", useWhitelist);
 
-        List<EvdsSeriesInfo> allSeries = evdsBondClient.fetchBondSeriesList();
+        List<EvdsSeriesInfo> allSeries = evdsBondPort.fetchBondSeriesList();
 
         Map<String, EvdsSeriesInfo> seriesInfoMap = allSeries.stream()
                 .filter(EvdsSeriesInfo::isValueSeries)
@@ -155,7 +155,7 @@ public class EvdsBondService {
     public EvdsBondInstrument getEvdsBondDetail(String instrumentCode) {
         log.info("[EvdsBondService] getEvdsBondDetail → instrumentCode={}", instrumentCode);
 
-        List<EvdsSeriesInfo> allSeries = evdsBondClient.fetchBondSeriesList();
+        List<EvdsSeriesInfo> allSeries = evdsBondPort.fetchBondSeriesList();
         Map<String, EvdsSeriesInfo> seriesInfoMap = allSeries.stream()
                 .filter(EvdsSeriesInfo::isValueSeries)
                 .collect(Collectors.toMap(EvdsSeriesInfo::getSeriesCode, Function.identity(), (a, b) -> a));
@@ -187,7 +187,7 @@ public class EvdsBondService {
         LocalDate endDate   = LocalDate.now();
         LocalDate startDate = endDate.minusDays(period.getDays());
 
-        List<EvdsSeriesPoint> rawPoints = evdsBondClient.fetchIndicatorValues(instrumentCode, startDate, endDate);
+        List<EvdsSeriesPoint> rawPoints = evdsBondPort.fetchIndicatorValues(instrumentCode, startDate, endDate);
 
         List<EvdsBondHistoryPoint> history = rawPoints.stream()
                 .map(p -> new EvdsBondHistoryPoint(
@@ -210,7 +210,7 @@ public class EvdsBondService {
     public List<EvdsSeriesInfo> fetchActiveBondSeries() {
         log.info("[EvdsBondService] fetchActiveBondSeries başlatıldı.");
 
-        List<EvdsSeriesInfo> allSeries = evdsBondClient.fetchBondSeriesList();
+        List<EvdsSeriesInfo> allSeries = evdsBondPort.fetchBondSeriesList();
         LocalDate today = LocalDate.now();
 
         long totalCount  = allSeries.size();
@@ -254,7 +254,7 @@ public class EvdsBondService {
         LocalDate startDate = today.minusDays(RECENT_DAYS_WINDOW);
 
         List<EvdsSeriesPoint> valuePoints =
-                evdsBondClient.fetchIndicatorValues(instrumentCode, startDate, today);
+                evdsBondPort.fetchIndicatorValues(instrumentCode, startDate, today);
 
         if (valuePoints.isEmpty()) {
             log.debug("[EvdsBondService] {} için değer verisi yok, atlandı.", instrumentCode);
@@ -328,7 +328,7 @@ public class EvdsBondService {
                                               LocalDate startDate, LocalDate endDate) {
         try {
             List<EvdsSeriesPoint> couponPoints =
-                    evdsBondClient.fetchCouponRates(instrumentCode, startDate, endDate);
+                    evdsBondPort.fetchCouponRates(instrumentCode, startDate, endDate);
             if (couponPoints.isEmpty()) return null;
             return couponPoints.get(couponPoints.size() - 1).getValue();
         } catch (Exception e) {

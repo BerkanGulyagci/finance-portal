@@ -2,15 +2,17 @@ package com.finance.portal.market.application.gold;
 
 import com.finance.portal.market.application.service.MarketFxService;
 import com.finance.portal.market.application.stock.port.YahooStockPort;
-import com.finance.portal.market.presentation.dto.FxLatestResponse;
-import com.finance.portal.market.presentation.dto.FxRateItemDto;
-import com.finance.portal.market.infrastructure.external.precious.BistMetalDailyPoint;
-import com.finance.portal.market.infrastructure.external.precious.BistMetalFiyatlariClient;
-import com.finance.portal.market.infrastructure.external.precious.BistPreciousMetalPoint;
-import com.finance.portal.market.infrastructure.external.precious.BistPreciousMetalsClient;
-import com.finance.portal.market.infrastructure.external.precious.PreciousMetalType;
-import com.finance.portal.market.infrastructure.external.precious.PriceUnit;
-import com.finance.portal.market.infrastructure.external.yahoo.YahooChartResponseDto;
+import com.finance.portal.market.application.fx.model.FxLatestRates;
+import com.finance.portal.market.application.fx.model.FxRateItem;
+import com.finance.portal.market.application.precious.model.BistMetalDailyPoint;
+import com.finance.portal.market.application.precious.model.BistPreciousMetalPoint;
+import com.finance.portal.market.application.precious.port.BistMetalFiyatlariPort;
+import com.finance.portal.market.application.precious.port.BistPreciousMetalsPort;
+import com.finance.portal.market.application.precious.model.PreciousMetalType;
+import com.finance.portal.market.application.precious.model.PriceUnit;
+import com.finance.portal.market.application.stock.model.YahooChartSnapshot;
+import com.finance.portal.market.application.stock.model.YahooQuoteSeries;
+import com.finance.portal.market.application.stock.model.YahooStockMeta;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -72,8 +74,8 @@ public class GoldMarketService {
 
     // ── Bağımlılıklar ─────────────────────────────────────────────────────────
 
-    private final BistPreciousMetalsClient bistClient;
-    private final BistMetalFiyatlariClient metalClient;
+    private final BistPreciousMetalsPort bistClient;
+    private final BistMetalFiyatlariPort metalClient;
     private final YahooStockPort yahooStockPort;
     private final MarketFxService marketFxService;
 
@@ -324,20 +326,17 @@ public class GoldMarketService {
             String yahooRange = params[0];
             String interval   = params[1];
 
-            YahooChartResponseDto goldChart = yahooStockPort.fetchChartWithParams(GOLD_SYMBOL, yahooRange, interval);
-            YahooChartResponseDto.Result result = goldChart.getChart().getResult().get(0);
-
-            List<Long> timestamps = result.getTimestamp();
+            YahooChartSnapshot goldChart = yahooStockPort.fetchChartWithParams(GOLD_SYMBOL, yahooRange, interval);
+            List<Long> timestamps = goldChart.getTimestamps();
             List<BigDecimal> closes = null, opens = null, highs = null, lows = null;
             List<Long> volumes = null;
 
-            if (result.getIndicators() != null && result.getIndicators().getQuote() != null
-                    && !result.getIndicators().getQuote().isEmpty()) {
-                YahooChartResponseDto.Quote q = result.getIndicators().getQuote().get(0);
-                closes  = q.getClose();
-                opens   = q.getOpen();
-                highs   = q.getHigh();
-                lows    = q.getLow();
+            YahooQuoteSeries q = goldChart.getQuote();
+            if (q != null) {
+                closes = q.getClose();
+                opens = q.getOpen();
+                highs = q.getHigh();
+                lows = q.getLow();
                 volumes = q.getVolume();
             }
 
@@ -448,8 +447,8 @@ public class GoldMarketService {
         resp.setDisclaimer("BIST verisi alınamadığı için Yahoo Finance GC=F fallback verisi gösteriliyor.");
 
         try {
-            YahooChartResponseDto chart = yahooStockPort.fetchChartWithParams(GOLD_SYMBOL, "1d", "1m");
-            YahooChartResponseDto.Meta meta = chart.getChart().getResult().get(0).getMeta();
+            YahooChartSnapshot chart = yahooStockPort.fetchChartWithParams(GOLD_SYMBOL, "1d", "1m");
+            YahooStockMeta meta = chart.getMeta();
 
             BigDecimal onsUsd = safe(meta.getRegularMarketPrice());
             BigDecimal prevClose = safe(meta.getPreviousClose());
@@ -501,8 +500,8 @@ public class GoldMarketService {
         // Önceki kapanış için Yahoo'ya fallback (BIST önceki gün verisi ayrı sorgu gerektirir)
         // Şimdilik ons change hesabı Yahoo'dan alınır
         try {
-            YahooChartResponseDto chart = yahooStockPort.fetchChartWithParams(GOLD_SYMBOL, "1d", "1m");
-            YahooChartResponseDto.Meta meta = chart.getChart().getResult().get(0).getMeta();
+            YahooChartSnapshot chart = yahooStockPort.fetchChartWithParams(GOLD_SYMBOL, "1d", "1m");
+            YahooStockMeta meta = chart.getMeta();
             BigDecimal prevClose = safe(meta.getPreviousClose());
             BigDecimal changePercent = BigDecimal.ZERO;
             if (prevClose.compareTo(BigDecimal.ZERO) != 0) {
@@ -534,8 +533,8 @@ public class GoldMarketService {
     /** ONS/USD verisini Yahoo'dan alıp spot response'a ekler (fallback). */
     private void enrichWithYahooOns(GoldSpotResponse resp) {
         try {
-            YahooChartResponseDto chart = yahooStockPort.fetchChartWithParams(GOLD_SYMBOL, "1d", "1m");
-            YahooChartResponseDto.Meta meta = chart.getChart().getResult().get(0).getMeta();
+            YahooChartSnapshot chart = yahooStockPort.fetchChartWithParams(GOLD_SYMBOL, "1d", "1m");
+            YahooStockMeta meta = chart.getMeta();
 
             BigDecimal onsUsd    = safe(meta.getRegularMarketPrice());
             BigDecimal prevClose = safe(meta.getPreviousClose());
@@ -592,13 +591,13 @@ public class GoldMarketService {
 
     private BigDecimal resolveTcmbUsdTry() {
         try {
-            FxLatestResponse fx = marketFxService.getTcmbLatestRates("USD");
+            FxLatestRates fx = marketFxService.getTcmbLatestRates("USD");
             if (fx.getRates() == null) {
                 return null;
             }
             return fx.getRates().stream()
                     .filter(r -> "USD".equalsIgnoreCase(r.getSymbol()))
-                    .map(FxRateItemDto::getSell)
+                    .map(FxRateItem::getSell)
                     .filter(v -> v != null && v.compareTo(BigDecimal.ZERO) > 0)
                     .findFirst()
                     .orElse(null);

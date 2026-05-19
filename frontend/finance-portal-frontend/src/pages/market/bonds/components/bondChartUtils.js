@@ -3,6 +3,66 @@
  * Tüm hesaplamalar frontend'de yapılır; EVDS formül endpoint'leri çağrılmaz.
  */
 
+export const BOND_CHART_PERIODS = [
+  { key: 'ONE_WEEK',     label: '1 Hafta', days: 7 },
+  { key: 'ONE_MONTH',    label: '1 Ay',    days: 30 },
+  { key: 'THREE_MONTHS', label: '3 Ay',    days: 90 },
+  { key: 'SIX_MONTHS',   label: '6 Ay',    days: 180 },
+  { key: 'ONE_YEAR',     label: '1 Yıl',   days: 365 },
+  { key: 'FIVE_YEARS',   label: '5Y',      days: 1825 },
+];
+
+function weekKey(dateStr) {
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return dateStr;
+  const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = tmp.getUTCDay() || 7;
+  tmp.setUTCDate(tmp.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+  const week = Math.ceil((((tmp - yearStart) / 86400000) + 1) / 7);
+  return `${tmp.getUTCFullYear()}-W${week}`;
+}
+
+/** 5Y çizgi grafikte çok yoğun günlük seriyi haftalık son değerle sadeleştirir */
+export function downsampleWeeklyLast(points) {
+  if (!points?.length) return [];
+  const sorted = [...points].sort((a, b) => a.date.localeCompare(b.date));
+  const out = [];
+  let lastKey = null;
+  for (const p of sorted) {
+    const key = weekKey(p.date);
+    if (key !== lastKey) {
+      out.push(p);
+      lastKey = key;
+    } else {
+      out[out.length - 1] = p;
+    }
+  }
+  return out;
+}
+
+export function filterBondHistoryByDays(points, days) {
+  if (!points?.length || !days) return points ?? [];
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
+  return points.filter((p) => p?.date && p.date >= cutoffStr);
+}
+
+/**
+ * Periyoda göre filtre + 5Y için haftalık örnekleme.
+ * @returns {{ points: object[], usesWeeklySampling: boolean }}
+ */
+export function prepareBondLineChartPoints(points, periodKey) {
+  const periodDef = BOND_CHART_PERIODS.find((p) => p.key === periodKey)
+    ?? BOND_CHART_PERIODS.find((p) => p.key === 'ONE_MONTH');
+  const filtered = filterBondHistoryByDays(points, periodDef.days);
+  if (periodKey === 'FIVE_YEARS' && filtered.length > 120) {
+    return { points: downsampleWeeklyLast(filtered), usesWeeklySampling: true };
+  }
+  return { points: filtered, usesWeeklySampling: false };
+}
+
 /**
  * History noktalarını KLineCharts formatına çevirir.
  */

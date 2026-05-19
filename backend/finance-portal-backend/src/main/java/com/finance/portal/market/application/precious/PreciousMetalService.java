@@ -1,8 +1,8 @@
 package com.finance.portal.market.application.precious;
 
-import com.finance.portal.market.infrastructure.external.precious.BistMetalDailyPoint;
-import com.finance.portal.market.infrastructure.external.precious.BistMetalFiyatlariClient;
-import com.finance.portal.market.infrastructure.external.precious.PreciousMetalType;
+import com.finance.portal.market.application.precious.model.BistMetalDailyPoint;
+import com.finance.portal.market.application.precious.port.BistMetalFiyatlariPort;
+import com.finance.portal.market.application.precious.model.PreciousMetalType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -38,7 +38,7 @@ public class PreciousMetalService {
             "Bu fiyatlar Borsa İstanbul resmi metal fiyatından alınan referans değerlerdir. " +
             "Serbest piyasa alış/satış ve makas dahil değildir.";
 
-    private final BistMetalFiyatlariClient metalClient;
+    private final BistMetalFiyatlariPort metalClient;
 
     // ── Cache temizleme ───────────────────────────────────────────────────────
 

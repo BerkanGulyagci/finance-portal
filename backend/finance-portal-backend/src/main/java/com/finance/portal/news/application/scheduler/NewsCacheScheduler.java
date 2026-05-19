@@ -1,6 +1,6 @@
 package com.finance.portal.news.application.scheduler;
 
-import com.finance.portal.common.infrastructure.exception.ExternalApiException;
+import com.finance.portal.common.application.exception.ExternalApiException;
 import com.finance.portal.news.application.service.NewsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

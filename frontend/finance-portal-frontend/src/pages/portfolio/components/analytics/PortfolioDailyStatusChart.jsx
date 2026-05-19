@@ -1,0 +1,65 @@
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Cell,
+  LabelList,
+} from 'recharts';
+import PortfolioChartCard from './PortfolioChartCard';
+import PortfolioAnalyticsTooltip from './PortfolioAnalyticsTooltip';
+import { calculateDailyStatus } from '../../utils/portfolioAnalyticsHelpers';
+import { BAR_VERTICAL_BAR, BAR_VERTICAL_CHART, CHART_GRID, TICK } from './portfolioChartStyles';
+
+export default function PortfolioDailyStatusChart({ holdings }) {
+  const status = calculateDailyStatus(holdings);
+  const data = [
+    { name: 'Yükselen', count: status.up, fill: '#22c55e' },
+    { name: 'Düşen', count: status.down, fill: '#ef4444' },
+    { name: 'Yatay', count: status.flat, fill: '#94a3b8' },
+    { name: 'Veri Yok', count: status.nodata, fill: '#fbbf24' },
+  ];
+
+  if (!status.total) {
+    return (
+      <PortfolioChartCard title="Günlük Durum" subtitle="Günlük değişim durumuna göre pozisyon adedi.">
+        <p className="text-center text-sm text-gray-400 py-10">Pozisyon bulunamadı.</p>
+      </PortfolioChartCard>
+    );
+  }
+
+  return (
+    <PortfolioChartCard
+      title="Günlük Durum"
+      subtitle="Yükselen / düşen / yatay / veri yok — pozisyon adedi (günlük % verisine göre)."
+    >
+      <div className="h-[240px] w-full min-w-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={data}
+            margin={{ top: 8, right: 8, left: 0, bottom: 8 }}
+            {...BAR_VERTICAL_CHART}
+          >
+            <CartesianGrid {...CHART_GRID} vertical={false} />
+            <XAxis dataKey="name" tick={TICK} />
+            <YAxis allowDecimals={false} tick={TICK} domain={[0, 'auto']} />
+            <Tooltip content={<PortfolioAnalyticsTooltip valuesHidden={false} />} />
+            <Bar dataKey="count" radius={[3, 3, 0, 0]} {...BAR_VERTICAL_BAR}>
+              {data.map(e => (
+                <Cell key={e.name} fill={e.fill} />
+              ))}
+              <LabelList
+                dataKey="count"
+                position="top"
+                style={{ fontSize: 10, fill: '#475569', fontWeight: 600 }}
+              />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </PortfolioChartCard>
+  );
+}

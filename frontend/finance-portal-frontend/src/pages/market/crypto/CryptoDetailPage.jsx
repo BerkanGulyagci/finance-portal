@@ -6,19 +6,26 @@ import {
   ResponsiveContainer, LineChart, Line, Brush,
   ComposedChart, Area, Bar,
 } from 'recharts';
-import { getCryptoChart, getCryptoDetail, getAllCryptos, getCryptoOhlc } from '../../../api/marketApi';
+import { getCryptoDetail, getAllCryptos } from '../../../api/marketApi';
 import { useAuth } from '../../../context/AuthContext';
 import { init as klineInit, dispose as klineDispose } from 'klinecharts';
+import { computeKlinePricePrecision, computeKlineVolumePrecision } from '../../../utils/numberFormat';
 import CommodityDetailChart   from '../commodities/components/CommodityDetailChart';
 import CommodityDetailToolbar from '../commodities/components/CommodityDetailToolbar';
-
-const RANGES = [
-  { label: '1G', days: 1 },
-  { label: '7G', days: 7 },
-  { label: '1A', days: 30 },
-  { label: '3A', days: 90 },
-  { label: '1Y', days: 365 },
-];
+import {
+  CRYPTO_CHART_RANGES,
+  coingeckoOhlcRowsToPoints,
+  earliestTimestampMs,
+  buildTryFallbackWarning,
+  fetchYahooCryptoLineChart,
+  fetchYahooCryptoOhlc,
+  formatCryptoChartTimeLabel,
+  buildVolumeMap,
+  parseMarketChartPrices,
+  alignVolumesToPrices,
+  formatYahooChartSourceNote,
+} from './cryptoChartRanges';
+import { getCryptoChart, getCryptoOhlc } from '../../../api/marketApi';
 
 const CURRENCIES = ['TRY', 'USD', 'EUR'];
 const CURRENCY_SYMBOLS = { TRY: '₺', USD: '$', EUR: '€' };
@@ -54,13 +61,6 @@ function fmtPrice(v, currency) {
 function fmt(v, dec = 2) {
   if (v == null) return '-';
   return parseFloat(v).toLocaleString('tr-TR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
-}
-
-function fmtDate(ts, days) {
-  const d = new Date(ts);
-  if (days <= 1) return d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-  if (days <= 30) return d.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' });
-  return d.toLocaleDateString('tr-TR', { month: '2-digit', year: '2-digit' });
 }
 
 function pct(v) {
@@ -184,7 +184,7 @@ function TradingViewChart({ coinId, symbol }) {
 }
 
 /* ─── KlineCharts Çizgi Grafiği (Crypto için) ─── */
-function CryptoLineChart({ chartData, currency, range, compareCoins, compareData, coinId, mainCoinSymbol, activeMAs }) {
+function CryptoLineChart({ chartData, currency, compareCoins, compareData, coinId, mainCoinSymbol, activeMAs }) {
   const chartId = useRef(`kline_crypto_${Date.now()}`);
   const chartRef = useRef(null);
   const isComparing = compareCoins && compareCoins.length > 0;
@@ -380,6 +380,13 @@ function CryptoLineChart({ chartData, currency, range, compareCoins, compareData
 
       if (klineData.length === 0) return;
 
+      try {
+        chart.setPriceVolumePrecision(
+          computeKlinePricePrecision(klineData.map((d) => d.close)),
+          computeKlineVolumePrecision(klineData.map((d) => d.volume)),
+        );
+      } catch (_) { /* klinecharts sürümü */ }
+
       const isUp = klineData[klineData.length - 1].close >= klineData[0].close;
       const color = isUp ? '#10b981' : '#ef4444';
 
@@ -413,7 +420,7 @@ function CryptoLineChart({ chartData, currency, range, compareCoins, compareData
     }
 
     return () => { klineDispose(id); };
-  }, [chartData, currency, range, isComparing, compareCoins, compareData, coinId, activeMAs]);
+  }, [chartData, currency, isComparing, compareCoins, compareData, coinId, activeMAs]);
 
   if (!chartData || chartData.length === 0) {
     return (
@@ -553,7 +560,7 @@ export default function CryptoDetailPage() {
   const [detail, setDetail]       = useState(null);
   const [chartData, setChartData] = useState([]);
   const [ohlcData,  setOhlcData]  = useState([]);   // mum grafik için
-  const [range, setRange]         = useState(7);
+  const [rangeIdx, setRangeIdx]   = useState(1);
   const [currency, setCurrency]   = useState('TRY');
   const [chartMode, setChartMode] = useState('line');
   const [chartLoading, setChartLoading] = useState(false);
@@ -561,12 +568,16 @@ export default function CryptoDetailPage() {
   const [showDesc, setShowDesc]   = useState(false);
   const [allCoins, setAllCoins]   = useState([]);
   const [activeMA, setActiveMA]   = useState([]); // aktif MA periyotları
+  const [historyFrom, setHistoryFrom] = useState(null);
+  const [chartSource, setChartSource] = useState('CoinGecko');
+  const [chartTryFallbackWarning, setChartTryFallbackWarning] = useState(null);
 
   // Karşılaştırma state'i
   const [compareCoins, setCompareCoins]     = useState([]); // [{id, symbol, name, image}]
   const [compareData, setCompareData]       = useState({}); // {coinId: [{ts, price}]}
   const [compareLoading, setCompareLoading] = useState(false);
   const isComparing = compareCoins.length > 0;
+  const rangeConfig = CRYPTO_CHART_RANGES[rangeIdx];
 
   useEffect(() => {
     setLoading(true);
@@ -601,65 +612,139 @@ export default function CryptoDetailPage() {
   // Ana coin chart verisi
   const loadLineChart = useCallback(async () => {
     setChartLoading(true);
+    setChartData([]);
     try {
-      const data = await getCryptoChart(coinId, range, currency.toLowerCase());
-      const prices = data?.prices ?? [];
-      const volumes = data?.total_volumes ?? [];
-      setChartData(prices.map((p, i) => ({
+      let prices;
+      let volumes;
+      if (rangeConfig.yahoo) {
+        if (!coin?.symbol) {
+          setChartData([]);
+          setChartLoading(false);
+          return;
+        }
+        const raw = await fetchYahooCryptoLineChart(
+          coin.symbol,
+          currency,
+          rangeConfig.yahooRange,
+          rangeConfig.yahooInterval,
+          coinId,
+        );
+        prices = raw.prices ?? [];
+        volumes = raw.total_volumes ?? [];
+        const fromMs = earliestTimestampMs(prices);
+        setHistoryFrom(fromMs ? new Date(fromMs) : null);
+        setChartSource(
+          raw.sourceNote ?? formatYahooChartSourceNote(raw.yahooSymbol, currency, raw.quoteCurrency),
+        );
+        setChartTryFallbackWarning(
+          raw.tryFallbackWarning ?? buildTryFallbackWarning(currency, raw.quoteCurrency, rangeConfig.label),
+        );
+      } else {
+        setHistoryFrom(null);
+        setChartSource('CoinGecko');
+        setChartTryFallbackWarning(null);
+        const data = await getCryptoChart(
+          coinId,
+          rangeConfig.days,
+          currency.toLowerCase(),
+          rangeConfig.interval ?? undefined,
+        );
+        prices = parseMarketChartPrices(data);
+        volumes = alignVolumesToPrices(data?.total_volumes ?? [], prices);
+      }
+      const gran = rangeConfig.timeGranularity;
+      const volMap = buildVolumeMap(volumes);
+      setChartData(prices.map((p) => ({
         ts: p[0],
-        date: fmtDate(p[0], range),
+        date: formatCryptoChartTimeLabel(p[0], gran),
         price: p[1],
-        volume: volumes[i]?.[1] ?? null,
+        volume: volMap.get(Number(p[0])) ?? null,
       })));
-    } catch (e) { console.error(e); }
-    finally { setChartLoading(false); }
-  }, [coinId, range, currency]);
+    } catch (e) {
+      console.error(e);
+      setChartData([]);
+      setChartTryFallbackWarning(null);
+    } finally {
+      setChartLoading(false);
+    }
+  }, [coinId, rangeConfig, currency, coin?.symbol]);
 
-  // Mum grafik verisi
   const loadOhlcChart = useCallback(async () => {
     setChartLoading(true);
+    setOhlcData([]);
     try {
-      const raw = await getCryptoOhlc(coinId, range, currency.toLowerCase());
-      // Format: [timestamp_ms, open, high, low, close]
-      const points = (raw ?? []).map(d => ({
-        timestamp: Math.floor(d[0] / 1000), // ms → saniye (CommodityDetailChart saniye bekliyor)
-        displayOpen:  d[1],
-        displayHigh:  d[2],
-        displayLow:   d[3],
-        displayClose: d[4],
-        rawOpen:  d[1],
-        rawHigh:  d[2],
-        rawLow:   d[3],
-        rawClose: d[4],
-        volume: 0,
-      })).filter(p => p.displayClose > 0);
-      setOhlcData(points);
-    } catch (e) { console.error(e); }
-    finally { setChartLoading(false); }
-  }, [coinId, range, currency]);
+      if (rangeConfig.yahoo) {
+        if (!coin?.symbol) {
+          setOhlcData([]);
+          setChartLoading(false);
+          return;
+        }
+        const { points, yahooSymbol, quoteCurrency, sourceNote, tryFallbackWarning } = await fetchYahooCryptoOhlc(
+          coin.symbol,
+          currency,
+          rangeConfig.yahooRange,
+          rangeConfig.yahooInterval,
+          coinId,
+        );
+        setOhlcData(points);
+        const fromMs = points[0]?.timestamp != null ? points[0].timestamp * 1000 : null;
+        setHistoryFrom(fromMs ? new Date(fromMs) : null);
+        setChartSource(
+          sourceNote ?? formatYahooChartSourceNote(yahooSymbol, currency, quoteCurrency),
+        );
+        setChartTryFallbackWarning(
+          tryFallbackWarning ?? buildTryFallbackWarning(currency, quoteCurrency, rangeConfig.label),
+        );
+      } else {
+        setHistoryFrom(null);
+        setChartSource('CoinGecko');
+        setChartTryFallbackWarning(null);
+        const days = rangeConfig.ohlcDays ?? rangeConfig.days;
+        const rows = await getCryptoOhlc(coinId, days, currency.toLowerCase());
+        setOhlcData(coingeckoOhlcRowsToPoints(rows));
+      }
+    } catch (e) {
+      console.error(e);
+      setOhlcData([]);
+      setChartTryFallbackWarning(null);
+    } finally {
+      setChartLoading(false);
+    }
+  }, [coinId, rangeConfig, currency, coin?.symbol]);
 
   useEffect(() => {
+    setChartData([]);
+    setOhlcData([]);
+    setHistoryFrom(null);
+    setChartTryFallbackWarning(null);
     if (chartMode === 'line') loadLineChart();
     else if (chartMode === 'candle') loadOhlcChart();
-    setActiveMA([]); // range değişince MA seçimini sıfırla
-  }, [chartMode, loadLineChart, loadOhlcChart]);
+    setActiveMA([]);
+  }, [chartMode, loadLineChart, loadOhlcChart, rangeIdx, currency, coinId]);
 
   // Karşılaştırma coin'lerinin chart verilerini çek
   useEffect(() => {
     if (chartMode !== 'line' || compareCoins.length === 0) return;
     setCompareLoading(true);
     Promise.all(
-      compareCoins.map(c =>
-        getCryptoChart(c.id, range, currency.toLowerCase())
-          .then(d => ({ id: c.id, prices: d?.prices ?? [] }))
-          .catch(() => ({ id: c.id, prices: [] }))
-      )
+      compareCoins.map(c => {
+        const load = rangeConfig.yahoo
+          ? fetchYahooCryptoLineChart(c.symbol, currency, rangeConfig.yahooRange, rangeConfig.yahooInterval, c.id)
+              .then(raw => ({ id: c.id, prices: raw.prices ?? [] }))
+          : getCryptoChart(
+              c.id,
+              rangeConfig.days,
+              currency.toLowerCase(),
+              rangeConfig.interval ?? undefined,
+            ).then(d => ({ id: c.id, prices: parseMarketChartPrices(d) }));
+        return load.catch(() => ({ id: c.id, prices: [] }));
+      })
     ).then(results => {
       const map = {};
       results.forEach(r => { map[r.id] = r.prices; });
       setCompareData(map);
     }).finally(() => setCompareLoading(false));
-  }, [compareCoins, range, currency, chartMode]);
+  }, [compareCoins, rangeConfig, currency, chartMode]);
 
   // Karşılaştırma modunda normalize edilmiş veri (% değişim bazlı)
   const normalizedChartData = useCallback(() => {
@@ -764,7 +849,7 @@ export default function CryptoDetailPage() {
   const linePoints = useMemo(() => {
     if (chartMode !== 'line') return [];
     return chartData.map(d => ({
-      timestamp: Math.floor(d.ts / 1000),
+      timestamp: Math.floor((d.ts < 1e11 ? d.ts * 1000 : d.ts) / 1000),
       displayClose: d.price,
       rawClose: d.price,
       displayOpen: d.price,
@@ -975,9 +1060,9 @@ export default function CryptoDetailPage() {
 
               {/* Range butonları */}
               <div className="flex gap-1 ml-auto">
-                {RANGES.map(r => (
-                  <button key={r.days} onClick={() => setRange(r.days)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${range === r.days ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                {CRYPTO_CHART_RANGES.map((r, i) => (
+                  <button key={r.label} onClick={() => setRangeIdx(i)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${rangeIdx === i ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                     {r.label}
                   </button>
                 ))}
@@ -1021,7 +1106,6 @@ export default function CryptoDetailPage() {
                     <CryptoLineChart
                       chartData={chartData}
                       currency={currency}
-                      range={range}
                       compareCoins={compareCoins}
                       compareData={compareData}
                       coinId={coinId}
@@ -1033,13 +1117,23 @@ export default function CryptoDetailPage() {
               ) : (
                 /* Normal mod: CommodityDetailChart */
                 <CommodityDetailChart
-                  key={`${coinId}-${range}-${chartMode}-${currency}`}
+                  key={`${coinId}-${rangeIdx}-${chartMode}-${currency}`}
                   points={chartMode === 'candle' ? ohlcData : linePoints}
                   chartMode={chartMode}
                   loading={chartLoading || compareLoading}
+                  sourceNote={(() => {
+                    const n = chartMode === 'candle' ? ohlcData.length : linePoints.length;
+                    const range = historyFrom ? ` · ${historyFrom.toLocaleDateString('tr-TR')} – bugün` : '';
+                    const pts = n ? ` · ${n} nokta` : '';
+                    if (rangeConfig.yahoo) {
+                      if (!n) return `Kaynak: ${chartSource || 'Yahoo Finance'} — veri yok`;
+                      return `Kaynak: ${chartSource}${range}${pts}`;
+                    }
+                    return `Kaynak: CoinGecko · ${currency} bazlı${pts}`;
+                  })()}
+                  sourceWarning={chartTryFallbackWarning}
                 />
               )}
-              <p className="text-xs text-gray-400 mt-1">Kaynak: CoinGecko · {currency} bazlı</p>
             </div>
           </div>
 

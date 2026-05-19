@@ -114,9 +114,11 @@ public final class TurkishCharFixer {
                 // "Aşub" → "Şub" (Ş bozuk encode: önüne "A" eklenmiş)
                 .replace("Aşub", "Şub")
                 .replace("Aşu",  "Şu")
-                // "Åub" → "Şub" (ekranda görülen: Å+ub varyantı)
+                // "Åub" / "Âub" → "Şub" (Şubat — farklı code page bozulmaları)
                 .replace("Åub",  "Şub")
                 .replace("Åu",   "Şu")
+                .replace("Âub",  "Şub")
+                .replace("Âu",   "Şu")
 
                 // ===== ü / Ü =====
                 .replace("Ã¼",       "ü")

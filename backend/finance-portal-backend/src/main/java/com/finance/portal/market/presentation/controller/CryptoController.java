@@ -1,0 +1,134 @@
+package com.finance.portal.market.presentation.controller;
+
+import com.finance.portal.common.presentation.dto.ApiResponse;
+import com.finance.portal.market.application.crypto.CryptoBinanceChartService;
+import com.finance.portal.market.application.crypto.CryptoMarketService;
+import com.finance.portal.market.application.crypto.CryptoYahooChartService;
+import com.finance.portal.market.application.stock.StockChartResponse;
+import com.finance.portal.market.application.crypto.model.CryptoChartCandle;
+import com.finance.portal.market.application.crypto.model.CryptoMarketItem;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+import java.util.Map;
+
+@Validated
+@RestController
+@RequestMapping("/api/market/crypto")
+public class CryptoController {
+
+    private final CryptoMarketService cryptoMarketService;
+    private final CryptoBinanceChartService cryptoBinanceChartService;
+    private final CryptoYahooChartService cryptoYahooChartService;
+
+    public CryptoController(CryptoMarketService cryptoMarketService,
+                            CryptoBinanceChartService cryptoBinanceChartService,
+                            CryptoYahooChartService cryptoYahooChartService) {
+        this.cryptoMarketService = cryptoMarketService;
+        this.cryptoBinanceChartService = cryptoBinanceChartService;
+        this.cryptoYahooChartService = cryptoYahooChartService;
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<CryptoMarketItem>>> getCryptos(
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "100") @Min(1) @Max(250) int size,
+            @RequestParam(defaultValue = "try") String currency
+    ) {
+        List<CryptoMarketItem> items = cryptoMarketService.getCryptos(page, size, currency);
+        return ResponseEntity.ok(ApiResponse.success(items, "Crypto market list retrieved successfully"));
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<ApiResponse<List<CryptoMarketItem>>> getAllCoins(
+            @RequestParam(defaultValue = "try") String currency
+    ) {
+        List<CryptoMarketItem> items = cryptoMarketService.getAllCoins(currency);
+        return ResponseEntity.ok(ApiResponse.success(items, "All coins retrieved"));
+    }
+
+    @GetMapping("/{coinId}/detail")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getCoinDetail(@PathVariable String coinId) {
+        Map<String, Object> data = cryptoMarketService.getCoinDetail(coinId);
+        return ResponseEntity.ok(ApiResponse.success(data, "Coin detail retrieved"));
+    }
+
+    @GetMapping("/{coinId}/ohlc")
+    public ResponseEntity<ApiResponse<List<List<Number>>>> getOhlc(
+            @PathVariable String coinId,
+            @RequestParam(defaultValue = "7") String days,
+            @RequestParam(defaultValue = "try") String currency
+    ) {
+        List<List<Number>> data = cryptoMarketService.getOhlc(coinId, days, currency);
+        return ResponseEntity.ok(ApiResponse.success(data, "OHLC data retrieved"));
+    }
+
+    /**
+     * USD/EUR 5Y / Tüm için Yahoo Finance OHLC (BTC-USD, BTC-EUR).
+     */
+    @GetMapping("/{symbol}/yahoo/ohlc")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getYahooOhlc(
+            @PathVariable String symbol,
+            @RequestParam String range,
+            @RequestParam String currency
+    ) {
+        List<Map<String, Object>> rows = cryptoYahooChartService.getOhlc(symbol, range, currency);
+        String msg = rows.isEmpty()
+                ? "No Yahoo OHLC for this symbol/range/currency"
+                : "Yahoo crypto OHLC retrieved";
+        return ResponseEntity.ok(ApiResponse.success(rows, msg));
+    }
+
+    /**
+     * USD/EUR 5Y / Tüm için Yahoo Finance çizgi grafik (kapanış serisi).
+     */
+    @GetMapping("/{symbol}/yahoo/chart")
+    public ResponseEntity<ApiResponse<StockChartResponse>> getYahooChart(
+            @PathVariable String symbol,
+            @RequestParam String range,
+            @RequestParam String currency
+    ) {
+        StockChartResponse chart = cryptoYahooChartService.getLineChart(symbol, range, currency);
+        if (chart == null) {
+            return ResponseEntity.ok(ApiResponse.success(null, "No Yahoo chart data"));
+        }
+        return ResponseEntity.ok(ApiResponse.success(chart, "Yahoo crypto chart retrieved"));
+    }
+
+    /**
+     * TRY 5Y / Tüm için Binance Spot klines (BTCTRY vb.). Diğer para birimi veya aralıkta boş liste döner.
+     */
+    @GetMapping("/{symbol}/candles")
+    public ResponseEntity<ApiResponse<List<CryptoChartCandle>>> getChartCandles(
+            @PathVariable String symbol,
+            @RequestParam String range,
+            @RequestParam(defaultValue = "try") String currency
+    ) {
+        List<CryptoChartCandle> candles = cryptoBinanceChartService.getChartCandles(symbol, range, currency);
+        String msg = candles.isEmpty()
+                ? "No Binance TRY candles for this symbol/range (use Yahoo fallback on client)"
+                : "Binance TRY chart candles retrieved";
+        return ResponseEntity.ok(ApiResponse.success(candles, msg));
+    }
+
+    @GetMapping("/{coinId}/chart")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getChart(
+            @PathVariable String coinId,
+            @RequestParam(defaultValue = "7") String days,
+            @RequestParam(defaultValue = "try") String currency,
+            @RequestParam(required = false) String interval,
+            @RequestParam(required = false) String aggregate
+    ) {
+        Map<String, Object> data = cryptoMarketService.getMarketChart(
+                coinId, days, currency, interval, aggregate);
+        return ResponseEntity.ok(ApiResponse.success(data, "Market chart retrieved"));
+    }
+}

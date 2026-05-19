@@ -158,7 +158,7 @@ public class EvdsBondController {
         if (bondPeriod == null) {
             return ResponseEntity.badRequest().body(ApiResponse.error(
                     "Geçersiz period: '" + period + "'. " +
-                    "Geçerli değerler: ONE_WEEK, ONE_MONTH, THREE_MONTHS, SIX_MONTHS, ONE_YEAR"));
+                    "Geçerli değerler: ONE_WEEK, ONE_MONTH, THREE_MONTHS, SIX_MONTHS, ONE_YEAR, FIVE_YEARS"));
         }
 
         List<EvdsBondHistoryPoint> history = evdsBondService.getEvdsBondHistory(code, bondPeriod);

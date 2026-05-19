@@ -1,6 +1,7 @@
 package com.finance.portal.portfolio.presentation.controller;
 
 import com.finance.portal.common.presentation.dto.ApiResponse;
+import com.finance.portal.portfolio.application.performance.PortfolioPerformanceResult;
 import com.finance.portal.portfolio.presentation.dto.AddTransactionRequest;
 import com.finance.portal.portfolio.presentation.dto.AddWatchlistItemRequest;
 import com.finance.portal.portfolio.presentation.dto.CreatePortfolioRequest;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -68,6 +70,19 @@ public class PortfolioController {
         String userId = jwt.getSubject();
         PortfolioResponse portfolio = portfolioService.getPortfolioById(userId, portfolioId);
         return ResponseEntity.ok(ApiResponse.success(portfolio, "Portfolio retrieved successfully"));
+    }
+
+    @GetMapping("/{portfolioId}/performance")
+    public ResponseEntity<ApiResponse<PortfolioPerformanceResult>> getPortfolioPerformance(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID portfolioId,
+            @RequestParam String range,
+            @RequestParam(defaultValue = "VALUE") String metric
+    ) {
+        String userId = jwt.getSubject();
+        PortfolioPerformanceResult performance =
+                portfolioService.getPortfolioPerformance(userId, portfolioId, range, metric);
+        return ResponseEntity.ok(ApiResponse.success(performance, "Portfolio performance retrieved successfully"));
     }
 
     @PostMapping("/{portfolioId}/transactions")

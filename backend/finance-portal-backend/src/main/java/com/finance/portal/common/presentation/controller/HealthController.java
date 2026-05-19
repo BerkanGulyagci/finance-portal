@@ -1,6 +1,7 @@
 package com.finance.portal.common.presentation.controller;
 
-import com.finance.portal.common.application.service.HealthService;
+import com.finance.portal.common.application.health.HealthService;
+import com.finance.portal.common.application.health.model.HealthStatus;
 import com.finance.portal.common.presentation.dto.ApiResponse;
 import com.finance.portal.common.presentation.dto.HealthResponse;
 import org.springframework.http.ResponseEntity;
@@ -20,11 +21,12 @@ public class HealthController {
 
     @GetMapping("/health")
     public ResponseEntity<ApiResponse<HealthResponse>> health() {
-        HealthResponse healthStatus = healthService.getHealthStatus();
-        ApiResponse<HealthResponse> response = ApiResponse.success(
-            healthStatus, 
-            "Health check completed successfully"
+        HealthStatus status = healthService.getHealthStatus();
+        HealthResponse healthResponse = new HealthResponse(
+                status.status(),
+                status.applicationName(),
+                status.applicationVersion()
         );
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success(healthResponse, "Health check completed successfully"));
     }
 }

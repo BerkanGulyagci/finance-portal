@@ -1,13 +1,62 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wallet } from 'lucide-react';
-import { exchangeCodeForToken } from '../api/authApi';
+import { CheckCircle2, Wallet } from 'lucide-react';
+import {
+  clearOAuthPkceSession,
+  exchangeCodeForToken,
+  isOAuthLoginPending,
+  OAuthActionCompleteError,
+  OAUTH_ACTION_COMPLETE_MESSAGE,
+} from '../api/authApi';
 import { useAuth } from '../context/AuthContext';
+
+function ActionCompleteCard({ onGoToLogin }) {
+  return (
+    <div className="min-h-screen bg-[#f5f6f8] flex items-center justify-center px-4">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 max-w-md w-full text-center">
+        <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mb-4">
+          <CheckCircle2 className="w-7 h-7" />
+        </span>
+        <h1 className="text-lg font-bold text-gray-900 mb-2">İşlem tamamlandı</h1>
+        <p className="text-sm text-gray-600 leading-relaxed mb-6">{OAUTH_ACTION_COMPLETE_MESSAGE}</p>
+        <button
+          type="button"
+          onClick={onGoToLogin}
+          className="w-full bg-[#093eaa] text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-[#093eaa]/90"
+        >
+          Giriş sayfasına dön
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ErrorCard({ message, onGoToLogin }) {
+  return (
+    <div className="min-h-screen bg-[#f5f6f8] flex items-center justify-center px-4">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 max-w-md w-full text-center">
+        <div className="text-rose-500 text-sm mb-4">{message}</div>
+        <button
+          type="button"
+          onClick={onGoToLogin}
+          className="bg-[#093eaa] text-white px-6 py-2 rounded-xl text-sm font-bold hover:bg-[#093eaa]/90"
+        >
+          Giriş sayfasına dön
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function AuthCallbackPage() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, clearLocalSession } = useAuth();
   const [error, setError] = useState('');
+  const [actionComplete, setActionComplete] = useState(false);
+
+  function goToLogin() {
+    navigate('/login', { replace: true });
+  }
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -21,6 +70,12 @@ export default function AuthCallbackPage() {
     }
 
     if (!code) {
+      if (!isOAuthLoginPending()) {
+        clearOAuthPkceSession();
+        clearLocalSession();
+        setActionComplete(true);
+        return;
+      }
       setError('Geçersiz callback. Lütfen tekrar giriş yapın.');
       return;
     }
@@ -31,22 +86,23 @@ export default function AuthCallbackPage() {
         navigate('/portfolio', { replace: true });
       })
       .catch(err => {
+        if (err instanceof OAuthActionCompleteError) {
+          clearOAuthPkceSession();
+          clearLocalSession();
+          setActionComplete(true);
+          return;
+        }
         setError(err.message);
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- OAuth callback yalnızca mount'ta işlenir
   }, []);
 
+  if (actionComplete) {
+    return <ActionCompleteCard onGoToLogin={goToLogin} />;
+  }
+
   if (error) {
-    return (
-      <div className="min-h-screen bg-[#f5f6f8] flex items-center justify-center px-4">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 max-w-md w-full text-center">
-          <div className="text-rose-500 text-sm mb-4">{error}</div>
-          <button onClick={() => navigate('/login')}
-            className="bg-[#093eaa] text-white px-6 py-2 rounded-xl text-sm font-bold hover:bg-[#093eaa]/90">
-            Giriş Sayfasına Dön
-          </button>
-        </div>
-      </div>
-    );
+    return <ErrorCard message={error} onGoToLogin={goToLogin} />;
   }
 
   return (

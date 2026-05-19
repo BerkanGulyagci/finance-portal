@@ -1,6 +1,6 @@
 package com.finance.portal.news.infrastructure.external;
 
-import com.finance.portal.common.infrastructure.exception.ExternalApiException;
+import com.finance.portal.common.application.exception.ExternalApiException;
 import com.finance.portal.news.application.model.NewsArticle;
 import com.finance.portal.news.application.model.NewsPage;
 import com.finance.portal.news.application.port.NewsApiPort;

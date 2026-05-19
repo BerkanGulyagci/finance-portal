@@ -1,5 +1,6 @@
 package com.finance.portal.portfolio.service;
 
+import com.finance.portal.portfolio.application.performance.PortfolioPerformanceResult;
 import com.finance.portal.portfolio.presentation.dto.AddTransactionRequest;
 import com.finance.portal.portfolio.presentation.dto.AddWatchlistItemRequest;
 import com.finance.portal.portfolio.presentation.dto.CreatePortfolioRequest;
@@ -19,6 +20,8 @@ public interface PortfolioService {
     PortfolioResponse addTransaction(String userId, UUID portfolioId, AddTransactionRequest request);
 
     PortfolioResponse getPortfolioById(String userId, UUID portfolioId);
+
+    PortfolioPerformanceResult getPortfolioPerformance(String userId, UUID portfolioId, String range, String metric);
 
     List<PortfolioResponse> getUserPortfolios(String userId);
 

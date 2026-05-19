@@ -8,6 +8,7 @@ import ViopOpenPositions from './components/ViopOpenPositions';
 import ViopContractInfo from './components/ViopContractInfo';
 import ViopPriceChart from './components/ViopPriceChart';
 import { getViopContracts } from '../../../api/marketApi';
+import { fixViopContractName, viopContractNamesMatch } from './viopContractNameFix';
 
 export default function FuturesDetailPage() {
   const { symbol } = useParams();
@@ -25,12 +26,12 @@ export default function FuturesDetailPage() {
     } else if (symbol) {
       // Direkt URL ile gelindi: symbol param'ından contract name'i decode et
       // URL encode: encodeURIComponent(r.name) → decode ederek Akbank listesinde ara
-      const decodedName = decodeURIComponent(symbol);
+      const decodedName = fixViopContractName(decodeURIComponent(symbol));
       setLoading(true);
       getViopContracts()
         .then(contracts => {
           const found = contracts.find(c =>
-            c.name === decodedName || c.name?.toLowerCase() === decodedName.toLowerCase()
+            viopContractNamesMatch(c.name, decodedName)
           );
           if (found) {
             setContract(found);

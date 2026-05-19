@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, TrendingUp, TrendingDown, Trash2, X } from 'lucide-react';
 import {
@@ -8,6 +8,7 @@ import {
 import { getStockMidasDetail, getStockChart, getStockOhlc } from '../../../api/marketApi';
 import { init as klineInit, dispose as klineDispose, registerOverlay } from 'klinecharts';
 import RelatedViopContracts from './components/RelatedViopContracts';
+import { STOCK_CHART_RANGES } from './stockChartRanges';
 
 // ── Custom Overlay Kayıtları (uygulama başında bir kez çalışır) ──────────────
 // customRect: 2 köşe noktasıyla dikdörtgen çizer
@@ -55,22 +56,8 @@ registerOverlay({
   },
 });
 
-const RANGES = [
-  { label: '1G', range: '1d',  interval: '5m'  },  // ~78 nokta
-  { label: '1H', range: '5d',  interval: '15m' },  // ~130 nokta
-  { label: '1A', range: '1mo', interval: '1d'  },  // BIST'te daha stabil
-  { label: '3A', range: '3mo', interval: '1d'  },  // ~63 nokta
-  { label: '1Y', range: '1y',  interval: '1d'  },  // ~252 nokta
-  { label: '5Y', range: '5y',  interval: '1wk' },  // ~260 nokta
-];
-
-const OHLC_RANGES = [
-  { label: '1A',  range: '1mo', interval: '1h'  },  // ~160 mum
-  { label: '3A',  range: '3mo', interval: '1d'  },  // ~63 mum
-  { label: '6A',  range: '6mo', interval: '1d'  },  // ~126 mum
-  { label: '1Y',  range: '1y',  interval: '1d'  },  // ~252 mum
-  { label: '5Y',  range: '5y',  interval: '1wk' },  // ~260 mum
-];
+const RANGES = STOCK_CHART_RANGES;
+const OHLC_RANGES = STOCK_CHART_RANGES;
 
 /* ─── Custom Tooltip ─── */
 function ChartTooltip({ active, payload, label }) {
@@ -249,14 +236,15 @@ function CandlestickChart({ symbol }) {
   const chartId = useRef(`kline_${Date.now()}`);
   const chartRef = useRef(null);
   const indicatorPaneIds = useRef({}); // Her indikatör için pane ID'sini sakla
-  const [ohlcRangeIdx, setOhlcRangeIdx] = useState(1);
+  const [ohlcRangeIdx, setOhlcRangeIdx] = useState(3);
   const [activeMAs, setActiveMAs] = useState([]);
   const [activeSubInds, setActiveSubInds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(false);
   const [activeTool, setActiveTool] = useState(null);
 
-  const activeRange = OHLC_RANGES[ohlcRangeIdx];
+  const rangeConfig = OHLC_RANGES[ohlcRangeIdx];
+  const { range, interval } = rangeConfig;
 
   // MA toggle — calcParams ile tüm aktif periyotları tek seferde set et
   const applyMA = useCallback((periods) => {
@@ -355,7 +343,7 @@ function CandlestickChart({ symbol }) {
     setLoading(true);
     setError(false);
 
-    getStockOhlc(symbol, activeRange.range, activeRange.interval)
+    getStockOhlc(symbol, range, interval)
       .then(data => {
         if (!data?.length) { setError(true); setLoading(false); return; }
         const klineData = data
@@ -411,13 +399,13 @@ function CandlestickChart({ symbol }) {
       indicatorPaneIds.current = {};
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [symbol, activeRange.range, activeRange.interval]);
+  }, [symbol, range, interval]);
 
   return (
     <div>
       {/* ── Üst kontrol: zaman aralığı + MA butonları ── */}
       <div className="flex items-center gap-3 mb-2 flex-wrap">
-        <div className="flex gap-1">
+        <div className="flex gap-1 flex-wrap items-center">
           {OHLC_RANGES.map((r, i) => (
             <button key={r.label} onClick={() => setOhlcRangeIdx(i)}
               className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
@@ -499,7 +487,8 @@ function LineChart({ symbol }) {
   const [error, setError]     = useState(false);
   const [activeTool, setActiveTool] = useState(null);
 
-  const activeRange = RANGES[rangeIdx];
+  const rangeConfig = RANGES[rangeIdx];
+  const { range, interval } = rangeConfig;
 
   const handleSelectTool = useCallback((toolId) => {
     setActiveTool(toolId);
@@ -535,7 +524,7 @@ function LineChart({ symbol }) {
     setLoading(true);
     setError(false);
 
-    getStockChart(symbol, activeRange.range, activeRange.interval)
+    getStockChart(symbol, range, interval)
       .then(res => {
         const ts     = res?.timestamps  ?? [];
         const prices = res?.closePrices ?? [];
@@ -588,11 +577,11 @@ function LineChart({ symbol }) {
       .catch(() => { setError(true); setLoading(false); });
 
     return () => { klineDispose(id); };
-  }, [symbol, activeRange.range, activeRange.interval]);
+  }, [symbol, range, interval]);
 
   return (
     <div>
-      <div className="flex gap-1 mb-3 justify-center">
+      <div className="flex gap-1 mb-3 justify-center flex-wrap items-center">
         {RANGES.map((r, i) => (
           <button key={r.label} onClick={() => setRangeIdx(i)}
             className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${

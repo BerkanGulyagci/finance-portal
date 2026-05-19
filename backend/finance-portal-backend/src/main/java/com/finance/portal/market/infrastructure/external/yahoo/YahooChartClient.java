@@ -1,11 +1,10 @@
 package com.finance.portal.market.infrastructure.external.yahoo;
 
-import com.finance.portal.common.infrastructure.exception.ExternalApiException;
+import com.finance.portal.common.application.exception.ExternalApiException;
 import com.finance.portal.market.application.stock.StockSummary;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.finance.portal.market.application.stock.port.YahooStockPort;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import org.slf4j.Logger;
@@ -32,10 +31,11 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @Component
-public class YahooChartClient implements YahooStockPort {
+public class YahooChartClient {
 
     private static final Logger log = LoggerFactory.getLogger(YahooChartClient.class);
 
@@ -55,14 +55,12 @@ public class YahooChartClient implements YahooStockPort {
                 .build();
     }
 
-    @Override
     @CircuitBreaker(name = "yahooApi", fallbackMethod = "fallbackChart")
     @Retry(name = "yahooApi")
     public YahooChartResponseDto fetchChart(String symbol) {
         return fetchChartWithParams(symbol, "1d", "1m");
     }
 
-    @Override
     @CircuitBreaker(name = "yahooApi", fallbackMethod = "fallbackChartWithParams")
     @Retry(name = "yahooApi")
     public YahooChartResponseDto fetchChartWithParams(String symbol, String range, String interval) {
@@ -71,20 +69,22 @@ public class YahooChartClient implements YahooStockPort {
         }
 
         String trimmedSymbol = symbol.trim();
+        String yahooRange = normalizeYahooRange(range);
+        String yahooInterval = normalizeYahooInterval(interval);
 
         URI uri = UriComponentsBuilder
                 .fromUriString(yahooBaseUrl)
                 .pathSegment(encodePathSegment(trimmedSymbol))
-                .queryParam("range", range != null ? range : "1mo")
-                .queryParam("interval", interval != null ? interval : "1d")
+                .queryParam("range", yahooRange)
+                .queryParam("interval", yahooInterval)
                 .build(true)
                 .toUri();
 
         URI fallbackUri = UriComponentsBuilder
                 .fromUriString(FALLBACK_BASE_URL)
                 .pathSegment(encodePathSegment(trimmedSymbol))
-                .queryParam("range", range != null ? range : "1mo")
-                .queryParam("interval", interval != null ? interval : "1d")
+                .queryParam("range", yahooRange)
+                .queryParam("interval", yahooInterval)
                 .build(true)
                 .toUri();
 
@@ -162,6 +162,35 @@ public class YahooChartClient implements YahooStockPort {
                 "Yahoo Finance API is temporarily unavailable for symbol: " + symbol, t);
     }
 
+    /**
+     * Yahoo chart API küçük harf aralık bekler ({@code 1y}); {@code 1Y} gönderilirse tek günlük veri dönebilir.
+     */
+    static String normalizeYahooRange(String range) {
+        if (range == null || range.isBlank()) {
+            return "1mo";
+        }
+        return switch (range.trim().toUpperCase(Locale.ROOT)) {
+            case "1D" -> "1d";
+            case "5D", "1W" -> "5d";
+            case "1M" -> "1mo";
+            case "3M" -> "3mo";
+            case "6M" -> "6mo";
+            case "1Y" -> "1y";
+            case "2Y" -> "2y";
+            case "5Y" -> "5y";
+            case "YTD" -> "ytd";
+            case "MAX" -> "max";
+            default -> range.trim().toLowerCase(Locale.ROOT);
+        };
+    }
+
+    static String normalizeYahooInterval(String interval) {
+        if (interval == null || interval.isBlank()) {
+            return "1d";
+        }
+        return interval.trim().toLowerCase(Locale.ROOT);
+    }
+
     private String encodePathSegment(String value) {
         // Encode only characters that are not allowed in path segments
         return UriComponentsBuilder.fromPath("/{segment}")
@@ -171,7 +200,6 @@ public class YahooChartClient implements YahooStockPort {
                 .substring(1);
     }
 
-    @Override
     public List<StockSummary> fetchQuoteBatch(List<String> symbols) {
         if (symbols == null || symbols.isEmpty()) return List.of();
 

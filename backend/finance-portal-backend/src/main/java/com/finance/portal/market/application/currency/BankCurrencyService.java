@@ -4,8 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.finance.portal.market.infrastructure.external.fx.hesapkurdu.HesapkurduBankCurrencyClient;
-import com.finance.portal.market.infrastructure.external.fx.hesapkurdu.HesapkurduFxItem;
+import com.finance.portal.market.application.currency.model.HesapkurduFxItem;
+import com.finance.portal.market.application.currency.port.BankCurrencyPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -39,13 +39,13 @@ public class BankCurrencyService {
     private static final TypeReference<List<BankCurrencyRateDto>> LIST_TYPE =
             new TypeReference<>() {};
 
-    private final HesapkurduBankCurrencyClient client;
+    private final BankCurrencyPort bankCurrencyPort;
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
 
-    public BankCurrencyService(HesapkurduBankCurrencyClient client,
+    public BankCurrencyService(BankCurrencyPort bankCurrencyPort,
                                RedisTemplate<String, String> redisTemplate) {
-        this.client        = client;
+        this.bankCurrencyPort = bankCurrencyPort;
         this.redisTemplate = redisTemplate;
         // Kendi ObjectMapper — JavaTimeModule ekli, type info yok
         this.objectMapper  = new ObjectMapper()
@@ -100,7 +100,7 @@ public class BankCurrencyService {
     private List<BankCurrencyRateDto> fetchAndCache() {
         log.info("Fetching bank currency rates from Hesapkurdu");
         try {
-            List<HesapkurduFxItem> items = client.fetchBankRates();
+            List<HesapkurduFxItem> items = bankCurrencyPort.fetchBankRates();
             if (items.isEmpty()) {
                 log.warn("No bank rates returned from Hesapkurdu");
                 return Collections.emptyList();

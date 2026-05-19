@@ -1,11 +1,11 @@
 package com.finance.portal.market.application.silver;
 
-import com.finance.portal.market.infrastructure.external.precious.BistMetalDailyPoint;
-import com.finance.portal.market.infrastructure.external.precious.BistMetalFiyatlariClient;
-import com.finance.portal.market.infrastructure.external.precious.BistPreciousMetalPoint;
-import com.finance.portal.market.infrastructure.external.precious.BistPreciousMetalsClient;
-import com.finance.portal.market.infrastructure.external.precious.PreciousMetalType;
-import com.finance.portal.market.infrastructure.external.precious.PriceUnit;
+import com.finance.portal.market.application.precious.model.BistMetalDailyPoint;
+import com.finance.portal.market.application.precious.model.BistPreciousMetalPoint;
+import com.finance.portal.market.application.precious.port.BistMetalFiyatlariPort;
+import com.finance.portal.market.application.precious.port.BistPreciousMetalsPort;
+import com.finance.portal.market.application.precious.model.PreciousMetalType;
+import com.finance.portal.market.application.precious.model.PriceUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -41,8 +41,8 @@ public class SilverMarketService {
             "Bu fiyatlar Borsa İstanbul resmi metal fiyatından alınan referans değerlerdir. " +
             "Serbest piyasa alış/satış ve makas dahil değildir.";
 
-    private final BistPreciousMetalsClient bistClient;
-    private final BistMetalFiyatlariClient metalClient;
+    private final BistPreciousMetalsPort bistClient;
+    private final BistMetalFiyatlariPort metalClient;
 
     // ── Cache temizleme — her saat ────────────────────────────────────────────
 

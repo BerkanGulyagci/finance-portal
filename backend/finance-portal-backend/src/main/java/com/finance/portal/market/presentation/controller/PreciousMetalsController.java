@@ -4,7 +4,7 @@ import com.finance.portal.common.presentation.dto.ApiResponse;
 import com.finance.portal.market.application.precious.PreciousMetalHistoryResponse;
 import com.finance.portal.market.application.precious.PreciousMetalService;
 import com.finance.portal.market.application.precious.PreciousMetalSpotResponse;
-import com.finance.portal.market.infrastructure.external.precious.PreciousMetalType;
+import com.finance.portal.market.application.precious.model.PreciousMetalType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

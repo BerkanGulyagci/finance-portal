@@ -1,6 +1,6 @@
 package com.finance.portal.market.application.precious;
 
-import com.finance.portal.market.infrastructure.external.precious.PreciousMetalType;
+import com.finance.portal.market.application.precious.model.PreciousMetalType;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 

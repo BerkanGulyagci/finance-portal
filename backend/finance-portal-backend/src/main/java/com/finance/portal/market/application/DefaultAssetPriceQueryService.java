@@ -1,16 +1,16 @@
 package com.finance.portal.market.application;
 
-import com.finance.portal.common.infrastructure.exception.ResourceNotFoundException;
+import com.finance.portal.common.application.exception.ResourceNotFoundException;
 import com.finance.portal.market.application.funds.model.RasyonetFundDetailDto;
 import com.finance.portal.market.application.funds.model.RasyonetFundDto;
 import com.finance.portal.market.application.funds.service.RasyonetFundService;
 import com.finance.portal.market.application.service.MarketFxService;
 import com.finance.portal.market.application.stock.StockQueryService;
 import com.finance.portal.market.application.stock.StockSummary;
-import com.finance.portal.market.crypto.application.CryptoMarketItem;
-import com.finance.portal.market.crypto.application.CryptoMarketService;
-import com.finance.portal.market.presentation.dto.FxLatestResponse;
-import com.finance.portal.market.presentation.dto.FxRateItemDto;
+import com.finance.portal.market.application.crypto.CryptoMarketService;
+import com.finance.portal.market.application.crypto.model.CryptoMarketItem;
+import com.finance.portal.market.application.fx.model.FxLatestRates;
+import com.finance.portal.market.application.fx.model.FxRateItem;
 import com.finance.portal.common.domain.AssetType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,8 +91,8 @@ public class DefaultAssetPriceQueryService implements AssetPriceQueryService {
         log.debug("Fetching FX price for symbol: {}", symbol);
         String upperSymbol = symbol.toUpperCase();
 
-        FxLatestResponse fxData = marketFxService.getTcmbLatestRates(null);
-        FxRateItemDto rate = fxData.getRates().stream()
+        FxLatestRates fxData = marketFxService.getTcmbLatestRates(null);
+        FxRateItem rate = fxData.getRates().stream()
                 .filter(r -> upperSymbol.equals(r.getSymbol()))
                 .findFirst()
                 .orElseThrow(() -> new ResourceNotFoundException(

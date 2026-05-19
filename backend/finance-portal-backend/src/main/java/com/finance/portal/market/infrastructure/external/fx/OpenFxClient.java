@@ -1,6 +1,6 @@
 package com.finance.portal.market.infrastructure.external.fx;
 
-import com.finance.portal.common.infrastructure.exception.ExternalApiException;
+import com.finance.portal.common.application.exception.ExternalApiException;
 import com.finance.portal.market.infrastructure.external.fx.dto.OpenErApiResponseDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

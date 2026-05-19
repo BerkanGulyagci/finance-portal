@@ -1,7 +1,8 @@
 package com.finance.portal.common.presentation.exception;
 
-import com.finance.portal.common.infrastructure.exception.ExternalApiException;
-import com.finance.portal.common.infrastructure.exception.ResourceNotFoundException;
+import com.finance.portal.admin.application.exception.AdminPolicyException;
+import com.finance.portal.common.application.exception.ExternalApiException;
+import com.finance.portal.common.application.exception.ResourceNotFoundException;
 import com.finance.portal.common.presentation.dto.ApiResponse;
 import com.finance.portal.market.application.viop.UnsupportedViopContractException;
 import org.apache.logging.log4j.LogManager;
@@ -59,6 +60,12 @@ public class GlobalExceptionHandler {
         logger.warn("Illegal argument: {}", ex.getMessage());
 
         return new ResponseEntity<>(ApiResponse.error(ex.getMessage()), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(AdminPolicyException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAdminPolicyException(AdminPolicyException ex) {
+        logger.warn("Admin policy violation: {}", ex.getMessage());
+        return new ResponseEntity<>(ApiResponse.error(ex.getMessage()), ex.getStatus());
     }
 
     /**

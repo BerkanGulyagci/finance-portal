@@ -81,6 +81,7 @@ public class ViopIndexCodeMapper {
         m.put("Aşub",           "02");  // Ş → Aş bozukluğu
         m.put("Aşu",            "02");
         m.put("Åub",            "02");  // ekranda görülen: Å+ub
+        m.put("Âub",            "02");  // UTF-8/Latin-1: Â+ub (Şubat)
         m.put("Å\u009Eub",      "02");  // ISO-8859-1: C5 9E = Ş
         m.put("Å\u009Eu",       "02");
         // ===== Ocak (01) bozuk varyantları =====
@@ -156,9 +157,11 @@ public class ViopIndexCodeMapper {
                 // "Aşub" → "Şub" (Şubat bozuk encode: Ş → Aş varyantı)
                 .replace("Aşub", "Şub")
                 .replace("Aşu",  "Şu")
-                // "Åub" → "Şub" (ekranda görülen: Å+ub varyantı)
+                // "Åub" / "Âub" → "Şub" (Şubat bozuk encode)
                 .replace("Åub",  "Şub")
                 .replace("Åu",   "Şu")
+                .replace("Âub",  "Şub")
+                .replace("Âu",   "Şu")
                 // "Şub" bozuk varyantları (Şubat = Şub)
                 .replace("Å\u009Eub", "Şub")
                 .replace("Å\u009Eu",  "Şu")

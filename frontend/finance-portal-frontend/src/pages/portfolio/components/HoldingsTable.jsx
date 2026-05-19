@@ -5,6 +5,7 @@ import TrendBadge from '../../../components/common/TrendBadge';
 import { getWatchlistDetailPath } from '../constants/watchlistMarketRoutes';
 import { CommodityDualPrice } from './CommodityPriceHint';
 import { isYahooCommoditySymbol } from '../../../utils/commodityPriceUtils';
+import { MASK_MONEY, MASK_PERCENT, MASK_QTY } from '../utils/portfolioFormatUtils';
 
 // ── Sabitler ─────────────────────────────────────────────────────────────────
 
@@ -260,7 +261,10 @@ function Dash() {
   return <span className="text-gray-300">-</span>;
 }
 
-function PnlAmt({ value, currency }) {
+function PnlAmt({ value, currency, valuesHidden }) {
+  if (valuesHidden) {
+    return <span className="font-bold text-gray-500 tracking-widest">{MASK_MONEY}</span>;
+  }
   if (value == null) return <Dash />;
   const n = parseFloat(value);
   if (!Number.isFinite(n)) return <Dash />;
@@ -275,7 +279,10 @@ function PnlAmt({ value, currency }) {
   );
 }
 
-function PnlPct({ value }) {
+function PnlPct({ value, valuesHidden }) {
+  if (valuesHidden) {
+    return <span className="font-semibold text-gray-500 tracking-widest">{MASK_PERCENT}</span>;
+  }
   if (value == null) return <Dash />;
   const n = parseFloat(value);
   if (!Number.isFinite(n)) return <Dash />;
@@ -293,7 +300,7 @@ function PnlPct({ value }) {
 
 // ── Hücre render ─────────────────────────────────────────────────────────────
 
-function renderCell(key, h, commoditySpots) {
+function renderCell(key, h, commoditySpots, valuesHidden) {
   const cur = h.currency;
   const isFund = String(h.assetType ?? '').toUpperCase() === 'FUND';
   const isYahooCommodity =
@@ -333,6 +340,9 @@ function renderCell(key, h, commoditySpots) {
       );
 
     case 'qty':
+      if (valuesHidden) {
+        return <span className="text-sm text-gray-500 tracking-widest">{MASK_QTY}</span>;
+      }
       return (
         <span className="text-sm font-mono">
           {(isFund ? fmtQtyFund(h.totalQuantity) : fmtQty(h.totalQuantity)) ?? <Dash />}
@@ -340,6 +350,9 @@ function renderCell(key, h, commoditySpots) {
       );
 
     case 'avgCost':
+      if (valuesHidden) {
+        return <span className="text-sm text-gray-500 tracking-widest">{MASK_MONEY}</span>;
+      }
       return (
         <span className="text-sm">
           {(isFund ? fmtFundNavPrice(h.averageCost, cur) : fmtPrice(h.averageCost, cur)) ?? <Dash />}
@@ -347,6 +360,9 @@ function renderCell(key, h, commoditySpots) {
       );
 
     case 'currentPrice':
+      if (valuesHidden) {
+        return <span className="text-sm text-gray-500 tracking-widest">{MASK_MONEY}</span>;
+      }
       if (isYahooCommodity && commoditySpot) {
         return <CommodityDualPrice tryAmount={h.currentPrice} spot={commoditySpot} />;
       }
@@ -357,29 +373,35 @@ function renderCell(key, h, commoditySpots) {
       );
 
     case 'marketValue': {
+      if (valuesHidden) {
+        return <span className="text-sm text-gray-500 tracking-widest">{MASK_MONEY}</span>;
+      }
       const mv = positionMarketValue(h);
       const s = fmtMoneyTwoDecimals(mv, cur);
       return <span className="text-sm font-semibold">{s ?? <Dash />}</span>;
     }
 
     case 'totalCost':
+      if (valuesHidden) {
+        return <span className="text-sm text-gray-500 tracking-widest">{MASK_MONEY}</span>;
+      }
       return <span className="text-sm">{fmtMoneyTwoDecimals(h.totalCost, cur) ?? <Dash />}</span>;
 
     case 'unrealizedPnl': {
       const pnl = unrealizedGainLoss(h);
-      return <PnlAmt value={pnl} currency={cur} />;
+      return <PnlAmt value={pnl} currency={cur} valuesHidden={valuesHidden} />;
     }
 
     case 'unrealizedPct': {
       const pnl  = unrealizedGainLoss(h);
       const cost = num(h, 'totalCost');
       const pct  = cost != null && cost > 0 && pnl != null ? (pnl / cost) * 100 : null;
-      return <PnlPct value={pct} />;
+      return <PnlPct value={pct} valuesHidden={valuesHidden} />;
     }
 
     case 'dailyPnl': {
       const v = positionDailyGainLoss(h);
-      return <PnlAmt value={v} currency={cur} />;
+      return <PnlAmt value={v} currency={cur} valuesHidden={valuesHidden} />;
     }
 
     case 'dailyPct': {
@@ -389,14 +411,14 @@ function renderCell(key, h, commoditySpots) {
         h.changePercent ??
         h.returnOneDay ??
         null;
-      return <PnlPct value={v} />;
+      return <PnlPct value={v} valuesHidden={valuesHidden} />;
     }
 
     case 'realizedPnl':
-      return <PnlAmt value={h.realizedGainLoss ?? null} currency={cur} />;
+      return <PnlAmt value={h.realizedGainLoss ?? null} currency={cur} valuesHidden={valuesHidden} />;
 
     case 'realizedPct':
-      return <PnlPct value={h.realizedGainLossPercent ?? null} />;
+      return <PnlPct value={h.realizedGainLossPercent ?? null} valuesHidden={valuesHidden} />;
 
     case 'currency':
       return <span className="text-sm text-gray-700">{h.currency ?? <Dash />}</span>;
@@ -586,7 +608,7 @@ function ColumnEditor({ open, onToggle, selected, onChange }) {
  * Props:
  *   holdings: PortfolioHoldingResponse[]
  */
-export default function HoldingsTable({ holdings = [], commoditySpots = {} }) {
+export default function HoldingsTable({ holdings = [], commoditySpots = {}, valuesHidden = false }) {
   const [selectedKeys, setSelectedKeys] = useState(DEFAULT_KEYS);
   const [editorOpen, setEditorOpen]     = useState(false);
 
@@ -630,7 +652,7 @@ export default function HoldingsTable({ holdings = [], commoditySpots = {} }) {
               <tr key={`${h.assetType}-${h.symbol}`} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
                 {visibleCols.map(col => (
                   <td key={col.key} className="px-4 py-3">
-                    {renderCell(col.key, h, commoditySpots)}
+                    {renderCell(col.key, h, commoditySpots, valuesHidden)}
                   </td>
                 ))}
               </tr>

@@ -1,0 +1,104 @@
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Cell,
+  ReferenceLine,
+  LabelList,
+} from 'recharts';
+import PortfolioChartCard from './PortfolioChartCard';
+import PortfolioAnalyticsTooltip from './PortfolioAnalyticsTooltip';
+import {
+  calculateDailyContributionRows,
+  hasAnyDailyProfitLossData,
+  truncateChartLabel,
+} from '../../utils/portfolioAnalyticsHelpers';
+import {
+  BAR_HORIZONTAL_BAR,
+  BAR_HORIZONTAL_CHART,
+  CHART_GRID,
+  COLOR_NEG,
+  COLOR_POS,
+  TICK,
+  signedNumericDomain,
+} from './portfolioChartStyles';
+import { formatMoney } from '../../utils/portfolioFormatUtils';
+
+export default function PortfolioDailyContributionChart({ holdings, valuesHidden, currency }) {
+  const hasData = hasAnyDailyProfitLossData(holdings);
+  const { rows, truncated } = calculateDailyContributionRows(holdings);
+
+  const chartData = rows.map(r => ({
+    ...r,
+    shortName: truncateChartLabel(r.name, 18),
+  }));
+
+  const xDomain = signedNumericDomain(chartData.map(d => d.daily));
+  const chartHeight = Math.min(380, Math.max(220, chartData.length * 38 + 48));
+
+  return (
+    <PortfolioChartCard
+      title="Günlük K/Z Katkısı"
+      subtitle={
+        truncated
+          ? 'Bugünkü günlük K/Z’ye en çok katkı eden pozisyonlar (max 12).'
+          : 'Bugünkü günlük kar/zarara pozisyon bazlı katkı.'
+      }
+    >
+      {!hasData ? (
+        <p className="text-center text-sm text-gray-400 py-10">Günlük katkı verisi bulunamadı.</p>
+      ) : !chartData.length ? (
+        <p className="text-center text-sm text-gray-400 py-10">Günlük katkı verisi bulunamadı.</p>
+      ) : (
+        <div className="w-full min-w-0" style={{ height: chartHeight }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              layout="vertical"
+              data={chartData}
+              margin={{ top: 4, right: valuesHidden ? 12 : 88, left: 4, bottom: 4 }}
+              {...BAR_HORIZONTAL_CHART}
+            >
+              <CartesianGrid {...CHART_GRID} horizontal={false} />
+              <XAxis
+                type="number"
+                domain={xDomain}
+                tick={TICK}
+                tickFormatter={v =>
+                  valuesHidden ? '' : Number(v).toLocaleString('tr-TR', { notation: 'compact' })
+                }
+              />
+              <YAxis type="category" dataKey="shortName" width={112} tick={TICK} />
+              <ReferenceLine x={0} stroke="#cbd5e1" strokeWidth={1} />
+              <Tooltip
+                content={
+                  <PortfolioAnalyticsTooltip
+                    valuesHidden={valuesHidden}
+                    currency={currency}
+                    valueIsMoney
+                  />
+                }
+              />
+              <Bar dataKey="daily" name="Günlük K/Z" radius={[0, 3, 3, 0]} {...BAR_HORIZONTAL_BAR}>
+                {chartData.map(entry => (
+                  <Cell key={entry.key} fill={entry.daily >= 0 ? COLOR_POS : COLOR_NEG} />
+                ))}
+                {!valuesHidden && (
+                  <LabelList
+                    dataKey="daily"
+                    position="right"
+                    formatter={v => formatMoney(v, currency, false)}
+                    style={{ fontSize: 9, fill: '#64748b' }}
+                  />
+                )}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </PortfolioChartCard>
+  );
+}

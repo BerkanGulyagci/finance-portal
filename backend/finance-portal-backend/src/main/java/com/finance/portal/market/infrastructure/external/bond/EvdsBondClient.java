@@ -2,6 +2,8 @@ package com.finance.portal.market.infrastructure.external.bond;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.finance.portal.market.application.bond.evds.model.EvdsSeriesInfo;
+import com.finance.portal.market.application.bond.evds.model.EvdsSeriesPoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;

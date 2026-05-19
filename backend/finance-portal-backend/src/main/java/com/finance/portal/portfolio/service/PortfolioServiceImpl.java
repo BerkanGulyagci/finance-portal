@@ -7,6 +7,7 @@ import com.finance.portal.portfolio.domain.PortfolioTransaction;
 import com.finance.portal.portfolio.domain.PortfolioType;
 import com.finance.portal.portfolio.domain.TransactionType;
 import com.finance.portal.portfolio.domain.WatchlistItem;
+import com.finance.portal.portfolio.application.performance.PortfolioPerformanceResult;
 import com.finance.portal.portfolio.presentation.dto.AddTransactionRequest;
 import com.finance.portal.portfolio.presentation.dto.AddWatchlistItemRequest;
 import com.finance.portal.portfolio.presentation.dto.CreatePortfolioRequest;
@@ -45,19 +46,22 @@ public class PortfolioServiceImpl implements PortfolioService {
     private final WatchlistMarketEnrichmentPort watchlistMarketEnrichment;
     private final PortfolioHoldingsBuilder holdingsBuilder;
     private final HoldingMarketEnrichmentPort holdingMarketEnrichment;
+    private final PortfolioPerformanceService portfolioPerformanceService;
 
     public PortfolioServiceImpl(PortfolioPersistencePort portfolioPersistence,
                                 PortfolioCachePort portfolioCache,
                                 ViopService viopService,
                                 WatchlistMarketEnrichmentPort watchlistMarketEnrichment,
                                 PortfolioHoldingsBuilder holdingsBuilder,
-                                HoldingMarketEnrichmentPort holdingMarketEnrichment) {
+                                HoldingMarketEnrichmentPort holdingMarketEnrichment,
+                                PortfolioPerformanceService portfolioPerformanceService) {
         this.portfolioPersistence           = portfolioPersistence;
         this.portfolioCache                 = portfolioCache;
         this.viopService                    = viopService;
         this.watchlistMarketEnrichment       = watchlistMarketEnrichment;
         this.holdingsBuilder                = holdingsBuilder;
         this.holdingMarketEnrichment        = holdingMarketEnrichment;
+        this.portfolioPerformanceService    = portfolioPerformanceService;
     }
 
     // ── HOLDINGS portföy işlemleri ────────────────────────────────────────────
@@ -170,6 +174,13 @@ public class PortfolioServiceImpl implements PortfolioService {
         // Önbelleğe yazmayı zenginleştirmeden SONRA yap — aksi halde Redis'te 52w/MA olmadan snapshot kalır
         portfolioCache.putPortfolioDetail(userId, portfolioId, response);
         return response;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PortfolioPerformanceResult getPortfolioPerformance(
+            String userId, UUID portfolioId, String range, String metric) {
+        return portfolioPerformanceService.getPerformance(userId, portfolioId, range, metric);
     }
 
     @Override

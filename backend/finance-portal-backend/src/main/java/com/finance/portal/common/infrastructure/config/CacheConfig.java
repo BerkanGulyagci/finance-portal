@@ -162,7 +162,24 @@ public class CacheConfig {
                         )
                 );
 
+        RedisCacheConfiguration cryptoChartCacheConfig = RedisCacheConfiguration
+                .defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(30))
+                .serializeValuesWith(
+                        RedisSerializationContext.SerializationPair.fromSerializer(
+                                new GenericJackson2JsonRedisSerializer()
+                        )
+                );
+
+        GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer();
+        RedisCacheConfiguration jsonDefaultCacheConfig = RedisCacheConfiguration
+                .defaultCacheConfig()
+                .serializeValuesWith(
+                        RedisSerializationContext.SerializationPair.fromSerializer(jsonSerializer)
+                );
+
         return RedisCacheManager.builder(redisConnectionFactory)
+                .cacheDefaults(jsonDefaultCacheConfig)
                 .withCacheConfiguration("newsCache", newsCacheConfig)
                 .withCacheConfiguration("market.fx.tcmb.latest", marketFxTcmbCacheConfig)
                 .withCacheConfiguration("market.fx.open.latest", marketFxOpenCacheConfig)
@@ -193,6 +210,11 @@ public class CacheConfig {
                 .withCacheConfiguration("market.commodity.spot", marketCommoditySpotCacheConfig)
                 .withCacheConfiguration("market.commodity.history", marketCommodityHistoryCacheConfig)
                 .withCacheConfiguration("cryptoMarketsCache", cryptoMarketsCacheConfig)
+                .withCacheConfiguration("market.crypto.chart", cryptoChartCacheConfig)
+                .withCacheConfiguration("market.crypto.ohlc", cryptoChartCacheConfig)
+                .withCacheConfiguration("market.crypto.binance.candles", cryptoChartCacheConfig)
+                .withCacheConfiguration("market.crypto.yahoo.ohlc", cryptoChartCacheConfig)
+                .withCacheConfiguration("market.crypto.yahoo.chart", cryptoChartCacheConfig)
                 .withCacheConfiguration("market.evds.bonds.active-series",
                         RedisCacheConfiguration.defaultCacheConfig()
                                 .entryTtl(Duration.ofSeconds(evdsBondsActiveSeriesTtlSeconds))

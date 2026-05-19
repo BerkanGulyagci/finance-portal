@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { init as klineInit, dispose as klineDispose, registerOverlay } from 'klinecharts';
 import { Trash2, X } from 'lucide-react';
+import { computeKlinePricePrecision, computeKlineVolumePrecision } from '../../../../utils/numberFormat';
 
 // ── Custom Overlay Kayıtları ───────────────────────────────────────────────────
 // Dikdörtgen
@@ -155,7 +156,13 @@ const SUB_INDICATORS = [
 
 // ── Ana Grafik Bileşeni ───────────────────────────────────────────────────────
 
-export default function CommodityDetailChart({ points, chartMode, loading }) {
+export default function CommodityDetailChart({
+  points,
+  chartMode,
+  loading,
+  sourceNote = 'Kaynak: Yahoo Finance · OHLC verisi',
+  sourceWarning = null,
+}) {
   const chartId  = useRef(`commodity_chart_${Date.now()}`);
   const chartRef = useRef(null);
   const indicatorPaneIds = useRef({});
@@ -239,9 +246,15 @@ export default function CommodityDetailChart({ points, chartMode, loading }) {
 
   // ── Grafik render ──────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!points?.length) return;
-
     const id = chartId.current;
+
+    if (!points?.length) {
+      try { klineDispose(id); } catch { /* ignore */ }
+      chartRef.current = null;
+      indicatorPaneIds.current = {};
+      return;
+    }
+
     const chart = klineInit(id);
     chartRef.current = chart;
     indicatorPaneIds.current = {};
@@ -267,6 +280,13 @@ export default function CommodityDetailChart({ points, chartMode, loading }) {
       .sort((a, b) => a.timestamp - b.timestamp);
 
     if (!klineData.length) return;
+
+    try {
+      chart.setPriceVolumePrecision(
+        computeKlinePricePrecision(klineData.map((d) => d.close)),
+        computeKlineVolumePrecision(klineData.map((d) => d.volume)),
+      );
+    } catch (_) { /* klinecharts sürümü */ }
 
     const isDown = klineData[klineData.length - 1].close < klineData[0].close;
     const color  = isDown ? '#ef4444' : '#10b981';
@@ -367,7 +387,12 @@ export default function CommodityDetailChart({ points, chartMode, loading }) {
         <div id={chartId.current} style={{ width: '100%', height: '460px' }} />
       </div>
 
-      <p className="text-xs text-gray-400 mt-2">Kaynak: Yahoo Finance · OHLC verisi</p>
+      {sourceNote && <p className="text-xs text-gray-400 mt-2">{sourceNote}</p>}
+      {sourceWarning && (
+        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
+          {sourceWarning}
+        </p>
+      )}
     </div>
   );
 }

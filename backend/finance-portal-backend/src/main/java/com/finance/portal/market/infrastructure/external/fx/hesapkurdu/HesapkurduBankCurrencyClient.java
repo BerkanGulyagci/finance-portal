@@ -1,5 +1,6 @@
 package com.finance.portal.market.infrastructure.external.fx.hesapkurdu;
 
+import com.finance.portal.market.application.currency.model.HesapkurduFxItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;

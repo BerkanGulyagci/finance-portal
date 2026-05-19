@@ -150,10 +150,12 @@ market:
 keycloak:
   admin:
     url: ${KEYCLOAK_ADMIN_URL:http://finance-portal-keycloak:8080}
-    realm: finance-portal
-    client-id: admin-cli
-    username: ${KEYCLOAK_ADMIN_USERNAME:admin}
-    password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
+    realm: ${KEYCLOAK_ADMIN_REALM:finance-portal}
+    client-id: ${KEYCLOAK_ADMIN_CLIENT_ID:finance-portal-admin-service}
+    client-secret: ${KEYCLOAK_ADMIN_CLIENT_SECRET:}
+  portal:
+    public-client-id: finance-portal-api
+    post-verify-redirect-uri: ${KEYCLOAK_POST_VERIFY_REDIRECT_URI:http://localhost:5173/login}
 
 ldap:
   url: ${LDAP_URL:ldap://finance-portal-apacheds:10389}
@@ -181,6 +183,9 @@ coingecko:
   api-key: ${COINGECKO_API_KEY:CG-B1V3coqfjBN6Q5Ff8j6AnpZf}
   vs-currency: try
 
+binance:
+  base-url: https://api.binance.com
+
 resilience4j:
   circuitbreaker:
     instances:
@@ -193,7 +198,7 @@ resilience4j:
           - org.springframework.web.client.ResourceAccessException
           - org.springframework.web.client.HttpServerErrorException
         ignoreExceptions:
-          - com.finance.portal.common.infrastructure.exception.ExternalApiException
+          - com.finance.portal.common.application.exception.ExternalApiException
           - org.springframework.web.client.HttpClientErrorException
       yahooFundsApi:
         slidingWindowSize: 10
@@ -204,7 +209,7 @@ resilience4j:
           - org.springframework.web.client.ResourceAccessException
           - org.springframework.web.client.HttpServerErrorException
         ignoreExceptions:
-          - com.finance.portal.common.infrastructure.exception.ExternalApiException
+          - com.finance.portal.common.application.exception.ExternalApiException
           - org.springframework.web.client.HttpClientErrorException
       yahooFuturesApi:
         slidingWindowSize: 10
@@ -215,7 +220,7 @@ resilience4j:
           - org.springframework.web.client.ResourceAccessException
           - org.springframework.web.client.HttpServerErrorException
         ignoreExceptions:
-          - com.finance.portal.common.infrastructure.exception.ExternalApiException
+          - com.finance.portal.common.application.exception.ExternalApiException
           - org.springframework.web.client.HttpClientErrorException
       coinGeckoApi:
         slidingWindowSize: 10
@@ -231,7 +236,7 @@ resilience4j:
           - org.springframework.web.client.ResourceAccessException
           - org.springframework.web.client.HttpServerErrorException
         ignoreExceptions:
-          - com.finance.portal.common.infrastructure.exception.ExternalApiException
+          - com.finance.portal.common.application.exception.ExternalApiException
           - org.springframework.web.client.HttpClientErrorException
       yahooFundsApi:
         maxAttempts: 2

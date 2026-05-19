@@ -10,7 +10,8 @@ public enum BondPeriod {
     ONE_MONTH(30),
     THREE_MONTHS(90),
     SIX_MONTHS(180),
-    ONE_YEAR(365);
+    ONE_YEAR(365),
+    FIVE_YEARS(1825);
 
     private final int days;
 

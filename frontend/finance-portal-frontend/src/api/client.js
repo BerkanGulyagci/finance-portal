@@ -24,15 +24,27 @@ client.interceptors.request.use((config) => {
   return config;
 });
 
-// 401 response gelirse de login'e yönlendir
+function forceLogout(redirectPath = '/login') {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem('id_token');
+  window.location.href = redirectPath;
+}
+
+// 401 / banlı hesap (403) → oturumu sonlandır
 client.interceptors.response.use(
   response => response,
   error => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem('id_token');
-      window.location.href = '/login';
+    const status = error.response?.status;
+    const message = error.response?.data?.message || '';
+
+    if (status === 401) {
+      forceLogout('/login');
+    } else if (status === 403 && message.startsWith('ACCOUNT_DISABLED')) {
+      forceLogout('/login?banned=1');
+    } else if (status === 403 && message.startsWith('EMAIL_NOT_VERIFIED')) {
+      window.location.href = '/verify-email';
     }
+
     return Promise.reject(error);
   }
 );

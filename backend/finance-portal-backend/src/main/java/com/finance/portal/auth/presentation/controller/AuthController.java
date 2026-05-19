@@ -27,6 +27,9 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<Void>> register(@Valid @RequestBody RegisterRequest request) {
         registrationService.register(authMapper.toCommand(request));
-        return ResponseEntity.ok(ApiResponse.success(null, "Kayıt başarılı. Giriş yapabilirsiniz."));
+        return ResponseEntity.ok(ApiResponse.success(
+                null,
+                "Kayıt başarılı. Devam etmek için email adresinizi doğrulayın."
+        ));
     }
 }

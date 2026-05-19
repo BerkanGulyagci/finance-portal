@@ -10,8 +10,11 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
+import com.finance.portal.common.infrastructure.security.DisabledAccountFilter;
+import com.finance.portal.common.infrastructure.security.EmailVerifiedFilter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -27,10 +30,16 @@ public class SecurityConfig {
     private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            DisabledAccountFilter disabledAccountFilter,
+            EmailVerifiedFilter emailVerifiedFilter
+    ) throws Exception {
         log.info("Custom SecurityFilterChain initialized");
         log.info("/api/market/** is public");
-        log.info("/api/portfolios/** requires authentication");
+        log.info("/api/portfolios/** requires authentication + verified email");
+        log.info("/api/admin/** requires ROLE_ADMIN");
+        log.info("/api/me requires authentication (email verification gate exempt for status check)");
         log.info("/api/kafka/test requires authentication");
         http
                 .cors(cors -> {})
@@ -42,6 +51,8 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/mappings").permitAll()
                         .requestMatchers("/actuator/metrics", "/actuator/prometheus").permitAll()
                         .requestMatchers("/api/kafka/test").authenticated()
+                        .requestMatchers("/api/me", "/api/me/**").authenticated()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/portfolios", "/api/portfolios/**").authenticated()
                         .requestMatchers("/api/news", "/api/news/**").permitAll()
                         .requestMatchers("/api/auth", "/api/auth/**").permitAll()
@@ -67,7 +78,9 @@ public class SecurityConfig {
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
                             response.setStatus(403);
                         })
-                );
+                )
+                .addFilterAfter(disabledAccountFilter, BearerTokenAuthenticationFilter.class)
+                .addFilterAfter(emailVerifiedFilter, DisabledAccountFilter.class);
         return http.build();
     }
 

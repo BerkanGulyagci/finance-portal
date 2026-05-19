@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, ChevronDown, Menu, X } from 'lucide-react';
+import { Search, ChevronDown, Menu, X, User, ExternalLink, Shield, LogOut } from 'lucide-react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { keycloakAccountUrls } from '../../config/keycloakAccount';
 
 // ── Nav item definitions ──────────────────────────────────────────────────────
 const navItems = [
@@ -101,18 +102,71 @@ function NavDropdown({ menu, onClose }) {
   );
 }
 
+// ── Profile menu ──────────────────────────────────────────────────────────────
+function ProfileMenu({ onClose }) {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  function handleLogout() {
+    onClose();
+    logout();
+    navigate('/');
+  }
+
+  const itemClass =
+    'flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#093eaa] transition-colors w-full text-left';
+
+  return (
+    <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50">
+      <Link to="/profile" onClick={onClose} className={itemClass}>
+        <User className="w-4 h-4 shrink-0" />
+        Profilim
+      </Link>
+      <a
+        href={keycloakAccountUrls.home}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={onClose}
+        className={itemClass}
+      >
+        <ExternalLink className="w-4 h-4 shrink-0" />
+        Hesap Ayarları
+      </a>
+      <a
+        href={keycloakAccountUrls.changePassword}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={onClose}
+        className={itemClass}
+      >
+        <Shield className="w-4 h-4 shrink-0" />
+        Şifre Değiştir
+      </a>
+      <button type="button" onClick={handleLogout} className={`${itemClass} text-red-700 hover:text-red-800`}>
+        <LogOut className="w-4 h-4 shrink-0" />
+        Çıkış Yap
+      </button>
+    </div>
+  );
+}
+
 // ── Header ────────────────────────────────────────────────────────────────────
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState(null); // index of open dropdown
-  const { isAuthenticated, logout } = useAuth();
+  const [profileOpen, setProfileOpen] = useState(false);
+  const { isAuthenticated, isAdmin, logout, username } = useAuth();
   const navigate = useNavigate();
   const navRef = useRef(null);
+  const profileRef = useRef(null);
 
   useEffect(() => {
     function handleClick(e) {
       if (navRef.current && !navRef.current.contains(e.target)) {
         setOpenMenu(null);
+      }
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setProfileOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClick);
@@ -160,6 +214,15 @@ export function Header() {
             ))}
 
             {/* Dropdown menus */}
+            {isAdmin && (
+              <NavLink to="/admin/users"
+                className={({ isActive }) =>
+                  `px-3 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${isActive ? 'text-[#093eaa] bg-blue-50' : 'text-gray-700 hover:text-[#093eaa] hover:bg-gray-50'}`
+                }>
+                Admin Panel
+              </NavLink>
+            )}
+
             {dropdownMenus.map((menu, idx) => (
               <div key={menu.label} className="relative">
                 <button
@@ -182,10 +245,18 @@ export function Header() {
             </div>
 
             {isAuthenticated ? (
-              <button onClick={handleLogout}
-                className="bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-gray-200 transition-all">
-                Çıkış
-              </button>
+              <div className="relative hidden sm:block" ref={profileRef}>
+                <button
+                  type="button"
+                  onClick={() => setProfileOpen((open) => !open)}
+                  className={`flex items-center gap-1.5 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-gray-200 transition-all ${profileOpen ? 'ring-2 ring-[#093eaa]/30' : ''}`}
+                >
+                  <User className="w-4 h-4" />
+                  <span className="max-w-[120px] truncate">{username || 'Hesabım'}</span>
+                  <ChevronDown className={`w-3 h-3 transition-transform ${profileOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {profileOpen && <ProfileMenu onClose={() => setProfileOpen(false)} />}
+              </div>
             ) : (
               <div className="flex items-center gap-2">
                 <Link to="/login"
@@ -214,6 +285,35 @@ export function Header() {
                 {item.name}
               </Link>
             ))}
+            {isAdmin && (
+              <Link to="/admin/users" onClick={() => setMobileOpen(false)}
+                className="block px-4 py-2.5 text-sm font-semibold text-[#093eaa] hover:bg-gray-50 rounded-lg transition-colors">
+                Admin Panel
+              </Link>
+            )}
+            {isAuthenticated && (
+              <div className="px-4 py-2 border-b border-gray-100 mb-2 space-y-1">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Hesap</p>
+                <Link to="/profile" onClick={() => setMobileOpen(false)}
+                  className="block py-2 text-sm font-semibold text-gray-700 hover:text-[#093eaa]">
+                  Profilim
+                </Link>
+                <a href={keycloakAccountUrls.home} target="_blank" rel="noopener noreferrer"
+                  onClick={() => setMobileOpen(false)}
+                  className="block py-2 text-sm font-semibold text-gray-700 hover:text-[#093eaa]">
+                  Hesap Ayarları
+                </a>
+                <a href={keycloakAccountUrls.changePassword} target="_blank" rel="noopener noreferrer"
+                  onClick={() => setMobileOpen(false)}
+                  className="block py-2 text-sm font-semibold text-gray-700 hover:text-[#093eaa]">
+                  Şifre Değiştir
+                </a>
+                <button type="button" onClick={() => { setMobileOpen(false); handleLogout(); }}
+                  className="block w-full text-left py-2 text-sm font-semibold text-red-700">
+                  Çıkış Yap
+                </button>
+              </div>
+            )}
             {dropdownMenus.map(menu => (
               <div key={menu.label} className="px-4 py-2">
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{menu.label}</p>

@@ -1,9 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout';
 import ProtectedRoute from '../components/common/ProtectedRoute';
+import AdminRoute from '../pages/admin/components/AdminRoute';
 import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
 import AuthCallbackPage from '../pages/AuthCallbackPage';
+import VerifyEmailPage from '../pages/VerifyEmailPage';
 import DashboardPage from '../pages/DashboardPage';
 import PortfolioPage from '../pages/portfolio/PortfolioPage';
 import PortfolioDetailPage from '../pages/portfolio/PortfolioDetailPage';
@@ -33,6 +35,9 @@ import StockComparePage from '../pages/market/stock/StockComparePage';
 import ComparePage from '../pages/market/fx/ComparePage';
 import NewsPage from '../pages/NewsPage';
 import NotFoundPage from '../pages/NotFoundPage';
+import UnauthorizedPage from '../pages/admin/UnauthorizedPage';
+import AdminUsersPage from '../pages/admin/AdminUsersPage';
+import ProfilePage from '../pages/ProfilePage';
 
 export default function AppRouter() {
   return (
@@ -40,11 +45,13 @@ export default function AppRouter() {
       <Routes>
         <Route path="/" element={<Navigate to="/news" replace />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
+        <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
         {/* Public routes with layout */}
         <Route element={<AppLayout />}>
           <Route path="/login"             element={<LoginPage />} />
           <Route path="/register"          element={<RegisterPage />} />
+          <Route path="/verify-email"      element={<VerifyEmailPage />} />
           <Route path="/news"              element={<NewsPage />} />
           <Route path="/dashboard"         element={<DashboardPage />} />
           <Route path="/market"            element={<MarketPage />} />
@@ -73,10 +80,21 @@ export default function AppRouter() {
           <Route path="/market/compare"    element={<ComparePage />} />
         </Route>
 
+        {/* Authenticated (email verification optional) */}
+        <Route element={<ProtectedRoute requireEmailVerified={false}><AppLayout /></ProtectedRoute>}>
+          <Route path="/profile" element={<ProfilePage />} />
+        </Route>
+
         {/* Protected routes */}
         <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
           <Route path="/portfolio"         element={<PortfolioPage />} />
           <Route path="/portfolio/:id"     element={<PortfolioDetailPage />} />
+        </Route>
+
+        {/* Admin routes */}
+        <Route element={<AdminRoute><AppLayout /></AdminRoute>}>
+          <Route path="/admin" element={<Navigate to="/admin/users" replace />} />
+          <Route path="/admin/users" element={<AdminUsersPage />} />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />

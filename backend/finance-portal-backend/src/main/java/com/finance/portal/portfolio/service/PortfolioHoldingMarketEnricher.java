@@ -32,14 +32,14 @@ import com.finance.portal.market.application.viop.ViopChartPeriod;
 import com.finance.portal.market.application.viop.ViopChartService;
 import com.finance.portal.market.application.viop.ViopContract;
 import com.finance.portal.market.application.viop.ViopService;
-import com.finance.portal.market.crypto.application.CryptoMarketItem;
-import com.finance.portal.market.crypto.application.CryptoMarketService;
-import com.finance.portal.market.presentation.dto.FxHistoryPoint;
-import com.finance.portal.market.presentation.dto.FxHistoryResponse;
-import com.finance.portal.market.presentation.dto.FxLatestResponse;
-import com.finance.portal.market.presentation.dto.FxRateItemDto;
-import com.finance.portal.market.presentation.dto.ViopChartPointDto;
-import com.finance.portal.market.presentation.dto.ViopContractDetailDto;
+import com.finance.portal.market.application.crypto.CryptoMarketService;
+import com.finance.portal.market.application.crypto.model.CryptoMarketItem;
+import com.finance.portal.market.application.fx.model.FxHistory;
+import com.finance.portal.market.application.fx.model.FxHistoryPoint;
+import com.finance.portal.market.application.fx.model.FxLatestRates;
+import com.finance.portal.market.application.fx.model.FxRateItem;
+import com.finance.portal.market.application.viop.model.ViopChartPoint;
+import com.finance.portal.market.application.viop.model.ViopContractDetail;
 import com.finance.portal.portfolio.application.port.HoldingMarketEnrichmentPort;
 import com.finance.portal.portfolio.presentation.dto.PortfolioHoldingResponse;
 import com.finance.portal.portfolio.service.support.PortfolioDateTimeParse;
@@ -267,7 +267,7 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
         // Liste başarısız olsa bile (geçici boş cache vb.) 52w / MA kaybolmasın
         applyViopYearChartMetrics(holding, contractName);
 
-        final ViopContractDetailDto d;
+        final ViopContractDetail d;
         try {
             Optional<ViopContract> match = viopService.findMatchingContract(contractName);
             if (match.isEmpty()) {
@@ -334,14 +334,14 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
             return;
         }
         String trimmed = chartContractName.trim();
-        List<ViopChartPointDto> pts = null;
+        List<ViopChartPoint> pts = null;
         try {
             for (ViopChartPeriod p : List.of(
                     ViopChartPeriod.ONE_YEAR,
                     ViopChartPeriod.SIX_MONTHS,
                     ViopChartPeriod.THREE_MONTHS,
                     ViopChartPeriod.ONE_MONTH)) {
-                List<ViopChartPointDto> chunk = viopChartService.getChart(trimmed, p);
+                List<ViopChartPoint> chunk = viopChartService.getChart(trimmed, p);
                 if (chunk != null && chunk.size() >= 2) {
                     pts = chunk;
                     break;
@@ -357,12 +357,12 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
         if (pts == null || pts.isEmpty()) {
             return;
         }
-        List<ViopChartPointDto> sorted = new ArrayList<>(pts);
-        sorted.sort(Comparator.comparing(ViopChartPointDto::getTimestamp, Comparator.nullsLast(Long::compareTo)));
+        List<ViopChartPoint> sorted = new ArrayList<>(pts);
+        sorted.sort(Comparator.comparing(ViopChartPoint::getTimestamp, Comparator.nullsLast(Long::compareTo)));
 
         List<BigDecimal> allVals = new ArrayList<>();
         TreeMap<LocalDate, BigDecimal> dailyLast = new TreeMap<>();
-        for (ViopChartPointDto p : sorted) {
+        for (ViopChartPoint p : sorted) {
             if (p.getValue() == null) {
                 continue;
             }
@@ -393,7 +393,7 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
         }
     }
 
-    private static LocalDate chartPointToLocalDate(ViopChartPointDto p) {
+    private static LocalDate chartPointToLocalDate(ViopChartPoint p) {
         String dt = p.getDateTime();
         if (dt == null || dt.length() < 10) {
             return null;
@@ -443,8 +443,8 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
         String symbol = holding.getSymbol() != null ? holding.getSymbol().toUpperCase() : "";
 
         // 1) Anlık kur — kullanıcı perspektifinde satış kuru (BUY referansı)
-        FxLatestResponse latest = marketFxService.getTcmbLatestRates(symbol);
-        FxRateItemDto rate = latest.getRates().stream()
+        FxLatestRates latest = marketFxService.getTcmbLatestRates(symbol);
+        FxRateItem rate = latest.getRates().stream()
                 .filter(r -> symbol.equalsIgnoreCase(r.getSymbol()))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("FX rate not found for: " + symbol));
@@ -472,7 +472,7 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
 
         // 2) Tarihsel veriden günlük değişim, 52w aralığı, dönemsel getiriler, MA
         try {
-            FxHistoryResponse hist = marketFxService.getFxHistory(symbol, "1Y");
+            FxHistory hist = marketFxService.getFxHistory(symbol, "1Y");
             List<FxHistoryPoint> pts = hist != null ? hist.getPoints() : null;
             if (pts != null && !pts.isEmpty()) {
                 // Kapanışları kronolojik sırala
@@ -550,13 +550,13 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
 
     private BigDecimal fetchUsdTryRate() {
         try {
-            FxLatestResponse latest = marketFxService.getTcmbLatestRates("USD");
+            FxLatestRates latest = marketFxService.getTcmbLatestRates("USD");
             if (latest == null || latest.getRates() == null) {
                 return null;
             }
             return latest.getRates().stream()
                     .filter(r -> "USD".equalsIgnoreCase(r.getSymbol()))
-                    .map(FxRateItemDto::getSell)
+                    .map(FxRateItem::getSell)
                     .filter(Objects::nonNull)
                     .findFirst()
                     .orElse(null);

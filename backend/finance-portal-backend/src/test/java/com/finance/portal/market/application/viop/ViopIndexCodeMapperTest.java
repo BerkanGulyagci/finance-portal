@@ -75,6 +75,13 @@ class ViopIndexCodeMapperTest {
                 .hasValue(expectedCode.trim());
     }
 
+    @Test
+    @DisplayName("Bozuk Şubat encoding (Âub) doğru map edilmeli")
+    void shouldMapBrokenFebruaryEncoding() {
+        assertThat(mapper.toIsYatirimEndeksCode("USDTRY (26 Âub 27) Vadeli FIZ."))
+                .hasValue("F_USDTRY0227");
+    }
+
     // ── Kıymetli maden vadeli ─────────────────────────────────────────────────
 
     @ParameterizedTest(name = "''{0}'' -> ''{1}''")

@@ -2,19 +2,13 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, X, Plus, BarChart2, Search, TrendingUp, TrendingDown } from 'lucide-react';
 import { getStockChart, getStockMidasDetail, getAllStocks } from '../../../api/marketApi';
+import { STOCK_CHART_RANGES } from './stockChartRanges';
 
 // ── Sabitler ──────────────────────────────────────────────────────────────────
 const COLORS = ['#093eaa', '#f97316', '#8b5cf6', '#10b981'];
 const MAX_STOCKS = 4;
 
-const RANGES = [
-  { label: '1G',  range: '1d',  interval: '5m'  },
-  { label: '1H',  range: '5d',  interval: '15m' },
-  { label: '1A',  range: '1mo', interval: '1h'  },
-  { label: '3A',  range: '3mo', interval: '1d'  },
-  { label: '1Y',  range: '1y',  interval: '1d'  },
-  { label: 'TÜM', range: '5y',  interval: '1wk' },
-];
+const RANGES = STOCK_CHART_RANGES;
 
 // ── Performans Metrikleri Hesaplama ──────────────────────────────────────────
 function calcMetrics(prices) {
