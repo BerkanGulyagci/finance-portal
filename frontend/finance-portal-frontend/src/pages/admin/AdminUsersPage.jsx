@@ -4,6 +4,7 @@ import { useAdminUsers } from './hooks/useAdminUsers';
 import AdminPageHeader from './components/AdminPageHeader';
 import AdminUsersPanel from './components/AdminUsersPanel';
 import BanUserModal from './components/BanUserModal';
+import AdminUserDetailModal from './components/AdminUserDetailModal';
 
 export default function AdminUsersPage() {
   const { userId: currentUserId } = useAuth();
@@ -13,10 +14,19 @@ export default function AdminUsersPage() {
     error,
     searchInput,
     setSearchInput,
-    submitSearch,
+    clearSearch,
+    statusFilter,
+    changeStatusFilter,
+    page,
+    hasMore,
+    goPrevPage,
+    goNextPage,
     loadUsers,
     actionUserId,
     banTarget,
+    detailUserId,
+    openDetail,
+    closeDetail,
     requestBan,
     cancelBan,
     confirmBan,
@@ -38,10 +48,27 @@ export default function AdminUsersPage() {
         error={error}
         searchInput={searchInput}
         onSearchInputChange={setSearchInput}
-        onSearchSubmit={submitSearch}
+        onSearchClear={clearSearch}
+        statusFilter={statusFilter}
+        onStatusFilterChange={changeStatusFilter}
+        page={page}
+        hasMore={hasMore}
+        onPrevPage={goPrevPage}
+        onNextPage={goNextPage}
         onRetry={loadUsers}
         currentUserId={currentUserId}
         actionUserId={actionUserId}
+        onViewDetail={openDetail}
+        onRequestBan={requestBan}
+        onUnban={unban}
+      />
+
+      <AdminUserDetailModal
+        userId={detailUserId}
+        open={!!detailUserId}
+        currentUserId={currentUserId}
+        busy={!!actionUserId}
+        onClose={closeDetail}
         onRequestBan={requestBan}
         onUnban={unban}
       />

@@ -14,6 +14,13 @@ public class KeycloakAdminProperties {
     private String clientId = "finance-portal-admin-service";
     private String clientSecret = "";
 
+    /**
+     * GET /roles/USER 403 verdiğinde (view-realm yok) POST için kullanılır.
+     * Keycloak Admin → Realm roles → USER → Details içindeki ID.
+     */
+    private String defaultUserRoleName = "USER";
+    private String defaultUserRoleId = "";
+
     public String tokenEndpoint() {
         return trimTrailingSlash(url) + "/realms/" + realm + "/protocol/openid-connect/token";
     }

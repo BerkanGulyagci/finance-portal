@@ -14,6 +14,7 @@ export default function AdminUsersTable({
   users,
   currentUserId,
   actionUserId,
+  onViewDetail,
   onRequestBan,
   onUnban,
 }) {
@@ -39,6 +40,7 @@ export default function AdminUsersTable({
               user={user}
               currentUserId={currentUserId}
               actionUserId={actionUserId}
+              onViewDetail={onViewDetail}
               onRequestBan={onRequestBan}
               onUnban={onUnban}
             />

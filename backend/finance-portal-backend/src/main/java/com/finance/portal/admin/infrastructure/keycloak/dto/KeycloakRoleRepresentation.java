@@ -9,5 +9,10 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class KeycloakRoleRepresentation {
 
+    private String id;
     private String name;
+    private String description;
+    private Boolean composite;
+    private Boolean clientRole;
+    private String containerId;
 }

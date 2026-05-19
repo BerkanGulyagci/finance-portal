@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ExternalLink, Mail, RefreshCw, Shield, User } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Mail, Pencil, RefreshCw, Shield, User } from 'lucide-react';
 import { getMe } from '../api/meApi';
-import { keycloakAccountUrls } from '../config/keycloakAccount';
 import { useAuth } from '../context/AuthContext';
+import {
+  ProfileEmailModal,
+  ProfileNameModal,
+  ProfilePasswordModal,
+} from './profile/ProfileAccountModals';
 
 function Field({ label, value }) {
   return (
@@ -15,11 +19,16 @@ function Field({ label, value }) {
 }
 
 export default function ProfilePage() {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, clearLocalSession } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [nameModalOpen, setNameModalOpen] = useState(false);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
 
   const loadProfile = useCallback(async () => {
     setLoading(true);
@@ -47,6 +56,29 @@ export default function ProfilePage() {
     loadProfile();
   }, [isAuthenticated, loadProfile, navigate]);
 
+  useEffect(() => {
+    const modal = searchParams.get('modal');
+    if (!modal) return;
+
+    if (modal === 'password') {
+      setPasswordModalOpen(true);
+      setSearchParams({}, { replace: true });
+      return;
+    }
+
+    if (!loading && profile) {
+      if (modal === 'name') setNameModalOpen(true);
+      if (modal === 'email') setEmailModalOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, profile, loading, setSearchParams]);
+
+  function handleRequiresReLogin(message, redirectTo = '/verify-email') {
+    setSuccessMessage(message);
+    clearLocalSession();
+    navigate(redirectTo, { replace: true, state: { profileNotice: message } });
+  }
+
   const displayRoles = (profile?.roles || []).filter(
     (role) => !role.startsWith('default-roles-') && role !== 'offline_access' && role !== 'uma_authorization'
   );
@@ -59,9 +91,15 @@ export default function ProfilePage() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Profilim</h1>
-          <p className="text-sm text-gray-500">Hesap bilgilerinizi görüntüleyin</p>
+          <p className="text-sm text-gray-500">Hesap bilgilerinizi görüntüleyin ve yönetin</p>
         </div>
       </div>
+
+      {successMessage && (
+        <div className="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
+          {successMessage}
+        </div>
+      )}
 
       {loading && (
         <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center text-sm text-gray-500">
@@ -104,49 +142,34 @@ export default function ProfilePage() {
             />
           </div>
 
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-sm text-amber-900">
-            Ad, soyad, email ve şifre değişiklikleri Keycloak Hesap Ayarları üzerinden yapılır.
-            Değişikliklerden sonra bilgilerin güncellenmesi için sayfayı yenileyin veya tekrar giriş yapmanız gerekebilir.
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <a
-              href={keycloakAccountUrls.home}
-              target="_blank"
-              rel="noopener noreferrer"
+          <div className="grid gap-3 sm:grid-cols-2 mb-6">
+            <button
+              type="button"
+              onClick={() => setNameModalOpen(true)}
               className="flex items-center justify-center gap-2 bg-[#093eaa] text-white py-3 px-4 rounded-xl text-sm font-bold hover:bg-[#093eaa]/90"
             >
-              <ExternalLink className="w-4 h-4" />
+              <Pencil className="w-4 h-4" />
               Bilgilerimi Düzenle
-            </a>
-            <a
-              href={keycloakAccountUrls.changePassword}
-              target="_blank"
-              rel="noopener noreferrer"
+            </button>
+            <button
+              type="button"
+              onClick={() => setPasswordModalOpen(true)}
               className="flex items-center justify-center gap-2 border border-gray-200 text-gray-800 py-3 px-4 rounded-xl text-sm font-bold hover:bg-gray-50"
             >
               <Shield className="w-4 h-4" />
               Şifremi Değiştir
-            </a>
-            <a
-              href={keycloakAccountUrls.home}
-              target="_blank"
-              rel="noopener noreferrer"
+            </button>
+            <button
+              type="button"
+              onClick={() => setEmailModalOpen(true)}
               className="flex items-center justify-center gap-2 border border-gray-200 text-gray-800 py-3 px-4 rounded-xl text-sm font-bold hover:bg-gray-50"
             >
               <Mail className="w-4 h-4" />
               Email Değiştir
-            </a>
-            <button
-              type="button"
-              onClick={logout}
-              className="flex items-center justify-center gap-2 border border-red-200 text-red-700 py-3 px-4 rounded-xl text-sm font-bold hover:bg-red-50"
-            >
-              Çıkış Yap
             </button>
           </div>
 
-          <div className="mt-6 flex flex-wrap gap-4 text-sm">
+          <div className="flex flex-wrap gap-4 text-sm">
             <button
               type="button"
               onClick={loadProfile}
@@ -155,14 +178,6 @@ export default function ProfilePage() {
               <RefreshCw className="w-4 h-4" />
               Bilgileri yenile
             </button>
-            <a
-              href={keycloakAccountUrls.home}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-semibold text-gray-600 hover:text-[#093eaa]"
-            >
-              Hesap Ayarları (Keycloak)
-            </a>
             {!profile.emailVerified && (
               <Link to="/verify-email" className="font-semibold text-amber-700 hover:underline">
                 Email doğrulama sayfası
@@ -171,6 +186,27 @@ export default function ProfilePage() {
           </div>
         </>
       )}
+
+      <ProfileNameModal
+        open={nameModalOpen}
+        profile={profile}
+        onClose={() => setNameModalOpen(false)}
+        onSuccess={(message) => {
+          setSuccessMessage(message);
+          loadProfile();
+        }}
+      />
+      <ProfileEmailModal
+        open={emailModalOpen}
+        profile={profile}
+        onClose={() => setEmailModalOpen(false)}
+        onRequiresReLogin={(message) => handleRequiresReLogin(message, '/verify-email')}
+      />
+      <ProfilePasswordModal
+        open={passwordModalOpen}
+        onClose={() => setPasswordModalOpen(false)}
+        onRequiresReLogin={(message) => handleRequiresReLogin(message, '/login')}
+      />
     </div>
   );
 }

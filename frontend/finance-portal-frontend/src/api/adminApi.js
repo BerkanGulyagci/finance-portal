@@ -1,7 +1,7 @@
 import client from './client';
 
-export async function getUsers({ search, first = 0, max = 20 } = {}) {
-  const params = { first, max };
+export async function getUsers({ search, first = 0, max = 20, status = 'ALL' } = {}) {
+  const params = { first, max, status };
   if (search?.trim()) {
     params.search = search.trim();
   }

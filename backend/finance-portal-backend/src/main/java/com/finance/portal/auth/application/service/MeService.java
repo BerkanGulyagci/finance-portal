@@ -2,6 +2,7 @@ package com.finance.portal.auth.application.service;
 
 import com.finance.portal.admin.application.model.AdminUserView;
 import com.finance.portal.admin.application.port.KeycloakUserAdminPort;
+import com.finance.portal.admin.infrastructure.keycloak.KeycloakRealmRoleService;
 import com.finance.portal.auth.presentation.dto.MeResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,12 +20,15 @@ import java.util.Map;
 public class MeService {
 
     private final KeycloakUserAdminPort keycloakUserAdminPort;
+    private final KeycloakRealmRoleService keycloakRealmRoleService;
 
     public MeResponse getCurrentUser(Jwt jwt) {
         String userId = jwt.getSubject();
         if (userId != null && !userId.isBlank()) {
             try {
-                return toResponse(keycloakUserAdminPort.getUser(userId));
+                AdminUserView user = keycloakUserAdminPort.getUser(userId);
+                user = ensureUserRealmRoleAndRefresh(userId, user);
+                return toResponse(user);
             } catch (Exception ex) {
                 log.warn(
                         "Could not load user '{}' from Keycloak; falling back to JWT claims: {}",
@@ -34,6 +38,15 @@ public class MeService {
             }
         }
         return fromJwt(jwt);
+    }
+
+    private AdminUserView ensureUserRealmRoleAndRefresh(String userId, AdminUserView user) {
+        if (keycloakRealmRoleService.hasExactRealmRole(userId, KeycloakRealmRoleService.DEFAULT_USER_REALM_ROLE)) {
+            return user;
+        }
+        log.info("User {} missing realm role USER; attempting assignment via /api/me", userId);
+        keycloakRealmRoleService.ensureRealmRoleAssigned(userId, KeycloakRealmRoleService.DEFAULT_USER_REALM_ROLE);
+        return keycloakUserAdminPort.getUser(userId);
     }
 
     private static MeResponse toResponse(AdminUserView user) {

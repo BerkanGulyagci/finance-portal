@@ -1,5 +1,6 @@
 import AdminUsersSearchBar from './AdminUsersSearchBar';
 import AdminUsersTable from './AdminUsersTable';
+import AdminUsersPagination from './AdminUsersPagination';
 import { AdminLoadingState, AdminErrorState, AdminEmptyState } from './AdminListStates';
 
 export default function AdminUsersPanel({
@@ -8,10 +9,17 @@ export default function AdminUsersPanel({
   error,
   searchInput,
   onSearchInputChange,
-  onSearchSubmit,
+  onSearchClear,
+  statusFilter,
+  onStatusFilterChange,
+  page,
+  hasMore,
+  onPrevPage,
+  onNextPage,
   onRetry,
   currentUserId,
   actionUserId,
+  onViewDetail,
   onRequestBan,
   onUnban,
 }) {
@@ -20,8 +28,12 @@ export default function AdminUsersPanel({
       <AdminUsersSearchBar
         value={searchInput}
         onChange={onSearchInputChange}
-        onSubmit={onSearchSubmit}
+        onClear={onSearchClear}
+        statusFilter={statusFilter}
+        onStatusFilterChange={onStatusFilterChange}
         resultCount={users.length}
+        page={page}
+        hasMore={hasMore}
       />
 
       {loading && <AdminLoadingState />}
@@ -31,13 +43,23 @@ export default function AdminUsersPanel({
       {!loading && !error && users.length === 0 && <AdminEmptyState />}
 
       {!loading && !error && users.length > 0 && (
-        <AdminUsersTable
-          users={users}
-          currentUserId={currentUserId}
-          actionUserId={actionUserId}
-          onRequestBan={onRequestBan}
-          onUnban={onUnban}
-        />
+        <>
+          <AdminUsersTable
+            users={users}
+            currentUserId={currentUserId}
+            actionUserId={actionUserId}
+            onViewDetail={onViewDetail}
+            onRequestBan={onRequestBan}
+            onUnban={onUnban}
+          />
+          <AdminUsersPagination
+            page={page}
+            hasMore={hasMore}
+            loading={loading}
+            onPrev={onPrevPage}
+            onNext={onNextPage}
+          />
+        </>
       )}
     </article>
   );

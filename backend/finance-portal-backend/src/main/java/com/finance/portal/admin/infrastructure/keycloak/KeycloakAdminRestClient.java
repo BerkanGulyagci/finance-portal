@@ -5,6 +5,7 @@ import com.finance.portal.common.application.exception.ResourceNotFoundException
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
@@ -41,12 +42,19 @@ public class KeycloakAdminRestClient {
     }
 
     public void post(String path) {
+        post(path, null);
+    }
+
+    public void post(String path, Object body) {
         exchange(() -> {
-            restClient.post()
+            var request = restClient.post()
                     .uri(path)
                     .headers(headers -> headers.setBearerAuth(tokenProvider.getAccessToken()))
-                    .retrieve()
-                    .toBodilessEntity();
+                    .contentType(MediaType.APPLICATION_JSON);
+            if (body != null) {
+                request.body(body);
+            }
+            request.retrieve().toBodilessEntity();
             return null;
         });
     }
@@ -77,8 +85,14 @@ public class KeycloakAdminRestClient {
             if (ex.getStatusCode() == HttpStatus.NOT_FOUND) {
                 throw new ResourceNotFoundException("Kullanıcı bulunamadı.");
             }
-            log.error("Keycloak Admin API error: status={}, body={}", ex.getStatusCode(), ex.getResponseBodyAsString());
-            throw new ExternalApiException("Keycloak Admin API isteği başarısız oldu.");
+            String body = ex.getResponseBodyAsString();
+            log.error("Keycloak Admin API error: status={}, body={}", ex.getStatusCode(), body);
+            throw new ExternalApiException(
+                    "Keycloak Admin API isteği başarısız oldu: status="
+                            + ex.getStatusCode().value()
+                            + " body="
+                            + body
+            );
         } catch (ResourceNotFoundException ex) {
             throw ex;
         } catch (ExternalApiException ex) {

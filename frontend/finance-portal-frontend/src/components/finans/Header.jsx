@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, ChevronDown, Menu, X, User, ExternalLink, Shield, LogOut } from 'lucide-react';
+import { Search, ChevronDown, Menu, X, User, Settings, Shield, LogOut } from 'lucide-react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { keycloakAccountUrls } from '../../config/keycloakAccount';
 
 // ── Nav item definitions ──────────────────────────────────────────────────────
 const navItems = [
@@ -113,6 +112,11 @@ function ProfileMenu({ onClose }) {
     navigate('/');
   }
 
+  function openProfileModal(modal) {
+    onClose();
+    navigate(modal ? `/profile?modal=${modal}` : '/profile');
+  }
+
   const itemClass =
     'flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#093eaa] transition-colors w-full text-left';
 
@@ -122,26 +126,14 @@ function ProfileMenu({ onClose }) {
         <User className="w-4 h-4 shrink-0" />
         Profilim
       </Link>
-      <a
-        href={keycloakAccountUrls.home}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={onClose}
-        className={itemClass}
-      >
-        <ExternalLink className="w-4 h-4 shrink-0" />
+      <button type="button" onClick={() => openProfileModal('name')} className={itemClass}>
+        <Settings className="w-4 h-4 shrink-0" />
         Hesap Ayarları
-      </a>
-      <a
-        href={keycloakAccountUrls.changePassword}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={onClose}
-        className={itemClass}
-      >
+      </button>
+      <button type="button" onClick={() => openProfileModal('password')} className={itemClass}>
         <Shield className="w-4 h-4 shrink-0" />
         Şifre Değiştir
-      </a>
+      </button>
       <button type="button" onClick={handleLogout} className={`${itemClass} text-red-700 hover:text-red-800`}>
         <LogOut className="w-4 h-4 shrink-0" />
         Çıkış Yap
@@ -298,16 +290,14 @@ export function Header() {
                   className="block py-2 text-sm font-semibold text-gray-700 hover:text-[#093eaa]">
                   Profilim
                 </Link>
-                <a href={keycloakAccountUrls.home} target="_blank" rel="noopener noreferrer"
-                  onClick={() => setMobileOpen(false)}
+                <Link to="/profile?modal=name" onClick={() => setMobileOpen(false)}
                   className="block py-2 text-sm font-semibold text-gray-700 hover:text-[#093eaa]">
                   Hesap Ayarları
-                </a>
-                <a href={keycloakAccountUrls.changePassword} target="_blank" rel="noopener noreferrer"
-                  onClick={() => setMobileOpen(false)}
+                </Link>
+                <Link to="/profile?modal=password" onClick={() => setMobileOpen(false)}
                   className="block py-2 text-sm font-semibold text-gray-700 hover:text-[#093eaa]">
                   Şifre Değiştir
-                </a>
+                </Link>
                 <button type="button" onClick={() => { setMobileOpen(false); handleLogout(); }}
                   className="block w-full text-left py-2 text-sm font-semibold text-red-700">
                   Çıkış Yap

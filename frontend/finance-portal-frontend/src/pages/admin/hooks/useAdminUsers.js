@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { banUser, getUsers, unbanUser } from '../../../api/adminApi';
+import { useToast } from '../../../context/ToastContext';
+import { BAN_STATUS_FILTER } from '../utils/banDisplay';
+
+const PAGE_SIZE = 20;
+const SEARCH_DEBOUNCE_MS = 400;
 
 function mapLoadError(err) {
   if (!err.response) return 'Sunucuya ulaşılamıyor.';
@@ -9,38 +14,83 @@ function mapLoadError(err) {
 }
 
 export function useAdminUsers() {
+  const toast = useToast();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState(BAN_STATUS_FILTER.ALL);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const [actionUserId, setActionUserId] = useState(null);
   const [banTarget, setBanTarget] = useState(null);
+  const [detailUserId, setDetailUserId] = useState(null);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const data = await getUsers({ search: searchQuery, first: 0, max: 50 });
+      const data = await getUsers({
+        search: searchQuery,
+        first: page * PAGE_SIZE,
+        max: PAGE_SIZE,
+        status: statusFilter,
+      });
       setUsers(data?.users ?? []);
+      setHasMore(Boolean(data?.hasMore));
     } catch (err) {
       setError(mapLoadError(err));
       setUsers([]);
+      setHasMore(false);
     } finally {
       setLoading(false);
     }
-  }, [searchQuery]);
+  }, [searchQuery, page, statusFilter]);
 
   useEffect(() => {
     loadUsers();
   }, [loadUsers]);
 
-  function submitSearch(e) {
-    e.preventDefault();
-    setSearchQuery(searchInput.trim());
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSearchQuery(searchInput.trim());
+      setPage(0);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+
+  function clearSearch() {
+    setSearchInput('');
+    setSearchQuery('');
+    setPage(0);
+  }
+
+  function changeStatusFilter(next) {
+    setStatusFilter(next);
+    setPage(0);
+  }
+
+  function goPrevPage() {
+    setPage(current => Math.max(0, current - 1));
+  }
+
+  function goNextPage() {
+    if (!hasMore) return;
+    setPage(current => current + 1);
+  }
+
+  function openDetail(user) {
+    setDetailUserId(user.id);
+  }
+
+  function closeDetail() {
+    if (actionUserId) return;
+    setDetailUserId(null);
   }
 
   function requestBan(user) {
+    setDetailUserId(null);
     setBanTarget(user);
   }
 
@@ -53,11 +103,12 @@ export function useAdminUsers() {
     if (!banTarget) return;
     setActionUserId(banTarget.id);
     try {
-      await banUser(banTarget.id, banPayload);
+      const res = await banUser(banTarget.id, banPayload);
+      toast.success(res?.message || 'Ban işlemi başarılı.');
       setBanTarget(null);
       await loadUsers();
     } catch (err) {
-      alert(err.response?.data?.message || 'Ban işlemi başarısız.');
+      toast.error(err.response?.data?.message || 'Ban işlemi başarısız.');
     } finally {
       setActionUserId(null);
     }
@@ -65,12 +116,14 @@ export function useAdminUsers() {
 
   async function unban(user) {
     if (!window.confirm(`${user.username} kullanıcısının banını kaldırmak istediğinize emin misiniz?`)) return;
+    setDetailUserId(null);
     setActionUserId(user.id);
     try {
-      await unbanUser(user.id);
+      const res = await unbanUser(user.id);
+      toast.success(res?.message || 'Ban kaldırıldı.');
       await loadUsers();
     } catch (err) {
-      alert(err.response?.data?.message || 'Unban işlemi başarısız.');
+      toast.error(err.response?.data?.message || 'Unban işlemi başarısız.');
     } finally {
       setActionUserId(null);
     }
@@ -82,10 +135,19 @@ export function useAdminUsers() {
     error,
     searchInput,
     setSearchInput,
-    submitSearch,
+    clearSearch,
+    statusFilter,
+    changeStatusFilter,
+    page,
+    hasMore,
+    goPrevPage,
+    goNextPage,
     loadUsers,
     actionUserId,
     banTarget,
+    detailUserId,
+    openDetail,
+    closeDetail,
     requestBan,
     cancelBan,
     confirmBan,

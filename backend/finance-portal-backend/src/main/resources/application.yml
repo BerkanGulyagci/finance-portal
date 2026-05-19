@@ -153,6 +153,8 @@ keycloak:
     realm: ${KEYCLOAK_ADMIN_REALM:finance-portal}
     client-id: ${KEYCLOAK_ADMIN_CLIENT_ID:finance-portal-admin-service}
     client-secret: ${KEYCLOAK_ADMIN_CLIENT_SECRET:}
+    default-user-role-name: USER
+    default-user-role-id: ${KEYCLOAK_DEFAULT_USER_ROLE_ID:}
   portal:
     public-client-id: finance-portal-api
     post-verify-redirect-uri: ${KEYCLOAK_POST_VERIFY_REDIRECT_URI:http://localhost:5173/login}

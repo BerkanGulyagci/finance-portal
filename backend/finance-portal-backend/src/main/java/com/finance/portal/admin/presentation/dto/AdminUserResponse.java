@@ -16,6 +16,7 @@ public class AdminUserResponse {
     private String email;
     private String firstName;
     private String lastName;
+    private boolean emailVerified;
     private boolean enabled;
     private List<String> roles;
     private Instant banUntil;

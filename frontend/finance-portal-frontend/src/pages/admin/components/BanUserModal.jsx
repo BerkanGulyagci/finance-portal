@@ -135,6 +135,9 @@ export default function BanUserModal({ user, open, busy, onClose, onConfirm }) {
             </span>
             <div className="min-w-0">
               <p className="font-bold text-gray-900 truncate">{user.username ?? '—'}</p>
+              <p className="text-xs text-gray-600 truncate">
+                {[user.firstName, user.lastName].filter(Boolean).join(' ') || 'Ad soyad yok'}
+              </p>
               <p className="text-xs text-gray-500 truncate">{user.email ?? 'E-posta yok'}</p>
             </div>
           </section>

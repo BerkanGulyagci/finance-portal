@@ -4,6 +4,12 @@ export const BAN_STATUS = {
   PERMANENT_BANNED: 'PERMANENT_BANNED',
 };
 
+export const BAN_STATUS_FILTER = {
+  ALL: 'ALL',
+  ACTIVE: 'ACTIVE',
+  BANNED: 'BANNED',
+};
+
 export function formatBanUntil(banUntil) {
   if (!banUntil) return null;
   const date = new Date(banUntil);
@@ -27,4 +33,11 @@ export function isTemporaryBan(user) {
 
 export function isPermanentBan(user) {
   return user?.banStatus === BAN_STATUS.PERMANENT_BANNED;
+}
+
+export function getBanStatusLabel(user) {
+  if (isActiveUser(user)) return 'Aktif';
+  if (isTemporaryBan(user)) return 'Geçici ban';
+  if (isPermanentBan(user)) return 'Kalıcı ban';
+  return 'Bilinmiyor';
 }

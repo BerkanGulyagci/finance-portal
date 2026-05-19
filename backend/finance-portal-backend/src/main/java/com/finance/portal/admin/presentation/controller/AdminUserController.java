@@ -4,6 +4,7 @@ import com.finance.portal.admin.application.service.AdminUserQueryService;
 import com.finance.portal.admin.application.service.BanDurationCalculator;
 import com.finance.portal.admin.application.service.BanUserService;
 import com.finance.portal.admin.application.service.UnbanUserService;
+import com.finance.portal.admin.presentation.dto.AdminBanStatusFilter;
 import com.finance.portal.admin.presentation.dto.AdminUserListResponse;
 import com.finance.portal.admin.presentation.dto.AdminUserResponse;
 import com.finance.portal.admin.presentation.dto.BanType;
@@ -36,10 +37,11 @@ public class AdminUserController {
     public ResponseEntity<ApiResponse<AdminUserListResponse>> listUsers(
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int first,
-            @RequestParam(defaultValue = "20") int max
+            @RequestParam(defaultValue = "20") int max,
+            @RequestParam(defaultValue = "ALL") AdminBanStatusFilter status
     ) {
         AdminUserListResponse data = mapper.toListResponse(
-                adminUserQueryService.listUsers(search, first, max),
+                adminUserQueryService.listUsers(search, first, max, status),
                 first,
                 max
         );

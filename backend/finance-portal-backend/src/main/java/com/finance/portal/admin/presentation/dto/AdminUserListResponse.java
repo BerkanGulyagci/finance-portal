@@ -12,4 +12,5 @@ public class AdminUserListResponse {
     private List<AdminUserResponse> users;
     private int first;
     private int max;
+    private boolean hasMore;
 }

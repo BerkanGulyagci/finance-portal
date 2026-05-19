@@ -1,5 +1,6 @@
 package com.finance.portal.admin.presentation.mapper;
 
+import com.finance.portal.admin.application.model.AdminUserListResult;
 import com.finance.portal.admin.application.model.AdminUserView;
 import com.finance.portal.admin.presentation.dto.AdminUserListResponse;
 import com.finance.portal.admin.presentation.dto.AdminUserResponse;
@@ -17,6 +18,7 @@ public class AdminPresentationMapper {
         response.setEmail(view.getEmail());
         response.setFirstName(view.getFirstName());
         response.setLastName(view.getLastName());
+        response.setEmailVerified(view.isEmailVerified());
         response.setEnabled(view.isEnabled());
         response.setRoles(view.getRoles());
         response.setBanUntil(view.getBanUntil());
@@ -25,11 +27,12 @@ public class AdminPresentationMapper {
         return response;
     }
 
-    public AdminUserListResponse toListResponse(List<AdminUserView> users, int first, int max) {
+    public AdminUserListResponse toListResponse(AdminUserListResult result, int first, int max) {
         AdminUserListResponse response = new AdminUserListResponse();
-        response.setUsers(users.stream().map(this::toResponse).toList());
+        response.setUsers(result.getUsers().stream().map(this::toResponse).toList());
         response.setFirst(first);
         response.setMax(max);
+        response.setHasMore(result.isHasMore());
         return response;
     }
 }

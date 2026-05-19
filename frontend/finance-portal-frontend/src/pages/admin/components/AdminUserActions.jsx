@@ -1,4 +1,4 @@
-import { Ban, UserCheck } from 'lucide-react';
+import { Ban, Eye, UserCheck } from 'lucide-react';
 import { isActiveUser } from '../utils/banDisplay';
 
 function canBanUser(user, currentUserId) {
@@ -15,6 +15,7 @@ export default function AdminUserActions({
   user,
   currentUserId,
   busy,
+  onViewDetail,
   onRequestBan,
   onUnban,
 }) {
@@ -23,6 +24,15 @@ export default function AdminUserActions({
 
   return (
     <section className="flex items-center justify-end gap-2">
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => onViewDetail(user)}
+        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-50 text-[#093eaa] border border-blue-200 hover:bg-blue-100 disabled:opacity-50"
+      >
+        <Eye className="w-3.5 h-3.5" />
+        Detay
+      </button>
       {canBanUser(user, currentUserId) && (
         <button
           type="button"

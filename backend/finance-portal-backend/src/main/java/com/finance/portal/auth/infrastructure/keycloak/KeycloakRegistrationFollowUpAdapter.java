@@ -2,6 +2,7 @@ package com.finance.portal.auth.infrastructure.keycloak;
 
 import com.finance.portal.admin.infrastructure.keycloak.KeycloakAdminProperties;
 import com.finance.portal.admin.infrastructure.keycloak.KeycloakAdminRestClient;
+import com.finance.portal.admin.infrastructure.keycloak.KeycloakRealmRoleService;
 import com.finance.portal.admin.infrastructure.keycloak.dto.KeycloakUserRepresentation;
 import com.finance.portal.auth.application.port.KeycloakRegistrationFollowUpPort;
 import lombok.RequiredArgsConstructor;
@@ -19,12 +20,26 @@ import java.util.Optional;
 public class KeycloakRegistrationFollowUpAdapter implements KeycloakRegistrationFollowUpPort {
 
     private static final String VERIFY_EMAIL_ACTION = "VERIFY_EMAIL";
-    private static final int MAX_LOOKUP_ATTEMPTS = 5;
-    private static final long LOOKUP_DELAY_MS = 2_000L;
+    private static final int MAX_LOOKUP_ATTEMPTS = 15;
+    private static final long LOOKUP_DELAY_MS = 3_000L;
 
     private final KeycloakAdminProperties adminProperties;
     private final KeycloakPortalProperties portalProperties;
     private final KeycloakAdminRestClient restClient;
+    private final KeycloakRealmRoleService keycloakRealmRoleService;
+
+    @Override
+    public void requestEmailVerificationForUser(String userId) {
+        if (userId == null || userId.isBlank()) {
+            return;
+        }
+        try {
+            sendVerifyEmail(userId);
+            log.info("VERIFY_EMAIL requested for Keycloak user id {}", userId);
+        } catch (Exception ex) {
+            log.warn("Could not send VERIFY_EMAIL for user id '{}': {}", userId, ex.getMessage());
+        }
+    }
 
     @Override
     public void requestEmailVerificationIfUserExists(String username) {
@@ -32,30 +47,50 @@ public class KeycloakRegistrationFollowUpAdapter implements KeycloakRegistration
             return;
         }
 
-        Optional<KeycloakUserRepresentation> user = findUserWithRetry(username.trim());
+        String normalizedUsername = username.trim();
+        log.info("Registration follow-up started for username '{}'", normalizedUsername);
+
+        Optional<KeycloakUserRepresentation> user = findUserWithRetry(normalizedUsername);
         if (user.isEmpty()) {
-            log.info(
-                    "Keycloak user '{}' not found after LDAP register; VERIFY_EMAIL will apply on first login.",
-                    username
+            log.warn(
+                    "Keycloak user '{}' not found after LDAP register ({} attempts); "
+                            + "USER role and VERIFY_EMAIL will be retried on first /api/me or first login.",
+                    normalizedUsername,
+                    MAX_LOOKUP_ATTEMPTS
             );
             return;
         }
 
         String userId = user.get().getId();
-        try {
-            sendVerifyEmail(userId);
-            log.info("VERIFY_EMAIL requested for Keycloak user '{}' ({})", username, userId);
-        } catch (Exception ex) {
-            log.warn("Could not send VERIFY_EMAIL for user '{}': {}", username, ex.getMessage());
+        log.info("Keycloak user '{}' found (id={}) for registration follow-up", normalizedUsername, userId);
+
+        boolean userRoleAssigned = keycloakRealmRoleService.ensureRealmRoleAssigned(
+                userId,
+                KeycloakRealmRoleService.DEFAULT_USER_REALM_ROLE
+        );
+        if (!userRoleAssigned) {
+            log.warn(
+                    "USER role assignment did not complete for user '{}' (id={}); will retry on /api/me",
+                    normalizedUsername,
+                    userId
+            );
         }
+        requestEmailVerificationForUser(userId);
     }
 
     private Optional<KeycloakUserRepresentation> findUserWithRetry(String username) {
         for (int attempt = 1; attempt <= MAX_LOOKUP_ATTEMPTS; attempt++) {
             Optional<KeycloakUserRepresentation> user = findUserByUsername(username);
             if (user.isPresent()) {
+                log.info("Keycloak user '{}' located on attempt {}/{}", username, attempt, MAX_LOOKUP_ATTEMPTS);
                 return user;
             }
+            log.debug(
+                    "Keycloak user '{}' not found yet (attempt {}/{})",
+                    username,
+                    attempt,
+                    MAX_LOOKUP_ATTEMPTS
+            );
             if (attempt < MAX_LOOKUP_ATTEMPTS) {
                 sleepQuietly(LOOKUP_DELAY_MS);
             }
