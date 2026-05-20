@@ -9,4 +9,6 @@ public interface KeycloakUserProfilePort {
     void resetPassword(String userId, String newPassword);
 
     void logoutAllSessions(String userId);
+
+    void logoutAllSessions(String userId, String auditTrigger);
 }

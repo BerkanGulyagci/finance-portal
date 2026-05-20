@@ -70,8 +70,11 @@ public class AdminUserController {
     }
 
     @PostMapping("/{userId}/unban")
-    public ResponseEntity<ApiResponse<Void>> unbanUser(@PathVariable String userId) {
-        unbanUserService.unbanUser(userId);
+    public ResponseEntity<ApiResponse<Void>> unbanUser(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String userId
+    ) {
+        unbanUserService.unbanUser(userId, jwt.getSubject());
         return ResponseEntity.ok(ApiResponse.success(null, "Kullanıcının banı kaldırıldı."));
     }
 }

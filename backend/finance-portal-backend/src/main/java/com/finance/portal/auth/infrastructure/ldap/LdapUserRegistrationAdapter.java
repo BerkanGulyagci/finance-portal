@@ -2,12 +2,15 @@ package com.finance.portal.auth.infrastructure.ldap;
 
 import com.finance.portal.auth.application.model.RegisterUserCommand;
 import com.finance.portal.auth.application.port.UserRegistrationPort;
+import com.finance.portal.common.application.logging.BusinessLogSupport;
+import com.finance.portal.common.application.logging.CentralBusinessLogService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.naming.Context;
+import java.util.Map;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
@@ -38,6 +41,12 @@ public class LdapUserRegistrationAdapter implements UserRegistrationPort {
 
     @Value("${ldap.admin-password:secret}")
     private String adminPassword;
+
+    private final CentralBusinessLogService centralBusinessLogService;
+
+    public LdapUserRegistrationAdapter(CentralBusinessLogService centralBusinessLogService) {
+        this.centralBusinessLogService = centralBusinessLogService;
+    }
 
     @Override
     public void register(RegisterUserCommand command) {
@@ -81,6 +90,23 @@ public class LdapUserRegistrationAdapter implements UserRegistrationPort {
 
             ctx.createSubcontext(userDn, attrs);
             log.info("User '{}' created in LDAP successfully", command.getUsername());
+
+            centralBusinessLogService.publish(
+                    BusinessLogSupport.CATEGORY_AUDIT,
+                    BusinessLogSupport.EVENT_LDAP_USER_CREATED,
+                    "INFO",
+                    "LDAP user created",
+                    "USER",
+                    null,
+                    BusinessLogSupport.ACTION_CREATE,
+                    BusinessLogSupport.RESULT_SUCCESS,
+                    Map.of(
+                            "username", command.getUsername(),
+                            "outcome", BusinessLogSupport.RESULT_SUCCESS
+                    ),
+                    null,
+                    LdapUserRegistrationAdapter.class.getName()
+            );
 
         } catch (IllegalArgumentException e) {
             throw e;

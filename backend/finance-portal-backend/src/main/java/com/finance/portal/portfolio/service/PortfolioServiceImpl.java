@@ -1,5 +1,7 @@
 package com.finance.portal.portfolio.service;
 
+import com.finance.portal.common.application.logging.BusinessLogSupport;
+import com.finance.portal.common.application.logging.CentralBusinessLogService;
 import com.finance.portal.common.domain.AssetType;
 import com.finance.portal.market.application.viop.ViopService;
 import com.finance.portal.portfolio.domain.Portfolio;
@@ -29,8 +31,12 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -47,6 +53,7 @@ public class PortfolioServiceImpl implements PortfolioService {
     private final PortfolioHoldingsBuilder holdingsBuilder;
     private final HoldingMarketEnrichmentPort holdingMarketEnrichment;
     private final PortfolioPerformanceService portfolioPerformanceService;
+    private final CentralBusinessLogService centralBusinessLogService;
 
     public PortfolioServiceImpl(PortfolioPersistencePort portfolioPersistence,
                                 PortfolioCachePort portfolioCache,
@@ -54,7 +61,8 @@ public class PortfolioServiceImpl implements PortfolioService {
                                 WatchlistMarketEnrichmentPort watchlistMarketEnrichment,
                                 PortfolioHoldingsBuilder holdingsBuilder,
                                 HoldingMarketEnrichmentPort holdingMarketEnrichment,
-                                PortfolioPerformanceService portfolioPerformanceService) {
+                                PortfolioPerformanceService portfolioPerformanceService,
+                                CentralBusinessLogService centralBusinessLogService) {
         this.portfolioPersistence           = portfolioPersistence;
         this.portfolioCache                 = portfolioCache;
         this.viopService                    = viopService;
@@ -62,6 +70,7 @@ public class PortfolioServiceImpl implements PortfolioService {
         this.holdingsBuilder                = holdingsBuilder;
         this.holdingMarketEnrichment        = holdingMarketEnrichment;
         this.portfolioPerformanceService    = portfolioPerformanceService;
+        this.centralBusinessLogService      = centralBusinessLogService;
     }
 
     // ── HOLDINGS portföy işlemleri ────────────────────────────────────────────
@@ -99,6 +108,45 @@ public class PortfolioServiceImpl implements PortfolioService {
 
         portfolio = portfolioPersistence.savePortfolio(portfolio);
         log.debug("Created portfolio id={} type={} for userId={}", portfolio.getId(), portfolioType, userId);
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("portfolioId", portfolio.getId().toString());
+        metadata.put("portfolioType", portfolioType.name());
+        metadata.put("currency", currency);
+
+        centralBusinessLogService.publish(
+                BusinessLogSupport.CATEGORY_BUSINESS,
+                BusinessLogSupport.EVENT_PORTFOLIO_CREATED,
+                "INFO",
+                "Portfolio created",
+                "PORTFOLIO",
+                portfolio.getId().toString(),
+                BusinessLogSupport.ACTION_CREATE,
+                BusinessLogSupport.RESULT_SUCCESS,
+                metadata,
+                userId,
+                PortfolioServiceImpl.class.getName()
+        );
+
+        if (portfolioType == PortfolioType.WATCHLIST) {
+            Map<String, Object> watchlistMetadata = new HashMap<>();
+            watchlistMetadata.put("portfolioId", portfolio.getId().toString());
+            watchlistMetadata.put("portfolioType", portfolioType.name());
+
+            centralBusinessLogService.publish(
+                    BusinessLogSupport.CATEGORY_BUSINESS,
+                    BusinessLogSupport.EVENT_WATCHLIST_PORTFOLIO_CREATED,
+                    "INFO",
+                    "Watchlist portfolio created",
+                    "PORTFOLIO",
+                    portfolio.getId().toString(),
+                    BusinessLogSupport.ACTION_CREATE,
+                    BusinessLogSupport.RESULT_SUCCESS,
+                    watchlistMetadata,
+                    userId,
+                    PortfolioServiceImpl.class.getName()
+            );
+        }
 
         PortfolioResponse response = toPortfolioResponse(portfolio);
         portfolioCache.evictList(userId);
@@ -149,6 +197,30 @@ public class PortfolioServiceImpl implements PortfolioService {
         portfolio = portfolioPersistence.savePortfolio(portfolio);
         log.debug("Added transaction symbol={} to portfolioId={}", normalizedSymbol, portfolioId);
 
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("portfolioId", portfolioId.toString());
+        metadata.put("transactionType", request.getTransactionType().name());
+        metadata.put("assetType", request.getAssetType().name());
+        metadata.put("symbol", normalizedSymbol);
+        metadata.put("quantity", request.getQuantity());
+        metadata.put("price", request.getPrice());
+        metadata.put("transactionDate", request.getTransactionDate() != null
+                ? request.getTransactionDate().toString() : null);
+
+        centralBusinessLogService.publish(
+                BusinessLogSupport.CATEGORY_BUSINESS,
+                BusinessLogSupport.EVENT_TRANSACTION_ADDED,
+                "INFO",
+                "Transaction added",
+                "PORTFOLIO",
+                portfolioId.toString(),
+                BusinessLogSupport.ACTION_CREATE,
+                BusinessLogSupport.RESULT_SUCCESS,
+                metadata,
+                userId,
+                PortfolioServiceImpl.class.getName()
+        );
+
         PortfolioResponse response = toPortfolioResponse(portfolio);
         portfolioCache.evictListAndDetail(userId, portfolioId);
         return response;
@@ -193,8 +265,11 @@ public class PortfolioServiceImpl implements PortfolioService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Portfolio not found: id=" + portfolioId + " userId=" + userId));
 
+        String oldName = portfolio.getName();
+        String oldDescription = portfolio.getDescription();
+
         String newName = request.getName().trim();
-        if (!newName.equals(portfolio.getName())
+        if (!newName.equals(oldName)
                 && portfolioPersistence.existsByUserIdAndName(userId, newName)) {
             throw new IllegalArgumentException(
                     "A portfolio with name '" + newName + "' already exists for this user");
@@ -204,6 +279,33 @@ public class PortfolioServiceImpl implements PortfolioService {
         portfolio.setDescription(request.getDescription());
         portfolio = portfolioPersistence.savePortfolio(portfolio);
         log.debug("Updated portfolio id={} for userId={}", portfolioId, userId);
+
+        List<String> changedFields = new ArrayList<>();
+        if (!newName.equals(oldName)) {
+            changedFields.add("name");
+        }
+        if (!Objects.equals(request.getDescription(), oldDescription)) {
+            changedFields.add("description");
+        }
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("portfolioId", portfolioId.toString());
+        metadata.put("portfolioType", portfolio.getPortfolioType().name());
+        metadata.put("changedFields", changedFields);
+
+        centralBusinessLogService.publish(
+                BusinessLogSupport.CATEGORY_BUSINESS,
+                BusinessLogSupport.EVENT_PORTFOLIO_UPDATED,
+                "INFO",
+                "Portfolio updated",
+                "PORTFOLIO",
+                portfolioId.toString(),
+                BusinessLogSupport.ACTION_UPDATE,
+                BusinessLogSupport.RESULT_SUCCESS,
+                metadata,
+                userId,
+                PortfolioServiceImpl.class.getName()
+        );
 
         PortfolioResponse response = toPortfolioResponse(portfolio);
         portfolioCache.evictListAndDetail(userId, portfolioId);
@@ -216,8 +318,28 @@ public class PortfolioServiceImpl implements PortfolioService {
         Portfolio portfolio = portfolioPersistence.findByIdAndUserId(portfolioId, userId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Portfolio not found: id=" + portfolioId + " userId=" + userId));
+        PortfolioType portfolioType = portfolio.getPortfolioType();
         portfolioPersistence.deletePortfolio(portfolio);
         log.debug("Deleted portfolio id={} for userId={}", portfolioId, userId);
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("portfolioId", portfolioId.toString());
+        metadata.put("portfolioType", portfolioType.name());
+
+        centralBusinessLogService.publish(
+                BusinessLogSupport.CATEGORY_BUSINESS,
+                BusinessLogSupport.EVENT_PORTFOLIO_DELETED,
+                "WARN",
+                "Portfolio deleted",
+                "PORTFOLIO",
+                portfolioId.toString(),
+                BusinessLogSupport.ACTION_DELETE,
+                BusinessLogSupport.RESULT_SUCCESS,
+                metadata,
+                userId,
+                PortfolioServiceImpl.class.getName()
+        );
+
         portfolioCache.evictListDetailAndWatchlist(userId, portfolioId);
     }
 
@@ -235,6 +357,24 @@ public class PortfolioServiceImpl implements PortfolioService {
         }
 
         log.debug("Deleted transaction id={} from portfolioId={}", transactionId, portfolioId);
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("portfolioId", portfolioId.toString());
+        metadata.put("transactionId", transactionId.toString());
+
+        centralBusinessLogService.publish(
+                BusinessLogSupport.CATEGORY_BUSINESS,
+                BusinessLogSupport.EVENT_TRANSACTION_DELETED,
+                "WARN",
+                "Transaction deleted",
+                "PORTFOLIO",
+                portfolioId.toString(),
+                BusinessLogSupport.ACTION_DELETE,
+                BusinessLogSupport.RESULT_SUCCESS,
+                metadata,
+                userId,
+                PortfolioServiceImpl.class.getName()
+        );
 
         Portfolio portfolio = portfolioPersistence.findByIdAndUserId(portfolioId, userId)
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -312,6 +452,25 @@ public class PortfolioServiceImpl implements PortfolioService {
         log.debug("Added watchlist item symbol={} assetType={} to portfolioId={}",
                 normalizedSymbol, request.getAssetType(), portfolioId);
 
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("portfolioId", portfolioId.toString());
+        metadata.put("symbol", normalizedSymbol);
+        metadata.put("assetType", request.getAssetType().name());
+
+        centralBusinessLogService.publish(
+                BusinessLogSupport.CATEGORY_BUSINESS,
+                BusinessLogSupport.EVENT_WATCHLIST_ITEM_ADDED,
+                "INFO",
+                "Watchlist item added",
+                "PORTFOLIO",
+                portfolioId.toString(),
+                BusinessLogSupport.ACTION_CREATE,
+                BusinessLogSupport.RESULT_SUCCESS,
+                metadata,
+                userId,
+                PortfolioServiceImpl.class.getName()
+        );
+
         WatchlistItemResponse response = toWatchlistItemResponse(item);
         portfolioCache.evictListDetailAndWatchlist(userId, portfolioId);
         return response;
@@ -326,12 +485,33 @@ public class PortfolioServiceImpl implements PortfolioService {
 
         requireWatchlist(portfolio);
 
-        portfolioPersistence.findWatchlistItemByIdAndPortfolioId(itemId, portfolioId)
+        WatchlistItem item = portfolioPersistence.findWatchlistItemByIdAndPortfolioId(itemId, portfolioId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Watchlist item not found: id=" + itemId + " portfolioId=" + portfolioId));
 
+        String symbol = item.getSymbol();
         portfolioPersistence.deleteWatchlistItemByIdAndPortfolioId(itemId, portfolioId);
         log.debug("Deleted watchlist item id={} from portfolioId={}", itemId, portfolioId);
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("portfolioId", portfolioId.toString());
+        metadata.put("itemId", itemId.toString());
+        metadata.put("symbol", symbol);
+
+        centralBusinessLogService.publish(
+                BusinessLogSupport.CATEGORY_BUSINESS,
+                BusinessLogSupport.EVENT_WATCHLIST_ITEM_REMOVED,
+                "INFO",
+                "Watchlist item removed",
+                "PORTFOLIO",
+                portfolioId.toString(),
+                BusinessLogSupport.ACTION_DELETE,
+                BusinessLogSupport.RESULT_SUCCESS,
+                metadata,
+                userId,
+                PortfolioServiceImpl.class.getName()
+        );
+
         portfolioCache.evictListDetailAndWatchlist(userId, portfolioId);
     }
 

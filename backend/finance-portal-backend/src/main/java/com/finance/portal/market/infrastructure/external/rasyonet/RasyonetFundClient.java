@@ -1,7 +1,10 @@
 package com.finance.portal.market.infrastructure.external.rasyonet;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.finance.portal.common.application.logging.CentralIntegrationLogService;
+import com.finance.portal.common.application.logging.IntegrationLogSupport;
 import com.finance.portal.market.application.funds.model.RasyonetFundDetailDto;
 import com.finance.portal.market.application.funds.model.RasyonetFundDto;
 import com.finance.portal.market.application.funds.model.RasyonetOsmanliFundBulletinDto;
@@ -47,13 +50,16 @@ public class RasyonetFundClient {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
     private final RasyonetProperties props;
+    private final CentralIntegrationLogService integrationLogService;
 
     public RasyonetFundClient(RestTemplate restTemplate,
                                ObjectMapper objectMapper,
-                               RasyonetProperties props) {
+                               RasyonetProperties props,
+                               CentralIntegrationLogService integrationLogService) {
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
         this.props        = props;
+        this.integrationLogService = integrationLogService;
     }
 
     // ── Fon listesi ──────────────────────────────────────────────────────────
@@ -81,6 +87,7 @@ public class RasyonetFundClient {
             byte[] bytes = response.getBody();
             if (bytes == null || bytes.length == 0) {
                 log.warn("Rasyonet fund-filter returned empty body for sourceCode={}", sourceCode);
+                publishEmptyResponse("fund_filter", sourceCode, null);
                 return List.of();
             }
 
@@ -117,9 +124,18 @@ public class RasyonetFundClient {
             log.error("Rasyonet fund-filter HTTP error: sourceCode={}, status={}, body={}",
                     sourceCode, e.getStatusCode(),
                     e.getResponseBodyAsString().substring(0, Math.min(300, e.getResponseBodyAsString().length())));
+            publishApiFailed("fund_filter", sourceCode, String.valueOf(e.getStatusCode().value()));
+            return List.of();
+        } catch (JsonProcessingException e) {
+            log.error("Rasyonet fund-filter parse error: sourceCode={}, error={}", sourceCode, e.getMessage());
+            publishParseFailed("fund_filter", sourceCode);
             return List.of();
         } catch (Exception e) {
-            log.error("Rasyonet fund-filter unexpected error: sourceCode={}, error={}", sourceCode, e.getMessage(), e);
+            if (e.getCause() instanceof JsonProcessingException) {
+                publishParseFailed("fund_filter", sourceCode);
+            } else {
+                log.error("Rasyonet fund-filter unexpected error: sourceCode={}, error={}", sourceCode, e.getMessage(), e);
+            }
             return List.of();
         }
     }
@@ -239,6 +255,7 @@ public class RasyonetFundClient {
             byte[] bytes = response.getBody();
             if (bytes == null || bytes.length == 0) {
                 log.warn("Rasyonet card: empty body — code={}, httpStatus={}", upperCode, httpStatus);
+                publishEmptyResponse("fund_card", sc, upperCode);
                 return null;
             }
 
@@ -273,11 +290,79 @@ public class RasyonetFundClient {
             log.error("Rasyonet card HTTP error: code={}, status={}, body={}",
                     upperCode, e.getStatusCode(),
                     errBody.substring(0, Math.min(500, errBody.length())));
+            publishApiFailed("fund_card", sc, String.valueOf(e.getStatusCode().value()));
+            return null;
+        } catch (JsonProcessingException e) {
+            log.error("Rasyonet card parse error: code={}, error={}", upperCode, e.getMessage());
+            publishParseFailed("fund_card", upperCode);
             return null;
         } catch (Exception e) {
-            log.error("Rasyonet card error: code={}, error={}", upperCode, e.getMessage(), e);
+            if (e.getCause() instanceof JsonProcessingException) {
+                publishParseFailed("fund_card", upperCode);
+            } else {
+                log.error("Rasyonet card error: code={}, error={}", upperCode, e.getMessage(), e);
+            }
             return null;
         }
+    }
+
+    private void publishEmptyResponse(String operation, String sourceCode, String symbol) {
+        integrationLogService.publish(
+                IntegrationLogSupport.EVENT_EXTERNAL_API_EMPTY_RESPONSE,
+                "WARN",
+                "Rasyonet returned empty response",
+                IntegrationLogSupport.PROVIDER_RASYONET,
+                operation,
+                null,
+                null,
+                null,
+                null,
+                buildRasyonetMetadata(sourceCode, symbol),
+                RasyonetFundClient.class.getName()
+        );
+    }
+
+    private void publishApiFailed(String operation, String sourceCode, String httpStatus) {
+        integrationLogService.publish(
+                IntegrationLogSupport.EVENT_EXTERNAL_API_FAILED,
+                "ERROR",
+                "Rasyonet API call failed",
+                IntegrationLogSupport.PROVIDER_RASYONET,
+                operation,
+                httpStatus,
+                null,
+                null,
+                null,
+                buildRasyonetMetadata(sourceCode, null),
+                RasyonetFundClient.class.getName()
+        );
+    }
+
+    private void publishParseFailed(String operation, String symbolOrSource) {
+        integrationLogService.publish(
+                IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                "ERROR",
+                "Rasyonet response parse failed",
+                IntegrationLogSupport.PROVIDER_RASYONET,
+                operation,
+                null,
+                null,
+                null,
+                null,
+                Map.of("sourceCode", symbolOrSource != null ? symbolOrSource : ""),
+                RasyonetFundClient.class.getName()
+        );
+    }
+
+    private static Map<String, Object> buildRasyonetMetadata(String sourceCode, String symbol) {
+        Map<String, Object> meta = new LinkedHashMap<>();
+        if (sourceCode != null && !sourceCode.isBlank()) {
+            meta.put("sourceCode", sourceCode);
+        }
+        if (symbol != null && !symbol.isBlank()) {
+            meta.put("symbol", symbol);
+        }
+        return meta;
     }
 
     private RasyonetFundDetailDto mapCardNodeRich(JsonNode d, String code) {

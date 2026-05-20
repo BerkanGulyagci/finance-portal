@@ -5,6 +5,7 @@ import com.finance.portal.admin.infrastructure.keycloak.KeycloakRealmRoleAdminCl
 import com.finance.portal.admin.infrastructure.keycloak.KeycloakRealmRoleService;
 import com.finance.portal.admin.infrastructure.keycloak.dto.KeycloakRoleRepresentation;
 import com.finance.portal.common.application.exception.ExternalApiException;
+import com.finance.portal.common.application.logging.CentralBusinessLogService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,6 +29,9 @@ class KeycloakRealmRoleServiceTest {
     @Mock
     KeycloakRealmRoleAdminClient realmRoleAdminClient;
 
+    @Mock
+    CentralBusinessLogService centralBusinessLogService;
+
     KeycloakAdminProperties adminProperties;
     KeycloakRealmRoleService service;
 
@@ -38,7 +42,7 @@ class KeycloakRealmRoleServiceTest {
         adminProperties.setRealm("finance-portal");
         adminProperties.setDefaultUserRoleId("98436eeb-2961-41e5-a23d-c150db93d649");
         adminProperties.setDefaultUserRoleName("USER");
-        service = new KeycloakRealmRoleService(realmRoleAdminClient, adminProperties);
+        service = new KeycloakRealmRoleService(realmRoleAdminClient, adminProperties, centralBusinessLogService);
     }
 
     @Test

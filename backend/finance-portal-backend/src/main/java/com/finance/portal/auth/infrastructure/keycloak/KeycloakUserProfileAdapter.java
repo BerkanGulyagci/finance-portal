@@ -5,11 +5,14 @@ import com.finance.portal.admin.infrastructure.keycloak.KeycloakAdminRestClient;
 import com.finance.portal.admin.infrastructure.keycloak.dto.KeycloakUserRepresentation;
 import com.finance.portal.auth.application.port.KeycloakUserProfilePort;
 import com.finance.portal.auth.infrastructure.keycloak.dto.KeycloakCredentialRepresentation;
+import com.finance.portal.common.application.logging.BusinessLogSupport;
+import com.finance.portal.common.application.logging.CentralBusinessLogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -17,6 +20,7 @@ public class KeycloakUserProfileAdapter implements KeycloakUserProfilePort {
 
     private final KeycloakAdminProperties properties;
     private final KeycloakAdminRestClient restClient;
+    private final CentralBusinessLogService centralBusinessLogService;
 
     @Override
     public void updateProfile(String userId, String firstName, String lastName) {
@@ -53,8 +57,28 @@ public class KeycloakUserProfileAdapter implements KeycloakUserProfilePort {
 
     @Override
     public void logoutAllSessions(String userId) {
+        logoutAllSessions(userId, null);
+    }
+
+    @Override
+    public void logoutAllSessions(String userId, String auditTrigger) {
         try {
             restClient.post(properties.adminApiBase() + "/users/" + userId + "/logout");
+            if (auditTrigger != null && !auditTrigger.isBlank()) {
+                centralBusinessLogService.publish(
+                        BusinessLogSupport.CATEGORY_AUDIT,
+                        BusinessLogSupport.EVENT_USER_SESSIONS_REVOKED,
+                        "INFO",
+                        "User sessions revoked",
+                        "USER",
+                        userId,
+                        BusinessLogSupport.ACTION_REVOKE,
+                        BusinessLogSupport.RESULT_SUCCESS,
+                        Map.of("userId", userId, "trigger", auditTrigger),
+                        userId,
+                        KeycloakUserProfileAdapter.class.getName()
+                );
+            }
         } catch (Exception ignored) {
             // Oturum sonlandırma başarısız olsa da şifre değişimi tamamlanmış olabilir
         }

@@ -1,5 +1,7 @@
 package com.finance.portal.market.infrastructure.external.viop;
 
+import com.finance.portal.common.application.logging.CentralIntegrationLogService;
+import com.finance.portal.common.application.logging.IntegrationLogSupport;
 import com.finance.portal.market.application.viop.ViopContract;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -30,9 +33,12 @@ public class AkbankViopClient {
             "charset=[\"']?([\\w-]+)[\"']?", Pattern.CASE_INSENSITIVE);
 
     private final RestTemplate restTemplate;
+    private final CentralIntegrationLogService integrationLogService;
 
-    public AkbankViopClient(RestTemplate restTemplate) {
+    public AkbankViopClient(RestTemplate restTemplate,
+                              CentralIntegrationLogService integrationLogService) {
         this.restTemplate = restTemplate;
+        this.integrationLogService = integrationLogService;
     }
 
     public List<ViopContract> fetchContracts() {
@@ -50,6 +56,19 @@ public class AkbankViopClient {
 
             if (bodyBytes == null) {
                 log.warn("Akbank returned null response");
+                integrationLogService.publish(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_EMPTY_RESPONSE,
+                        "WARN",
+                        "Akbank VIOP page returned empty body",
+                        IntegrationLogSupport.PROVIDER_AKBANK_VIOP,
+                        "fetch_contracts",
+                        null,
+                        null,
+                        null,
+                        null,
+                        Map.of("trigger", IntegrationLogSupport.TRIGGER_SCHEDULER),
+                        AkbankViopClient.class.getName()
+                );
                 return List.of();
             }
 
@@ -61,9 +80,38 @@ public class AkbankViopClient {
             List<ViopContract> contracts = parseHtml(html);
             log.info("Successfully parsed {} VIOP contracts", contracts.size());
 
+            if (contracts.isEmpty() && html.length() > 500) {
+                integrationLogService.publish(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                        "ERROR",
+                        "Akbank VIOP HTML parse produced no contracts",
+                        IntegrationLogSupport.PROVIDER_AKBANK_VIOP,
+                        "parse_contracts",
+                        null,
+                        null,
+                        null,
+                        null,
+                        Map.of("itemCount", 0),
+                        AkbankViopClient.class.getName()
+                );
+            }
+
             return contracts;
         } catch (Exception e) {
             log.error("Failed to fetch VIOP contracts: {}", e.getMessage(), e);
+            integrationLogService.publish(
+                    IntegrationLogSupport.EVENT_EXTERNAL_API_FAILED,
+                    "ERROR",
+                    "Akbank VIOP fetch failed",
+                    IntegrationLogSupport.PROVIDER_AKBANK_VIOP,
+                    "fetch_contracts",
+                    null,
+                    null,
+                    null,
+                    null,
+                    Map.of("trigger", IntegrationLogSupport.TRIGGER_SCHEDULER),
+                    AkbankViopClient.class.getName()
+            );
             return List.of();
         }
     }

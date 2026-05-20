@@ -3,6 +3,8 @@ package com.finance.portal.admin.infrastructure.keycloak;
 import com.finance.portal.admin.infrastructure.keycloak.dto.KeycloakRoleRepresentation;
 import com.finance.portal.common.application.exception.ExternalApiException;
 import com.finance.portal.common.application.exception.ResourceNotFoundException;
+import com.finance.portal.common.application.logging.BusinessLogSupport;
+import com.finance.portal.common.application.logging.CentralBusinessLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -20,6 +22,7 @@ public class KeycloakRealmRoleService {
 
     private final KeycloakRealmRoleAdminClient realmRoleAdminClient;
     private final KeycloakAdminProperties adminProperties;
+    private final CentralBusinessLogService centralBusinessLogService;
 
     /**
      * Kullanıcıda tam adıyla realm rolü yoksa atar (default-roles-* sayılmaz).
@@ -33,6 +36,7 @@ public class KeycloakRealmRoleService {
 
         if (hasExactRealmRole(userId, roleName)) {
             log.info("User {} already has realm role '{}'", userId, roleName);
+            publishUserRoleAssigned(userId, roleName);
             return true;
         }
 
@@ -48,6 +52,26 @@ public class KeycloakRealmRoleService {
         }
 
         return assignRealmRole(userId, role);
+    }
+
+    private void publishUserRoleAssigned(String userId, String roleName) {
+        centralBusinessLogService.publish(
+                BusinessLogSupport.CATEGORY_AUDIT,
+                BusinessLogSupport.EVENT_USER_ROLE_ASSIGNED,
+                "INFO",
+                "User role assigned",
+                "USER",
+                userId,
+                BusinessLogSupport.ACTION_ASSIGN,
+                BusinessLogSupport.RESULT_SUCCESS,
+                java.util.Map.of(
+                        "userId", userId,
+                        "roleName", roleName,
+                        "success", true
+                ),
+                userId,
+                KeycloakRealmRoleService.class.getName()
+        );
     }
 
     public boolean hasExactRealmRole(String userId, String roleName) {
@@ -112,10 +136,12 @@ public class KeycloakRealmRoleService {
         try {
             realmRoleAdminClient.assignRealmRolesToUser(userId, java.util.List.of(role));
             log.info("Assigned realm role '{}' to user {}", role.getName(), userId);
+            publishUserRoleAssigned(userId, role.getName());
             return true;
         } catch (Exception ex) {
             if (isConflict(ex)) {
                 log.info("User {} already has realm role '{}' (409 conflict ignored)", userId, role.getName());
+                publishUserRoleAssigned(userId, role.getName());
                 return true;
             }
             log.error(

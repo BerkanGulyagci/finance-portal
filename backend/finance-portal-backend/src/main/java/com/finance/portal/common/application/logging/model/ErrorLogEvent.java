@@ -3,7 +3,7 @@ package com.finance.portal.common.application.logging.model;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class RequestLogEvent {
+public class ErrorLogEvent {
 
     private String timestamp;
     private String level;
@@ -21,17 +21,16 @@ public class RequestLogEvent {
     private String path;
     private String status;
     private String durationMs;
-    /** Backward-compatible field for existing dashboards/consumers. */
     private String logger;
 
-    public RequestLogEvent() {}
+    public ErrorLogEvent() {}
 
     public static Builder builder() {
         return new Builder();
     }
 
     public static class Builder {
-        private final RequestLogEvent event = new RequestLogEvent();
+        private final ErrorLogEvent event = new ErrorLogEvent();
 
         public Builder timestamp(String v)   { event.timestamp   = v; return this; }
         public Builder level(String v)       { event.level       = v; return this; }
@@ -51,7 +50,7 @@ public class RequestLogEvent {
         public Builder durationMs(String v)  { event.durationMs  = v; return this; }
         public Builder logger(String v)      { event.logger      = v; return this; }
 
-        public RequestLogEvent build() {
+        public ErrorLogEvent build() {
             return event;
         }
     }

@@ -5,6 +5,8 @@ import com.finance.portal.admin.infrastructure.keycloak.KeycloakAdminRestClient;
 import com.finance.portal.admin.infrastructure.keycloak.KeycloakRealmRoleService;
 import com.finance.portal.admin.infrastructure.keycloak.dto.KeycloakUserRepresentation;
 import com.finance.portal.auth.application.port.KeycloakRegistrationFollowUpPort;
+import com.finance.portal.common.application.logging.BusinessLogSupport;
+import com.finance.portal.common.application.logging.CentralBusinessLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -27,6 +29,7 @@ public class KeycloakRegistrationFollowUpAdapter implements KeycloakRegistration
     private final KeycloakPortalProperties portalProperties;
     private final KeycloakAdminRestClient restClient;
     private final KeycloakRealmRoleService keycloakRealmRoleService;
+    private final CentralBusinessLogService centralBusinessLogService;
 
     @Override
     public void requestEmailVerificationForUser(String userId) {
@@ -36,6 +39,23 @@ public class KeycloakRegistrationFollowUpAdapter implements KeycloakRegistration
         try {
             sendVerifyEmail(userId);
             log.info("VERIFY_EMAIL requested for Keycloak user id {}", userId);
+
+            centralBusinessLogService.publish(
+                    BusinessLogSupport.CATEGORY_AUDIT,
+                    BusinessLogSupport.EVENT_EMAIL_VERIFICATION_REQUESTED,
+                    "INFO",
+                    "Email verification requested",
+                    "USER",
+                    userId,
+                    BusinessLogSupport.ACTION_CREATE,
+                    BusinessLogSupport.RESULT_SUCCESS,
+                    Map.of(
+                            "keycloakUserId", userId,
+                            "outcome", BusinessLogSupport.RESULT_SUCCESS
+                    ),
+                    userId,
+                    KeycloakRegistrationFollowUpAdapter.class.getName()
+            );
         } catch (Exception ex) {
             log.warn("Could not send VERIFY_EMAIL for user id '{}': {}", userId, ex.getMessage());
         }

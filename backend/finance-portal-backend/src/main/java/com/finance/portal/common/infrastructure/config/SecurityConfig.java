@@ -10,6 +10,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
+import com.finance.portal.common.application.logging.CentralErrorLogService;
+import com.finance.portal.common.application.logging.ErrorLogSupport;
 import com.finance.portal.common.infrastructure.security.DisabledAccountFilter;
 import com.finance.portal.common.infrastructure.security.EmailVerifiedFilter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
@@ -33,7 +35,8 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             DisabledAccountFilter disabledAccountFilter,
-            EmailVerifiedFilter emailVerifiedFilter
+            EmailVerifiedFilter emailVerifiedFilter,
+            CentralErrorLogService centralErrorLogService
     ) throws Exception {
         log.info("Custom SecurityFilterChain initialized");
         log.info("/api/market/** is public");
@@ -74,9 +77,21 @@ public class SecurityConfig {
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(keycloakRealmRoleConverter()))
                         .authenticationEntryPoint((request, response, authException) -> {
                             response.setStatus(401);
+                            centralErrorLogService.logHandledError(
+                                    org.springframework.http.HttpStatus.UNAUTHORIZED,
+                                    ErrorLogSupport.EVENT_UNAUTHORIZED_ACCESS,
+                                    "Unauthorized access: " + authException.getMessage(),
+                                    authException,
+                                    SecurityConfig.class.getName());
                         })
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
                             response.setStatus(403);
+                            centralErrorLogService.logHandledError(
+                                    org.springframework.http.HttpStatus.FORBIDDEN,
+                                    ErrorLogSupport.EVENT_ACCESS_DENIED,
+                                    "Access denied: " + accessDeniedException.getMessage(),
+                                    accessDeniedException,
+                                    SecurityConfig.class.getName());
                         })
                 )
                 .addFilterAfter(disabledAccountFilter, BearerTokenAuthenticationFilter.class)

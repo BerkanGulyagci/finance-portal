@@ -1,6 +1,8 @@
 package com.finance.portal.market.infrastructure.external.yahoo;
 
 import com.finance.portal.common.application.exception.ExternalApiException;
+import com.finance.portal.common.application.logging.CentralIntegrationLogService;
+import com.finance.portal.common.application.logging.IntegrationLogSupport;
 import com.finance.portal.market.application.stock.StockSummary;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -44,15 +46,18 @@ public class YahooChartClient {
     private static final String FALLBACK_BASE_URL = "https://query2.finance.yahoo.com/v8/finance/chart";
 
     private final RestTemplate restTemplate;
+    private final CentralIntegrationLogService integrationLogService;
 
     @Value("${market.stocks.yahoo.base-url}")
     private String yahooBaseUrl;
 
-    public YahooChartClient(RestTemplateBuilder restTemplateBuilder) {
+    public YahooChartClient(RestTemplateBuilder restTemplateBuilder,
+                            CentralIntegrationLogService integrationLogService) {
         this.restTemplate = restTemplateBuilder
                 .setConnectTimeout(Duration.ofSeconds(5))
                 .setReadTimeout(Duration.ofSeconds(5))
                 .build();
+        this.integrationLogService = integrationLogService;
     }
 
     @CircuitBreaker(name = "yahooApi", fallbackMethod = "fallbackChart")
@@ -103,8 +108,35 @@ public class YahooChartClient {
         } catch (HttpClientErrorException ex) {
             if (ex.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
                 log.warn("Yahoo rate limited query1 for {}. Trying query2 fallback.", trimmedSymbol);
+                integrationLogService.publish(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_RATE_LIMITED,
+                        "WARN",
+                        "Yahoo Finance rate limited",
+                        IntegrationLogSupport.PROVIDER_YAHOO,
+                        "chart",
+                        "429",
+                        null,
+                        null,
+                        null,
+                        Map.of("symbol", trimmedSymbol, "host", "query1"),
+                        YahooChartClient.class.getName()
+                );
                 try {
-                    return exchangeChart(fallbackUri, requestEntity, trimmedSymbol);
+                    YahooChartResponseDto recovered = exchangeChart(fallbackUri, requestEntity, trimmedSymbol);
+                    integrationLogService.publish(
+                            IntegrationLogSupport.EVENT_EXTERNAL_API_FALLBACK_USED,
+                            "WARN",
+                            "Yahoo Finance host fallback used",
+                            IntegrationLogSupport.PROVIDER_YAHOO,
+                            "chart",
+                            "200",
+                            null,
+                            true,
+                            null,
+                            Map.of("symbol", trimmedSymbol, "host", "query2"),
+                            YahooChartClient.class.getName()
+                    );
+                    return recovered;
                 } catch (Exception fallbackEx) {
                     throw new ExternalApiException(
                             "Yahoo Finance API rate limit reached for symbol "
@@ -143,6 +175,19 @@ public class YahooChartClient {
                 || body.getChart().getResult() == null
                 || body.getChart().getResult().isEmpty()
                 || body.getChart().getResult().get(0).getMeta() == null) {
+            integrationLogService.publish(
+                    IntegrationLogSupport.EVENT_EXTERNAL_API_EMPTY_RESPONSE,
+                    "ERROR",
+                    "Yahoo Finance returned empty chart",
+                    IntegrationLogSupport.PROVIDER_YAHOO,
+                    "chart",
+                    null,
+                    null,
+                    null,
+                    null,
+                    Map.of("symbol", symbol),
+                    YahooChartClient.class.getName()
+            );
             throw new ExternalApiException(
                     "Yahoo Finance API returned empty chart result for symbol: " + symbol);
         }

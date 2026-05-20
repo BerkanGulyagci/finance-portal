@@ -4,6 +4,7 @@ import com.finance.portal.auth.application.model.RegisterUserCommand;
 import com.finance.portal.auth.application.port.KeycloakRegistrationFollowUpPort;
 import com.finance.portal.auth.application.port.UserRegistrationPort;
 import com.finance.portal.auth.application.service.RegistrationService;
+import com.finance.portal.common.application.logging.CentralBusinessLogService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -21,6 +22,9 @@ class RegistrationServiceTest {
 
     @Mock
     KeycloakRegistrationFollowUpPort keycloakRegistrationFollowUpPort;
+
+    @Mock
+    CentralBusinessLogService centralBusinessLogService;
 
     @InjectMocks
     RegistrationService registrationService;

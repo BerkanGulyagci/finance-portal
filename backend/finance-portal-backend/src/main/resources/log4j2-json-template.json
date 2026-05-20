@@ -67,5 +67,17 @@
   "span_id": {
     "$resolver": "mdc",
     "key": "span_id"
+  },
+  "category": {
+    "$resolver": "mdc",
+    "key": "category"
+  },
+  "eventType": {
+    "$resolver": "mdc",
+    "key": "eventType"
+  },
+  "clientIp": {
+    "$resolver": "mdc",
+    "key": "clientIp"
   }
 }

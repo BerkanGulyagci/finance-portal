@@ -1,5 +1,7 @@
 package com.finance.portal.portfolio.service;
 
+import com.finance.portal.common.application.logging.CentralIntegrationLogService;
+import com.finance.portal.common.application.logging.IntegrationLogSupport;
 import com.finance.portal.common.domain.AssetType;
 import com.finance.portal.market.application.AssetPriceQueryService;
 import com.finance.portal.market.application.AssetPriceSnapshot;
@@ -57,6 +59,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.TreeMap;
@@ -89,6 +92,7 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
     private final RasyonetFundService rasyonetFundService;
     private final ViopService viopService;
     private final ViopChartService viopChartService;
+    private final CentralIntegrationLogService integrationLogService;
 
     public PortfolioHoldingMarketEnricher(AssetPriceQueryService assetPriceQueryService,
                                           GoldMarketService goldMarketService,
@@ -100,7 +104,8 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
                                           MarketFxService marketFxService,
                                           RasyonetFundService rasyonetFundService,
                                           ViopService viopService,
-                                          ViopChartService viopChartService) {
+                                          ViopChartService viopChartService,
+                                          CentralIntegrationLogService integrationLogService) {
         this.assetPriceQueryService = assetPriceQueryService;
         this.goldMarketService = goldMarketService;
         this.yahooCommodityService = yahooCommodityService;
@@ -112,6 +117,7 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
         this.rasyonetFundService = rasyonetFundService;
         this.viopService = viopService;
         this.viopChartService = viopChartService;
+        this.integrationLogService = integrationLogService;
     }
     private static String goldHoldingDisplayName(String upper) {
         return switch (upper) {
@@ -201,7 +207,43 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
         } catch (Exception ex) {
             log.warn("Failed to fetch live price for assetType={} symbol={}: {}",
                     holding.getAssetType(), holding.getSymbol(), ex.getMessage());
+            publishDegradedMarketFetch(holding.getAssetType(), holding.getSymbol());
         }
+    }
+
+    private void publishDegradedMarketFetch(AssetType assetType, String symbol) {
+        String provider = resolveProviderForAssetType(assetType);
+        integrationLogService.publish(
+                IntegrationLogSupport.EVENT_MARKET_DATA_FETCH_FAILED,
+                "WARN",
+                "Portfolio holding live price enrichment failed",
+                provider,
+                "portfolio_enrich",
+                null,
+                null,
+                null,
+                true,
+                Map.of(
+                        "assetType", assetType != null ? assetType.name() : "UNKNOWN",
+                        "symbol", symbol != null ? symbol : "",
+                        "degraded", true,
+                        "trigger", IntegrationLogSupport.TRIGGER_API_REQUEST
+                ),
+                PortfolioHoldingMarketEnricher.class.getName()
+        );
+    }
+
+    private static String resolveProviderForAssetType(AssetType assetType) {
+        if (assetType == null) {
+            return IntegrationLogSupport.PROVIDER_EXTERNAL;
+        }
+        return switch (assetType) {
+            case STOCK, COMMODITY -> IntegrationLogSupport.PROVIDER_YAHOO;
+            case CRYPTO -> IntegrationLogSupport.PROVIDER_COINGECKO;
+            case FUND -> IntegrationLogSupport.PROVIDER_RASYONET;
+            case FUTURE -> IntegrationLogSupport.PROVIDER_AKBANK_VIOP;
+            default -> IntegrationLogSupport.PROVIDER_EXTERNAL;
+        };
     }
 
     /**

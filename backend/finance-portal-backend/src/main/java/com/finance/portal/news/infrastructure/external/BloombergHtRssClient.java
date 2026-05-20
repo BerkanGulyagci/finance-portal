@@ -1,5 +1,7 @@
 package com.finance.portal.news.infrastructure.external;
 
+import com.finance.portal.common.application.logging.CentralIntegrationLogService;
+import com.finance.portal.common.application.logging.IntegrationLogSupport;
 import com.finance.portal.news.application.model.NewsArticle;
 import com.finance.portal.news.application.port.BloombergNewsPort;
 import org.slf4j.Logger;
@@ -20,6 +22,7 @@ import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -37,9 +40,12 @@ public class BloombergHtRssClient implements BloombergNewsPort {
             Pattern.compile("<meta[^>]+content=[\"']([^\"']+)[\"'][^>]+property=[\"']og:image[\"']", Pattern.CASE_INSENSITIVE);
 
     private final RestTemplate restTemplate;
+    private final CentralIntegrationLogService integrationLogService;
 
-    public BloombergHtRssClient(RestTemplate restTemplate) {
+    public BloombergHtRssClient(RestTemplate restTemplate,
+                                  CentralIntegrationLogService integrationLogService) {
         this.restTemplate = restTemplate;
+        this.integrationLogService = integrationLogService;
     }
 
     @Override
@@ -47,6 +53,19 @@ public class BloombergHtRssClient implements BloombergNewsPort {
         try {
             byte[] bytes = restTemplate.getForObject(RSS_URL, byte[].class);
             if (bytes == null || bytes.length == 0) {
+                integrationLogService.publish(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_EMPTY_RESPONSE,
+                        "WARN",
+                        "BloombergHT RSS returned empty body",
+                        IntegrationLogSupport.PROVIDER_BLOOMBERG_HT,
+                        "rss_fetch",
+                        null,
+                        null,
+                        null,
+                        null,
+                        Map.of("trigger", IntegrationLogSupport.TRIGGER_SCHEDULER),
+                        BloombergHtRssClient.class.getName()
+                );
                 return List.of();
             }
             String xml = new String(bytes, StandardCharsets.UTF_8);
@@ -55,6 +74,19 @@ public class BloombergHtRssClient implements BloombergNewsPort {
             return items;
         } catch (Exception e) {
             log.warn("Failed to fetch BloombergHT RSS: {}", e.getMessage());
+            integrationLogService.publish(
+                    IntegrationLogSupport.EVENT_NEWS_FETCH_FAILED,
+                    "ERROR",
+                    "BloombergHT RSS fetch failed",
+                    IntegrationLogSupport.PROVIDER_BLOOMBERG_HT,
+                    "rss_fetch",
+                    null,
+                    null,
+                    null,
+                    null,
+                    Map.of("trigger", IntegrationLogSupport.TRIGGER_SCHEDULER),
+                    BloombergHtRssClient.class.getName()
+            );
             return List.of();
         }
     }

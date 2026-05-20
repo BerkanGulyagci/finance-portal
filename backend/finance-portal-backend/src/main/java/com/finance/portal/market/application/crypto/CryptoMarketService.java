@@ -2,6 +2,8 @@ package com.finance.portal.market.application.crypto;
 
 import com.finance.portal.common.application.exception.ExternalApiException;
 import com.finance.portal.common.application.exception.ResourceNotFoundException;
+import com.finance.portal.common.application.logging.CentralIntegrationLogService;
+import com.finance.portal.common.application.logging.IntegrationLogSupport;
 import com.finance.portal.market.application.crypto.model.CryptoMarketItem;
 import com.finance.portal.market.application.crypto.port.CoinGeckoPort;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -32,10 +34,14 @@ public class CryptoMarketService {
 
     private final CoinGeckoPort coinGeckoPort;
     private final CacheManager cacheManager;
+    private final CentralIntegrationLogService integrationLogService;
 
-    public CryptoMarketService(CoinGeckoPort coinGeckoPort, CacheManager cacheManager) {
+    public CryptoMarketService(CoinGeckoPort coinGeckoPort,
+                                 CacheManager cacheManager,
+                                 CentralIntegrationLogService integrationLogService) {
         this.coinGeckoPort = coinGeckoPort;
         this.cacheManager = cacheManager;
+        this.integrationLogService = integrationLogService;
     }
 
     @Cacheable(cacheNames = CACHE_NAME, key = "'try:p' + #page + ':s' + #size")
@@ -413,6 +419,19 @@ public class CryptoMarketService {
             if (w != null && w.get() != null) {
                 @SuppressWarnings("unchecked")
                 List<CryptoMarketItem> cached = (List<CryptoMarketItem>) w.get();
+                integrationLogService.publish(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_FALLBACK_USED,
+                        "WARN",
+                        "CoinGecko stale cache fallback used",
+                        IntegrationLogSupport.PROVIDER_COINGECKO,
+                        "markets",
+                        null,
+                        null,
+                        true,
+                        null,
+                        Map.of("cacheHit", true, "page", page, "size", size),
+                        CryptoMarketService.class.getName()
+                );
                 return cached;
             }
         }
@@ -429,6 +448,19 @@ public class CryptoMarketService {
             if (w != null && w.get() != null) {
                 @SuppressWarnings("unchecked")
                 List<CryptoMarketItem> cached = (List<CryptoMarketItem>) w.get();
+                integrationLogService.publish(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_FALLBACK_USED,
+                        "WARN",
+                        "CoinGecko stale cache fallback used",
+                        IntegrationLogSupport.PROVIDER_COINGECKO,
+                        "markets",
+                        null,
+                        null,
+                        true,
+                        null,
+                        Map.of("cacheHit", true, "currency", cur, "page", page, "size", size),
+                        CryptoMarketService.class.getName()
+                );
                 return cached;
             }
         }

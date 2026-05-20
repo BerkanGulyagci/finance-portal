@@ -7,13 +7,17 @@ import com.finance.portal.admin.application.port.KeycloakUserAdminPort;
 import com.finance.portal.admin.application.port.UserBanStatePort;
 import com.finance.portal.admin.presentation.dto.BanType;
 import com.finance.portal.admin.presentation.dto.BanUserRequest;
+import com.finance.portal.common.application.logging.BusinessLogSupport;
+import com.finance.portal.common.application.logging.CentralBusinessLogService;
 import com.finance.portal.common.application.port.UserAccountStatusPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +28,7 @@ public class BanUserService {
     private final KeycloakUserAdminPort keycloakUserAdminPort;
     private final UserBanStatePort userBanStatePort;
     private final UserAccountStatusPort userAccountStatusPort;
+    private final CentralBusinessLogService centralBusinessLogService;
 
     public void banUser(String targetUserId, String actingAdminUserId, BanUserRequest request) {
         BanRequestValidator.validate(request);
@@ -43,6 +48,29 @@ public class BanUserService {
         keycloakUserAdminPort.setUserEnabled(targetUserId, false);
         keycloakUserAdminPort.logoutUserSessions(targetUserId);
         userAccountStatusPort.evictAccountStatus(targetUserId);
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("targetUserId", targetUserId);
+        metadata.put("adminUserId", actingAdminUserId);
+        metadata.put("banType", request.getBanType().name());
+        if (request.getBanType() != BanType.PERMANENT) {
+            metadata.put("durationValue", request.getDurationValue());
+            metadata.put("durationUnit", request.getDurationUnit().name());
+        }
+
+        centralBusinessLogService.publish(
+                BusinessLogSupport.CATEGORY_AUDIT,
+                BusinessLogSupport.EVENT_USER_BANNED,
+                "WARN",
+                "User banned",
+                "USER",
+                targetUserId,
+                BusinessLogSupport.ACTION_BAN,
+                BusinessLogSupport.RESULT_SUCCESS,
+                metadata,
+                actingAdminUserId,
+                BanUserService.class.getName()
+        );
     }
 
     private void assertBanAllowed(String targetUserId, String actingAdminUserId) {

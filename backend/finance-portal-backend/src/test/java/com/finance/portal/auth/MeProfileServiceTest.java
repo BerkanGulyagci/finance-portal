@@ -4,6 +4,8 @@ import com.finance.portal.auth.application.port.KeycloakPasswordVerifierPort;
 import com.finance.portal.auth.application.port.KeycloakRegistrationFollowUpPort;
 import com.finance.portal.auth.application.port.KeycloakUserProfilePort;
 import com.finance.portal.auth.application.service.MeProfileService;
+import com.finance.portal.common.application.logging.BusinessLogSupport;
+import com.finance.portal.common.application.logging.CentralBusinessLogService;
 import com.finance.portal.auth.presentation.dto.ChangePasswordRequest;
 import com.finance.portal.auth.presentation.dto.MeActionResponse;
 import com.finance.portal.auth.presentation.dto.UpdateEmailRequest;
@@ -36,6 +38,9 @@ class MeProfileServiceTest {
 
     @Mock
     KeycloakRegistrationFollowUpPort keycloakRegistrationFollowUpPort;
+
+    @Mock
+    CentralBusinessLogService centralBusinessLogService;
 
     @InjectMocks
     MeProfileService meProfileService;
@@ -100,7 +105,7 @@ class MeProfileServiceTest {
         MeActionResponse response = meProfileService.changePassword(jwt("kc-1", "alice"), request);
 
         verify(keycloakUserProfilePort).resetPassword("kc-1", "newpass12");
-        verify(keycloakUserProfilePort).logoutAllSessions("kc-1");
+        verify(keycloakUserProfilePort).logoutAllSessions("kc-1", BusinessLogSupport.TRIGGER_PASSWORD_CHANGE);
         assertTrue(response.isRequiresReLogin());
     }
 

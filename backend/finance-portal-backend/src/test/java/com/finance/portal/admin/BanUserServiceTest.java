@@ -10,6 +10,7 @@ import com.finance.portal.admin.application.service.BanUserService;
 import com.finance.portal.admin.presentation.dto.BanType;
 import com.finance.portal.admin.presentation.dto.BanUserRequest;
 import com.finance.portal.admin.presentation.dto.DurationUnit;
+import com.finance.portal.common.application.logging.CentralBusinessLogService;
 import com.finance.portal.common.application.port.UserAccountStatusPort;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,6 +43,9 @@ class BanUserServiceTest {
 
     @Mock
     UserAccountStatusPort userAccountStatusPort;
+
+    @Mock
+    CentralBusinessLogService centralBusinessLogService;
 
     @InjectMocks
     BanUserService banUserService;

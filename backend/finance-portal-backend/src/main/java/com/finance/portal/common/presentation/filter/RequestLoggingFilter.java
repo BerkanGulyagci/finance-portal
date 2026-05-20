@@ -1,5 +1,6 @@
 package com.finance.portal.common.presentation.filter;
 
+import com.finance.portal.common.application.logging.RequestLogSupport;
 import com.finance.portal.common.application.logging.model.RequestLogEvent;
 import com.finance.portal.common.application.logging.port.RequestLogPublisherPort;
 import io.opentelemetry.api.trace.Span;
@@ -29,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Her HTTP isteği için:
  * - requestId (UUID) üretir
- * - MDC'ye requestId, method, path, userId, status, durationMs koyar
+ * - MDC'ye requestId, method, path, userId, clientIp, status, durationMs koyar
  * - Console'a JSON log atar (Log4j2 + JsonTemplateLayout)
  * - Kafka'ya RequestLogEvent gönderir (async/best-effort)
  * - Request/response body loglanmaz
@@ -64,11 +65,12 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         long startTime = System.currentTimeMillis();
-        long startNanos = System.nanoTime(); // negatif durationMs sorununu önler
+        long startNanos = System.nanoTime();
         String requestId = UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+        String clientIp = RequestLogSupport.extractClientIp(request);
+        request.setAttribute(RequestLogSupport.ATTR_REQUEST_ID, requestId);
+        request.setAttribute(RequestLogSupport.ATTR_CLIENT_IP, clientIp);
 
-        // OTel span'ı doFilter öncesi yakala — agent bu noktada span'ı başlatmış olabilir
-        // Eğer henüz başlatmamışsa doFilter sonrası finally'de MDC'den okuruz
         String capturedTraceId = null;
         String capturedSpanId  = null;
         try {
@@ -81,10 +83,14 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             // OTel API classpath'te yoksa veya agent yüklü değilse sessizce geç
         }
 
+        Throwable requestException = null;
         try {
             ThreadContext.put("requestId", requestId);
             ThreadContext.put("method", request.getMethod());
             ThreadContext.put("path", request.getRequestURI());
+            ThreadContext.put("clientIp", clientIp);
+            ThreadContext.put("category", RequestLogSupport.CATEGORY);
+            ThreadContext.put("eventType", RequestLogSupport.EVENT_TYPE);
 
             String userId = extractUserId();
             if (userId != null) {
@@ -93,25 +99,26 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
 
             filterChain.doFilter(request, response);
 
+        } catch (Throwable t) {
+            requestException = t;
+            throw t;
         } finally {
             long durationMs = Math.max(0, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
-            int httpStatus = response.getStatus();
+            int httpStatus = RequestLogSupport.resolveHttpStatus(response.getStatus(), requestException);
             String userId = ThreadContext.get("userId");
+            String level = RequestLogSupport.resolveLevelName(httpStatus, requestException);
+            String exceptionSummary = RequestLogSupport.formatExceptionSummary(requestException);
 
-            // Önce Span.current() ile yakaladığımız değeri kullan
-            // Yoksa OTel agent'ın MDC'ye yazdığı trace_id/span_id key'lerini dene
             String traceId = capturedTraceId;
             String spanId  = capturedSpanId;
 
             if (traceId == null || traceId.isBlank()) {
-                // OTel Java Agent 2.x Log4j2 MDC'ye trace_id (underscore) ile yazar
                 traceId = ThreadContext.get("trace_id");
             }
             if (spanId == null || spanId.isBlank()) {
                 spanId = ThreadContext.get("span_id");
             }
 
-            // Span.current() doFilter sonrası da dene (agent span'ı response yazıldıktan sonra kapatır)
             if (traceId == null || traceId.isBlank()) {
                 try {
                     SpanContext spanCtx = Span.current().getSpanContext();
@@ -122,45 +129,66 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
                 } catch (Throwable ignored) {}
             }
 
-            // camelCase alias'ları MDC'ye koy — log4j2-json-template.json her iki key'i de okur
             if (traceId != null && !traceId.isBlank()) ThreadContext.put("traceId", traceId);
             if (spanId  != null && !spanId.isBlank())  ThreadContext.put("spanId",  spanId);
+
+            if (traceId != null && !traceId.isBlank()) {
+                request.setAttribute(RequestLogSupport.ATTR_TRACE_ID, traceId);
+            }
+            if (spanId != null && !spanId.isBlank()) {
+                request.setAttribute(RequestLogSupport.ATTR_SPAN_ID, spanId);
+            }
 
             ThreadContext.put("status", String.valueOf(httpStatus));
             ThreadContext.put("durationMs", String.valueOf(durationMs));
 
-            // Console JSON log — Aşama 1'den gelen yapı, değişmez
             String message = String.format("HTTP %s %s -> %d (%dms)",
                     request.getMethod(), request.getRequestURI(), httpStatus, durationMs);
-            log.info(message);
 
-            // Kafka'ya async/best-effort gönder
+            logAtLevel(level, message, requestException);
+
             if (requestLogPublisher != null) {
                 try {
                     RequestLogEvent event = RequestLogEvent.builder()
                             .timestamp(ISO_FMT.format(Instant.ofEpochMilli(startTime)))
+                            .level(level)
                             .serviceName(SERVICE_NAME)
-                            .level("INFO")
-                            .logger(RequestLoggingFilter.class.getName())
+                            .category(RequestLogSupport.CATEGORY)
+                            .eventType(RequestLogSupport.EVENT_TYPE)
                             .message(message)
+                            .exception(exceptionSummary)
                             .requestId(requestId)
                             .method(request.getMethod())
                             .path(request.getRequestURI())
                             .status(String.valueOf(httpStatus))
                             .durationMs(String.valueOf(durationMs))
                             .userId(userId)
+                            .clientIp(clientIp)
                             .traceId(traceId)
                             .spanId(spanId)
+                            .logger(RequestLoggingFilter.class.getName())
                             .build();
                     requestLogPublisher.publish(event);
                 } catch (Exception e) {
-                    // Kafka gönderimi hiçbir zaman filter'ı crash etmemeli
                     System.err.println("[RequestLoggingFilter] Kafka publish error: " + e.getMessage());
                 }
             }
 
-            // MDC temizle — thread pool sızıntısı önlenir
             ThreadContext.clearAll();
+        }
+    }
+
+    private void logAtLevel(String level, String message, Throwable requestException) {
+        switch (level) {
+            case "ERROR" -> {
+                if (requestException != null) {
+                    log.error(message, requestException);
+                } else {
+                    log.error(message);
+                }
+            }
+            case "WARN" -> log.warn(message);
+            default -> log.info(message);
         }
     }
 
