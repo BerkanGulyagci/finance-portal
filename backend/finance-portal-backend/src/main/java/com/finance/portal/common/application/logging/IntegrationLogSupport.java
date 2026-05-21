@@ -20,6 +20,17 @@ public final class IntegrationLogSupport {
     public static final String PROVIDER_BLOOMBERG_HT = "bloomberg_ht";
     public static final String PROVIDER_RASYONET = "rasyonet";
     public static final String PROVIDER_AKBANK_VIOP = "akbank_viop";
+    public static final String PROVIDER_HESAPKURDU = "hesapkurdu";
+    public static final String PROVIDER_MIDAS = "midas";
+    public static final String PROVIDER_ISYATIRIM = "isyatirim";
+    public static final String PROVIDER_BORSA_ISTANBUL = "borsa_istanbul";
+    public static final String PROVIDER_CANLI_ALTIN = "canli_altin";
+    public static final String PROVIDER_HALKARZ = "halkarz";
+    public static final String PROVIDER_BINANCE = "binance";
+    public static final String PROVIDER_TCMB = "tcmb";
+    public static final String PROVIDER_OPEN_FX = "open_fx";
+    public static final String PROVIDER_EVDS = "evds";
+    public static final String PROVIDER_TUIK = "tuik";
     public static final String PROVIDER_EXTERNAL = "external";
 
     public static final String TRIGGER_SCHEDULER = "scheduler";

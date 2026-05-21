@@ -43,3 +43,6 @@ frontend/**/node_modules/
 frontend/**/.env.local
 frontend/**/.env.*.local
 frontend/**/dist/
+
+### Temp / scratch test payloads ###
+tmp-*.json

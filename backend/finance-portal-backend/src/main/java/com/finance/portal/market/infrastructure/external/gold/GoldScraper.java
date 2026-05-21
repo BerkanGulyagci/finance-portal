@@ -1,5 +1,7 @@
 package com.finance.portal.market.infrastructure.external.gold;
 
+import com.finance.portal.common.application.logging.CentralIntegrationLogService;
+import com.finance.portal.common.application.logging.IntegrationLogSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
@@ -34,9 +36,28 @@ public class GoldScraper {
     private static final String SCRAPE_URL = "https://canlialtinfiyatlari.com/";
 
     private final RestTemplate restTemplate;
+    private final CentralIntegrationLogService integrationLog;
 
-    public GoldScraper(RestTemplate restTemplate) {
+    public GoldScraper(RestTemplate restTemplate,
+                       CentralIntegrationLogService integrationLog) {
         this.restTemplate = restTemplate;
+        this.integrationLog = integrationLog;
+    }
+
+    private void logScrapeFailure(String eventType, String message, String httpStatus, Map<String, Object> metadata) {
+        integrationLog.publish(
+                eventType,
+                "WARN",
+                message,
+                IntegrationLogSupport.PROVIDER_CANLI_ALTIN,
+                "scrapeGoldPrices",
+                httpStatus,
+                null,
+                null,
+                Boolean.TRUE,
+                metadata,
+                GoldScraper.class.getName()
+        );
     }
 
     public Map<String, GoldPriceEntry> fetchAll() {
@@ -52,15 +73,38 @@ public class GoldScraper {
             ResponseEntity<String> response = restTemplate.exchange(
                     SCRAPE_URL, HttpMethod.GET, entity, String.class);
             String html = response.getBody();
+            String httpStatus = String.valueOf(response.getStatusCode().value());
             if (html == null || html.isBlank()) {
                 log.warn("canlialtinfiyatlari.com returned empty response");
+                logScrapeFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_EMPTY_RESPONSE,
+                        "canlialtinfiyatlari.com gold scrape: empty response body",
+                        httpStatus,
+                        Map.of("url", SCRAPE_URL));
                 return result;
             }
 
             parseTable(html, result);
+
+            // Sayfa geldi ama 0 satir cikarildi — HTML yapisi degismis olabilir (sessiz hata).
+            if (result.isEmpty()) {
+                log.warn("canlialtinfiyatlari.com returned HTML but 0 gold prices were extracted");
+                logScrapeFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_EMPTY_RESPONSE,
+                        "canlialtinfiyatlari.com gold scrape: 0 rows extracted - HTML structure may have changed",
+                        httpStatus,
+                        Map.of("url", SCRAPE_URL, "htmlLength", html.length()));
+                return result;
+            }
+
             log.info("Fetched {} gold prices from canlialtinfiyatlari.com", result.size());
         } catch (Exception e) {
             log.error("Failed to fetch gold prices from canlialtinfiyatlari.com: {}", e.getMessage());
+            logScrapeFailure(
+                    IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                    "canlialtinfiyatlari.com gold scrape: fetch/parse failed (HTML structure may have changed): " + e.getMessage(),
+                    null,
+                    Map.of("url", SCRAPE_URL, "exceptionClass", e.getClass().getSimpleName()));
         }
         return result;
     }

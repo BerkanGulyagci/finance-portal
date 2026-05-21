@@ -179,6 +179,9 @@ public class CacheConfig {
                 );
 
         return RedisCacheManager.builder(redisConnectionFactory)
+                // Enable per-cache hit/miss statistics so Micrometer exposes
+                // cache_gets_total{result="hit|miss"} for the Grafana Cache Hit Rate panel.
+                .enableStatistics()
                 .cacheDefaults(jsonDefaultCacheConfig)
                 .withCacheConfiguration("newsCache", newsCacheConfig)
                 .withCacheConfiguration("market.fx.tcmb.latest", marketFxTcmbCacheConfig)

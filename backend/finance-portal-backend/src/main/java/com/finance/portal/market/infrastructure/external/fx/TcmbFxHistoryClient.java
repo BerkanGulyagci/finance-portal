@@ -1,5 +1,7 @@
 package com.finance.portal.market.infrastructure.external.fx;
 
+import com.finance.portal.common.application.logging.CentralIntegrationLogService;
+import com.finance.portal.common.application.logging.IntegrationLogSupport;
 import com.finance.portal.market.application.fx.model.FxHistoryPoint;
 import com.finance.portal.market.application.fx.port.TcmbFxHistoryPort;
 import org.slf4j.Logger;
@@ -22,6 +24,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -46,9 +49,27 @@ public class TcmbFxHistoryClient implements TcmbFxHistoryPort {
     private static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(16);
 
     private final RestTemplate restTemplate;
+    private final CentralIntegrationLogService integrationLog;
 
-    public TcmbFxHistoryClient(RestTemplate restTemplate) {
+    public TcmbFxHistoryClient(RestTemplate restTemplate, CentralIntegrationLogService integrationLog) {
         this.restTemplate = restTemplate;
+        this.integrationLog = integrationLog;
+    }
+
+    private void logIntegrationFailure(String eventType, String message, String httpStatus, Map<String, Object> metadata) {
+        integrationLog.publish(
+                eventType,
+                "WARN",
+                message,
+                IntegrationLogSupport.PROVIDER_TCMB,
+                "fetchHistory",
+                httpStatus,
+                null,
+                null,
+                Boolean.TRUE,
+                metadata,
+                TcmbFxHistoryClient.class.getName()
+        );
     }
 
     /**
@@ -91,6 +112,22 @@ public class TcmbFxHistoryClient implements TcmbFxHistoryPort {
         points.sort(Comparator.comparing(FxHistoryPoint::getDate));
         log.info("TCMB history for {}: {} points ({} workdays checked)",
                 currencyCode, points.size(), workdays.size());
+
+        // İş günü çekildi ama hiç veri noktası elde edilemedi —
+        // muhtemelen XML yapısı/eleman adları değişti (sessiz hata).
+        // (Hafta sonu/tatil günleri zaten workdays'e dahil değil.)
+        if (!workdays.isEmpty() && points.isEmpty()) {
+            logIntegrationFailure(
+                    IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                    "TCMB history: 0 data points from " + workdays.size()
+                            + " workdays (XML structure or CurrencyCode/ForexSelling may have changed)",
+                    null,
+                    Map.of("currencyCode", String.valueOf(currencyCode),
+                            "workdaysChecked", workdays.size(),
+                            "from", String.valueOf(from),
+                            "to", String.valueOf(to)));
+        }
+
         return points;
     }
 

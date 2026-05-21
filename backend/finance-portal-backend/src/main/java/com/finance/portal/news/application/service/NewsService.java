@@ -5,6 +5,8 @@ import com.finance.portal.news.application.model.NewsArticle;
 import com.finance.portal.news.application.model.NewsPage;
 import com.finance.portal.news.application.port.BloombergNewsPort;
 import com.finance.portal.news.application.port.NewsApiPort;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
@@ -28,11 +30,17 @@ public class NewsService {
     }
 
     @Cacheable(cacheNames = "newsCache", key = "#category + '_' + #country + '_' + #page + '_' + #pageSize + '_' + (#keyword != null ? #keyword : 'null')")
-    public NewsPage getNews(String category, String country, int page, int pageSize, String keyword) {
+    @WithSpan("NewsService.getNews")
+    public NewsPage getNews(@SpanAttribute("news.category") String category,
+                            @SpanAttribute("news.country") String country,
+                            @SpanAttribute("news.page") int page,
+                            int pageSize,
+                            @SpanAttribute("news.keyword") String keyword) {
         return newsApiPort.fetchNews(category, country, page, pageSize, keyword);
     }
 
     @Cacheable(cacheNames = "newsCache", key = "'bloomberght-v2'")
+    @WithSpan("NewsService.getBloombergHtNews")
     public List<NewsArticle> getBloombergHtNews() {
         return bloombergNewsPort.fetchNews();
     }

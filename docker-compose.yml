@@ -53,6 +53,8 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      otel-collector:
+        condition: service_started
     networks:
       - finance-portal-network
     logging:
@@ -261,8 +263,80 @@ services:
       - ./docker/otel/otel-collector-config.yaml:/etc/otel/otel-collector-config.yaml:ro
     ports:
       - "4317:4317"   # OTLP gRPC — backend agent buraya gönderir
-      - "4318:4318"   # OTLP HTTP (opsiyonel, debug için)
+      - "4318:4318"   # OTLP HTTP (opsiyonel)
       - "8888:8888"   # Collector kendi metrikleri (opsiyonel)
+      - "8889:8889"   # Prometheus exporter — Prometheus scrape eder
+    depends_on:
+      tempo:
+        condition: service_healthy
+    networks:
+      - finance-portal-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  tempo:
+    image: grafana/tempo:2.4.1
+    container_name: finance-portal-tempo
+    command: ["-config.file=/etc/tempo/tempo.yml"]
+    volumes:
+      - ./docker/tempo/tempo.yml:/etc/tempo/tempo.yml:ro
+      - tempo_data:/var/tempo
+    ports:
+      - "3200:3200"
+    networks:
+      - finance-portal-network
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3200/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: finance-portal-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=7d
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      - otel-collector
+    networks:
+      - finance-portal-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: finance-portal-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+      - tempo
     networks:
       - finance-portal-network
     restart: unless-stopped
@@ -279,3 +353,6 @@ networks:
 volumes:
   finance_portal_pgdata:
   opensearch_data:
+  tempo_data:
+  prometheus_data:
+  grafana_data:

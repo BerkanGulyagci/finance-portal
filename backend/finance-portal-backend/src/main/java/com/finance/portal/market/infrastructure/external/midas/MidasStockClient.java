@@ -1,5 +1,7 @@
 package com.finance.portal.market.infrastructure.external.midas;
 
+import com.finance.portal.common.application.logging.CentralIntegrationLogService;
+import com.finance.portal.common.application.logging.IntegrationLogSupport;
 import com.finance.portal.market.application.stock.MidasStockDetail;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +14,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -24,9 +27,28 @@ public class MidasStockClient {
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36";
 
     private final RestTemplate restTemplate;
+    private final CentralIntegrationLogService integrationLog;
 
-    public MidasStockClient(RestTemplate restTemplate) {
+    public MidasStockClient(RestTemplate restTemplate, CentralIntegrationLogService integrationLog) {
         this.restTemplate = restTemplate;
+        this.integrationLog = integrationLog;
+    }
+
+    private void logIntegrationFailure(String eventType, String message, String operation,
+                                       String httpStatus, Map<String, Object> metadata) {
+        integrationLog.publish(
+                eventType,
+                "WARN",
+                message,
+                IntegrationLogSupport.PROVIDER_MIDAS,
+                operation,
+                httpStatus,
+                null,
+                null,
+                Boolean.TRUE,
+                metadata,
+                MidasStockClient.class.getName()
+        );
     }
 
     private static final String LIST_BASE_URL = "https://www.getmidas.com/canli-borsa/%s";
@@ -48,11 +70,40 @@ public class MidasStockClient {
 
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
             String html = response.getBody();
-            if (html == null) return List.of();
+            String httpStatus = String.valueOf(response.getStatusCode().value());
+            if (html == null || html.isBlank()) {
+                log.warn("Midas returned empty body for symbol list from {}", url);
+                logIntegrationFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_EMPTY_RESPONSE,
+                        "Midas symbol list: empty response body",
+                        "fetchSymbols",
+                        httpStatus,
+                        Map.of("url", url));
+                return List.of();
+            }
 
-            return parseSymbols(html);
+            List<String> symbols = parseSymbols(html);
+
+            // HTML geldi ama hiç sembol parse edilemedi —
+            // muhtemelen link formatı/sayfa yapısı değişti (sessiz hata).
+            if (symbols.isEmpty()) {
+                log.warn("Midas symbol list parsed 0 symbols from {}", url);
+                logIntegrationFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                        "Midas symbol list: 0 symbols parsed (HTML/response structure may have changed)",
+                        "fetchSymbols",
+                        httpStatus,
+                        Map.of("url", url));
+            }
+            return symbols;
         } catch (Exception e) {
             log.warn("Failed to fetch Midas symbol list from {}: {}", url, e.getMessage());
+            logIntegrationFailure(
+                    IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                    "Midas symbol list fetch/parse failed: " + e.getMessage(),
+                    "fetchSymbols",
+                    null,
+                    Map.of("url", url, "exceptionClass", e.getClass().getSimpleName()));
             return List.of();
         }
     }
@@ -88,11 +139,42 @@ public class MidasStockClient {
 
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
             String html = response.getBody();
-            if (html == null) return null;
+            String httpStatus = String.valueOf(response.getStatusCode().value());
+            if (html == null || html.isBlank()) {
+                log.warn("Midas returned empty body for detail {}", symbol);
+                logIntegrationFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_EMPTY_RESPONSE,
+                        "Midas stock detail: empty response body",
+                        "fetchDetail",
+                        httpStatus,
+                        Map.of("symbol", symbol, "url", url));
+                return null;
+            }
 
-            return parseDetail(html, symbol);
+            MidasStockDetail detail = parseDetail(html, symbol);
+
+            // HTML geldi ama temel alanlar (isim + fiyat) çıkarılamadı —
+            // muhtemelen sayfa yapısı/etiketleri değişti (sessiz hata).
+            if (detail == null || (detail.getName() == null && detail.getCurrentPrice() == null)) {
+                log.warn("Midas detail for {} parsed but key fields (name/price) are missing", symbol);
+                logIntegrationFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                        "Midas stock detail: name and price not extracted (HTML/response structure may have changed)",
+                        "fetchDetail",
+                        httpStatus,
+                        Map.of("symbol", symbol, "url", url,
+                                "nameNull", detail == null || detail.getName() == null,
+                                "priceNull", detail == null || detail.getCurrentPrice() == null));
+            }
+            return detail;
         } catch (Exception e) {
             log.warn("Failed to fetch Midas detail for {}: {}", symbol, e.getMessage());
+            logIntegrationFailure(
+                    IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                    "Midas stock detail fetch/parse failed: " + e.getMessage(),
+                    "fetchDetail",
+                    null,
+                    Map.of("symbol", symbol, "url", url, "exceptionClass", e.getClass().getSimpleName()));
             return null;
         }
     }

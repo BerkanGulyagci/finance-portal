@@ -3,6 +3,8 @@ package com.finance.portal.market.infrastructure.external.precious;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.finance.portal.common.application.logging.CentralIntegrationLogService;
+import com.finance.portal.common.application.logging.IntegrationLogSupport;
 import com.finance.portal.market.application.precious.model.BistPreciousMetalPoint;
 import com.finance.portal.market.application.precious.model.PreciousMetalType;
 import com.finance.portal.market.application.precious.model.PriceUnit;
@@ -26,6 +28,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Borsa İstanbul Kıymetli Madenler Veri Sorgulama — genel client.
@@ -53,9 +56,26 @@ public class BistPreciousMetalsClient {
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final CentralIntegrationLogService integrationLog;
 
     @Value("${market.gold.bist.url:https://www.borsaistanbul.com/veri-sorgulama.php}")
     private String bistBaseUrl;
+
+    private void logIntegrationFailure(String eventType, String message, String httpStatus, Map<String, Object> metadata) {
+        integrationLog.publish(
+                eventType,
+                "WARN",
+                message,
+                IntegrationLogSupport.PROVIDER_BORSA_ISTANBUL,
+                "fetchVeriSorgulama",
+                httpStatus,
+                null,
+                null,
+                Boolean.TRUE,
+                metadata,
+                BistPreciousMetalsClient.class.getName()
+        );
+    }
 
     // ── Public API ────────────────────────────────────────────────────────────
 
@@ -124,9 +144,15 @@ public class BistPreciousMetalsClient {
             ResponseEntity<String> response = restTemplate.exchange(
                     url, HttpMethod.GET, entity, String.class);
 
+            String httpStatus = String.valueOf(response.getStatusCode().value());
             String body = response.getBody();
             if (body == null || body.isBlank()) {
                 log.warn("BIST {} [{}] returned empty body", metal, unit);
+                logIntegrationFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_EMPTY_RESPONSE,
+                        "BIST precious metals: empty response body (provider may have changed)",
+                        httpStatus,
+                        Map.of("metal", String.valueOf(metal), "unit", String.valueOf(unit), "url", url));
                 return Collections.emptyList();
             }
 
@@ -134,10 +160,30 @@ public class BistPreciousMetalsClient {
 
             if (!"success".equals(apiResponse.getStatus()) || apiResponse.getData() == null) {
                 log.warn("BIST {} [{}] non-success: {}", metal, unit, apiResponse.getStatus());
+                logIntegrationFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                        "BIST precious metals: response non-success or 'data' field missing (JSON structure may have changed)",
+                        httpStatus,
+                        Map.of("metal", String.valueOf(metal), "unit", String.valueOf(unit),
+                                "status", String.valueOf(apiResponse.getStatus()),
+                                "dataNull", apiResponse.getData() == null));
                 return Collections.emptyList();
             }
 
             List<BistPreciousMetalPoint> points = apiResponse.getData();
+
+            // Veri başarılı geldi ama 0 kayıt çıktı —
+            // muhtemelen 'data' alanının yapısı/içeriği değişti (sessiz hata).
+            if (points.isEmpty()) {
+                log.warn("BIST {} [{}] returned success but 0 data points", metal, unit);
+                logIntegrationFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_EMPTY_RESPONSE,
+                        "BIST precious metals: 0 data points parsed (response structure may have changed)",
+                        httpStatus,
+                        Map.of("metal", String.valueOf(metal), "unit", String.valueOf(unit),
+                                "startDate", startDate, "endDate", endDate));
+                return Collections.emptyList();
+            }
 
             // Metal ve birim bilgisini set et
             points.forEach(p -> {
@@ -167,6 +213,12 @@ public class BistPreciousMetalsClient {
         } catch (Exception e) {
             log.error("Failed to fetch BIST {} [{}] [{} → {}]: {}",
                     metal, unit, startDate, endDate, e.getMessage());
+            logIntegrationFailure(
+                    IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                    "BIST precious metals fetch/parse failed: " + e.getMessage(),
+                    null,
+                    Map.of("metal", String.valueOf(metal), "unit", String.valueOf(unit),
+                            "exceptionClass", e.getClass().getSimpleName()));
             return Collections.emptyList();
         }
     }

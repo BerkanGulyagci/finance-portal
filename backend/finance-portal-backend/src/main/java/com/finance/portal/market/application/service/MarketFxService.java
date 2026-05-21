@@ -10,6 +10,8 @@ import com.finance.portal.market.application.fx.model.TcmbFxFeed;
 import com.finance.portal.market.application.fx.port.OpenFxPort;
 import com.finance.portal.market.application.fx.port.TcmbFxHistoryPort;
 import com.finance.portal.market.application.fx.port.TcmbFxPort;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.Cacheable;
@@ -40,7 +42,8 @@ public class MarketFxService {
     }
 
     @Cacheable(cacheNames = "market.fx.tcmb.latest", key = "#symbols != null ? #symbols : 'default'")
-    public FxLatestRates getTcmbLatestRates(String symbols) {
+    @WithSpan("MarketFxService.getTcmbLatestRates")
+    public FxLatestRates getTcmbLatestRates(@SpanAttribute("fx.symbols") String symbols) {
         TcmbFxFeed tcmbData = tcmbFxPort.fetchLatestRates();
         Set<String> requested = parseSymbols(symbols);
 
@@ -97,7 +100,9 @@ public class MarketFxService {
     }
 
     @Cacheable(cacheNames = "market.fx.history", key = "#symbol + ':' + #range")
-    public FxHistory getFxHistory(String symbol, String range) {
+    @WithSpan("MarketFxService.getFxHistory")
+    public FxHistory getFxHistory(@SpanAttribute("fx.symbol") String symbol,
+                                   @SpanAttribute("fx.range") String range) {
         String sym = symbol.toUpperCase();
         LocalDate today = LocalDate.now(ISTANBUL);
         LocalDate from = rangeToFromDate(range, today);

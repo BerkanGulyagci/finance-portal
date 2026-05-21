@@ -8,6 +8,8 @@ import com.finance.portal.market.application.crypto.model.CryptoMarketItem;
 import com.finance.portal.market.application.crypto.port.CoinGeckoPort;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.Cache;
@@ -101,7 +103,8 @@ public class CryptoMarketService {
         return result;
     }
 
-    public CryptoMarketItem findBySymbol(String symbol) {
+    @WithSpan("CryptoMarketService.findBySymbol")
+    public CryptoMarketItem findBySymbol(@SpanAttribute("crypto.symbol") String symbol) {
         if (symbol == null || symbol.isBlank()) throw new IllegalArgumentException("symbol must not be blank");
         String normalized = symbol.trim().toLowerCase();
         for (int page = 0; page < SYMBOL_SEARCH_MAX_PAGES; page++) {
@@ -117,13 +120,17 @@ public class CryptoMarketService {
                         + " coins for symbol: " + symbol);
     }
 
-    public Map<String, Object> getCoinDetail(String coinId) {
+    @WithSpan("CryptoMarketService.getCoinDetail")
+    public Map<String, Object> getCoinDetail(@SpanAttribute("crypto.coin_id") String coinId) {
         return coinGeckoPort.fetchCoinDetail(coinId);
     }
 
     @Cacheable(cacheNames = "market.crypto.ohlc", key = "#coinId + ':v5:' + #days + ':' + #currency")
     @Retry(name = "coinGeckoApi")
-    public List<List<Number>> getOhlc(String coinId, String days, String currency) {
+    @WithSpan("CryptoMarketService.getOhlc")
+    public List<List<Number>> getOhlc(@SpanAttribute("crypto.coin_id") String coinId,
+                                       @SpanAttribute("crypto.days") String days,
+                                       @SpanAttribute("crypto.currency") String currency) {
         Object daysParam = resolveDaysParam(days);
         if ("max".equals(daysParam)) {
             return fetchFullHistoryOhlc(coinId, currency);
@@ -144,8 +151,12 @@ public class CryptoMarketService {
             key = "#coinId + ':v4:' + #days + ':' + #currency + ':' + (#interval != null ? #interval : '') + ':' + (#aggregate != null ? #aggregate : '')"
     )
     @Retry(name = "coinGeckoApi")
-    public Map<String, Object> getMarketChart(String coinId, String days, String currency,
-                                              String interval, String aggregate) {
+    @WithSpan("CryptoMarketService.getMarketChart")
+    public Map<String, Object> getMarketChart(@SpanAttribute("crypto.coin_id") String coinId,
+                                              @SpanAttribute("crypto.days") String days,
+                                              @SpanAttribute("crypto.currency") String currency,
+                                              @SpanAttribute("crypto.interval") String interval,
+                                              @SpanAttribute("crypto.aggregate") String aggregate) {
         Object daysParam = resolveDaysParam(days);
         String normalizedInterval = normalizeInterval(interval);
 

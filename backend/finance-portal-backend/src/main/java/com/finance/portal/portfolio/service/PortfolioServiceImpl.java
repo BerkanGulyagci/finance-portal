@@ -22,6 +22,8 @@ import com.finance.portal.portfolio.application.port.HoldingMarketEnrichmentPort
 import com.finance.portal.portfolio.application.port.PortfolioCachePort;
 import com.finance.portal.portfolio.application.port.PortfolioPersistencePort;
 import com.finance.portal.portfolio.application.port.WatchlistMarketEnrichmentPort;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -155,7 +157,10 @@ public class PortfolioServiceImpl implements PortfolioService {
 
     @Override
     @Transactional
-    public PortfolioResponse addTransaction(String userId, UUID portfolioId, AddTransactionRequest request) {
+    @WithSpan("PortfolioService.addTransaction")
+    public PortfolioResponse addTransaction(@SpanAttribute("user.id") String userId,
+                                            @SpanAttribute("portfolio.id") UUID portfolioId,
+                                            AddTransactionRequest request) {
         if (userId == null || userId.isBlank()) {
             throw new IllegalArgumentException("userId must not be blank");
         }
@@ -228,7 +233,9 @@ public class PortfolioServiceImpl implements PortfolioService {
 
     @Override
     @Transactional(readOnly = true)
-    public PortfolioResponse getPortfolioById(String userId, UUID portfolioId) {
+    @WithSpan("PortfolioService.getPortfolioById")
+    public PortfolioResponse getPortfolioById(@SpanAttribute("user.id") String userId,
+                                              @SpanAttribute("portfolio.id") UUID portfolioId) {
         PortfolioResponse response = portfolioCache.getPortfolioDetail(userId, portfolioId)
                 .orElseGet(() -> {
                     Portfolio portfolio = portfolioPersistence.findByIdAndUserId(portfolioId, userId)

@@ -1,6 +1,8 @@
 package com.finance.portal.news.infrastructure.external;
 
 import com.finance.portal.common.application.exception.ExternalApiException;
+import com.finance.portal.common.application.logging.CentralIntegrationLogService;
+import com.finance.portal.common.application.logging.IntegrationLogSupport;
 import com.finance.portal.news.application.model.NewsArticle;
 import com.finance.portal.news.application.model.NewsPage;
 import com.finance.portal.news.application.port.NewsApiPort;
@@ -20,6 +22,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Component
@@ -28,6 +31,7 @@ public class NewsApiClient implements NewsApiPort {
     private static final Logger log = LoggerFactory.getLogger(NewsApiClient.class);
 
     private final RestTemplate restTemplate;
+    private final CentralIntegrationLogService integrationLog;
 
     @Value("${news.api.url}")
     private String newsApiUrl;
@@ -35,8 +39,25 @@ public class NewsApiClient implements NewsApiPort {
     @Value("${news.api.key}")
     private String newsApiKey;
 
-    public NewsApiClient(RestTemplate restTemplate) {
+    public NewsApiClient(RestTemplate restTemplate, CentralIntegrationLogService integrationLog) {
         this.restTemplate = restTemplate;
+        this.integrationLog = integrationLog;
+    }
+
+    private void logIntegrationFailure(String eventType, String message, String httpStatus, Map<String, Object> metadata) {
+        integrationLog.publish(
+                eventType,
+                "WARN",
+                message,
+                IntegrationLogSupport.PROVIDER_NEWSAPI,
+                "fetchNews",
+                httpStatus,
+                null,
+                null,
+                Boolean.TRUE,
+                metadata,
+                NewsApiClient.class.getName()
+        );
     }
 
     @Override
@@ -72,11 +93,59 @@ public class NewsApiClient implements NewsApiPort {
                     NewsApiResponse.class
             );
 
-            return response.getBody();
+            String httpStatus = String.valueOf(response.getStatusCode().value());
+            NewsApiResponse body = response.getBody();
+
+            if (body == null) {
+                logIntegrationFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_EMPTY_RESPONSE,
+                        "News API: empty response body",
+                        httpStatus,
+                        Map.of("category", String.valueOf(category), "country", String.valueOf(country)));
+                return null;
+            }
+
+            // 200 döndü ama 'articles' alanı null —
+            // muhtemelen JSON yapısı değişti (sessiz hata).
+            if (body.getArticles() == null) {
+                logIntegrationFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                        "News API: 'articles' field missing/null (JSON structure may have changed)",
+                        httpStatus,
+                        Map.of("category", String.valueOf(category), "country", String.valueOf(country),
+                                "status", String.valueOf(body.getStatus())));
+            } else if (body.getArticles().isEmpty()) {
+                logIntegrationFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_EMPTY_RESPONSE,
+                        "News API: 'articles' list is empty",
+                        httpStatus,
+                        Map.of("category", String.valueOf(category), "country", String.valueOf(country),
+                                "totalResults", String.valueOf(body.getTotalResults())));
+            }
+
+            return body;
         } catch (HttpClientErrorException ex) {
+            if (ex.getStatusCode().value() == 429) {
+                logIntegrationFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_RATE_LIMITED,
+                        "News API: rate limited (HTTP 429)",
+                        String.valueOf(ex.getStatusCode().value()),
+                        Map.of("category", String.valueOf(category), "country", String.valueOf(country)));
+            } else {
+                logIntegrationFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                        "News API client error: " + ex.getStatusCode(),
+                        String.valueOf(ex.getStatusCode().value()),
+                        Map.of("category", String.valueOf(category), "country", String.valueOf(country)));
+            }
             throw new ExternalApiException(
                     "External news API returned a client error: " + ex.getStatusCode(), ex);
         } catch (HttpServerErrorException ex) {
+            logIntegrationFailure(
+                    IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                    "News API server error: " + ex.getStatusCode(),
+                    String.valueOf(ex.getStatusCode().value()),
+                    Map.of("category", String.valueOf(category), "country", String.valueOf(country)));
             throw new ExternalApiException(
                     "External news API is currently unavailable: " + ex.getStatusCode(), ex);
         } catch (ResourceAccessException ex) {

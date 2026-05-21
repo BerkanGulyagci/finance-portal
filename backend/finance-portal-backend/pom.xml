@@ -195,6 +195,14 @@
             <version>1.38.0</version>
         </dependency>
 
+        <!-- OpenTelemetry instrumentation annotations: @WithSpan / @SpanAttribute -->
+        <!-- Runtime'da OTel agent bunları tanır ve otomatik span üretir -->
+        <dependency>
+            <groupId>io.opentelemetry.instrumentation</groupId>
+            <artifactId>opentelemetry-instrumentation-annotations</artifactId>
+            <version>2.4.0</version>
+        </dependency>
+
         <!-- Jsoup for HTML parsing (Foreks scraping) -->
         <dependency>
             <groupId>org.jsoup</groupId>

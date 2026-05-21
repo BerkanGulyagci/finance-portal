@@ -1,6 +1,8 @@
 package com.finance.portal.market.infrastructure.external.fx;
 
 import com.finance.portal.common.application.exception.ExternalApiException;
+import com.finance.portal.common.application.logging.CentralIntegrationLogService;
+import com.finance.portal.common.application.logging.IntegrationLogSupport;
 import com.finance.portal.market.infrastructure.external.fx.dto.TcmbCurrencyDto;
 import com.finance.portal.market.infrastructure.external.fx.dto.TcmbExchangeRatesDto;
 import org.slf4j.Logger;
@@ -22,6 +24,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class TcmbFxClient {
@@ -29,12 +32,30 @@ public class TcmbFxClient {
     private static final Logger log = LoggerFactory.getLogger(TcmbFxClient.class);
 
     private final RestTemplate restTemplate;
+    private final CentralIntegrationLogService integrationLog;
 
     @Value("${market.fx.tcmb.url}")
     private String tcmbUrl;
 
-    public TcmbFxClient(RestTemplate restTemplate) {
+    public TcmbFxClient(RestTemplate restTemplate, CentralIntegrationLogService integrationLog) {
         this.restTemplate = restTemplate;
+        this.integrationLog = integrationLog;
+    }
+
+    private void logIntegrationFailure(String eventType, String message, String httpStatus, Map<String, Object> metadata) {
+        integrationLog.publish(
+                eventType,
+                "WARN",
+                message,
+                IntegrationLogSupport.PROVIDER_TCMB,
+                "fetchLatestRates",
+                httpStatus,
+                null,
+                null,
+                Boolean.TRUE,
+                metadata,
+                TcmbFxClient.class.getName()
+        );
     }
 
     public TcmbExchangeRatesDto fetchLatestRates() {
@@ -44,21 +65,65 @@ public class TcmbFxClient {
             String xmlResponse = restTemplate.getForObject(tcmbUrl, String.class);
 
             if (xmlResponse == null || xmlResponse.trim().isEmpty()) {
+                logIntegrationFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_EMPTY_RESPONSE,
+                        "TCMB FX: empty response body",
+                        null,
+                        Map.of("url", String.valueOf(tcmbUrl)));
                 throw new ExternalApiException("TCMB API returned empty response");
             }
 
-            return parseTcmbXml(xmlResponse);
+            TcmbExchangeRatesDto dto = parseTcmbXml(xmlResponse);
+
+            // XML geldi ama hiç <Currency> elemanı parse edilemedi —
+            // muhtemelen XML yapısı/eleman adları değişti (sessiz hata).
+            if (dto.getCurrencies() == null || dto.getCurrencies().isEmpty()) {
+                logIntegrationFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                        "TCMB FX: 0 Currency elements parsed from XML (XML structure may have changed)",
+                        null,
+                        Map.of("url", String.valueOf(tcmbUrl),
+                                "currenciesNull", dto.getCurrencies() == null));
+            }
+
+            return dto;
 
         } catch (HttpClientErrorException ex) {
+            if (ex.getStatusCode().value() == 429) {
+                logIntegrationFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_RATE_LIMITED,
+                        "TCMB FX: rate limited (HTTP 429)",
+                        String.valueOf(ex.getStatusCode().value()),
+                        Map.of("url", String.valueOf(tcmbUrl)));
+            } else {
+                logIntegrationFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                        "TCMB FX client error: " + ex.getStatusCode(),
+                        String.valueOf(ex.getStatusCode().value()),
+                        Map.of("url", String.valueOf(tcmbUrl)));
+            }
             throw new ExternalApiException(
                     "TCMB API returned a client error: " + ex.getStatusCode(), ex);
         } catch (HttpServerErrorException ex) {
+            logIntegrationFailure(
+                    IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                    "TCMB FX server error: " + ex.getStatusCode(),
+                    String.valueOf(ex.getStatusCode().value()),
+                    Map.of("url", String.valueOf(tcmbUrl)));
             throw new ExternalApiException(
                     "TCMB API is currently unavailable: " + ex.getStatusCode(), ex);
         } catch (ResourceAccessException ex) {
             throw new ExternalApiException(
                     "Failed to access TCMB API. Please check network connectivity.", ex);
+        } catch (ExternalApiException ex) {
+            throw ex;
         } catch (Exception ex) {
+            logIntegrationFailure(
+                    IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                    "TCMB FX XML parse failed: " + ex.getMessage() + " (XML structure may have changed)",
+                    null,
+                    Map.of("url", String.valueOf(tcmbUrl),
+                            "exceptionClass", ex.getClass().getSimpleName()));
             throw new ExternalApiException(
                     "Failed to parse TCMB XML response", ex);
         }

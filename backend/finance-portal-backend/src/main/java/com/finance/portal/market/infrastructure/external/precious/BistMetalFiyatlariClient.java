@@ -3,6 +3,8 @@ package com.finance.portal.market.infrastructure.external.precious;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.finance.portal.common.application.logging.CentralIntegrationLogService;
+import com.finance.portal.common.application.logging.IntegrationLogSupport;
 import com.finance.portal.market.application.precious.model.BistMetalDailyPoint;
 import com.finance.portal.market.application.precious.model.PreciousMetalType;
 import lombok.Data;
@@ -58,9 +60,26 @@ public class BistMetalFiyatlariClient {
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final CentralIntegrationLogService integrationLog;
 
     @Value("${market.precious.bist.metal-url:https://www.borsaistanbul.com/metal-fiyatlari.php}")
     private String metalBaseUrl;
+
+    private void logIntegrationFailure(String eventType, String message, String httpStatus, Map<String, Object> metadata) {
+        integrationLog.publish(
+                eventType,
+                "WARN",
+                message,
+                IntegrationLogSupport.PROVIDER_BORSA_ISTANBUL,
+                "fetchMetalFiyatlari",
+                httpStatus,
+                null,
+                null,
+                Boolean.TRUE,
+                metadata,
+                BistMetalFiyatlariClient.class.getName()
+        );
+    }
 
     // ── Public API ────────────────────────────────────────────────────────────
 
@@ -95,9 +114,15 @@ public class BistMetalFiyatlariClient {
             ResponseEntity<String> response = restTemplate.exchange(
                     url, HttpMethod.GET, entity, String.class);
 
+            String httpStatus = String.valueOf(response.getStatusCode().value());
             String body = response.getBody();
             if (body == null || body.isBlank()) {
                 log.warn("BIST metal [{}] returned empty body", priceType);
+                logIntegrationFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_EMPTY_RESPONSE,
+                        "BIST metal prices: empty response body (provider may have changed)",
+                        httpStatus,
+                        Map.of("priceType", priceType, "url", url));
                 return Collections.emptyList();
             }
 
@@ -105,10 +130,35 @@ public class BistMetalFiyatlariClient {
 
             if (!"success".equals(apiResponse.getStatus()) || apiResponse.getData() == null) {
                 log.warn("BIST metal [{}] non-success: {}", priceType, apiResponse.getStatus());
+                logIntegrationFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                        "BIST metal prices: response non-success or 'data' field missing (JSON structure may have changed)",
+                        httpStatus,
+                        Map.of("priceType", priceType,
+                                "status", String.valueOf(apiResponse.getStatus()),
+                                "dataNull", apiResponse.getData() == null));
                 return Collections.emptyList();
             }
 
+            int rawCount = apiResponse.getData().size();
             List<BistMetalDailyPoint> points = groupByDate(metal, apiResponse.getData());
+
+            // Ham veri geldi ama gruplamadan 0 gün çıktı —
+            // muhtemelen priceRef/currency/weight alanlarının değeri değişti (sessiz hata).
+            if (points.isEmpty()) {
+                log.warn("BIST metal [{}] returned {} raw rows but 0 grouped points", priceType, rawCount);
+                logIntegrationFailure(
+                        rawCount > 0
+                                ? IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED
+                                : IntegrationLogSupport.EVENT_EXTERNAL_API_EMPTY_RESPONSE,
+                        rawCount > 0
+                                ? "BIST metal prices: " + rawCount + " raw rows but 0 grouped points (priceRef/currency/weight fields may have changed)"
+                                : "BIST metal prices: 0 raw rows in response (provider returned no data)",
+                        httpStatus,
+                        Map.of("priceType", priceType, "rawCount", rawCount,
+                                "startDate", startDate, "endDate", endDate));
+                return Collections.emptyList();
+            }
 
             // Endpoint ASC döndürüyor — kontrol için sırala
             points.sort((a, b) -> a.getDate().compareTo(b.getDate()));
@@ -121,6 +171,11 @@ public class BistMetalFiyatlariClient {
         } catch (Exception e) {
             log.error("Failed to fetch BIST metal [{}] [{} → {}]: {}",
                     priceType, startDate, endDate, e.getMessage());
+            logIntegrationFailure(
+                    IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                    "BIST metal prices fetch/parse failed: " + e.getMessage(),
+                    null,
+                    Map.of("priceType", priceType, "exceptionClass", e.getClass().getSimpleName()));
             return Collections.emptyList();
         }
     }

@@ -5,6 +5,7 @@ import com.finance.portal.common.application.logging.model.RequestLogEvent;
 import com.finance.portal.common.application.logging.port.RequestLogPublisherPort;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanContext;
+import io.opentelemetry.api.trace.StatusCode;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -97,10 +98,30 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
                 ThreadContext.put("userId", userId);
             }
 
+            // Enrich root HTTP span with business context for end-to-end debugging
+            try {
+                Span span = Span.current();
+                if (span != null && span.getSpanContext().isValid()) {
+                    span.setAttribute("app.request_id", requestId);
+                    span.setAttribute("app.client_ip", clientIp);
+                    if (userId != null) {
+                        span.setAttribute("enduser.id", userId);
+                    }
+                }
+            } catch (Throwable ignored) {}
+
             filterChain.doFilter(request, response);
 
         } catch (Throwable t) {
             requestException = t;
+            // Record exception on the active span so traces show error details
+            try {
+                Span span = Span.current();
+                if (span != null && span.getSpanContext().isValid()) {
+                    span.recordException(t);
+                    span.setStatus(StatusCode.ERROR, t.getClass().getSimpleName());
+                }
+            } catch (Throwable ignored) {}
             throw t;
         } finally {
             long durationMs = Math.max(0, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));

@@ -2,6 +2,8 @@ package com.finance.portal.market.infrastructure.external.bond;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.finance.portal.common.application.logging.CentralIntegrationLogService;
+import com.finance.portal.common.application.logging.IntegrationLogSupport;
 import com.finance.portal.market.application.bond.evds.model.EvdsSeriesInfo;
 import com.finance.portal.market.application.bond.evds.model.EvdsSeriesPoint;
 import org.slf4j.Logger;
@@ -25,6 +27,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * TCMB EVDS API istemcisi — DİBS (Devlet İç Borçlanma Senetleri) verileri.
@@ -52,6 +55,7 @@ public class EvdsBondClient {
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final CentralIntegrationLogService integrationLog;
 
     @Value("${evds.base-url:https://evds3.tcmb.gov.tr/igmevdsms-dis}")
     private String baseUrl;
@@ -63,9 +67,28 @@ public class EvdsBondClient {
     private String dataGroup;
 
     public EvdsBondClient(@Qualifier("evdsRestTemplate") RestTemplate restTemplate,
-                          ObjectMapper objectMapper) {
+                          ObjectMapper objectMapper,
+                          CentralIntegrationLogService integrationLog) {
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
+        this.integrationLog = integrationLog;
+    }
+
+    private void logIntegrationFailure(String eventType, String message, String operation,
+                                       String httpStatus, Map<String, Object> metadata) {
+        integrationLog.publish(
+                eventType,
+                "WARN",
+                message,
+                IntegrationLogSupport.PROVIDER_EVDS,
+                operation,
+                httpStatus,
+                null,
+                null,
+                Boolean.TRUE,
+                metadata,
+                EvdsBondClient.class.getName()
+        );
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -196,6 +219,12 @@ public class EvdsBondClient {
 
             if (bodyBytes == null || bodyBytes.length == 0) {
                 log.warn("[EVDS] Empty response body for URL: {}", url);
+                logIntegrationFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_EMPTY_RESPONSE,
+                        "EVDS: empty response body (provider may have changed)",
+                        "executeGet",
+                        String.valueOf(response.getStatusCode().value()),
+                        Map.of("url", url));
                 return null;
             }
             // EVDS response Content-Type UTF-8 bildirse de içerik ISO-8859-1 encode
@@ -261,8 +290,16 @@ public class EvdsBondClient {
 
             if (items.isMissingNode() || !items.isArray()) {
                 log.warn("[EVDS] 'items' alanı bulunamadı veya dizi değil. seriesCode={}", seriesCode);
+                logIntegrationFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                        "EVDS series: 'items' field missing or not an array (JSON structure may have changed)",
+                        "fetchSeries",
+                        null,
+                        Map.of("seriesCode", seriesCode));
                 return List.of();
             }
+
+            int itemCount = items.size();
 
             for (JsonNode item : items) {
                 String dateStr  = item.path("Tarih").asText(null);
@@ -290,8 +327,27 @@ public class EvdsBondClient {
                 }
             }
 
+            // items var ama beklenen alandan 0 nokta çıktı —
+            // muhtemelen seri kodu → field ('TP_...') eşlemesi/yapısı değişti (sessiz hata).
+            if (points.isEmpty() && itemCount > 0) {
+                log.warn("[EVDS] {} items parsed but 0 points for field '{}' (seriesCode={})", itemCount, fieldName, seriesCode);
+                logIntegrationFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                        "EVDS series: " + itemCount + " items present but 0 points extracted for field '" + fieldName
+                                + "' (response field naming may have changed)",
+                        "fetchSeries",
+                        null,
+                        Map.of("seriesCode", seriesCode, "fieldName", fieldName, "itemCount", itemCount));
+            }
+
         } catch (Exception e) {
             log.error("[EVDS] Response parse hatası. seriesCode={} — {}", seriesCode, e.getMessage(), e);
+            logIntegrationFailure(
+                    IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                    "EVDS series parse failed: " + e.getMessage(),
+                    "fetchSeries",
+                    null,
+                    Map.of("seriesCode", seriesCode, "exceptionClass", e.getClass().getSimpleName()));
         }
 
         return points;
@@ -323,8 +379,16 @@ public class EvdsBondClient {
 
             if (!root.isArray()) {
                 log.warn("[EVDS] serieList response dizi değil. dataGroup={}", dataGroup);
+                logIntegrationFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                        "EVDS serieList: response is not a JSON array (structure may have changed)",
+                        "fetchBondSeriesList",
+                        null,
+                        Map.of("dataGroup", dataGroup));
                 return List.of();
             }
+
+            int nodeCount = root.size();
 
             for (JsonNode node : root) {
                 String seriesCode    = node.path("SERIE_CODE").asText(null);
@@ -348,8 +412,26 @@ public class EvdsBondClient {
                         frequency, startDate, endDate));
             }
 
+            // Dizi dolu ama 0 seri çıktı —
+            // muhtemelen 'SERIE_CODE' alan adı/yapısı değişti (sessiz hata).
+            if (result.isEmpty() && nodeCount > 0) {
+                log.warn("[EVDS] serieList had {} nodes but 0 series extracted. dataGroup={}", nodeCount, dataGroup);
+                logIntegrationFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                        "EVDS serieList: " + nodeCount + " nodes present but 0 series extracted ('SERIE_CODE' field may have changed)",
+                        "fetchBondSeriesList",
+                        null,
+                        Map.of("dataGroup", dataGroup, "nodeCount", nodeCount));
+            }
+
         } catch (Exception e) {
             log.error("[EVDS] serieList parse hatası. dataGroup={} — {}", dataGroup, e.getMessage(), e);
+            logIntegrationFailure(
+                    IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                    "EVDS serieList parse failed: " + e.getMessage(),
+                    "fetchBondSeriesList",
+                    null,
+                    Map.of("dataGroup", dataGroup, "exceptionClass", e.getClass().getSimpleName()));
         }
 
         return result;

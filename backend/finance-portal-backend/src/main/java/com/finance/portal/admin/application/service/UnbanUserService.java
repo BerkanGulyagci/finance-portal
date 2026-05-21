@@ -5,6 +5,8 @@ import com.finance.portal.admin.application.port.UserBanStatePort;
 import com.finance.portal.common.application.logging.BusinessLogSupport;
 import com.finance.portal.common.application.logging.CentralBusinessLogService;
 import com.finance.portal.common.application.port.UserAccountStatusPort;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -24,7 +26,9 @@ public class UnbanUserService {
         unbanUser(userId, null);
     }
 
-    public void unbanUser(String userId, String actingAdminUserId) {
+    @WithSpan("UnbanUserService.unbanUser")
+    public void unbanUser(@SpanAttribute("admin.target_user_id") String userId,
+                          @SpanAttribute("admin.acting_user_id") String actingAdminUserId) {
         keycloakUserAdminPort.getUser(userId);
         userBanStatePort.deleteByUserId(userId);
         keycloakUserAdminPort.setUserEnabled(userId, true);

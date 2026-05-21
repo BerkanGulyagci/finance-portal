@@ -2,6 +2,8 @@ package com.finance.portal.market.infrastructure.external.viop;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.finance.portal.common.application.logging.CentralIntegrationLogService;
+import com.finance.portal.common.application.logging.IntegrationLogSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
@@ -17,6 +19,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * İş Yatırım VİOP grafik verisi client'ı.
@@ -38,10 +41,29 @@ public class IsYatirimViopChartClient {
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final CentralIntegrationLogService integrationLog;
 
-    public IsYatirimViopChartClient(RestTemplate restTemplate, ObjectMapper objectMapper) {
+    public IsYatirimViopChartClient(RestTemplate restTemplate, ObjectMapper objectMapper,
+                                    CentralIntegrationLogService integrationLog) {
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
+        this.integrationLog = integrationLog;
+    }
+
+    private void logIntegrationFailure(String eventType, String message, String httpStatus, Map<String, Object> metadata) {
+        integrationLog.publish(
+                eventType,
+                "WARN",
+                message,
+                IntegrationLogSupport.PROVIDER_ISYATIRIM,
+                "fetchChart",
+                httpStatus,
+                null,
+                null,
+                Boolean.TRUE,
+                metadata,
+                IsYatirimViopChartClient.class.getName()
+        );
     }
 
     /**
@@ -79,23 +101,45 @@ public class IsYatirimViopChartClient {
 
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
             String body = response.getBody();
+            String httpStatus = String.valueOf(response.getStatusCode().value());
 
             if (body == null || body.isBlank()) {
                 log.warn("İş Yatırım returned empty body for endeks={}", isYatirimEndeksCode);
+                logIntegrationFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_EMPTY_RESPONSE,
+                        "İş Yatırım VIOP chart: empty response body",
+                        httpStatus,
+                        Map.of("endeks", isYatirimEndeksCode, "url", url));
                 return List.of();
             }
 
-            List<IsYatirimChartPoint> points = parseResponse(body, isYatirimEndeksCode);
+            List<IsYatirimChartPoint> points = parseResponse(body, isYatirimEndeksCode, httpStatus);
+
+            // Response geldi ama 0 grafik noktası çıkarıldı —
+            // muhtemelen JSON yapısı/'data' alanı değişti (sessiz hata).
+            if (points.isEmpty()) {
+                log.warn("İş Yatırım returned response but 0 chart points extracted for endeks={}", isYatirimEndeksCode);
+                logIntegrationFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_EMPTY_RESPONSE,
+                        "İş Yatırım VIOP chart: 0 chart points extracted (JSON/response structure may have changed)",
+                        httpStatus,
+                        Map.of("endeks", isYatirimEndeksCode, "url", url));
+            }
             log.info("Fetched {} chart points for endeks={}", points.size(), isYatirimEndeksCode);
             return points;
 
         } catch (Exception e) {
             log.error("Failed to fetch İş Yatırım chart for endeks={}: {}", isYatirimEndeksCode, e.getMessage(), e);
+            logIntegrationFailure(
+                    IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                    "İş Yatırım VIOP chart fetch/parse failed: " + e.getMessage(),
+                    null,
+                    Map.of("endeks", isYatirimEndeksCode, "url", url, "exceptionClass", e.getClass().getSimpleName()));
             return List.of();
         }
     }
 
-    private List<IsYatirimChartPoint> parseResponse(String body, String endeksCode) {
+    private List<IsYatirimChartPoint> parseResponse(String body, String endeksCode, String httpStatus) {
         List<IsYatirimChartPoint> result = new ArrayList<>();
         try {
             JsonNode root = objectMapper.readTree(body);
@@ -103,6 +147,11 @@ public class IsYatirimViopChartClient {
 
             if (dataNode == null || !dataNode.isArray()) {
                 log.warn("No 'data' array in İş Yatırım response for endeks={}", endeksCode);
+                logIntegrationFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                        "İş Yatırım VIOP chart: 'data' array missing or not an array (JSON/response structure may have changed)",
+                        httpStatus,
+                        Map.of("endeks", endeksCode, "dataNull", dataNode == null));
                 return List.of();
             }
 
@@ -118,6 +167,11 @@ public class IsYatirimViopChartClient {
 
         } catch (Exception e) {
             log.error("Failed to parse İş Yatırım response for endeks={}: {}", endeksCode, e.getMessage(), e);
+            logIntegrationFailure(
+                    IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                    "İş Yatırım VIOP chart parse failed: " + e.getMessage(),
+                    httpStatus,
+                    Map.of("endeks", endeksCode, "exceptionClass", e.getClass().getSimpleName()));
         }
         return result;
     }

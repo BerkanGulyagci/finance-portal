@@ -13,6 +13,8 @@ import com.finance.portal.market.application.precious.model.PriceUnit;
 import com.finance.portal.market.application.stock.model.YahooChartSnapshot;
 import com.finance.portal.market.application.stock.model.YahooQuoteSeries;
 import com.finance.portal.market.application.stock.model.YahooStockMeta;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -96,6 +98,7 @@ public class GoldMarketService {
      * BIST erişilemezse Yahoo GC=F fallback devreye girer.
      */
     @Cacheable(cacheNames = "market.gold.spot", key = "'spot'")
+    @WithSpan("GoldMarketService.getSpotGold")
     public GoldSpotResponse getSpotGold() {
         // 1. BIST TL/Kg → gram referans
         BistPreciousMetalPoint latestGram = bistClient.fetchLatestValidPoint(
@@ -131,7 +134,9 @@ public class GoldMarketService {
      * currency=USD → BIST f_tipit=$/O (ons USD), Yahoo fallback
      */
     @Cacheable(cacheNames = "market.gold.history", key = "#range + ':' + #currency")
-    public GoldHistoryResponse getGoldHistory(String range, String currency) {
+    @WithSpan("GoldMarketService.getGoldHistory")
+    public GoldHistoryResponse getGoldHistory(@SpanAttribute("gold.range") String range,
+                                              @SpanAttribute("gold.currency") String currency) {
         boolean isTry = !"USD".equalsIgnoreCase(currency);
         String normalizedRange = range == null ? "1M" : range.toUpperCase();
 

@@ -10,6 +10,7 @@ import com.finance.portal.auth.presentation.dto.ChangePasswordRequest;
 import com.finance.portal.auth.presentation.dto.MeActionResponse;
 import com.finance.portal.auth.presentation.dto.UpdateEmailRequest;
 import com.finance.portal.auth.presentation.dto.UpdateProfileRequest;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
@@ -27,8 +28,10 @@ public class MeProfileService {
     private final KeycloakRegistrationFollowUpPort keycloakRegistrationFollowUpPort;
     private final CentralBusinessLogService centralBusinessLogService;
 
+    @WithSpan("MeProfileService.updateProfile")
     public MeActionResponse updateProfile(Jwt jwt, UpdateProfileRequest request) {
         String userId = requireUserId(jwt);
+        io.opentelemetry.api.trace.Span.current().setAttribute("user.id", userId);
         keycloakUserProfilePort.updateProfile(userId, request.getFirstName().trim(), request.getLastName().trim());
 
         centralBusinessLogService.publish(
@@ -82,6 +85,7 @@ public class MeProfileService {
         return new MeActionResponse(true);
     }
 
+    @WithSpan("MeProfileService.changePassword")
     public MeActionResponse changePassword(Jwt jwt, ChangePasswordRequest request) {
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
             throw new IllegalArgumentException("Yeni şifre ve tekrarı eşleşmiyor.");
@@ -89,6 +93,7 @@ public class MeProfileService {
 
         String userId = requireUserId(jwt);
         String username = readUsername(jwt);
+        io.opentelemetry.api.trace.Span.current().setAttribute("user.id", userId);
         if (username == null) {
             throw new IllegalArgumentException("Kullanıcı adı token içinde bulunamadı.");
         }

@@ -1,0 +1,37 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+
+  - name: Tempo
+    type: tempo
+    uid: tempo
+    access: proxy
+    url: http://tempo:3200
+    editable: false
+    jsonData:
+      httpMethod: GET
+      tracesToLogs:
+        enabled: false
+
+  - name: OpenSearch Logs
+    type: elasticsearch
+    uid: opensearch-logs
+    access: proxy
+    url: http://opensearch:9200
+    database: finance-portal-logs-*
+    editable: false
+    jsonData:
+      interval: Daily
+      timeField: timestamp
+      logMessageField: message
+      logLevelField: level
+      maxConcurrentShardRequests: 5
+      flavor: opensearch
+      version: "2.11.0"

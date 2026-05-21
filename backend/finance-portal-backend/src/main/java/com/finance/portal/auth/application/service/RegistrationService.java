@@ -6,6 +6,7 @@ import com.finance.portal.common.application.logging.CentralBusinessLogService;
 import com.finance.portal.auth.application.model.RegisterUserCommand;
 import com.finance.portal.auth.application.port.KeycloakRegistrationFollowUpPort;
 import com.finance.portal.auth.application.port.UserRegistrationPort;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -20,7 +21,16 @@ public class RegistrationService {
     private final KeycloakRegistrationFollowUpPort keycloakRegistrationFollowUpPort;
     private final CentralBusinessLogService centralBusinessLogService;
 
+    @WithSpan("RegistrationService.register")
     public void register(RegisterUserCommand command) {
+        io.opentelemetry.api.trace.Span span = io.opentelemetry.api.trace.Span.current();
+        if (span != null && span.getSpanContext().isValid()) {
+            span.setAttribute("auth.username", command.getUsername());
+            String emailDomain = BusinessLogMetadataSanitizer.extractEmailDomain(command.getEmail());
+            if (emailDomain != null) {
+                span.setAttribute("auth.email_domain", emailDomain);
+            }
+        }
         userRegistrationPort.register(command);
         keycloakRegistrationFollowUpPort.requestEmailVerificationIfUserExists(command.getUsername());
 

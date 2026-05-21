@@ -10,6 +10,8 @@ import com.finance.portal.admin.presentation.dto.BanUserRequest;
 import com.finance.portal.common.application.logging.BusinessLogSupport;
 import com.finance.portal.common.application.logging.CentralBusinessLogService;
 import com.finance.portal.common.application.port.UserAccountStatusPort;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -30,9 +32,15 @@ public class BanUserService {
     private final UserAccountStatusPort userAccountStatusPort;
     private final CentralBusinessLogService centralBusinessLogService;
 
-    public void banUser(String targetUserId, String actingAdminUserId, BanUserRequest request) {
+    @WithSpan("BanUserService.banUser")
+    public void banUser(@SpanAttribute("admin.target_user_id") String targetUserId,
+                        @SpanAttribute("admin.acting_user_id") String actingAdminUserId,
+                        BanUserRequest request) {
         BanRequestValidator.validate(request);
         assertBanAllowed(targetUserId, actingAdminUserId);
+
+        io.opentelemetry.api.trace.Span.current().setAttribute("admin.ban_type",
+                request.getBanType() != null ? request.getBanType().name() : "UNKNOWN");
 
         Instant now = Instant.now();
         if (request.getBanType() == BanType.PERMANENT) {

@@ -1,5 +1,7 @@
 package com.finance.portal.market.infrastructure.external.indicator;
 
+import com.finance.portal.common.application.logging.CentralIntegrationLogService;
+import com.finance.portal.common.application.logging.IntegrationLogSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
@@ -9,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -23,9 +26,28 @@ public class EconomicIndicatorClient {
         "https://data.tuik.gov.tr/Bulten/Index?p=Tuketici-Fiyat-Endeksi-Mart-2026-53826";
 
     private final RestTemplate restTemplate;
+    private final CentralIntegrationLogService integrationLog;
 
-    public EconomicIndicatorClient(RestTemplate restTemplate) {
+    public EconomicIndicatorClient(RestTemplate restTemplate,
+                                   CentralIntegrationLogService integrationLog) {
         this.restTemplate = restTemplate;
+        this.integrationLog = integrationLog;
+    }
+
+    private void logIntegrationFailure(String eventType, String message, String httpStatus, Map<String, Object> metadata) {
+        integrationLog.publish(
+                eventType,
+                "WARN",
+                message,
+                IntegrationLogSupport.PROVIDER_TCMB,
+                "fetchPolicyRate",
+                httpStatus,
+                null,
+                null,
+                Boolean.TRUE,
+                metadata,
+                EconomicIndicatorClient.class.getName()
+        );
     }
 
     /**
@@ -40,8 +62,17 @@ public class EconomicIndicatorClient {
 
             ResponseEntity<String> response = restTemplate.exchange(
                 TCMB_MPC_URL, HttpMethod.GET, entity, String.class);
+            String httpStatus = String.valueOf(response.getStatusCode().value());
             String html = response.getBody();
-            if (html == null) return null;
+            if (html == null || html.isBlank()) {
+                log.warn("TCMB MPC page returned empty body");
+                logIntegrationFailure(
+                        IntegrationLogSupport.EVENT_EXTERNAL_API_EMPTY_RESPONSE,
+                        "TCMB policy rate: empty response body (page may have changed)",
+                        httpStatus,
+                        Map.of("url", TCMB_MPC_URL));
+                return null;
+            }
 
             // Pattern: "policy rate ... at XX percent" or "from XX percent to XX percent"
             Pattern p1 = Pattern.compile("policy rate.*?at\\s+(\\d+(?:\\.\\d+)?)\\s+percent", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
@@ -52,9 +83,22 @@ public class EconomicIndicatorClient {
             Matcher m2 = p2.matcher(html);
             if (m2.find()) return m2.group(1);
 
+            // HTML geldi ama hiçbir desen eşleşmedi —
+            // muhtemelen TCMB MPC sayfasının metni/yapısı değişti (sessiz hata).
+            log.warn("TCMB policy rate not found in MPC page (no pattern matched)");
+            logIntegrationFailure(
+                    IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                    "TCMB policy rate: no rate pattern matched in MPC page (page structure may have changed)",
+                    httpStatus,
+                    Map.of("url", TCMB_MPC_URL, "htmlLength", html.length()));
             return null;
         } catch (Exception e) {
             log.warn("Failed to fetch TCMB policy rate: {}", e.getMessage());
+            logIntegrationFailure(
+                    IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED,
+                    "TCMB policy rate fetch/parse failed: " + e.getMessage(),
+                    null,
+                    Map.of("url", TCMB_MPC_URL, "exceptionClass", e.getClass().getSimpleName()));
             return null;
         }
     }
