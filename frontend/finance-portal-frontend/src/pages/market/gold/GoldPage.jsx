@@ -14,16 +14,19 @@ import GoldChart                  from './components/GoldChart';
 import GoldSourceNotice           from './components/GoldSourceNotice';
 import GoldTheoreticalPricesTable from './components/GoldTheoreticalPricesTable';
 import GoldCalculator             from './components/GoldCalculator';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 // ── Haber bileşeni (küçük, burada kalabilir) ──────────────────────────────────
-function GoldNews({ news, label = 'İlgili Haberler' }) {
+function GoldNews({ news, label }) {
+  const { t } = useTranslation();
+  const resolvedLabel = label ?? t('İlgili Haberler');
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
       <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-        📰 {label}
+        📰 {resolvedLabel}
       </h2>
       {news.length === 0 ? (
-        <p className="text-gray-400 text-sm">Haber yükleniyor...</p>
+        <p className="text-gray-400 text-sm">{t('Haber yükleniyor...')}</p>
       ) : (
         <div className="space-y-4">
           {news.slice(0, 6).map((item, i) => (
@@ -121,6 +124,7 @@ function buildDisplayPoints(historyPoints, activeTab) {
 
 // ── Ana sayfa ─────────────────────────────────────────────────────────────────
 export default function GoldPage() {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const [spot,         setSpot]         = useState(null);
   const [history,      setHistory]      = useState(null);
@@ -131,7 +135,7 @@ export default function GoldPage() {
   const [loadingChart, setLoadingChart] = useState(false);
   const [error,        setError]        = useState('');
   const [news,         setNews]         = useState([]);
-  const [newsLabel,    setNewsLabel]    = useState('İlgili Haberler');
+  const [newsLabel,    setNewsLabel]    = useState(t('İlgili Haberler'));
 
   // İndikatör state'leri
   const [showMA7,   setShowMA7]   = useState(false);
@@ -139,13 +143,13 @@ export default function GoldPage() {
   const [showMA90,  setShowMA90]  = useState(false);
   const [showTrend, setShowTrend] = useState(false);
 
-  const activeTab = GOLD_TABS.find(t => t.key === activeTabKey) ?? GOLD_TABS[0];
+  const activeTab = GOLD_TABS.find(tb => tb.key === activeTabKey) ?? GOLD_TABS[0];
 
   // İzleme listesi vb. deep link: /market/gold?tab=gram
   useEffect(() => {
-    const t = searchParams.get('tab');
-    if (t && GOLD_TABS.some(x => x.key === t)) {
-      setActiveTabKey(t);
+    const tabParam = searchParams.get('tab');
+    if (tabParam && GOLD_TABS.some(x => x.key === tabParam)) {
+      setActiveTabKey(tabParam);
     }
   }, [searchParams]);
 
@@ -154,13 +158,13 @@ export default function GoldPage() {
     setLoadingSpot(true);
     getGoldSpot()
       .then(setSpot)
-      .catch(() => setError('Altın verisi alınamadı.'))
+      .catch(() => setError(t('Altın verisi alınamadı.')))
       .finally(() => setLoadingSpot(false));
 
     getGoldNews()
       .then(result => {
         setNews(result?.items ?? []);
-        setNewsLabel(result?.label ?? 'İlgili Haberler');
+        setNewsLabel(result?.label ?? t('İlgili Haberler'));
       })
       .catch(() => {});
   }, []);
@@ -192,7 +196,7 @@ export default function GoldPage() {
   // Tab değişimi
   function handleTabChange(tabKey) {
     setActiveTabKey(tabKey);
-    const tab = GOLD_TABS.find(t => t.key === tabKey);
+    const tab = GOLD_TABS.find(tb => tb.key === tabKey);
     // Mum grafik sadece ons ve gram'da var, ve 5Y/ALL range'de değil
     if (!tab?.canCandle || range === '5Y' || range === 'ALL') setChartMode('line');
   }
@@ -214,7 +218,7 @@ export default function GoldPage() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900 border-l-4 border-[#093eaa] pl-4">Altın</h1>
+      <h1 className="text-2xl font-bold text-gray-900 border-l-4 border-[#093eaa] pl-4">{t('Altın')}</h1>
 
       {/* Ana kart */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">

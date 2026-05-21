@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { changeMePassword, updateMeEmail, updateMeProfile } from '../../api/meApi';
 import { keycloakAccountUrls } from '../../config/keycloakAccount';
+import { useTranslation } from '../../i18n/LanguageContext';
 import { mapPasswordChangeError } from './profilePasswordErrors';
 
 function ModalShell({ title, open, onClose, children }) {
+  const { t } = useTranslation();
   if (!open) return null;
 
   return (
@@ -16,7 +18,7 @@ function ModalShell({ title, open, onClose, children }) {
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <h3 className="text-lg font-bold text-gray-900">{title}</h3>
-          <button type="button" onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100" aria-label="Kapat">
+          <button type="button" onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100" aria-label={t('Kapat')}>
             <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
@@ -43,6 +45,7 @@ function FieldInput({ label, id, type = 'text', value, onChange, autoComplete })
 }
 
 export function ProfileNameModal({ open, profile, onClose, onSuccess }) {
+  const { t } = useTranslation();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [busy, setBusy] = useState(false);
@@ -62,27 +65,27 @@ export function ProfileNameModal({ open, profile, onClose, onSuccess }) {
     setError('');
     try {
       const res = await updateMeProfile({ firstName: firstName.trim(), lastName: lastName.trim() });
-      onSuccess(res.message || 'Profil güncellendi.');
+      onSuccess(res.message || t('Profil güncellendi.'));
       onClose();
     } catch (err) {
-      setError(err.response?.data?.message || 'Profil güncellenemedi.');
+      setError(err.response?.data?.message || t('Profil güncellenemedi.'));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <ModalShell title="Ad / Soyad Düzenle" open={open} onClose={onClose}>
+    <ModalShell title={t('Ad / Soyad Düzenle')} open={open} onClose={onClose}>
       <form onSubmit={handleSubmit}>
         <FieldInput
-          label="Ad"
+          label={t('Ad')}
           id="profile-first-name"
           value={firstName}
           onChange={(e) => setFirstName(e.target.value)}
           autoComplete="given-name"
         />
         <FieldInput
-          label="Soyad"
+          label={t('Soyad')}
           id="profile-last-name"
           value={lastName}
           onChange={(e) => setLastName(e.target.value)}
@@ -94,7 +97,7 @@ export function ProfileNameModal({ open, profile, onClose, onSuccess }) {
           disabled={busy}
           className="w-full bg-[#093eaa] text-white py-2.5 rounded-xl text-sm font-bold hover:bg-[#093eaa]/90 disabled:opacity-60"
         >
-          {busy ? 'Kaydediliyor...' : 'Kaydet'}
+          {busy ? t('Kaydediliyor...') : t('Kaydet')}
         </button>
       </form>
     </ModalShell>
@@ -102,6 +105,7 @@ export function ProfileNameModal({ open, profile, onClose, onSuccess }) {
 }
 
 export function ProfileEmailModal({ open, profile, onClose, onRequiresReLogin }) {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -119,20 +123,20 @@ export function ProfileEmailModal({ open, profile, onClose, onRequiresReLogin })
     setError('');
     try {
       const res = await updateMeEmail({ email: email.trim() });
-      onRequiresReLogin(res.message || 'Email adresiniz değiştirildi. Yeni email adresinizi doğrulamanız gerekiyor.');
+      onRequiresReLogin(res.message || t('Email adresiniz değiştirildi. Yeni email adresinizi doğrulamanız gerekiyor.'));
       onClose();
     } catch (err) {
-      setError(err.response?.data?.message || 'Email güncellenemedi.');
+      setError(err.response?.data?.message || t('Email güncellenemedi.'));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <ModalShell title="Email Değiştir" open={open} onClose={onClose}>
+    <ModalShell title={t('Email Değiştir')} open={open} onClose={onClose}>
       <form onSubmit={handleSubmit}>
         <FieldInput
-          label="Yeni email"
+          label={t('Yeni email')}
           id="profile-email"
           type="email"
           value={email}
@@ -140,7 +144,7 @@ export function ProfileEmailModal({ open, profile, onClose, onRequiresReLogin })
           autoComplete="email"
         />
         <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
-          Email değişince doğrulama maili gönderilir ve oturumunuz güvenlik için sonlandırılır.
+          {t('Email değişince doğrulama maili gönderilir ve oturumunuz güvenlik için sonlandırılır.')}
         </p>
         {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
         <button
@@ -148,7 +152,7 @@ export function ProfileEmailModal({ open, profile, onClose, onRequiresReLogin })
           disabled={busy}
           className="w-full bg-[#093eaa] text-white py-2.5 rounded-xl text-sm font-bold hover:bg-[#093eaa]/90 disabled:opacity-60"
         >
-          {busy ? 'Kaydediliyor...' : 'Email Güncelle'}
+          {busy ? t('Kaydediliyor...') : t('Email Güncelle')}
         </button>
       </form>
     </ModalShell>
@@ -156,6 +160,7 @@ export function ProfileEmailModal({ open, profile, onClose, onRequiresReLogin })
 }
 
 export function ProfilePasswordModal({ open, onClose, onRequiresReLogin }) {
+  const { t } = useTranslation();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -174,27 +179,27 @@ export function ProfilePasswordModal({ open, onClose, onRequiresReLogin }) {
   async function handleSubmit(e) {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
-      setError('Yeni şifreler eşleşmiyor.');
+      setError(t('Yeni şifreler eşleşmiyor.'));
       return;
     }
     setBusy(true);
     setError('');
     try {
       const res = await changeMePassword({ currentPassword, newPassword, confirmPassword });
-      onRequiresReLogin(res.message || 'Şifreniz güncellendi. Tekrar giriş yapın.');
+      onRequiresReLogin(res.message || t('Şifreniz güncellendi. Tekrar giriş yapın.'));
       onClose();
     } catch (err) {
-      setError(mapPasswordChangeError(err));
+      setError(t(mapPasswordChangeError(err)));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <ModalShell title="Şifre Değiştir" open={open} onClose={onClose}>
+    <ModalShell title={t('Şifre Değiştir')} open={open} onClose={onClose}>
       <form onSubmit={handleSubmit}>
         <FieldInput
-          label="Mevcut şifre"
+          label={t('Mevcut şifre')}
           id="profile-current-password"
           type="password"
           value={currentPassword}
@@ -202,7 +207,7 @@ export function ProfilePasswordModal({ open, onClose, onRequiresReLogin }) {
           autoComplete="current-password"
         />
         <FieldInput
-          label="Yeni şifre"
+          label={t('Yeni şifre')}
           id="profile-new-password"
           type="password"
           value={newPassword}
@@ -210,10 +215,10 @@ export function ProfilePasswordModal({ open, onClose, onRequiresReLogin }) {
           autoComplete="new-password"
         />
         <p className="text-xs text-gray-500 -mt-2 mb-4">
-          En az 8 karakter, büyük/küçük harf ve rakam kullanın.
+          {t('En az 8 karakter, büyük/küçük harf ve rakam kullanın.')}
         </p>
         <FieldInput
-          label="Yeni şifre tekrar"
+          label={t('Yeni şifre tekrar')}
           id="profile-confirm-password"
           type="password"
           value={confirmPassword}
@@ -221,16 +226,16 @@ export function ProfilePasswordModal({ open, onClose, onRequiresReLogin }) {
           autoComplete="new-password"
         />
         <p className="text-xs text-gray-500 mb-4">
-          OTP aktif hesaplarda doğrulama başarısız olabilir. Bu durumda{' '}
+          {t('OTP aktif hesaplarda doğrulama başarısız olabilir. Bu durumda')}{' '}
           <a
             href={keycloakAccountUrls.changePassword}
             target="_blank"
             rel="noopener noreferrer"
             className="text-[#093eaa] font-semibold hover:underline"
           >
-            Keycloak Hesap Ayarları
+            {t('Keycloak Hesap Ayarları')}
           </a>
-          {' '}kullanın.
+          {' '}{t('kullanın.')}
         </p>
         {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
         <button
@@ -238,7 +243,7 @@ export function ProfilePasswordModal({ open, onClose, onRequiresReLogin }) {
           disabled={busy}
           className="w-full bg-[#093eaa] text-white py-2.5 rounded-xl text-sm font-bold hover:bg-[#093eaa]/90 disabled:opacity-60"
         >
-          {busy ? 'Kaydediliyor...' : 'Şifreyi Güncelle'}
+          {busy ? t('Kaydediliyor...') : t('Şifreyi Güncelle')}
         </button>
       </form>
     </ModalShell>

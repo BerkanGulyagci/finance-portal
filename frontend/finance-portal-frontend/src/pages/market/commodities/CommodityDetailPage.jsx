@@ -8,6 +8,7 @@ import CommodityDetailToolbar     from './components/CommodityDetailToolbar';
 import CommodityDetailChart       from './components/CommodityDetailChart';
 import CommodityDetailSourceNotice from './components/CommodityDetailSourceNotice';
 import CommoditiesErrorState      from './components/CommoditiesErrorState';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 // history noktalarını display değerleriyle zenginleştir (USX → USD dönüşümü zaten backend'de yapılıyor)
 function enrichPoints(points) {
@@ -22,6 +23,7 @@ function enrichPoints(points) {
 }
 
 export default function CommodityDetailPage() {
+  const { t } = useTranslation();
   const { symbol } = useParams();
   // URL'den decode et (CL%3DF → CL=F)
   const decodedSymbol = decodeURIComponent(symbol ?? '');
@@ -55,7 +57,7 @@ export default function CommodityDetailPage() {
         const usdRate = fxData?.rates?.find(r => r.symbol === 'USD');
         if (usdRate?.sell) setUsdTryRate(parseFloat(usdRate.sell));
       })
-      .catch(() => setError('Emtia verisi alınamadı.'))
+      .catch(() => setError(t('Emtia verisi alınamadı.')))
       .finally(() => setLoadingSpot(false));
   }, [decodedSymbol, preciousRedirect]);
 

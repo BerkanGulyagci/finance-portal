@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, X, Plus, BarChart2, Search, TrendingUp, TrendingDown } from 'lucide-react';
 import { getStockChart, getStockMidasDetail, getAllStocks } from '../../../api/marketApi';
 import { STOCK_CHART_RANGES } from './stockChartRanges';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 // ── Sabitler ──────────────────────────────────────────────────────────────────
 const COLORS = ['#093eaa', '#f97316', '#8b5cf6', '#10b981'];
@@ -278,6 +279,7 @@ function EChartsCompareChart({ chartData, selectedSymbols }) {
 
 // ── Ana Sayfa ─────────────────────────────────────────────────────────────────
 export default function StockComparePage() {
+  const { t } = useTranslation();
   const [allStocks, setAllStocks] = useState([]);
   const [stocksLoading, setStocksLoading] = useState(true);
 
@@ -535,9 +537,9 @@ export default function StockComparePage() {
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Hisse Karşılaştırma</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('Hisse Karşılaştırma')}</h1>
           <p className="text-xs text-gray-400 mt-0.5">
-            BIST hisselerini yan yana karşılaştır — en fazla {MAX_STOCKS} hisse
+            {t('BIST hisselerini yan yana karşılaştır — en fazla')} {MAX_STOCKS} {t('hisse')}
           </p>
         </div>
       </div>
@@ -548,7 +550,7 @@ export default function StockComparePage() {
 
         {/* Endeks kısayolları */}
         <div className="flex gap-2 mb-3">
-          <span className="text-xs text-gray-400 self-center">Hızlı ekle:</span>
+          <span className="text-xs text-gray-400 self-center">{t('Hızlı ekle:')}</span>
           {INDEX_SHORTCUTS.map(idx => {
             const isSelected = selectedSymbols.includes(idx.symbol);
             return (
@@ -585,7 +587,7 @@ export default function StockComparePage() {
                 <button
                   onClick={() => removeSymbol(sym)}
                   className="ml-0.5 hover:opacity-70 transition-opacity"
-                  aria-label={`${sym} kaldır`}
+                  aria-label={`${sym} ${t('kaldır')}`}
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -613,7 +615,7 @@ export default function StockComparePage() {
                       autoFocus
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
-                      placeholder="Sembol veya şirket ara..."
+                      placeholder={t('Sembol veya şirket ara...')}
                       className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30"
                     />
                   </div>
@@ -623,7 +625,7 @@ export default function StockComparePage() {
                     {stocksLoading ? (
                       <div className="py-4"><BounceDots size="sm" /></div>
                     ) : filteredStocks.length === 0 ? (
-                      <p className="text-xs text-gray-400 text-center py-3">Sonuç bulunamadı</p>
+                      <p className="text-xs text-gray-400 text-center py-3">{t('Sonuç bulunamadı')}</p>
                     ) : (
                       filteredStocks.map(s => (
                         <button
@@ -685,13 +687,13 @@ export default function StockComparePage() {
             className="ml-auto px-5 py-2 bg-[#093eaa] text-white rounded-xl text-sm font-bold hover:bg-[#0730a0] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             <BarChart2 className="w-4 h-4" />
-            {chartLoading ? 'Yükleniyor...' : 'Karşılaştır'}
+            {chartLoading ? t('Yükleniyor...') : t('Karşılaştır')}
           </button>
         </div>
 
         {selectedSymbols.length < 2 && selectedSymbols.length > 0 && (
           <p className="text-xs text-amber-500 mt-2">
-            Karşılaştırma için en az 2 hisse seçmelisin.
+            {t('Karşılaştırma için en az 2 hisse seçmelisin.')}
           </p>
         )}
       </div>
@@ -707,9 +709,9 @@ export default function StockComparePage() {
       {compared && !chartLoading && chartData.length > 0 && (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
           <div className="mb-4">
-            <h2 className="font-bold text-gray-900">Göreceli Performans (%)</h2>
+            <h2 className="font-bold text-gray-900">{t('Göreceli Performans (%)')}</h2>
             <p className="text-xs text-gray-400 mt-0.5">
-              Tüm hisseler 0%'dan başlar — dönem başına göre yüzde değişim · Scroll ile zoom
+              {t('Tüm hisseler 0%\'dan başlar — dönem başına göre yüzde değişim · Scroll ile zoom')}
             </p>
           </div>
           <EChartsCompareChart chartData={chartData} selectedSymbols={selectedSymbols} />
@@ -762,7 +764,7 @@ export default function StockComparePage() {
             render: m => {
               if (!m?.ma7 || !m.lastPrice) return '-';
               const above = m.lastPrice >= m.ma7;
-              return <span className={above ? 'text-emerald-600' : 'text-rose-600'}>{above ? '▲ Üstünde' : '▼ Altında'} <span className="text-gray-400 text-xs">(₺{fmt4(m.ma7)})</span></span>;
+              return <span className={above ? 'text-emerald-600' : 'text-rose-600'}>{above ? t('▲ Üstünde') : t('▼ Altında')} <span className="text-gray-400 text-xs">(₺{fmt4(m.ma7)})</span></span>;
             },
           },
           {
@@ -770,7 +772,7 @@ export default function StockComparePage() {
             render: m => {
               if (!m?.ma25 || !m.lastPrice) return '-';
               const above = m.lastPrice >= m.ma25;
-              return <span className={above ? 'text-emerald-600' : 'text-rose-600'}>{above ? '▲ Üstünde' : '▼ Altında'} <span className="text-gray-400 text-xs">(₺{fmt4(m.ma25)})</span></span>;
+              return <span className={above ? 'text-emerald-600' : 'text-rose-600'}>{above ? t('▲ Üstünde') : t('▼ Altında')} <span className="text-gray-400 text-xs">(₺{fmt4(m.ma25)})</span></span>;
             },
           },
           {
@@ -779,7 +781,7 @@ export default function StockComparePage() {
               if (!m?.trend) return '-';
               const colorMap = { 'Güçlü Yükselen': 'text-emerald-700', 'Yükselen': 'text-emerald-600', 'Güçlü Düşen': 'text-rose-700', 'Düşen': 'text-rose-600', 'Yatay': 'text-gray-500' };
               const iconMap  = { 'Güçlü Yükselen': '↑↑', 'Yükselen': '↗', 'Güçlü Düşen': '↓↓', 'Düşen': '↘', 'Yatay': '→' };
-              return <span className={`font-bold ${colorMap[m.trend] ?? 'text-gray-500'}`}>{iconMap[m.trend] ?? '→'} {m.trend}</span>;
+              return <span className={`font-bold ${colorMap[m.trend] ?? 'text-gray-500'}`}>{iconMap[m.trend] ?? '→'} {t(m.trend)}</span>;
             },
           },
           {
@@ -787,7 +789,7 @@ export default function StockComparePage() {
             render: m => {
               if (!m?.rsiWarning) return <span className="text-gray-300 text-xs">—</span>;
               const isOverbought = m.rsiWarning.includes('Alım');
-              return <span className={`text-xs font-semibold ${isOverbought ? 'text-rose-600' : 'text-emerald-600'}`}>{m.rsiWarning}</span>;
+              return <span className={`text-xs font-semibold ${isOverbought ? 'text-rose-600' : 'text-emerald-600'}`}>{t(m.rsiWarning)}</span>;
             },
           },
         ];
@@ -796,9 +798,9 @@ export default function StockComparePage() {
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
               <div>
-                <h2 className="font-bold text-gray-900">Performans Metrikleri</h2>
+                <h2 className="font-bold text-gray-900">{t('Performans Metrikleri')}</h2>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  Seçili dönem · BIST100 getirisi: {bist100M ? `${bist100M.periodReturn >= 0 ? '+' : ''}${fmt2(bist100M.periodReturn)}%` : '-'}
+                  {t('Seçili dönem · BIST100 getirisi:')} {bist100M ? `${bist100M.periodReturn >= 0 ? '+' : ''}${fmt2(bist100M.periodReturn)}%` : '-'}
                 </p>
               </div>
               {/* En iyi performer */}
@@ -809,7 +811,7 @@ export default function StockComparePage() {
                 return best && best.ret !== -Infinity ? (
                   <div className="flex items-center gap-1.5 text-sm">
                     <TrendingUp className="w-4 h-4 text-emerald-500" />
-                    <span className="text-gray-500">En iyi:</span>
+                    <span className="text-gray-500">{t('En iyi:')}</span>
                     <span className="font-bold text-emerald-600">{best.s.replace('.IS', '').toUpperCase()} ({best.ret >= 0 ? '+' : ''}{fmt2(best.ret)}%)</span>
                   </div>
                 ) : null;
@@ -819,7 +821,7 @@ export default function StockComparePage() {
               <table className="w-full min-w-[560px]">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 w-44">Metrik</th>
+                    <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 w-44">{t('Metrik')}</th>
                     {selectedSymbols.map((sym, idx) => (
                       <th key={sym} className="text-right px-5 py-3 text-xs font-bold uppercase tracking-wider border-b border-gray-200 whitespace-nowrap" style={{ color: COLORS[idx % COLORS.length] }}>
                         <div className="flex items-center justify-end gap-1.5">
@@ -833,7 +835,7 @@ export default function StockComparePage() {
                 <tbody>
                   {PERF_ROWS.map((row, i) => (
                     <tr key={row.label} className={`border-t border-gray-100 hover:bg-gray-50 ${i % 2 === 0 ? '' : 'bg-gray-50/40'}`}>
-                      <td className="px-5 py-3 text-sm text-gray-500 font-medium whitespace-nowrap">{row.label}</td>
+                      <td className="px-5 py-3 text-sm text-gray-500 font-medium whitespace-nowrap">{t(row.label)}</td>
                       {selectedSymbols.map(sym => (
                         <td key={sym} className="px-5 py-3 text-sm text-right font-mono text-gray-800">
                           {row.render(metrics[sym])}
@@ -858,8 +860,8 @@ export default function StockComparePage() {
         return (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="font-bold text-gray-900">Finansal Karşılaştırma</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Kaynak: Midas · Veriler 15 dk gecikmeli</p>
+            <h2 className="font-bold text-gray-900">{t('Finansal Karşılaştırma')}</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{t('Kaynak: Midas · Veriler 15 dk gecikmeli')}</p>
           </div>
           {detailsLoading ? (
             <div className="p-12 flex items-center justify-center"><BounceDots /></div>
@@ -868,7 +870,7 @@ export default function StockComparePage() {
               <table className="w-full min-w-[560px]">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 w-44">Metrik</th>
+                    <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 w-44">{t('Metrik')}</th>
                     {stockSymbols.map((sym, idx) => {
                       const globalIdx = selectedSymbols.indexOf(sym);
                       return (
@@ -891,7 +893,7 @@ export default function StockComparePage() {
                     });
                   }).map((row, rowIdx) => (
                     <tr key={row.key} className={`border-t border-gray-100 hover:bg-gray-50 ${rowIdx % 2 === 0 ? '' : 'bg-gray-50/40'}`}>
-                      <td className="px-5 py-3 text-sm text-gray-500 font-medium whitespace-nowrap">{row.label}</td>
+                      <td className="px-5 py-3 text-sm text-gray-500 font-medium whitespace-nowrap">{t(row.label)}</td>
                       {stockSymbols.map(sym => {
                         const val = getCellValue(sym, row.key);
                         return <td key={sym} className={`px-5 py-3 text-sm text-right font-mono ${getCellStyle(row.key, val)}`}>{val}</td>;
@@ -915,9 +917,9 @@ export default function StockComparePage() {
         return (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-4 flex-wrap">
-            <h2 className="font-bold text-gray-900">TL Yatırım Simülasyonu</h2>
+            <h2 className="font-bold text-gray-900">{t('TL Yatırım Simülasyonu')}</h2>
             <div className="flex items-center gap-2 ml-auto">
-              <span className="text-sm text-gray-500">Yatırım tutarı:</span>
+              <span className="text-sm text-gray-500">{t('Yatırım tutarı:')}</span>
               <input type="number" value={investment} onChange={e => setInvestment(e.target.value)}
                 className="w-32 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30 text-right" placeholder="1000" />
               <span className="text-sm font-semibold text-gray-600">₺</span>
@@ -928,7 +930,7 @@ export default function StockComparePage() {
               <thead className="bg-gray-50">
                 <tr>
                   {['Hisse', 'Başlangıç Fiyatı', 'Alınan Lot', 'Bitiş Fiyatı', 'Nihai Değer (₺)', 'Kâr/Zarar'].map(h => (
-                    <th key={h} className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap">{h}</th>
+                    <th key={h} className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap">{t(h)}</th>
                   ))}
                 </tr>
               </thead>
@@ -970,7 +972,7 @@ export default function StockComparePage() {
             </table>
           </div>
           <div className="px-5 py-2 bg-gray-50 border-t border-gray-100 text-xs text-gray-400">
-            * Simülasyon dönem başı ve sonu fiyatları kullanılarak hesaplanmıştır. Komisyon ve vergiler dahil değildir. Gösterge niteliğindedir.
+            {t('* Simülasyon dönem başı ve sonu fiyatları kullanılarak hesaplanmıştır. Komisyon ve vergiler dahil değildir. Gösterge niteliğindedir.')}
           </div>
         </div>
         );
@@ -980,13 +982,13 @@ export default function StockComparePage() {
           <BarChart2 className="w-12 h-12 text-gray-200 mx-auto mb-3" />
           <p className="text-gray-500 font-semibold">
             {selectedSymbols.length === 0
-              ? 'Karşılaştırmak istediğin hisseleri seç'
+              ? t('Karşılaştırmak istediğin hisseleri seç')
               : selectedSymbols.length === 1
               ? 'En az bir hisse daha ekle'
-              : '"Karşılaştır" butonuna tıkla'}
+              : t('"Karşılaştır" butonuna tıkla')}
           </p>
           <p className="text-gray-400 text-sm mt-1">
-            En fazla {MAX_STOCKS} BIST hissesini yan yana karşılaştırabilirsin
+            {t('En fazla')} {MAX_STOCKS} {t('BIST hissesini yan yana karşılaştırabilirsin')}
           </p>
         </div>
       )}

@@ -6,26 +6,29 @@ import {
   CHART_DONUT_COLORS,
   formatSharePercent,
 } from '../../utils/portfolioAnalyticsHelpers';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 export default function PortfolioAllocationChart({ holdings, valuesHidden, currency }) {
-  const { rows, total } = calculateAllocationByType(holdings);
+  const { t } = useTranslation();
+  const { rows: rawRows, total } = calculateAllocationByType(holdings);
+  const rows = rawRows.map(r => ({ ...r, name: t(r.name) }));
   const [selectedType, setSelectedType] = useState(null);
 
   if (!rows.length) {
     return (
       <PortfolioChartCard
-        title="Varlık Türü Dağılımı"
-        subtitle="Piyasa değerine göre; dilime tıklayın."
+        title={t('Varlık Türü Dağılımı')}
+        subtitle={t('Piyasa değerine göre; dilime tıklayın.')}
       >
-        <p className="text-center text-sm text-gray-400 py-10">Dağılım için yeterli veri bulunamadı.</p>
+        <p className="text-center text-sm text-gray-400 py-10">{t('Dağılım için yeterli veri bulunamadı.')}</p>
       </PortfolioChartCard>
     );
   }
 
   return (
     <PortfolioChartCard
-      title="Varlık Türü Dağılımı"
-      subtitle="Piyasa değerine göre; dilime tıklayın."
+      title={t('Varlık Türü Dağılımı')}
+      subtitle={t('Piyasa değerine göre; dilime tıklayın.')}
     >
       <PortfolioDonutChart
         data={rows}
@@ -39,9 +42,9 @@ export default function PortfolioAllocationChart({ holdings, valuesHidden, curre
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600">
-              <th className="px-3 py-2">Kategori</th>
-              <th className="px-3 py-2 text-right">Değer</th>
-              <th className="px-3 py-2 text-right">Oran</th>
+              <th className="px-3 py-2">{t('Kategori')}</th>
+              <th className="px-3 py-2 text-right">{t('Değer')}</th>
+              <th className="px-3 py-2 text-right">{t('Oran')}</th>
             </tr>
           </thead>
           <tbody>
@@ -76,7 +79,7 @@ export default function PortfolioAllocationChart({ holdings, valuesHidden, curre
         </table>
         {!valuesHidden && total > 0 && (
           <p className="px-3 py-2 text-xs text-gray-400 border-t border-gray-100">
-            Toplam: {total.toLocaleString('tr-TR', { maximumFractionDigits: 2 })} {currency}
+            {t('Toplam:')} {total.toLocaleString('tr-TR', { maximumFractionDigits: 2 })} {currency}
           </p>
         )}
       </div>

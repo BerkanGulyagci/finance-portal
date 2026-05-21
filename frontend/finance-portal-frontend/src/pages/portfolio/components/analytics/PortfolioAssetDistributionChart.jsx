@@ -6,26 +6,29 @@ import {
   CHART_DONUT_COLORS,
   formatSharePercent,
 } from '../../utils/portfolioAnalyticsHelpers';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 export default function PortfolioAssetDistributionChart({ holdings, valuesHidden, currency }) {
-  const { rows, total } = calculateTopHoldingsDistribution(holdings, 5);
+  const { t } = useTranslation();
+  const { rows: rawRows, total } = calculateTopHoldingsDistribution(holdings, 5);
+  const rows = rawRows.map(r => ({ ...r, name: r.type === 'OTHER' ? t('Diğer') : r.name }));
   const [selectedName, setSelectedName] = useState(null);
 
   if (!rows.length) {
     return (
       <PortfolioChartCard
-        title="Varlık Bazlı Dağılım"
-        subtitle="En büyük pozisyonlar piyasa değerine göre; kalanlar “Diğer”."
+        title={t('Varlık Bazlı Dağılım')}
+        subtitle={t('En büyük pozisyonlar piyasa değerine göre; kalanlar “Diğer”.')}
       >
-        <p className="text-center text-sm text-gray-400 py-10">Dağılım için yeterli veri bulunamadı.</p>
+        <p className="text-center text-sm text-gray-400 py-10">{t('Dağılım için yeterli veri bulunamadı.')}</p>
       </PortfolioChartCard>
     );
   }
 
   return (
     <PortfolioChartCard
-      title="Varlık Bazlı Dağılım"
-      subtitle="En büyük 5 pozisyon + Diğer; dilime tıklayın."
+      title={t('Varlık Bazlı Dağılım')}
+      subtitle={t('En büyük 5 pozisyon + Diğer; dilime tıklayın.')}
     >
       <PortfolioDonutChart
         data={rows}
@@ -39,9 +42,9 @@ export default function PortfolioAssetDistributionChart({ holdings, valuesHidden
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600">
-              <th className="px-3 py-2">Varlık</th>
-              <th className="px-3 py-2 text-right">Değer</th>
-              <th className="px-3 py-2 text-right">Oran</th>
+              <th className="px-3 py-2">{t('Varlık')}</th>
+              <th className="px-3 py-2 text-right">{t('Değer')}</th>
+              <th className="px-3 py-2 text-right">{t('Oran')}</th>
             </tr>
           </thead>
           <tbody>
@@ -78,7 +81,7 @@ export default function PortfolioAssetDistributionChart({ holdings, valuesHidden
         </table>
         {!valuesHidden && total > 0 && (
           <p className="px-3 py-2 text-xs text-gray-400 border-t border-gray-100">
-            Toplam: {total.toLocaleString('tr-TR', { maximumFractionDigits: 2 })} {currency}
+            {t('Toplam:')} {total.toLocaleString('tr-TR', { maximumFractionDigits: 2 })} {currency}
           </p>
         )}
       </div>

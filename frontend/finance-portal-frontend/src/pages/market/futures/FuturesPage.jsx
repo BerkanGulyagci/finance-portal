@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { getFutures, getViopContracts } from '../../../api/marketApi';
 import { useSortable } from '../../../hooks/useSortable';
 import SortableTh from '../../../components/common/SortableTh';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 const PAGE_SIZE = 20;
 
@@ -45,6 +46,7 @@ function Pagination({ page, totalPages, onChange }) {
 }
 
 export default function FuturesPage() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('viop');
 
   const [viopItems, setViopItems] = useState([]);
@@ -66,7 +68,7 @@ export default function FuturesPage() {
       setLoading(true);
       getViopContracts()
         .then(setViopItems)
-        .catch(e => setError(!e.response ? 'Sunucuya ulaşılamıyor.' : `Hata (${e.response.status})`))
+        .catch(e => setError(!e.response ? t('Sunucuya ulaşılamıyor.') : `${t('Hata')} (${e.response.status})`))
         .finally(() => setLoading(false));
     }
   }, []);
@@ -79,7 +81,7 @@ export default function FuturesPage() {
       setError('');
       getFutures(0, 100)
         .then(r => setGlobalItems(r.content ?? []))
-        .catch(e => setError(!e.response ? 'Sunucuya ulaşılamıyor.' : `Hata (${e.response.status})`))
+        .catch(e => setError(!e.response ? t('Sunucuya ulaşılamıyor.') : `${t('Hata')} (${e.response.status})`))
         .finally(() => setLoading(false));
     }
   }
@@ -117,22 +119,22 @@ export default function FuturesPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-2 border-l-4 border-[#093eaa] pl-4">Vadeli İşlemler</h1>
-      <p className="text-sm text-gray-500 mb-6 pl-5">Türkiye VİOP kontratları ve küresel vadeli işlemler</p>
+      <h1 className="text-2xl font-bold text-gray-900 mb-2 border-l-4 border-[#093eaa] pl-4">{t('Vadeli İşlemler')}</h1>
+      <p className="text-sm text-gray-500 mb-6 pl-5">{t('Türkiye VİOP kontratları ve küresel vadeli işlemler')}</p>
 
       <div className="flex gap-2 mb-4">
         <button onClick={() => handleTab('viop')}
           className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === 'viop' ? 'bg-[#093eaa] text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>
-          Türkiye VİOP
+          {t('Türkiye VİOP')}
         </button>
         <button onClick={() => handleTab('global')}
           className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === 'global' ? 'bg-[#093eaa] text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>
-          Küresel Vadeli
+          {t('Küresel Vadeli')}
         </button>
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        {loading && <div className="p-8 text-center text-gray-400 text-sm">Yükleniyor...</div>}
+        {loading && <div className="p-8 text-center text-gray-400 text-sm">{t('Yükleniyor...')}</div>}
         {error && <div className="p-6 text-rose-500 text-sm">{error}</div>}
 
         {/* VIOP Tab */}
@@ -143,39 +145,39 @@ export default function FuturesPage() {
                 <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-                <input type="text" placeholder="Sözleşme ara..." value={viopSearch}
+                <input type="text" placeholder={t('Sözleşme ara...')} value={viopSearch}
                   onChange={e => { setViopSearch(e.target.value); setViopPage(0); }}
                   className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30 focus:border-[#093eaa]" />
               </div>
-              <span className="text-xs text-gray-400">{sortedViop.length} sözleşme</span>
+              <span className="text-xs text-gray-400">{sortedViop.length} {t('sözleşme')}</span>
             </div>
 
             {viopItems.length === 0
-              ? <p className="p-6 text-gray-400 text-sm">VİOP verisi bulunamadı.</p>
+              ? <p className="p-6 text-gray-400 text-sm">{t('VİOP verisi bulunamadı.')}</p>
               : (
                 <>
                   <div className="px-4 py-1.5 bg-gray-50 border-b border-gray-100 text-xs text-gray-400">
-                    Kaynak: Akbank Yatırım · yatirim.akbank.com
+                    {t('Kaynak: Akbank Yatırım · yatirim.akbank.com')}
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead className="bg-gray-50">
                         <tr>
-                          <SortableTh {...viopThProps('name', 'Sözleşme')} />
-                          <SortableTh {...viopThProps('changePercent', 'Fark (%)', 'right')} />
-                          <SortableTh {...viopThProps('lastPrice', 'Son', 'right')} />
-                          <SortableTh {...viopThProps('high', 'Yüksek', 'right')} />
-                          <SortableTh {...viopThProps('low', 'Düşük', 'right')} />
-                          <SortableTh {...viopThProps('openPositionCount', 'Açık Poz. Sayısı', 'right')} />
-                          <SortableTh {...viopThProps('openPositionChange', 'Açık Poz. Değ.', 'right')} />
-                          <SortableTh {...viopThProps('settlementPrice', 'Uzlaşma', 'right')} />
-                          <SortableTh {...viopThProps('prevSettlementPrice', 'Önceki Uzlaşma', 'right')} />
-                          <th className="px-3 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 text-left">Zaman</th>
+                          <SortableTh {...viopThProps('name', t('Sözleşme'))} />
+                          <SortableTh {...viopThProps('changePercent', t('Fark (%)'), 'right')} />
+                          <SortableTh {...viopThProps('lastPrice', t('Son'), 'right')} />
+                          <SortableTh {...viopThProps('high', t('Yüksek'), 'right')} />
+                          <SortableTh {...viopThProps('low', t('Düşük'), 'right')} />
+                          <SortableTh {...viopThProps('openPositionCount', t('Açık Poz. Sayısı'), 'right')} />
+                          <SortableTh {...viopThProps('openPositionChange', t('Açık Poz. Değ.'), 'right')} />
+                          <SortableTh {...viopThProps('settlementPrice', t('Uzlaşma'), 'right')} />
+                          <SortableTh {...viopThProps('prevSettlementPrice', t('Önceki Uzlaşma'), 'right')} />
+                          <th className="px-3 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 text-left">{t('Zaman')}</th>
                         </tr>
                       </thead>
                       <tbody>
                         {viopPageItems.length === 0
-                          ? <tr><td colSpan={10} className="px-4 py-8 text-center text-gray-400 text-sm">Sonuç bulunamadı.</td></tr>
+                          ? <tr><td colSpan={10} className="px-4 py-8 text-center text-gray-400 text-sm">{t('Sonuç bulunamadı.')}</td></tr>
                           : viopPageItems.map((r, i) => (
                               <tr key={i} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
                                 <td className="px-3 py-2.5 text-sm">
@@ -217,30 +219,30 @@ export default function FuturesPage() {
                 <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-                <input type="text" placeholder="Sembol veya isim ara..." value={globalSearch}
+                <input type="text" placeholder={t('Sembol veya isim ara...')} value={globalSearch}
                   onChange={e => { setGlobalSearch(e.target.value); setGlobalPage(0); }}
                   className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30 focus:border-[#093eaa]" />
               </div>
-              <span className="text-xs text-gray-400">{sortedGlobal.length} kontrat</span>
+              <span className="text-xs text-gray-400">{sortedGlobal.length} {t('kontrat')}</span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <SortableTh {...globalThProps('symbol', 'Sembol')} />
-                    <SortableTh {...globalThProps('name', 'Ad')} />
-                    <SortableTh {...globalThProps('price', 'Fiyat', 'right')} />
-                    <SortableTh {...globalThProps('change', 'Değişim', 'right')} />
+                    <SortableTh {...globalThProps('symbol', t('Sembol'))} />
+                    <SortableTh {...globalThProps('name', t('Ad'))} />
+                    <SortableTh {...globalThProps('price', t('Fiyat'), 'right')} />
+                    <SortableTh {...globalThProps('change', t('Değişim'), 'right')} />
                     <SortableTh {...globalThProps('changePercent', '%', 'right')} />
-                    <SortableTh {...globalThProps('dayHigh', 'Yüksek', 'right')} />
-                    <SortableTh {...globalThProps('dayLow', 'Düşük', 'right')} />
-                    <SortableTh {...globalThProps('volume', 'Hacim', 'right')} />
-                    <SortableTh {...globalThProps('exchange', 'Borsa')} />
+                    <SortableTh {...globalThProps('dayHigh', t('Yüksek'), 'right')} />
+                    <SortableTh {...globalThProps('dayLow', t('Düşük'), 'right')} />
+                    <SortableTh {...globalThProps('volume', t('Hacim'), 'right')} />
+                    <SortableTh {...globalThProps('exchange', t('Borsa'))} />
                   </tr>
                 </thead>
                 <tbody>
                   {globalPageItems.length === 0
-                    ? <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400 text-sm">Veri yok.</td></tr>
+                    ? <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400 text-sm">{t('Veri yok.')}</td></tr>
                     : globalPageItems.map(r => (
                       <tr key={r.symbol} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
                         <td className="px-4 py-3 font-bold text-[#093eaa] text-sm">{r.symbol}</td>

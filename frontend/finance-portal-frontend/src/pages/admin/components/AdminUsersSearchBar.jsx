@@ -1,11 +1,6 @@
 import { Search, X } from 'lucide-react';
+import { useTranslation } from '../../../i18n/LanguageContext';
 import { BAN_STATUS_FILTER } from '../utils/banDisplay';
-
-const FILTER_OPTIONS = [
-  { value: BAN_STATUS_FILTER.ALL, label: 'Tümü' },
-  { value: BAN_STATUS_FILTER.ACTIVE, label: 'Aktif' },
-  { value: BAN_STATUS_FILTER.BANNED, label: 'Banlı' },
-];
 
 export default function AdminUsersSearchBar({
   value,
@@ -17,7 +12,14 @@ export default function AdminUsersSearchBar({
   page,
   hasMore,
 }) {
+  const { t } = useTranslation();
   const pageNumber = page + 1;
+
+  const FILTER_OPTIONS = [
+    { value: BAN_STATUS_FILTER.ALL, label: t('Tümü') },
+    { value: BAN_STATUS_FILTER.ACTIVE, label: t('Aktif') },
+    { value: BAN_STATUS_FILTER.BANNED, label: t('Banlı') },
+  ];
 
   return (
     <section className="p-4 border-b border-gray-100 flex flex-col gap-3">
@@ -28,16 +30,16 @@ export default function AdminUsersSearchBar({
             type="search"
             value={value}
             onChange={e => onChange(e.target.value)}
-            placeholder="Kullanıcı adı veya e-posta ara..."
+            placeholder={t('Kullanıcı adı veya e-posta ara...')}
             className="w-full pl-9 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#093eaa]"
-            aria-label="Kullanıcı ara"
+            aria-label={t('Kullanıcı ara')}
           />
           {value && (
             <button
               type="button"
               onClick={onClear}
               className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-lg text-gray-400 hover:bg-gray-200 hover:text-gray-600"
-              aria-label="Aramayı temizle"
+              aria-label={t('Aramayı temizle')}
             >
               <X className="w-4 h-4" />
             </button>
@@ -45,7 +47,7 @@ export default function AdminUsersSearchBar({
         </div>
 
         <label className="flex items-center gap-2 text-sm font-semibold text-gray-600 shrink-0">
-          <span className="text-xs uppercase tracking-wide text-gray-400">Durum</span>
+          <span className="text-xs uppercase tracking-wide text-gray-400">{t('Durum')}</span>
           <select
             value={statusFilter}
             onChange={e => onStatusFilterChange(e.target.value)}
@@ -61,8 +63,8 @@ export default function AdminUsersSearchBar({
       </div>
 
       <p className="text-xs text-gray-400 font-medium">
-        {resultCount} kullanıcı · Sayfa {pageNumber}
-        {hasMore ? ' · Sonraki sayfa mevcut' : ''}
+        {resultCount} {t('kullanıcı')} · {t('Sayfa')} {pageNumber}
+        {hasMore ? ` · ${t('Sonraki sayfa mevcut')}` : ''}
       </p>
     </section>
   );

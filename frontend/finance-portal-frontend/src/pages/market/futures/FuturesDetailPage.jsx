@@ -9,8 +9,10 @@ import ViopContractInfo from './components/ViopContractInfo';
 import ViopPriceChart from './components/ViopPriceChart';
 import { getViopContracts } from '../../../api/marketApi';
 import { fixViopContractName, viopContractNamesMatch } from './viopContractNameFix';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 export default function FuturesDetailPage() {
+  const { t } = useTranslation();
   const { symbol } = useParams();
   const location = useLocation();
   const [contract, setContract] = useState(null);
@@ -37,13 +39,13 @@ export default function FuturesDetailPage() {
             setContract(found);
             setError(null);
           } else {
-            setError('Sözleşme bulunamadı. Lütfen listeden tekrar seçin.');
+            setError(t('Sözleşme bulunamadı. Lütfen listeden tekrar seçin.'));
           }
         })
-        .catch(() => setError('Sözleşme verisi alınamadı. Lütfen daha sonra tekrar deneyin.'))
+        .catch(() => setError(t('Sözleşme verisi alınamadı. Lütfen daha sonra tekrar deneyin.')))
         .finally(() => setLoading(false));
     } else {
-      setError('Lütfen sözleşme listesinden bir sözleşme seçin');
+      setError(t('Lütfen sözleşme listesinden bir sözleşme seçin'));
       setLoading(false);
     }
   }, [location.state, symbol]);
@@ -52,7 +54,7 @@ export default function FuturesDetailPage() {
     return (
       <div className="space-y-6">
         <Link to="/market/futures" className="inline-flex items-center gap-1.5 text-sm text-[#093eaa] font-semibold hover:underline">
-          <ArrowLeft className="w-4 h-4" /> Vadeli İşlemler
+          <ArrowLeft className="w-4 h-4" /> {t('Vadeli İşlemler')}
         </Link>
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-12 flex items-center justify-center">
           <div className="flex gap-2">
@@ -69,15 +71,15 @@ export default function FuturesDetailPage() {
     return (
       <div className="space-y-6">
         <Link to="/market/futures" className="inline-flex items-center gap-1.5 text-sm text-[#093eaa] font-semibold hover:underline">
-          <ArrowLeft className="w-4 h-4" /> Vadeli İşlemler
+          <ArrowLeft className="w-4 h-4" /> {t('Vadeli İşlemler')}
         </Link>
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-12">
           <div className="text-center">
             <p className="text-rose-600 font-semibold mb-2">{error}</p>
             <p className="text-sm text-gray-500">
-              Lütfen daha sonra tekrar deneyin veya{' '}
+              {t('Lütfen daha sonra tekrar deneyin veya')}{' '}
               <Link to="/market/futures" className="text-[#093eaa] hover:underline">
-                listeye dönün
+                {t('listeye dönün')}
               </Link>
               .
             </p>
@@ -91,13 +93,13 @@ export default function FuturesDetailPage() {
     return (
       <div className="space-y-6">
         <Link to="/market/futures" className="inline-flex items-center gap-1.5 text-sm text-[#093eaa] font-semibold hover:underline">
-          <ArrowLeft className="w-4 h-4" /> Vadeli İşlemler
+          <ArrowLeft className="w-4 h-4" /> {t('Vadeli İşlemler')}
         </Link>
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-12">
           <div className="text-center">
-            <p className="text-rose-600 font-semibold mb-2">Sözleşme verisi bulunamadı.</p>
+            <p className="text-rose-600 font-semibold mb-2">{t('Sözleşme verisi bulunamadı.')}</p>
             <p className="text-sm text-gray-500">
-              <Link to="/market/futures" className="text-[#093eaa] hover:underline">Listeye dönün</Link>
+              <Link to="/market/futures" className="text-[#093eaa] hover:underline">{t('Listeye dönün')}</Link>
             </p>
           </div>
         </div>

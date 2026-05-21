@@ -1,6 +1,8 @@
 import { GOLD_TABS } from './goldConstants';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 export default function GoldTabs({ activeTab, onTabChange }) {
+  const { t } = useTranslation();
   return (
     <div className="flex overflow-x-auto border-b border-gray-200">
       {GOLD_TABS.map(tab => (
@@ -13,7 +15,7 @@ export default function GoldTabs({ activeTab, onTabChange }) {
               : 'border-transparent text-gray-600 hover:text-[#093eaa] hover:bg-gray-50'
           }`}
         >
-          {tab.label}
+          {t(tab.label)}
         </button>
       ))}
     </div>

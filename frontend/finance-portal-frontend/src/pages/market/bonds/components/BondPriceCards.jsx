@@ -1,3 +1,5 @@
+import { useTranslation } from '../../../../i18n/LanguageContext';
+
 function fmtNum(v, decimals = 2) {
   if (v == null) return '-';
   const n = parseFloat(v);
@@ -25,6 +27,7 @@ function PriceCard({ label, value, sub, accent, changeColor }) {
 }
 
 export default function BondPriceCards({ bond }) {
+  const { t } = useTranslation();
   const indicator = bond.indicatorValue != null ? fmtNum(bond.indicatorValue, 2) : '-';
   const previous  = bond.previousValue  != null ? fmtNum(bond.previousValue,  2) : '-';
 
@@ -46,26 +49,26 @@ export default function BondPriceCards({ bond }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
       <PriceCard
-        label="TCMB EVDS Gösterge Değeri"
+        label={t('TCMB EVDS Gösterge Değeri')}
         value={indicator}
-        sub="Günlük gösterge"
+        sub={t('Günlük gösterge')}
         accent
       />
       <PriceCard
-        label="Önceki Değer"
+        label={t('Önceki Değer')}
         value={previous}
-        sub="Bir önceki iş günü"
+        sub={t('Bir önceki iş günü')}
       />
       <PriceCard
-        label="Günlük Değişim"
+        label={t('Günlük Değişim')}
         value={changeStr}
         sub={changePctStr ?? undefined}
         changeColor={changePos ? 'pos' : changeNeg ? 'neg' : undefined}
       />
       <PriceCard
-        label="Kupon Faiz Oranı"
+        label={t('Kupon Faiz Oranı')}
         value={couponRate}
-        sub="Kupon oranı"
+        sub={t('Kupon oranı')}
       />
     </div>
   );

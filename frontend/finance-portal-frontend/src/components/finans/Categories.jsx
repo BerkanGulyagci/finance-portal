@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 const categories = [
   { name: 'Genel Ekonomi', path: '/news', image: 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=400&h=200&fit=crop' },
@@ -10,12 +11,13 @@ const categories = [
 ];
 
 export function Categories() {
+  const { t } = useTranslation();
   return (
     <section className="mb-12">
       <h2 className="text-xl font-bold mb-6 flex items-center justify-between">
-        Kategorilere Göz Atın
+        {t('Kategorilere Göz Atın')}
         <Link to="/market" className="text-sm font-semibold text-[#093eaa] hover:underline">
-          Tümünü Gör
+          {t('Tümünü Gör')}
         </Link>
       </h2>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -23,7 +25,7 @@ export function Categories() {
           <Link key={cat.name} to={cat.path}
             className="relative h-24 rounded-xl overflow-hidden group cursor-pointer shadow-sm block">
             <div className="absolute inset-0 bg-black/40 group-hover:bg-[#093eaa]/60 transition-colors z-10 flex items-center justify-center">
-              <span className="text-white font-bold text-sm text-center px-2">{cat.name}</span>
+              <span className="text-white font-bold text-sm text-center px-2">{t(cat.name)}</span>
             </div>
             <div className="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-300"
               style={{ backgroundImage: `url('${cat.image}')` }} />

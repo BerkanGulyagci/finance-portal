@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useTranslation } from '../../i18n/LanguageContext';
 import { useAdminUsers } from './hooks/useAdminUsers';
 import AdminPageHeader from './components/AdminPageHeader';
 import AdminUsersPanel from './components/AdminUsersPanel';
@@ -7,6 +8,7 @@ import BanUserModal from './components/BanUserModal';
 import AdminUserDetailModal from './components/AdminUserDetailModal';
 
 export default function AdminUsersPage() {
+  const { t } = useTranslation();
   const { userId: currentUserId } = useAuth();
   const {
     users,
@@ -36,8 +38,8 @@ export default function AdminUsersPage() {
   return (
     <section>
       <AdminPageHeader
-        title="Kullanıcı Yönetimi"
-        description="Keycloak üzerinden kayıtlı kullanıcıları görüntüleyin ve yönetin."
+        title={t('Kullanıcı Yönetimi')}
+        description={t('Keycloak üzerinden kayıtlı kullanıcıları görüntüleyin ve yönetin.')}
         loading={loading}
         onRefresh={loadUsers}
       />
@@ -82,7 +84,7 @@ export default function AdminUsersPage() {
       />
 
       <p className="text-xs text-gray-400 mt-4">
-        <Link to="/portfolio" className="hover:text-[#093eaa]">← Portföye dön</Link>
+        <Link to="/portfolio" className="hover:text-[#093eaa]">← {t('Portföye dön')}</Link>
       </p>
     </section>
   );

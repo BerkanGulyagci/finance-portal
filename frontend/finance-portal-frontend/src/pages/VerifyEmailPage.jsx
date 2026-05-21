@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom';
 import { Mail, Wallet } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../i18n/LanguageContext';
 
 export default function VerifyEmailPage() {
+  const { t } = useTranslation();
   const { isAuthenticated, email, logout } = useAuth();
 
   return (
@@ -22,16 +24,15 @@ export default function VerifyEmailPage() {
           <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-[#093eaa] mb-4">
             <Mail className="w-6 h-6" />
           </span>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Email adresinizi doğrulayın</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">{t('Email adresinizi doğrulayın')}</h2>
           <p className="text-sm text-gray-600 leading-relaxed mb-2">
-            Portala tam erişim için email doğrulaması gereklidir.
+            {t('Portala tam erişim için email doğrulaması gereklidir.')}
           </p>
           {email && (
             <p className="text-sm font-semibold text-gray-800 mb-4">{email}</p>
           )}
           <p className="text-sm text-gray-500 leading-relaxed mb-6">
-            Gelen kutunuzu (ve spam klasörünü) kontrol edin. Doğrulama linkine tıkladıktan sonra
-            tekrar giriş yapın veya bu sayfayı yenileyin.
+            {t('Gelen kutunuzu (ve spam klasörünü) kontrol edin. Doğrulama linkine tıkladıktan sonra tekrar giriş yapın veya bu sayfayı yenileyin.')}
           </p>
 
           <div className="flex flex-col gap-2">
@@ -41,14 +42,14 @@ export default function VerifyEmailPage() {
                 onClick={() => window.location.reload()}
                 className="w-full bg-[#093eaa] text-white py-2.5 rounded-xl text-sm font-bold hover:bg-[#093eaa]/90"
               >
-                Sayfayı yenile
+                {t('Sayfayı yenile')}
               </button>
             ) : (
               <Link
                 to="/login"
                 className="w-full inline-block bg-[#093eaa] text-white py-2.5 rounded-xl text-sm font-bold hover:bg-[#093eaa]/90"
               >
-                Giriş sayfasına dön
+                {t('Giriş sayfasına dön')}
               </Link>
             )}
             {isAuthenticated && (
@@ -57,7 +58,7 @@ export default function VerifyEmailPage() {
                 onClick={logout}
                 className="w-full border border-gray-200 text-gray-700 py-2.5 rounded-xl text-sm font-bold hover:bg-gray-50"
               >
-                Çıkış yap
+                {t('Çıkış yap')}
               </button>
             )}
           </div>

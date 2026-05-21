@@ -4,6 +4,7 @@ import {
   ResponsiveContainer, Legend, ReferenceLine,
 } from 'recharts';
 import { COMPARE_COLORS, buildChartData, calcPeriodReturn, toNum } from './compareUtils';
+import { useTranslation } from '../../../../../i18n/LanguageContext';
 
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
@@ -28,6 +29,7 @@ function ChartTooltip({ active, payload, label }) {
 }
 
 export default function FundComparePerformanceChart({ detailMap, selectedCodes, range }) {
+  const { t } = useTranslation();
   const chartData = useMemo(
     () => buildChartData(detailMap, selectedCodes, range),
     [detailMap, selectedCodes, range]
@@ -51,9 +53,9 @@ export default function FundComparePerformanceChart({ detailMap, selectedCodes, 
   if (chartData.length === 0) {
     return (
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-        <h2 className="font-bold text-gray-900 mb-2">Normalize Performans Grafiği</h2>
+        <h2 className="font-bold text-gray-900 mb-2">{t('Normalize Performans Grafiği')}</h2>
         <div className="h-64 flex items-center justify-center text-gray-400 text-sm">
-          Grafik için yeterli fiyat geçmişi bulunamadı.
+          {t('Grafik için yeterli fiyat geçmişi bulunamadı.')}
         </div>
       </div>
     );
@@ -62,8 +64,8 @@ export default function FundComparePerformanceChart({ detailMap, selectedCodes, 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
       <div className="mb-4">
-        <h2 className="font-bold text-gray-900">Normalize Performans Grafiği</h2>
-        <p className="text-xs text-gray-400 mt-0.5">Dönem başına göre yüzde getiri — fiyat seviyesi normalize edilmiştir</p>
+        <h2 className="font-bold text-gray-900">{t('Normalize Performans Grafiği')}</h2>
+        <p className="text-xs text-gray-400 mt-0.5">{t('Dönem başına göre yüzde getiri — fiyat seviyesi normalize edilmiştir')}</p>
 
         {/* Dönem getirileri */}
         <div className="flex flex-wrap gap-x-5 gap-y-1 mt-2.5">

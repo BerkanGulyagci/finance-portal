@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ExternalLink } from 'lucide-react';
 import { COMPARE_COLORS, toNum, fmtPct, fmtPctColor, fmtPrice, calcPeriodReturn } from './compareUtils';
+import { useTranslation } from '../../../../../i18n/LanguageContext';
 
 function RiskBar({ level }) {
   if (level == null) return <span className="text-gray-300 text-xs">-</span>;
@@ -19,6 +20,7 @@ function RiskBar({ level }) {
 }
 
 export default function FundCompareSummaryCards({ detailMap, selectedCodes, range }) {
+  const { t } = useTranslation();
   return (
     <div className={`grid gap-4 ${selectedCodes.length === 2 ? 'grid-cols-2' : selectedCodes.length === 3 ? 'grid-cols-3' : 'grid-cols-2 lg:grid-cols-4'}`}>
       {selectedCodes.map((code, idx) => {
@@ -50,7 +52,7 @@ export default function FundCompareSummaryCards({ detailMap, selectedCodes, rang
 
             {/* Fiyat */}
             <div className="mb-3">
-              <p className="text-xs text-gray-400">Güncel Fiyat</p>
+              <p className="text-xs text-gray-400">{t('Güncel Fiyat')}</p>
               <p className="text-xl font-bold text-gray-900 font-mono">{fmtPrice(d?.price)}</p>
               {d?.currencyCode && <p className="text-xs text-gray-400">{d.currencyCode}</p>}
             </div>
@@ -58,11 +60,11 @@ export default function FundCompareSummaryCards({ detailMap, selectedCodes, rang
             {/* Getiriler */}
             <div className="grid grid-cols-2 gap-2 mb-3">
               <div className="bg-gray-50 rounded-lg p-2 text-center">
-                <p className="text-[10px] text-gray-400 mb-0.5">1 Ay</p>
+                <p className="text-[10px] text-gray-400 mb-0.5">{t('1 Ay')}</p>
                 <p className={`text-sm font-bold ${fmtPctColor(ret1m)}`}>{fmtPct(ret1m)}</p>
               </div>
               <div className="bg-gray-50 rounded-lg p-2 text-center">
-                <p className="text-[10px] text-gray-400 mb-0.5">1 Yıl</p>
+                <p className="text-[10px] text-gray-400 mb-0.5">{t('1 Yıl')}</p>
                 <p className={`text-sm font-bold ${fmtPctColor(ret1y)}`}>{fmtPct(ret1y)}</p>
               </div>
             </div>
@@ -70,7 +72,7 @@ export default function FundCompareSummaryCards({ detailMap, selectedCodes, rang
             {/* Dönem getirisi */}
             {periodRet != null && (
               <div className="bg-gray-50 rounded-lg p-2 text-center mb-3">
-                <p className="text-[10px] text-gray-400 mb-0.5">Seçili Dönem</p>
+                <p className="text-[10px] text-gray-400 mb-0.5">{t('Seçili Dönem')}</p>
                 <p className={`text-sm font-bold ${fmtPctColor(periodRet)}`}>{fmtPct(periodRet)}</p>
               </div>
             )}
@@ -78,18 +80,18 @@ export default function FundCompareSummaryCards({ detailMap, selectedCodes, rang
             {/* Risk + Fon tipi */}
             <div className="space-y-1.5 border-t border-gray-100 pt-2.5">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">Risk</span>
+                <span className="text-xs text-gray-500">{t('Risk')}</span>
                 <RiskBar level={d?.riskLevel} />
               </div>
               {d?.fundType && (
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">Tip</span>
+                  <span className="text-xs text-gray-500">{t('Tip')}</span>
                   <span className="text-xs font-semibold text-gray-700">{d.fundType}</span>
                 </div>
               )}
               {d?.managerName && (
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">Yönetici</span>
+                  <span className="text-xs text-gray-500">{t('Yönetici')}</span>
                   <span className="text-xs font-semibold text-gray-700 text-right max-w-[100px] truncate">{d.managerName}</span>
                 </div>
               )}

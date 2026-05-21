@@ -9,6 +9,7 @@ import {
   getGoldHistory,
   getCryptoChart,
 } from '../../api/marketApi';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 const TICKER_OPEN_STORAGE_KEY = 'finance-portal-market-ticker-open';
 
@@ -137,6 +138,7 @@ function sparkFromGoldHist(hist, maxPoints = 36) {
 }
 
 export function MarketTicker() {
+  const { t } = useTranslation();
   const [items, setItems] = useState([]);
   const [tickerOpen, setTickerOpen] = useState(() => {
     try {
@@ -231,7 +233,7 @@ export function MarketTicker() {
             spark = trendSparkline(avg, avgChg);
           }
           result.push({
-            label: `${sym}/TRY Banka`,
+            label: `${sym}/TRY ${t('Banka')}`,
             value: avg.toLocaleString('tr-TR', { minimumFractionDigits: 4, maximumFractionDigits: 4 }),
             change,
             dir,
@@ -254,7 +256,7 @@ export function MarketTicker() {
           const ch = changePct != null && Number.isFinite(changePct) && Math.abs(changePct) > 1e-6 ? changePct : spotChg !== 0 ? spotChg : null;
           const d = dir ?? dirFromChangePct(spotChg);
           result.push({
-            label: 'ALTIN/ONS',
+            label: t('ALTIN/ONS'),
             value: val.toLocaleString('tr-TR', { minimumFractionDigits: 2 }),
             change: ch,
             dir: d,
@@ -317,7 +319,7 @@ export function MarketTicker() {
     return (
       <div className="bg-gray-50 border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-9">
-          <span className="text-xs text-gray-500">Piyasa özeti gizli</span>
+          <span className="text-xs text-gray-500">{t('Piyasa özeti gizli')}</span>
           <button
             type="button"
             onClick={() => setTickerOpen(true)}
@@ -325,7 +327,7 @@ export function MarketTicker() {
             aria-expanded="false"
           >
             <ChevronDown className="w-4 h-4 shrink-0" aria-hidden />
-            Göster
+            {t('Göster')}
           </button>
         </div>
       </div>
@@ -359,9 +361,9 @@ export function MarketTicker() {
         type="button"
         onClick={() => setTickerOpen(false)}
         className="shrink-0 w-10 flex items-center justify-center border-r border-gray-100 bg-gray-50 hover:bg-gray-100 text-gray-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#093eaa]/40"
-        title="Piyasa şeridini gizle"
+        title={t('Piyasa şeridini gizle')}
         aria-expanded="true"
-        aria-label="Piyasa şeridini gizle"
+        aria-label={t('Piyasa şeridini gizle')}
       >
         <ChevronUp className="w-4 h-4" aria-hidden />
       </button>

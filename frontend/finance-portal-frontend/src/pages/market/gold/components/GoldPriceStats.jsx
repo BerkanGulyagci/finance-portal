@@ -1,11 +1,13 @@
 import { useMemo } from 'react';
 import { fmt, getSpotPrice } from './goldConstants';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 /**
  * Seçili dönemin history noktalarından istatistik hesaplar.
  * displayPoints: GoldPage'de buildDisplayPoints() ile üretilen, tab'a göre dönüştürülmüş noktalar.
  */
 export default function GoldPriceStats({ spot, activeTab, historyPoints }) {
+  const { t } = useTranslation();
   if (!spot || !activeTab) return null;
 
   const isUsd = activeTab.currency === 'USD';
@@ -125,7 +127,7 @@ export default function GoldPriceStats({ spot, activeTab, historyPoints }) {
           key={row.label}
           className="flex justify-between items-center py-2 border-b border-gray-50"
         >
-          <span className="text-xs font-bold text-gray-500 tracking-wider">{row.label}</span>
+          <span className="text-xs font-bold text-gray-500 tracking-wider">{t(row.label)}</span>
           <span
             className={`text-sm font-semibold ${
               row.colored

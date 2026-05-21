@@ -3,8 +3,10 @@ import { BarChart3, TrendingUp, ArrowUpDown, CalendarDays } from 'lucide-react';
 import { getFxTcmb, getEconomicIndicators } from '../../api/marketApi';
 import { getBloombergHtNews } from '../../api/newsApi';
 import { getIpos } from '../../api/ipoApi';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 export function Sidebar() {
+  const { t } = useTranslation();
   const [rates, setRates] = useState([]);
   const [selectedCurrency, setSelectedCurrency] = useState('USD');
   const [amount, setAmount] = useState(1000);
@@ -27,10 +29,10 @@ export function Sidebar() {
       {/* Most Read */}
       <div>
         <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-[#093eaa]" /> En Son Haberler
+          <TrendingUp className="w-5 h-5 text-[#093eaa]" /> {t('En Son Haberler')}
         </h3>
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-          {mostRead.length === 0 && <div className="p-4 text-sm text-gray-400">Yükleniyor...</div>}
+          {mostRead.length === 0 && <div className="p-4 text-sm text-gray-400">{t('Yükleniyor...')}</div>}
           {mostRead.map((item, i) => (
             <div key={i} className={`p-4 flex gap-4 cursor-pointer hover:bg-gray-50 transition-colors ${i < mostRead.length - 1 ? 'border-b border-gray-100' : ''}`}>
               <span className="text-2xl font-black text-gray-200">{String(i + 1).padStart(2, '0')}</span>
@@ -47,7 +49,7 @@ export function Sidebar() {
       {/* Currency Converter */}
       <div className="bg-slate-900 text-white rounded-xl p-6 shadow-xl">
         <h3 className="font-bold mb-4 flex items-center gap-2">
-          <ArrowUpDown className="w-5 h-5 text-[#093eaa]" /> Döviz Çevirici
+          <ArrowUpDown className="w-5 h-5 text-[#093eaa]" /> {t('Döviz Çevirici')}
         </h3>
         <div className="space-y-3">
           {/* From */}
@@ -92,15 +94,15 @@ export function Sidebar() {
       {/* Market Summary */}
       <div>
         <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-          <BarChart3 className="w-5 h-5 text-[#093eaa]" /> Piyasa Özeti
+          <BarChart3 className="w-5 h-5 text-[#093eaa]" /> {t('Piyasa Özeti')}
         </h3>
         <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm space-y-3">
           <div className="flex justify-between items-center">
-            <span className="text-xs font-semibold text-gray-600">TCMB Faiz Oranı</span>
+            <span className="text-xs font-semibold text-gray-600">{t('TCMB Faiz Oranı')}</span>
             <span className="text-xs font-bold text-[#093eaa]">%{indicators.policyRate}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-xs font-semibold text-gray-600">Enflasyon (TÜFE)</span>
+            <span className="text-xs font-semibold text-gray-600">{t('Enflasyon (TÜFE)')}</span>
             <span className="text-xs font-bold text-rose-500">%{indicators.inflation}</span>
           </div>
           {['USD', 'EUR', 'GBP'].map(sym => {
@@ -120,11 +122,11 @@ export function Sidebar() {
       {/* IPO Calendar */}
       <div>
         <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-          <CalendarDays className="w-5 h-5 text-[#093eaa]" /> Halka Arz Takvimi
+          <CalendarDays className="w-5 h-5 text-[#093eaa]" /> {t('Halka Arz Takvimi')}
         </h3>
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
           {ipos.length === 0 && (
-            <div className="p-4 text-sm text-gray-400">Yükleniyor...</div>
+            <div className="p-4 text-sm text-gray-400">{t('Yükleniyor...')}</div>
           )}
           {ipos.slice(0, 8).map((ipo, i) => (
             <div key={i} className={`p-3 flex items-start justify-between gap-2 ${i < Math.min(ipos.length, 8) - 1 ? 'border-b border-gray-100' : ''}`}>
@@ -138,7 +140,7 @@ export function Sidebar() {
               {ipo.url && (
                 <a href={ipo.url} target="_blank" rel="noopener noreferrer"
                   className="text-[10px] text-[#093eaa] hover:underline shrink-0">
-                  Detay
+                  {t('Detay')}
                 </a>
               )}
             </div>
@@ -146,7 +148,7 @@ export function Sidebar() {
           {ipos.length > 0 && (
             <a href="https://halkarz.com" target="_blank" rel="noopener noreferrer"
               className="block text-center text-xs text-[#093eaa] font-semibold py-3 hover:bg-gray-50 transition-colors border-t border-gray-100">
-              Tümünü Gör →
+              {t('Tümünü Gör →')}
             </a>
           )}
         </div>

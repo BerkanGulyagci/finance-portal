@@ -1,11 +1,13 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { CheckCircle2, X, XCircle } from 'lucide-react';
+import { useTranslation } from '../i18n/LanguageContext';
 
 const ToastContext = createContext(null);
 
 const AUTO_DISMISS_MS = 4500;
 
 export function ToastProvider({ children }) {
+  const { t } = useTranslation();
   const [toasts, setToasts] = useState([]);
 
   const dismiss = useCallback((id) => {
@@ -47,7 +49,7 @@ export function ToastProvider({ children }) {
               type="button"
               onClick={() => dismiss(toast.id)}
               className="shrink-0 p-0.5 rounded hover:bg-black/5"
-              aria-label="Kapat"
+              aria-label={t('Kapat')}
             >
               <X className="w-4 h-4 opacity-60" />
             </button>

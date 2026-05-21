@@ -7,8 +7,10 @@ import CommoditiesSourceNotice from './components/CommoditiesSourceNotice';
 import CommodityCategorySection from './components/CommodityCategorySection';
 import CommoditiesLoadingState from './components/CommoditiesLoadingState';
 import CommoditiesErrorState from './components/CommoditiesErrorState';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 export default function CommoditiesPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const [commodities,   setCommodities]   = useState([]);
@@ -36,7 +38,7 @@ export default function CommoditiesPage() {
         fetchAllSpots(list);
       })
       .catch(() => {
-        setError('Emtia listesi alınamadı.');
+        setError(t('Emtia listesi alınamadı.'));
         setLoadingList(false);
       });
   }, []);

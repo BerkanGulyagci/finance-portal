@@ -4,6 +4,7 @@ import { BarChart2 } from 'lucide-react';
 import { getAllTefasFunds, getAllBesFunds, getAllOksFunds, getOsmanliFundBulletin } from '../../../api/marketApi';
 import { useSortable } from '../../../hooks/useSortable';
 import SortableTh from '../../../components/common/SortableTh';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 const PAGE_SIZE = 20;
 
@@ -36,14 +37,16 @@ function RiskBadge({ level }) {
 }
 
 function TypeBadge({ type }) {
+  const { t } = useTranslation();
   if (!type) return null;
   const map = { Yatirim: 'bg-blue-100 text-blue-700', Bes: 'bg-emerald-100 text-emerald-700', Oks: 'bg-violet-100 text-violet-700', Serbest: 'bg-amber-100 text-amber-700' };
-  const labels = { Yatirim: 'Yatırım', Bes: 'BES', Oks: 'OKS', Serbest: 'Serbest' };
+  const labels = { Yatirim: t('Yatırım'), Bes: 'BES', Oks: 'OKS', Serbest: t('Serbest') };
   return <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${map[type] ?? 'bg-gray-100 text-gray-600'}`}>{labels[type] ?? type}</span>;
 }
 
 // ── Standart fon tablosu (TEFAS / BES / OKS) ─────────────────────────────────
 function FundTable({ funds, accentColor, loading, error, showFounder = false }) {
+  const { t } = useTranslation();
   const [search, setSearch]           = useState('');
   const [typeFilter, setTypeFilter]   = useState('');
   const [founderFilter, setFounderFilter] = useState('');
@@ -77,7 +80,7 @@ function FundTable({ funds, accentColor, loading, error, showFounder = false }) 
         <div className="w-2 h-2 rounded-full animate-bounce [animation-delay:100ms]" style={{ backgroundColor: accentColor + '99' }} />
         <div className="w-2 h-2 rounded-full animate-bounce [animation-delay:200ms]" style={{ backgroundColor: accentColor + '44' }} />
       </div>
-      <p className="text-gray-400 text-sm">Fonlar yükleniyor...</p>
+      <p className="text-gray-400 text-sm">{t('Fonlar yükleniyor...')}</p>
     </div>
   );
   if (error) return <div className="p-6 text-rose-500 text-sm">{error}</div>;
@@ -86,26 +89,26 @@ function FundTable({ funds, accentColor, loading, error, showFounder = false }) 
     <>
       {/* Filtreler */}
       <div className="p-4 border-b border-gray-100 flex items-center gap-3 flex-wrap">
-        <input type="text" placeholder="Fon kodu, adı veya yönetici ara..."
+        <input type="text" placeholder={t('Fon kodu, adı veya yönetici ara...')}
           value={search} onChange={e => { setSearch(e.target.value); setPage(0); }}
           className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 min-w-[260px]"
           style={{ '--tw-ring-color': accentColor + '50' }} />
         {showFounder && founders.length > 0 && (
           <select value={founderFilter} onChange={e => { setFounderFilter(e.target.value); setPage(0); }}
             className="px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none">
-            <option value="">Tüm Şirketler</option>
+            <option value="">{t('Tüm Şirketler')}</option>
             {founders.map(f => <option key={f} value={f}>{f}</option>)}
           </select>
         )}
         {fundTypes.length > 0 && (
           <select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setPage(0); }}
             className="px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none">
-            <option value="">Tüm Tipler</option>
-            {fundTypes.map(t => <option key={t} value={t}>{t}</option>)}
+            <option value="">{t('Tüm Tipler')}</option>
+            {fundTypes.map(ft => <option key={ft} value={ft}>{ft}</option>)}
           </select>
         )}
         <span className="ml-auto text-xs text-gray-400">
-          {sorted.length > 0 ? `${sorted.length} kayıttan ${page * PAGE_SIZE + 1}–${Math.min((page + 1) * PAGE_SIZE, sorted.length)} arası` : '0 kayıt'}
+          {sorted.length > 0 ? `${sorted.length} ${t('kayıttan')} ${page * PAGE_SIZE + 1}–${Math.min((page + 1) * PAGE_SIZE, sorted.length)} ${t('arası')}` : `0 ${t('kayıt')}`}
         </span>
       </div>
 
@@ -114,22 +117,22 @@ function FundTable({ funds, accentColor, loading, error, showFounder = false }) 
         <table className="w-full">
           <thead>
             <tr style={headerBg} className="text-white">
-              <SortableTh {...thProps('code', 'Fon Kodu')} className="text-white" />
-              <SortableTh {...thProps('name', 'Fon Adı')} className="text-white" />
-              {showFounder && <SortableTh {...thProps('founderName', 'Şirket')} className="text-white" />}
-              <SortableTh {...thProps('fundType', 'Tip')} className="text-white" />
-              <SortableTh {...thProps('riskLevel', 'Risk', 'center')} className="text-white" />
-              <SortableTh {...thProps('price', 'Fiyat', 'right')} className="text-white" />
-              <SortableTh {...thProps('returnOneMonth', '1 Ay %', 'right')} className="text-white" />
-              <SortableTh {...thProps('returnThreeMonths', '3 Ay %', 'right')} className="text-white" />
-              <SortableTh {...thProps('returnOneYear', '1 Yıl %', 'right')} className="text-white" />
-              <SortableTh {...thProps('returnThreeYears', '3 Yıl %', 'right')} className="text-white" />
+              <SortableTh {...thProps('code', t('Fon Kodu'))} className="text-white" />
+              <SortableTh {...thProps('name', t('Fon Adı'))} className="text-white" />
+              {showFounder && <SortableTh {...thProps('founderName', t('Şirket'))} className="text-white" />}
+              <SortableTh {...thProps('fundType', t('Tip'))} className="text-white" />
+              <SortableTh {...thProps('riskLevel', t('Risk'), 'center')} className="text-white" />
+              <SortableTh {...thProps('price', t('Fiyat'), 'right')} className="text-white" />
+              <SortableTh {...thProps('returnOneMonth', t('1 Ay %'), 'right')} className="text-white" />
+              <SortableTh {...thProps('returnThreeMonths', t('3 Ay %'), 'right')} className="text-white" />
+              <SortableTh {...thProps('returnOneYear', t('1 Yıl %'), 'right')} className="text-white" />
+              <SortableTh {...thProps('returnThreeYears', t('3 Yıl %'), 'right')} className="text-white" />
               <th className="px-3 py-3 w-10" />
             </tr>
           </thead>
           <tbody>
             {paged.length === 0 ? (
-              <tr><td colSpan={showFounder ? 11 : 10} className="px-4 py-8 text-center text-gray-400 text-sm">Sonuç bulunamadı.</td></tr>
+              <tr><td colSpan={showFounder ? 11 : 10} className="px-4 py-8 text-center text-gray-400 text-sm">{t('Sonuç bulunamadı.')}</td></tr>
             ) : paged.map((r, i) => (
               <tr key={r.code} className={`border-t border-gray-100 transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}
                 style={{ '--hover-bg': accentColor + '10' }}
@@ -156,7 +159,7 @@ function FundTable({ funds, accentColor, loading, error, showFounder = false }) 
                 <td className="px-4 py-3 text-sm text-right">{fmtPct(r.returnOneYear)}</td>
                 <td className="px-4 py-3 text-sm text-right">{fmtPct(r.returnThreeYears)}</td>
                 <td className="px-2 py-3">
-                  <Link to={`/market/tefas/compare?codes=${r.code}`} onClick={e => e.stopPropagation()} title="Karşılaştır"
+                  <Link to={`/market/tefas/compare?codes=${r.code}`} onClick={e => e.stopPropagation()} title={t('Karşılaştır')}
                     className="p-1.5 rounded-lg bg-gray-100 text-gray-400 transition-all inline-flex hover:text-white"
                     onMouseEnter={e => { e.currentTarget.style.backgroundColor = accentColor; e.currentTarget.style.color = 'white'; }}
                     onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; e.currentTarget.style.color = ''; }}>
@@ -172,7 +175,7 @@ function FundTable({ funds, accentColor, loading, error, showFounder = false }) 
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="p-4 flex items-center justify-between border-t border-gray-100 flex-wrap gap-3">
-          <span className="text-xs text-gray-500">{sorted.length} kayıt</span>
+          <span className="text-xs text-gray-500">{sorted.length} {t('kayıt')}</span>
           <div className="flex gap-1 flex-wrap">
             <button disabled={page === 0} onClick={() => setPage(0)} className="px-3 py-1.5 rounded border border-gray-200 text-xs hover:bg-gray-50 disabled:opacity-40">«</button>
             <button disabled={page === 0} onClick={() => setPage(p => p - 1)} className="px-3 py-1.5 rounded border border-gray-200 text-xs hover:bg-gray-50 disabled:opacity-40">‹</button>
@@ -198,6 +201,7 @@ function FundTable({ funds, accentColor, loading, error, showFounder = false }) 
 
 // ── Osmanlı bülten tablosu ────────────────────────────────────────────────────
 function OsmanliBulletinTable({ funds, loading, error }) {
+  const { t } = useTranslation();
   const [search, setSearch]       = useState('');
   const [typeFilter, setTypeFilter]   = useState('');
   const [groupFilter, setGroupFilter] = useState('');
@@ -224,7 +228,7 @@ function OsmanliBulletinTable({ funds, loading, error }) {
         <div className="w-2 h-2 bg-amber-500/60 rounded-full animate-bounce [animation-delay:100ms]" />
         <div className="w-2 h-2 bg-amber-500/30 rounded-full animate-bounce [animation-delay:200ms]" />
       </div>
-      <p className="text-gray-400 text-sm">Fon bülteni yükleniyor...</p>
+      <p className="text-gray-400 text-sm">{t('Fon bülteni yükleniyor...')}</p>
     </div>
   );
   if (error) return <div className="p-6 text-rose-500 text-sm">{error}</div>;
@@ -232,45 +236,45 @@ function OsmanliBulletinTable({ funds, loading, error }) {
   return (
     <>
       <div className="p-4 border-b border-gray-100 flex items-center gap-3 flex-wrap">
-        <input type="text" placeholder="Fon kodu, adı veya grup ara..."
+        <input type="text" placeholder={t('Fon kodu, adı veya grup ara...')}
           value={search} onChange={e => setSearch(e.target.value)}
           className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none min-w-[240px]" />
         {types.length > 0 && (
           <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
             className="px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none">
-            <option value="">Tüm Tipler</option>
-            {types.map(t => <option key={t} value={t}>{t}</option>)}
+            <option value="">{t('Tüm Tipler')}</option>
+            {types.map(ty => <option key={ty} value={ty}>{ty}</option>)}
           </select>
         )}
         {groups.length > 0 && (
           <select value={groupFilter} onChange={e => setGroupFilter(e.target.value)}
             className="px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none">
-            <option value="">Tüm Gruplar</option>
+            <option value="">{t('Tüm Gruplar')}</option>
             {groups.map(g => <option key={g} value={g}>{g}</option>)}
           </select>
         )}
-        <span className="ml-auto text-xs text-gray-400">{sorted.length} fon</span>
+        <span className="ml-auto text-xs text-gray-400">{sorted.length} {t('fon')}</span>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="bg-amber-600 text-white">
-              <SortableTh {...thProps('code', 'Kod')} className="text-white" />
-              <SortableTh {...thProps('name', 'Fon Adı')} className="text-white" />
-              <SortableTh {...thProps('group', 'Grup')} className="text-white" />
-              <SortableTh {...thProps('type', 'Tip')} className="text-white" />
-              <SortableTh {...thProps('riskLevel', 'Risk', 'center')} className="text-white" />
-              <SortableTh {...thProps('dailyReturn', 'Günlük %', 'right')} className="text-white" />
-              <SortableTh {...thProps('weeklyReturn', 'Haftalık %', 'right')} className="text-white" />
-              <SortableTh {...thProps('monthlyReturn', 'Aylık %', 'right')} className="text-white" />
-              <SortableTh {...thProps('yearlyReturn', 'Yıllık %', 'right')} className="text-white" />
+              <SortableTh {...thProps('code', t('Kod'))} className="text-white" />
+              <SortableTh {...thProps('name', t('Fon Adı'))} className="text-white" />
+              <SortableTh {...thProps('group', t('Grup'))} className="text-white" />
+              <SortableTh {...thProps('type', t('Tip'))} className="text-white" />
+              <SortableTh {...thProps('riskLevel', t('Risk'), 'center')} className="text-white" />
+              <SortableTh {...thProps('dailyReturn', t('Günlük %'), 'right')} className="text-white" />
+              <SortableTh {...thProps('weeklyReturn', t('Haftalık %'), 'right')} className="text-white" />
+              <SortableTh {...thProps('monthlyReturn', t('Aylık %'), 'right')} className="text-white" />
+              <SortableTh {...thProps('yearlyReturn', t('Yıllık %'), 'right')} className="text-white" />
               <th className="px-3 py-3 border-b border-amber-700 w-10" />
             </tr>
           </thead>
           <tbody>
             {sorted.length === 0 ? (
-              <tr><td colSpan={10} className="px-4 py-8 text-center text-gray-400 text-sm">Sonuç bulunamadı.</td></tr>
+              <tr><td colSpan={10} className="px-4 py-8 text-center text-gray-400 text-sm">{t('Sonuç bulunamadı.')}</td></tr>
             ) : sorted.map((r, i) => (
               <tr key={r.code} className={`border-t border-gray-100 transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}
                 onMouseEnter={e => e.currentTarget.style.backgroundColor = '#fef3c7'}
@@ -293,7 +297,7 @@ function OsmanliBulletinTable({ funds, loading, error }) {
                 <td className="px-4 py-3 text-sm text-right">{fmtPct(r.yearlyReturn)}</td>
                 <td className="px-2 py-3">
                   <Link to={`/market/tefas/compare?codes=${r.code}`}
-                    onClick={e => e.stopPropagation()} title="Karşılaştır"
+                    onClick={e => e.stopPropagation()} title={t('Karşılaştır')}
                     className="p-1.5 rounded-lg bg-gray-100 text-gray-400 transition-all inline-flex hover:text-white"
                     onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#d97706'; e.currentTarget.style.color = 'white'; }}
                     onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; e.currentTarget.style.color = ''; }}>
@@ -311,6 +315,7 @@ function OsmanliBulletinTable({ funds, loading, error }) {
 
 // ── Ana sayfa ─────────────────────────────────────────────────────────────────
 export default function TefasPage() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('tefas');
   const [data, setData]   = useState({});
   const [loading, setLoading] = useState({});
@@ -328,7 +333,7 @@ export default function TefasPage() {
     };
     fetchers[key]()
       .then(funds => setData(p => ({ ...p, [key]: Array.isArray(funds) ? funds : [] })))
-      .catch(e => setErrors(p => ({ ...p, [key]: !e.response ? 'Sunucuya ulaşılamıyor.' : `Hata (${e.response.status})` })))
+      .catch(e => setErrors(p => ({ ...p, [key]: !e.response ? t('Sunucuya ulaşılamıyor.') : `${t('Hata')} (${e.response.status})` })))
       .finally(() => setLoading(p => ({ ...p, [key]: false })));
   }
 
@@ -340,30 +345,30 @@ export default function TefasPage() {
     fetchTab(key);
   }
 
-  const tab = TABS.find(t => t.key === activeTab);
+  const tab = TABS.find(tb => tb.key === activeTab);
   const funds = data[activeTab] ?? [];
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-1 border-l-4 pl-4" style={{ borderColor: tab.color }}>
-        Yatırım Fonları
+        {t('Yatırım Fonları')}
       </h1>
-      <p className="text-sm text-gray-500 mb-5 pl-5">Kaynak: Rasyonet / YatırımDirekt</p>
+      <p className="text-sm text-gray-500 mb-5 pl-5">{t('Kaynak: Rasyonet / YatırımDirekt')}</p>
 
       {/* Tab butonları */}
       <div className="flex gap-2 mb-4 flex-wrap">
-        {TABS.map(t => {
-          const count = data[t.key]?.length;
-          const isActive = activeTab === t.key;
+        {TABS.map(tb => {
+          const count = data[tb.key]?.length;
+          const isActive = activeTab === tb.key;
           return (
-            <button key={t.key} onClick={() => handleTab(t.key)}
+            <button key={tb.key} onClick={() => handleTab(tb.key)}
               className={`flex flex-col items-start px-4 py-2.5 rounded-xl border-2 transition-all text-left ${
                 isActive ? 'text-white shadow-sm' : 'bg-white border-gray-200 hover:border-gray-300'
               }`}
-              style={isActive ? { backgroundColor: t.color, borderColor: t.color } : {}}>
-              <span className={`text-sm font-bold ${isActive ? 'text-white' : t.text}`}>{t.label}</span>
+              style={isActive ? { backgroundColor: tb.color, borderColor: tb.color } : {}}>
+              <span className={`text-sm font-bold ${isActive ? 'text-white' : tb.text}`}>{tb.label}</span>
               <span className={`text-xs ${isActive ? 'text-white/80' : 'text-gray-400'}`}>
-                {t.sub}{count != null ? ` · ${count} fon` : ''}
+                {t(tb.sub)}{count != null ? ` · ${count} ${t('fon')}` : ''}
               </span>
             </button>
           );

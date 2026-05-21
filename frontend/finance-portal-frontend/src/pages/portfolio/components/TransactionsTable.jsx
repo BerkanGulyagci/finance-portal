@@ -1,4 +1,5 @@
 import { Trash2 } from 'lucide-react';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 function fmt(v, dec = 2) {
   if (v == null) return '-';
@@ -47,30 +48,31 @@ function txBondMix(transactions) {
  *   deletingId: string | null
  */
 export default function TransactionsTable({ transactions = [], onDelete, deletingId }) {
+  const { t: tr } = useTranslation();
   if (!transactions.length) {
     return (
       <div className="p-12 text-center text-gray-400 text-sm">
-        Henüz işlem yok.
+        {tr('Henüz işlem yok.')}
       </div>
     );
   }
 
   const mix = txBondMix(transactions);
   const priceHeader = mix.onlyBond
-    ? 'Gösterge Değeri'
+    ? tr('Gösterge Değeri')
     : mix.mixed
-      ? 'Fiyat / Gösterge'
-      : 'Fiyat';
+      ? tr('Fiyat / Gösterge')
+      : tr('Fiyat');
 
-  const headers = ['Tarih', 'İşlem', 'Sembol', 'Tür', 'Miktar', priceHeader, 'Toplam', 'Komisyon', ''];
+  const headers = [tr('Tarih'), tr('İşlem'), tr('Sembol'), tr('Tür'), tr('Miktar'), priceHeader, tr('Toplam'), tr('Komisyon'), ''];
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
         <thead className="bg-gray-50">
           <tr>
-            {headers.map(h => (
-              <th key={h} className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap">
+            {headers.map((h, idx) => (
+              <th key={`${h}-${idx}`} className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap">
                 {h}
               </th>
             ))}
@@ -90,13 +92,13 @@ export default function TransactionsTable({ transactions = [], onDelete, deletin
                   <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                     isBuy ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
                   }`}>
-                    {isBuy ? 'ALIŞ' : 'SATIŞ'}
+                    {isBuy ? tr('ALIŞ') : tr('SATIŞ')}
                   </span>
                 </td>
                 <td className="px-4 py-3 font-bold text-[#093eaa] text-sm">{t.symbol}</td>
                 <td className="px-4 py-3">
                   <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-semibold">
-                    {ASSET_LABELS[t.assetType] ?? t.assetType}
+                    {ASSET_LABELS[t.assetType] ? tr(ASSET_LABELS[t.assetType]) : t.assetType}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-sm font-mono">{fmtQty(t.quantity)}</td>
@@ -110,7 +112,7 @@ export default function TransactionsTable({ transactions = [], onDelete, deletin
                       onClick={() => onDelete(t.id)}
                       disabled={!t.id || deletingId === t.id}
                       className="text-gray-500 hover:text-rose-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                      title={t.id ? 'İşlemi sil' : 'İşlem kimliği eksik — sayfayı yenileyin'}
+                      title={t.id ? tr('İşlemi sil') : tr('İşlem kimliği eksik — sayfayı yenileyin')}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>

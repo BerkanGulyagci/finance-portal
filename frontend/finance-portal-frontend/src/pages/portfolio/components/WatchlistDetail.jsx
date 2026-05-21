@@ -7,6 +7,7 @@ import AddWatchlistItemModal from './AddWatchlistItemModal';
 import { getWatchlistItems, deleteWatchlistItem, getMyPortfolios } from '../../../api/portfolioApi';
 import { downloadWatchlistCsv } from '../utils/exportWatchlistCsv';
 import { getWatchlistDetailPath } from '../constants/watchlistMarketRoutes';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 const TABS = [
   { key: 'overview', label: 'Özet' },
@@ -20,6 +21,7 @@ const TABS = [
  *   portfolio: PortfolioResponse
  */
 export default function WatchlistDetail({ portfolio }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [items, setItems] = useState([]);
@@ -48,13 +50,13 @@ export default function WatchlistDetail({ portfolio }) {
   useEffect(() => { loadItems(); }, [loadItems]);
 
   async function handleDelete(itemId) {
-    if (!window.confirm('Bu sembolü izleme listesinden çıkarmak istediğinizden emin misiniz?')) return;
+    if (!window.confirm(t('Bu sembolü izleme listesinden çıkarmak istediğinizden emin misiniz?'))) return;
     setDeletingId(itemId);
     try {
       await deleteWatchlistItem(portfolio.id, itemId);
       setItems(prev => prev.filter(i => i.id !== itemId));
     } catch {
-      alert('Sembol silinemedi.');
+      alert(t('Sembol silinemedi.'));
     } finally {
       setDeletingId(null);
     }
@@ -93,7 +95,7 @@ export default function WatchlistDetail({ portfolio }) {
     try {
       downloadWatchlistCsv(portfolio.name, items);
     } catch {
-      alert('CSV oluşturulamadı.');
+      alert(t('CSV oluşturulamadı.'));
     }
   }
 
@@ -135,14 +137,14 @@ export default function WatchlistDetail({ portfolio }) {
   }, {});
 
   const SECTIONS = [
-    { key: 'STOCK', label: 'Hisseler', variant: 'default', tone: 'blue' },
-    { key: 'CRYPTO', label: 'Kripto', variant: 'default', tone: 'violet' },
-    { key: 'FUND', label: 'Fon', variant: 'fund', tone: 'emerald' },
-    { key: 'COMMODITY', label: 'Emtialar', variant: 'default', tone: 'amber' },
-    { key: 'GOLD', label: 'Altın', variant: 'default', tone: 'yellow' },
-    { key: 'FUTURE', label: 'Vadeli', variant: 'default', tone: 'slate' },
-    { key: 'FX', label: 'Döviz', variant: 'fx', tone: 'cyan' },
-    { key: 'BOND', label: 'DİBS', variant: 'bond', tone: 'rose' },
+    { key: 'STOCK', label: t('Hisseler'), variant: 'default', tone: 'blue' },
+    { key: 'CRYPTO', label: t('Kripto'), variant: 'default', tone: 'violet' },
+    { key: 'FUND', label: t('Fon'), variant: 'fund', tone: 'emerald' },
+    { key: 'COMMODITY', label: t('Emtialar'), variant: 'default', tone: 'amber' },
+    { key: 'GOLD', label: t('Altın'), variant: 'default', tone: 'yellow' },
+    { key: 'FUTURE', label: t('Vadeli'), variant: 'default', tone: 'slate' },
+    { key: 'FX', label: t('Döviz'), variant: 'fx', tone: 'cyan' },
+    { key: 'BOND', label: t('DİBS'), variant: 'bond', tone: 'rose' },
   ];
 
   function toneClasses(tone) {
@@ -173,9 +175,9 @@ export default function WatchlistDetail({ portfolio }) {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <div>
-                <h3 className="font-bold text-gray-900">Varlık Portföyü Seç</h3>
+                <h3 className="font-bold text-gray-900">{t('Varlık Portföyü Seç')}</h3>
                 <p className="text-sm text-gray-500 mt-0.5">
-                  {targetInstrument?.name || targetInstrument?.symbol} için alım/satım ekranı açılacak.
+                  {t('{name} için alım/satım ekranı açılacak.', { name: targetInstrument?.name || targetInstrument?.symbol })}
                 </p>
               </div>
               <button
@@ -187,10 +189,10 @@ export default function WatchlistDetail({ portfolio }) {
             </div>
             <div className="p-4 max-h-[55vh] overflow-y-auto">
               {portfolioLoading ? (
-                <div className="py-8 text-center text-sm text-gray-400">Portföyler yükleniyor...</div>
+                <div className="py-8 text-center text-sm text-gray-400">{t('Portföyler yükleniyor...')}</div>
               ) : holdingsPortfolios.length === 0 ? (
                 <div className="py-8 text-center text-sm text-gray-500">
-                  Varlık portföyü bulunamadı. Önce bir HOLDINGS portföyü oluşturun.
+                  {t('Varlık portföyü bulunamadı. Önce bir HOLDINGS portföyü oluşturun.')}
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -214,17 +216,17 @@ export default function WatchlistDetail({ portfolio }) {
       {/* Üst bar */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex gap-2 flex-wrap">
-          {TABS.map(t => (
+          {TABS.map(tab => (
             <button
-              key={t.key}
-              onClick={() => setActiveTab(t.key)}
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
               className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-                activeTab === t.key
+                activeTab === tab.key
                   ? 'bg-sky-500 text-white'
                   : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
               }`}
             >
-              {t.label}
+              {t(tab.label)}
             </button>
           ))}
         </div>
@@ -236,14 +238,14 @@ export default function WatchlistDetail({ portfolio }) {
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all disabled:opacity-50"
           >
             <FileDown className="w-4 h-4" />
-            CSV&apos;ye Aktar
+            {t("CSV'ye Aktar")}
           </button>
           <button
             type="button"
             onClick={() => setShowAdd(true)}
             className="flex items-center gap-2 bg-sky-500 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-sky-600 transition-all"
           >
-            <Plus className="w-4 h-4" /> Sembol Ekle
+            <Plus className="w-4 h-4" /> {t('Sembol Ekle')}
           </button>
         </div>
       </div>
@@ -251,28 +253,28 @@ export default function WatchlistDetail({ portfolio }) {
       {activeTab === 'overview' && (
         <div className="bg-white rounded-xl border border-gray-200 p-3 flex flex-wrap gap-3">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-gray-500">Tür</span>
+            <span className="text-xs font-semibold text-gray-500">{t('Tür')}</span>
             <select
               value={typeFilter}
               onChange={e => setTypeFilter(e.target.value)}
               className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm bg-white"
             >
-              <option value="ALL">Tümü</option>
+              <option value="ALL">{t('Tümü')}</option>
               {SECTIONS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
             </select>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-gray-500">Durum</span>
+            <span className="text-xs font-semibold text-gray-500">{t('Durum')}</span>
             <select
               value={trendFilter}
               onChange={e => setTrendFilter(e.target.value)}
               className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm bg-white"
             >
-              <option value="ALL">Tümü</option>
-              <option value="UP">Artanlar</option>
-              <option value="DOWN">Azalanlar</option>
-              <option value="FLAT">Sabit</option>
-              <option value="NO_DATA">Veri yok</option>
+              <option value="ALL">{t('Tümü')}</option>
+              <option value="UP">{t('Artanlar')}</option>
+              <option value="DOWN">{t('Azalanlar')}</option>
+              <option value="FLAT">{t('Sabit')}</option>
+              <option value="NO_DATA">{t('Veri yok')}</option>
             </select>
           </div>
         </div>
@@ -297,7 +299,7 @@ export default function WatchlistDetail({ portfolio }) {
                     <div className={`mx-3 mt-2 px-4 py-2.5 flex items-center justify-between border rounded-xl ${toneClasses(sec.tone)}`}>
                       <div className="flex items-baseline gap-2">
                         <h3 className="font-bold">{sec.label}</h3>
-                        <span className="text-xs opacity-80">{list.length} adet</span>
+                        <span className="text-xs opacity-80">{t('{count} adet', { count: list.length })}</span>
                       </div>
                     </div>
                     <WatchlistTable
@@ -327,7 +329,7 @@ export default function WatchlistDetail({ portfolio }) {
       {/* Özet bilgi */}
       {activeTab === 'overview' && !loading && (
         <p className="text-xs text-gray-400 pl-1">
-          {items.length} sembol takip ediliyor
+          {t('{count} sembol takip ediliyor', { count: items.length })}
         </p>
       )}
     </div>

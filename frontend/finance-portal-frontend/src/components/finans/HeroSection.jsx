@@ -1,18 +1,20 @@
 import { useEffect, useState } from 'react';
 import { Clock, TrendingUp, Send } from 'lucide-react';
 import { getBloombergHtNews, proxyImageUrl } from '../../api/newsApi';
+import { useTranslation } from '../../i18n/LanguageContext';
 
-function formatTime(raw) {
+function formatTime(raw, t) {
   if (!raw) return '';
   try {
     const diff = Math.floor((Date.now() - new Date(raw).getTime()) / 60000);
-    if (diff < 60) return `${diff} dk önce`;
-    if (diff < 1440) return `${Math.floor(diff / 60)} saat önce`;
+    if (diff < 60) return `${diff} ${t('dk önce')}`;
+    if (diff < 1440) return `${Math.floor(diff / 60)} ${t('saat önce')}`;
     return new Date(raw).toLocaleDateString('tr-TR');
   } catch { return ''; }
 }
 
 export function HeroSection() {
+  const { t } = useTranslation();
   const [featured, setFeatured] = useState(null);
   const [popular, setPopular] = useState([]);
 
@@ -41,17 +43,17 @@ export function HeroSection() {
         )}
         <div className="absolute bottom-0 left-0 p-8 z-20">
           <span className="bg-[#093eaa] text-white text-xs font-bold px-3 py-1 rounded mb-4 inline-block">
-            SON DAKİKA
+            {t('SON DAKİKA')}
           </span>
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight">
-            {featured?.title ?? 'Piyasalarda son gelişmeler'}
+            {featured?.title ?? t('Piyasalarda son gelişmeler')}
           </h2>
           {featured?.description && (
             <p className="text-slate-200 text-base mb-6 line-clamp-2">{featured.description}</p>
           )}
           <div className="flex items-center gap-4 text-white text-sm">
             <span className="flex items-center gap-1">
-              <Clock className="w-4 h-4" /> {formatTime(featured?.publishedAt)}
+              <Clock className="w-4 h-4" /> {formatTime(featured?.publishedAt, t)}
             </span>
           </div>
         </div>
@@ -62,10 +64,10 @@ export function HeroSection() {
         {/* Popular */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-[#093eaa]" /> Öne Çıkan Haberler
+            <TrendingUp className="w-5 h-5 text-[#093eaa]" /> {t('Öne Çıkan Haberler')}
           </h3>
           <div className="space-y-4">
-            {popular.length === 0 && <p className="text-sm text-gray-400">Yükleniyor...</p>}
+            {popular.length === 0 && <p className="text-sm text-gray-400">{t('Yükleniyor...')}</p>}
             {popular.map((item, i) => (
               <div key={i} className={`flex gap-3 group cursor-pointer ${i > 0 ? 'border-t border-gray-100 pt-4' : ''}`}>
                 {item.imageUrl && (
@@ -81,7 +83,7 @@ export function HeroSection() {
                       : item.title}
                   </h4>
                   <span className="text-[10px] text-gray-400 uppercase mt-1 inline-block">
-                    {item.source} • {formatTime(item.publishedAt)}
+                    {item.source} • {formatTime(item.publishedAt, t)}
                   </span>
                 </div>
               </div>
@@ -91,14 +93,14 @@ export function HeroSection() {
 
         {/* Newsletter */}
         <div className="bg-blue-50 p-6 rounded-xl border border-blue-100">
-          <h3 className="font-bold text-[#093eaa] mb-2">Finans Bültenine Katılın</h3>
+          <h3 className="font-bold text-[#093eaa] mb-2">{t('Finans Bültenine Katılın')}</h3>
           <p className="text-xs text-gray-500 mb-4">
-            Her sabah piyasa açılışından önce en kritik veriler e-postanızda olsun.
+            {t('Her sabah piyasa açılışından önce en kritik veriler e-postanızda olsun.')}
           </p>
           <div className="flex gap-2">
             <input
               type="email"
-              placeholder="E-posta adresiniz"
+              placeholder={t('E-posta adresiniz')}
               className="bg-white border border-gray-200 text-sm rounded-lg flex-1 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#093eaa]"
             />
             <button className="bg-[#093eaa] text-white p-2 rounded-lg hover:bg-[#093eaa]/90 transition-colors">

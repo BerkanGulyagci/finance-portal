@@ -1,3 +1,5 @@
+import { useTranslation } from '../../../../i18n/LanguageContext';
+
 function fmtNum(v, decimals = 2) {
   if (v == null) return null;
   const n = parseFloat(v);
@@ -9,6 +11,7 @@ function fmtNum(v, decimals = 2) {
 }
 
 export default function BondAnalysisCard({ bond }) {
+  const { t } = useTranslation();
   const days           = bond.remainingDays ?? null;
   const indicator      = bond.indicatorValue != null ? parseFloat(bond.indicatorValue) : null;
   const previous       = bond.previousValue  != null ? parseFloat(bond.previousValue)  : null;
@@ -18,35 +21,35 @@ export default function BondAnalysisCard({ bond }) {
 
   // Vade cümlesi
   const maturityText =
-    days == null ? 'vade bilgisi mevcut değildir' :
-    days <= 90   ? `vadesine ${days} gün kalmıştır ve kısa vadeli olarak değerlendirilebilir` :
-    days <= 365  ? `vadesine ${days} gün kalmıştır ve orta vadeli olarak değerlendirilebilir` :
-                   `vadesine ${days} gün kalmıştır ve uzun vadeli olarak değerlendirilebilir`;
+    days == null ? t('vade bilgisi mevcut değildir') :
+    days <= 90   ? `${t('vadesine')} ${days} ${t('gün kalmıştır ve kısa vadeli olarak değerlendirilebilir')}` :
+    days <= 365  ? `${t('vadesine')} ${days} ${t('gün kalmıştır ve orta vadeli olarak değerlendirilebilir')}` :
+                   `${t('vadesine')} ${days} ${t('gün kalmıştır ve uzun vadeli olarak değerlendirilebilir')}`;
 
   // Gösterge değeri cümlesi
   const indicatorText = indicator != null
-    ? `TCMB EVDS gösterge değeri ${fmtNum(indicator, 2)} seviyesindedir.`
-    : 'Gösterge değeri bilgisi mevcut değildir.';
+    ? `${t('TCMB EVDS gösterge değeri')} ${fmtNum(indicator, 2)} ${t('seviyesindedir.')}`
+    : t('Gösterge değeri bilgisi mevcut değildir.');
 
   // Önceki değer + değişim cümlesi
   const changeText = previous != null && dailyChange != null && dailyChangePct != null
-    ? `Önceki değer ${fmtNum(previous, 2)} olup günlük değişim ${dailyChange > 0 ? '+' : dailyChange < 0 ? '-' : ''}${fmtNum(Math.abs(dailyChange), 4)} ve günlük değişim oranı ${dailyChangePct > 0 ? '+' : dailyChangePct < 0 ? '-' : ''}%${fmtNum(Math.abs(dailyChangePct), 2)} olarak hesaplanmıştır.`
+    ? `${t('Önceki değer')} ${fmtNum(previous, 2)} ${t('olup günlük değişim')} ${dailyChange > 0 ? '+' : dailyChange < 0 ? '-' : ''}${fmtNum(Math.abs(dailyChange), 4)} ${t('ve günlük değişim oranı')} ${dailyChangePct > 0 ? '+' : dailyChangePct < 0 ? '-' : ''}%${fmtNum(Math.abs(dailyChangePct), 2)} ${t('olarak hesaplanmıştır.')}`
     : '';
 
   // Kupon cümlesi
   const couponText = couponRate != null
-    ? `Kupon faiz oranı %${fmtNum(couponRate, 2)} seviyesindedir.`
-    : 'Kupon faiz oranı bilgisi mevcut değildir.';
+    ? `${t('Kupon faiz oranı')} %${fmtNum(couponRate, 2)} ${t('seviyesindedir.')}`
+    : t('Kupon faiz oranı bilgisi mevcut değildir.');
 
   return (
     <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6">
-      <h2 className="text-base font-bold text-blue-900 mb-3">Mini Analiz</h2>
+      <h2 className="text-base font-bold text-blue-900 mb-3">{t('Mini Analiz')}</h2>
       <p className="text-sm text-blue-800 leading-relaxed">
-        Bu kıymetin {maturityText}. {indicatorText}{' '}
+        {t('Bu kıymetin')} {maturityText}. {indicatorText}{' '}
         {changeText && <>{changeText} </>}
         {couponText}{' '}
         <span className="text-blue-600 font-medium">
-          Bu veriler TCMB EVDS kaynaklı gösterge değerleridir, alış/satış fiyatı değildir.
+          {t('Bu veriler TCMB EVDS kaynaklı gösterge değerleridir, alış/satış fiyatı değildir.')}
         </span>
       </p>
     </div>

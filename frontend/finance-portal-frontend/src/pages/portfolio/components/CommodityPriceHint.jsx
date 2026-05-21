@@ -1,15 +1,17 @@
 import { fmtTry, fmtUsd, getPrimarySpotPrice } from '../../../utils/commodityPriceUtils';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 /**
  * Yahoo emtia için TRY işlem fiyatı altında USD referans satırı.
  */
 export default function CommodityPriceHint({ spot, unit, className = '' }) {
+  const { t } = useTranslation();
   const primary = spot ? getPrimarySpotPrice(spot) : null;
   if (!primary) return null;
 
   return (
     <p className={`text-[11px] text-gray-500 leading-snug ${className}`}>
-      Referans: ≈ {fmtUsd(primary.value, primary.decimals)} {primary.currency}
+      {t('Referans:')} ≈ {fmtUsd(primary.value, primary.decimals)} {primary.currency}
       {unit ? ` / ${unit}` : ''}
     </p>
   );

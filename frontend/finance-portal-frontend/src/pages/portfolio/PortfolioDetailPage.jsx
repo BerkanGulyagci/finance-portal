@@ -7,8 +7,10 @@ import PortfolioTypeBadge from './components/PortfolioTypeBadge';
 import EditPortfolioModal from './components/EditPortfolioModal';
 import HoldingsDetail from './components/HoldingsDetail';
 import WatchlistDetail from './components/WatchlistDetail';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 export default function PortfolioDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const [portfolio, setPortfolio]   = useState(null);
@@ -23,11 +25,11 @@ export default function PortfolioDetailPage() {
       const data = await getPortfolioById(id);
       setPortfolio(data);
     } catch (err) {
-      setError(!err.response ? 'Sunucuya ulaşılamıyor.' : `Hata (${err.response.status})`);
+      setError(!err.response ? t('Sunucuya ulaşılamıyor.') : t('Hata ({status})', { status: err.response.status }));
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, t]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -76,7 +78,7 @@ export default function PortfolioDetailPage() {
     try {
       downloadPortfolioCsv(portfolio);
     } catch {
-      alert('Dışa aktarılamadı. Bağlantınızı kontrol edip tekrar deneyin.');
+      alert(t('Dışa aktarılamadı. Bağlantınızı kontrol edip tekrar deneyin.'));
     } finally {
       setExporting(false);
     }
@@ -116,7 +118,7 @@ export default function PortfolioDetailPage() {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-[#093eaa]/40 hover:text-[#093eaa] transition-colors"
           >
             <Pencil className="w-4 h-4" />
-            Düzenle
+            {t('Düzenle')}
           </button>
           {!isWatchlist && (
             <button
@@ -126,7 +128,7 @@ export default function PortfolioDetailPage() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors disabled:opacity-50"
             >
               <Download className="w-4 h-4" />
-              {exporting ? 'Dışa aktarılıyor…' : 'Dışa aktar'}
+              {exporting ? t('Dışa aktarılıyor…') : t('Dışa aktar')}
             </button>
           )}
         </div>

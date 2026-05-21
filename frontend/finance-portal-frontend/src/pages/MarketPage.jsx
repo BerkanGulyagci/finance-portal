@@ -1,12 +1,13 @@
 import { useEffect, useState, useMemo } from 'react';
 import { getCryptos, getStocks, getFutures, getFunds, getFxTcmb } from '../api/marketApi';
+import { useTranslation } from '../i18n/LanguageContext';
 
 const TABS = [
-  { key: 'crypto',  label: '🪙 Kripto' },
-  { key: 'stocks',  label: '📈 Hisse' },
-  { key: 'futures', label: 'Vadeli' },
-  { key: 'funds',   label: '🏦 Global Fonlar' },
-  { key: 'fx',      label: '💱 Döviz' },
+  { key: 'crypto',  labelKey: '🪙 Kripto' },
+  { key: 'stocks',  labelKey: '📈 Hisse' },
+  { key: 'futures', labelKey: 'Vadeli' },
+  { key: 'funds',   labelKey: '🏦 Global Fonlar' },
+  { key: 'fx',      labelKey: '💱 Döviz' },
 ];
 
 const PAGE_SIZE = 20;
@@ -31,11 +32,12 @@ function Td({ children, className = '' }) {
 }
 
 function CryptoTable({ items }) {
+  const { t } = useTranslation();
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
         <thead className="bg-gray-50"><tr>
-          {['#', 'Coin', 'Fiyat (TRY)', '24s %', '24s Yüksek', '24s Düşük', 'Hacim'].map(h => <Th key={h}>{h}</Th>)}
+          {['#', 'Coin', 'Fiyat (TRY)', '24s %', '24s Yüksek', '24s Düşük', 'Hacim'].map(h => <Th key={h}>{t(h)}</Th>)}
         </tr></thead>
         <tbody className="bg-white">
           {items.map(c => (
@@ -62,11 +64,12 @@ function CryptoTable({ items }) {
 }
 
 function StockTable({ items }) {
+  const { t } = useTranslation();
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
         <thead className="bg-gray-50"><tr>
-          {['Sembol', 'Ad', 'Fiyat', 'Değişim', '%', 'Yüksek', 'Düşük', 'Hacim', 'Borsa'].map(h => <Th key={h}>{h}</Th>)}
+          {['Sembol', 'Ad', 'Fiyat', 'Değişim', '%', 'Yüksek', 'Düşük', 'Hacim', 'Borsa'].map(h => <Th key={h}>{t(h)}</Th>)}
         </tr></thead>
         <tbody className="bg-white">
           {items.map(r => (
@@ -89,14 +92,15 @@ function StockTable({ items }) {
 }
 
 function FxTable({ data }) {
-  if (!data?.rates?.length) return <p className="text-gray-400 p-4">Veri yok.</p>;
+  const { t } = useTranslation();
+  if (!data?.rates?.length) return <p className="text-gray-400 p-4">{t('Veri yok.')}</p>;
   return (
     <div>
-      <p className="text-xs text-gray-400 mb-3 px-1">Kaynak: {data.provider} · Baz: {data.base} · {data.asOf}</p>
+      <p className="text-xs text-gray-400 mb-3 px-1">{t('Kaynak:')} {data.provider} · {t('Baz:')} {data.base} · {data.asOf}</p>
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50"><tr>
-            {['Döviz', 'Alış', 'Satış', 'Birim'].map(h => <Th key={h}>{h}</Th>)}
+            {['Döviz', 'Alış', 'Satış', 'Birim'].map(h => <Th key={h}>{t(h)}</Th>)}
           </tr></thead>
           <tbody className="bg-white">
             {data.rates.map(r => (
@@ -115,6 +119,7 @@ function FxTable({ data }) {
 }
 
 function SearchableList({ items, placeholder, searchFn, renderTable }) {
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
 
@@ -136,9 +141,9 @@ function SearchableList({ items, placeholder, searchFn, renderTable }) {
           onChange={e => { setSearch(e.target.value); setPage(0); }}
           className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#093eaa] min-w-[240px]"
         />
-        <span className="text-xs text-gray-400">{filtered.length} sonuç</span>
+        <span className="text-xs text-gray-400">{filtered.length} {t('sonuç')}</span>
       </div>
-      {paged.length > 0 ? renderTable(paged) : <p className="text-gray-400 p-4">Sonuç bulunamadı.</p>}
+      {paged.length > 0 ? renderTable(paged) : <p className="text-gray-400 p-4">{t('Sonuç bulunamadı.')}</p>}
       {totalPages > 1 && (
         <div className="flex gap-2 mt-4 flex-wrap">
           <button disabled={page === 0} onClick={() => setPage(p => p - 1)}
@@ -149,7 +154,7 @@ function SearchableList({ items, placeholder, searchFn, renderTable }) {
               {i + 1}
             </button>
           ))}
-          {totalPages > 10 && <span className="text-xs text-gray-400 self-center">... {totalPages} sayfa</span>}
+          {totalPages > 10 && <span className="text-xs text-gray-400 self-center">... {totalPages} {t('sayfa')}</span>}
           <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}
             className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm hover:bg-gray-50 disabled:opacity-40">›</button>
         </div>
@@ -159,6 +164,7 @@ function SearchableList({ items, placeholder, searchFn, renderTable }) {
 }
 
 export default function MarketPage() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('crypto');
   const [data, setData] = useState({});
   const [loading, setLoading] = useState(false);
@@ -176,7 +182,7 @@ export default function MarketPage() {
     };
     fetchers[tab]()
       .then(result => setData(prev => ({ ...prev, [tab]: result })))
-      .catch(err => setError(!err.response ? 'Sunucuya ulaşılamıyor.' : `Hata (${err.response.status})`))
+      .catch(err => setError(!err.response ? t('Sunucuya ulaşılamıyor.') : `${t('Hata')} (${err.response.status})`))
       .finally(() => setLoading(false));
   }
 
@@ -191,18 +197,18 @@ export default function MarketPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6 border-l-4 border-[#093eaa] pl-4">Piyasalar</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6 border-l-4 border-[#093eaa] pl-4">{t('Piyasalar')}</h1>
 
       {/* Tabs */}
       <div className="flex gap-2 mb-6 flex-wrap">
-        {TABS.map(t => (
-          <button key={t.key} onClick={() => handleTab(t.key)}
+        {TABS.map(tab => (
+          <button key={tab.key} onClick={() => handleTab(tab.key)}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-              activeTab === t.key
+              activeTab === tab.key
                 ? 'bg-[#093eaa] text-white shadow-sm'
                 : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
             }`}>
-            {t.label}
+            {t(tab.labelKey)}
           </button>
         ))}
       </div>
@@ -216,7 +222,7 @@ export default function MarketPage() {
               <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
               <div className="w-2 h-2 bg-[#093eaa]/30 rounded-full animate-bounce [animation-delay:200ms]" />
             </div>
-            <p className="text-gray-400 text-sm mt-3">Yükleniyor...</p>
+            <p className="text-gray-400 text-sm mt-3">{t('Yükleniyor...')}</p>
           </div>
         )}
         {error && <p className="text-rose-500 p-6 text-sm">{error}</p>}
@@ -228,13 +234,13 @@ export default function MarketPage() {
             {activeTab === 'funds' && <StockTable items={current} />}
             {activeTab === 'fx' && <FxTable data={current} />}
             {activeTab === 'stocks' && (
-              <SearchableList items={current} placeholder="Sembol veya isim ara..."
+              <SearchableList items={current} placeholder={t('Sembol veya isim ara...')}
                 searchFn={(s, q) => s.symbol?.toLowerCase().includes(q) || s.name?.toLowerCase().includes(q)}
                 renderTable={items => <StockTable items={items} />} />
             )}
           </div>
         )}
-        {!loading && !error && current == null && <p className="text-gray-400 p-6 text-sm">Veri yok.</p>}
+        {!loading && !error && current == null && <p className="text-gray-400 p-6 text-sm">{t('Veri yok.')}</p>}
       </div>
     </div>
   );

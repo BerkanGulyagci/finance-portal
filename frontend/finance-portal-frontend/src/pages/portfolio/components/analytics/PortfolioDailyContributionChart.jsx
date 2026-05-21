@@ -27,8 +27,10 @@ import {
   signedNumericDomain,
 } from './portfolioChartStyles';
 import { formatMoney } from '../../utils/portfolioFormatUtils';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 export default function PortfolioDailyContributionChart({ holdings, valuesHidden, currency }) {
+  const { t } = useTranslation();
   const hasData = hasAnyDailyProfitLossData(holdings);
   const { rows, truncated } = calculateDailyContributionRows(holdings);
 
@@ -42,17 +44,17 @@ export default function PortfolioDailyContributionChart({ holdings, valuesHidden
 
   return (
     <PortfolioChartCard
-      title="Günlük K/Z Katkısı"
+      title={t('Günlük K/Z Katkısı')}
       subtitle={
         truncated
-          ? 'Bugünkü günlük K/Z’ye en çok katkı eden pozisyonlar (max 12).'
-          : 'Bugünkü günlük kar/zarara pozisyon bazlı katkı.'
+          ? t('Bugünkü günlük K/Z’ye en çok katkı eden pozisyonlar (max 12).')
+          : t('Bugünkü günlük kar/zarara pozisyon bazlı katkı.')
       }
     >
       {!hasData ? (
-        <p className="text-center text-sm text-gray-400 py-10">Günlük katkı verisi bulunamadı.</p>
+        <p className="text-center text-sm text-gray-400 py-10">{t('Günlük katkı verisi bulunamadı.')}</p>
       ) : !chartData.length ? (
-        <p className="text-center text-sm text-gray-400 py-10">Günlük katkı verisi bulunamadı.</p>
+        <p className="text-center text-sm text-gray-400 py-10">{t('Günlük katkı verisi bulunamadı.')}</p>
       ) : (
         <div className="w-full min-w-0" style={{ height: chartHeight }}>
           <ResponsiveContainer width="100%" height="100%">
@@ -82,7 +84,7 @@ export default function PortfolioDailyContributionChart({ holdings, valuesHidden
                   />
                 }
               />
-              <Bar dataKey="daily" name="Günlük K/Z" radius={[0, 3, 3, 0]} {...BAR_HORIZONTAL_BAR}>
+              <Bar dataKey="daily" name={t('Günlük K/Z')} radius={[0, 3, 3, 0]} {...BAR_HORIZONTAL_BAR}>
                 {chartData.map(entry => (
                   <Cell key={entry.key} fill={entry.daily >= 0 ? COLOR_POS : COLOR_NEG} />
                 ))}

@@ -1,6 +1,8 @@
 import { parseTrNumber, formatPrice } from '../../../../utils/numberFormat';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 export default function ViopPriceRange({ contract }) {
+  const { t } = useTranslation();
   if (!contract) return null;
 
   const low = parseTrNumber(contract.low);
@@ -20,20 +22,20 @@ export default function ViopPriceRange({ contract }) {
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-      <h2 className="font-bold text-gray-900 mb-4">Gün İçi Fiyat Aralığı</h2>
-      
+      <h2 className="font-bold text-gray-900 mb-4">{t('Gün İçi Fiyat Aralığı')}</h2>
+
       {/* Değerler */}
       <div className="flex justify-between items-center mb-3">
         <div className="text-left">
-          <p className="text-xs text-gray-500 mb-1">Düşük</p>
+          <p className="text-xs text-gray-500 mb-1">{t('Düşük')}</p>
           <p className="text-sm font-bold text-gray-900">{formatPrice(low)}</p>
         </div>
         <div className="text-center">
-          <p className="text-xs text-blue-600 font-semibold mb-1">Son</p>
+          <p className="text-xs text-blue-600 font-semibold mb-1">{t('Son')}</p>
           <p className="text-base font-black text-blue-900">{formatPrice(last)}</p>
         </div>
         <div className="text-right">
-          <p className="text-xs text-gray-500 mb-1">Yüksek</p>
+          <p className="text-xs text-gray-500 mb-1">{t('Yüksek')}</p>
           <p className="text-sm font-bold text-gray-900">{formatPrice(high)}</p>
         </div>
       </div>
@@ -56,7 +58,7 @@ export default function ViopPriceRange({ contract }) {
       {/* Yüzde göstergesi */}
       <div className="mt-2 text-center">
         <p className="text-xs text-gray-400">
-          Aralığın <span className="font-semibold text-gray-600">%{positionPercent.toFixed(1)}</span>'inde
+          {t('Aralığın')} <span className="font-semibold text-gray-600">%{positionPercent.toFixed(1)}</span>{t('\'inde')}
         </p>
       </div>
     </div>

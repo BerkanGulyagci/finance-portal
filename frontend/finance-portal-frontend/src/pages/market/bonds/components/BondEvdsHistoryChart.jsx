@@ -12,6 +12,7 @@ import {
   filterBondHistoryByDays,
   fmtNum, fmtPct,
 } from './bondChartUtils';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 const PERIODS = BOND_CHART_PERIODS;
 
@@ -83,6 +84,7 @@ function BondKlineChart({
   showMA7,
   showMA30,
 }) {
+  const { t } = useTranslation();
   const chartId  = useRef(`kline_bond_${Date.now()}`);
   const chartRef = useRef(null);
   const isComparing = !!compareCode && comparePoints.length > 0;
@@ -228,7 +230,7 @@ function BondKlineChart({
     return (
       <div className="flex flex-col items-center justify-center h-[380px] gap-3 text-gray-400">
         <BarChart2 className="w-10 h-10 opacity-30" />
-        <p className="text-sm">Bu dönem için grafik verisi bulunamadı.</p>
+        <p className="text-sm">{t('Bu dönem için grafik verisi bulunamadı.')}</p>
       </div>
     );
   }
@@ -267,6 +269,7 @@ export default function BondEvdsHistoryChart({
   baseLoading = false,
   mainDetail = null,
 }) {
+  const { t } = useTranslation();
   const [period, setPeriod]       = useState('ONE_MONTH');
   const [allPoints, setAllPoints] = useState(basePoints);
   const [loading, setLoading]     = useState(false);
@@ -386,12 +389,12 @@ export default function BondEvdsHistoryChart({
       {/* ── Başlık satırı ── */}
       <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
         <div>
-          <h2 className="font-bold text-gray-900">TCMB EVDS Gösterge Değeri Grafiği</h2>
+          <h2 className="font-bold text-gray-900">{t('TCMB EVDS Gösterge Değeri Grafiği')}</h2>
           {/* Karşılaştırma yoksa sadece ana kıymet değişimi */}
           {!isComparing && mainPeriodPct != null && (
             <span className={`text-sm font-semibold flex items-center gap-1 mt-0.5 ${(mainPeriodPct ?? 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
               {(mainPeriodPct ?? 0) >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-              {currentPeriod.label} değişim: {fmtPct(mainPeriodPct, 2)}
+              {t(currentPeriod.label)} {t('değişim:')} {fmtPct(mainPeriodPct, 2)}
             </span>
           )}
           {/* Karşılaştırma varsa her iki kıymetin değişimi yan yana */}
@@ -425,12 +428,12 @@ export default function BondEvdsHistoryChart({
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   period === p.key ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}>
-                {p.label}
+                {t(p.label)}
               </button>
             ))}
           </div>
           <button onClick={loadMainHistory}
-            className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 transition-all" title="Yenile">
+            className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 transition-all" title={t('Yenile')}>
             <RefreshCw className={`w-3.5 h-3.5 text-gray-500 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
         </div>
@@ -442,13 +445,13 @@ export default function BondEvdsHistoryChart({
         {!isComparing ? (
           <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
             <span className="px-3 py-1 rounded-md text-xs font-bold bg-white text-gray-900 shadow-sm">
-              Değer Grafiği
+              {t('Değer Grafiği')}
             </span>
           </div>
         ) : (
           <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
             <span className="px-3 py-1 rounded-md text-xs font-bold bg-white text-gray-900 shadow-sm">
-              Performans Grafiği
+              {t('Performans Grafiği')}
             </span>
           </div>
         )}
@@ -502,7 +505,7 @@ export default function BondEvdsHistoryChart({
             )}
           </span>
           {chartMode === 'performance' && (
-            <span className="ml-auto text-gray-400 text-xs">İlk değer = 100 bazlı normalize</span>
+            <span className="ml-auto text-gray-400 text-xs">{t('İlk değer = 100 bazlı normalize')}</span>
           )}
         </div>
       )}
@@ -522,13 +525,13 @@ export default function BondEvdsHistoryChart({
         {!isLoading && error && (
           <div className="flex flex-col items-center justify-center h-[380px] gap-3 text-gray-400">
             <BarChart2 className="w-10 h-10 opacity-30" />
-            <p className="text-sm">Grafik verisi şu an alınamadı.</p>
+            <p className="text-sm">{t('Grafik verisi şu an alınamadı.')}</p>
           </div>
         )}
 
         {compareError && !isLoading && (
           <div className="mb-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
-            Karşılaştırma verisi alınamadı. Ana kıymet grafiği gösteriliyor.
+            {t('Karşılaştırma verisi alınamadı. Ana kıymet grafiği gösteriliyor.')}
           </div>
         )}
 
@@ -554,18 +557,18 @@ export default function BondEvdsHistoryChart({
           compareCode={compareCode}
           compareDetail={compareDetail}
           compareHistory={filteredComparePoints}
-          period={currentPeriod.label}
+          period={t(currentPeriod.label)}
         />
       )}
 
       {period === 'FIVE_YEARS' && usesWeeklySampling && (
         <p className="text-xs text-amber-700/90 mt-2">
-          5Y görünüm: EVDS günlük verisi haftalık son değerle sadeleştirildi (okunabilirlik).
+          {t('5Y görünüm: EVDS günlük verisi haftalık son değerle sadeleştirildi (okunabilirlik).')}
         </p>
       )}
 
       <p className="text-xs text-gray-400 mt-3">
-        Kaynak: TCMB EVDS · Günlük gösterge değerleri · Alış/satış fiyatı değildir
+        {t('Kaynak: TCMB EVDS · Günlük gösterge değerleri · Alış/satış fiyatı değildir')}
       </p>
     </div>
   );

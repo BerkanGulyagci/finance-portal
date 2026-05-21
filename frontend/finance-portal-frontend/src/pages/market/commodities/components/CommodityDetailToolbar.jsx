@@ -1,4 +1,5 @@
 import { RefreshCw } from 'lucide-react';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 const RANGES = [
   { key: '1D', label: '1G' },
@@ -15,6 +16,7 @@ export default function CommodityDetailToolbar({
   chartMode, onChartModeChange,
   loading, onRefresh,
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-wrap items-center gap-3 pb-3 border-b border-gray-100 mb-3">
       {/* Range */}
@@ -24,7 +26,7 @@ export default function CommodityDetailToolbar({
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
               range === r.key ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}>
-            {r.label}
+            {t(r.label)}
           </button>
         ))}
       </div>
@@ -41,7 +43,7 @@ export default function CommodityDetailToolbar({
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
               chartMode === m.key ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}>
-            {m.label}
+            {t(m.label)}
           </button>
         ))}
       </div>
@@ -50,7 +52,7 @@ export default function CommodityDetailToolbar({
         <button onClick={onRefresh} disabled={loading}
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all disabled:opacity-50">
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          Yenile
+          {t('Yenile')}
         </button>
       </div>
     </div>

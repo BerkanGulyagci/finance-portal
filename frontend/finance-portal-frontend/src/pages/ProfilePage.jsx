@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Mail, Pencil, RefreshCw, Shield, User } from 'lucide-react';
 import { getMe } from '../api/meApi';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../i18n/LanguageContext';
 import {
   ProfileEmailModal,
   ProfileNameModal,
@@ -19,6 +20,7 @@ function Field({ label, value }) {
 }
 
 export default function ProfilePage() {
+  const { t } = useTranslation();
   const { isAuthenticated, clearLocalSession } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -42,7 +44,7 @@ export default function ProfilePage() {
         navigate('/login', { replace: true });
         return;
       }
-      setError(err.response?.data?.message || 'Profil bilgisi yüklenemedi.');
+      setError(err.response?.data?.message || t('Profil bilgisi yüklenemedi.'));
     } finally {
       setLoading(false);
     }
@@ -90,8 +92,8 @@ export default function ProfilePage() {
           <User className="w-6 h-6 text-[#093eaa]" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Profilim</h1>
-          <p className="text-sm text-gray-500">Hesap bilgilerinizi görüntüleyin ve yönetin</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('Profilim')}</h1>
+          <p className="text-sm text-gray-500">{t('Hesap bilgilerinizi görüntüleyin ve yönetin')}</p>
         </div>
       </div>
 
@@ -103,7 +105,7 @@ export default function ProfilePage() {
 
       {loading && (
         <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center text-sm text-gray-500">
-          Yükleniyor...
+          {t('Yükleniyor...')}
         </div>
       )}
 
@@ -116,7 +118,7 @@ export default function ProfilePage() {
             className="inline-flex items-center gap-2 text-sm font-bold text-[#093eaa] hover:underline"
           >
             <RefreshCw className="w-4 h-4" />
-            Tekrar dene
+            {t('Tekrar dene')}
           </button>
         </div>
       )}
@@ -124,20 +126,20 @@ export default function ProfilePage() {
       {!loading && !error && profile && (
         <>
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
-            <Field label="Kullanıcı adı" value={profile.username} />
-            <Field label="Email" value={profile.email} />
-            <Field label="Ad" value={profile.firstName} />
-            <Field label="Soyad" value={profile.lastName} />
+            <Field label={t('Kullanıcı adı')} value={profile.username} />
+            <Field label={t('Email')} value={profile.email} />
+            <Field label={t('Ad')} value={profile.firstName} />
+            <Field label={t('Soyad')} value={profile.lastName} />
             <Field
-              label="Email doğrulama"
-              value={profile.emailVerified ? 'Doğrulandı' : 'Doğrulanmadı'}
+              label={t('Email doğrulama')}
+              value={profile.emailVerified ? t('Doğrulandı') : t('Doğrulanmadı')}
             />
             <Field
-              label="Hesap durumu"
-              value={profile.enabled ? 'Aktif' : 'Pasif'}
+              label={t('Hesap durumu')}
+              value={profile.enabled ? t('Aktif') : t('Pasif')}
             />
             <Field
-              label="Roller"
+              label={t('Roller')}
               value={displayRoles.length > 0 ? displayRoles.join(', ') : '—'}
             />
           </div>
@@ -149,7 +151,7 @@ export default function ProfilePage() {
               className="flex items-center justify-center gap-2 bg-[#093eaa] text-white py-3 px-4 rounded-xl text-sm font-bold hover:bg-[#093eaa]/90"
             >
               <Pencil className="w-4 h-4" />
-              Bilgilerimi Düzenle
+              {t('Bilgilerimi Düzenle')}
             </button>
             <button
               type="button"
@@ -157,7 +159,7 @@ export default function ProfilePage() {
               className="flex items-center justify-center gap-2 border border-gray-200 text-gray-800 py-3 px-4 rounded-xl text-sm font-bold hover:bg-gray-50"
             >
               <Shield className="w-4 h-4" />
-              Şifremi Değiştir
+              {t('Şifremi Değiştir')}
             </button>
             <button
               type="button"
@@ -165,7 +167,7 @@ export default function ProfilePage() {
               className="flex items-center justify-center gap-2 border border-gray-200 text-gray-800 py-3 px-4 rounded-xl text-sm font-bold hover:bg-gray-50"
             >
               <Mail className="w-4 h-4" />
-              Email Değiştir
+              {t('Email Değiştir')}
             </button>
           </div>
 
@@ -176,11 +178,11 @@ export default function ProfilePage() {
               className="inline-flex items-center gap-1.5 font-semibold text-[#093eaa] hover:underline"
             >
               <RefreshCw className="w-4 h-4" />
-              Bilgileri yenile
+              {t('Bilgileri yenile')}
             </button>
             {!profile.emailVerified && (
               <Link to="/verify-email" className="font-semibold text-amber-700 hover:underline">
-                Email doğrulama sayfası
+                {t('Email doğrulama sayfası')}
               </Link>
             )}
           </div>

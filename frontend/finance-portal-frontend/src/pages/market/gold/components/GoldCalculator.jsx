@@ -1,20 +1,22 @@
 import { useState } from 'react';
 import { Calculator } from 'lucide-react';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 export default function GoldCalculator({ spot }) {
+  const { t } = useTranslation();
   const gramTry = parseFloat(spot?.gramGoldTry ?? spot?.gramTl ?? 0);
   const onsUsd  = parseFloat(spot?.onsUsd ?? spot?.price ?? 0);
 
   const GOLD_TYPES = [
-    { key: 'ons',        label: 'ALTIN/ONS ($)',           priceTl: onsUsd },
-    { key: 'gram',       label: 'GRAM ALTIN (₺)',           priceTl: gramTry },
-    { key: 'ceyrek',     label: 'ÇEYREK ALTIN (₺)',         priceTl: parseFloat(spot?.quarterGoldTry ?? spot?.ceyrekTl ?? 0) },
-    { key: 'yarim',      label: 'YARIM ALTIN (₺)',          priceTl: parseFloat(spot?.halfGoldTry ?? spot?.yarimTl ?? 0) },
-    { key: 'ziynet',     label: 'ZİYNET ALTINI (₺)',        priceTl: parseFloat(spot?.ziynetGoldTry ?? spot?.tamTl ?? 0) },
-    { key: 'cumhuriyet', label: 'CUMHURİYET ALTINI (₺)',    priceTl: parseFloat(spot?.republicGoldTry ?? spot?.cumhuriyetTl ?? 0) },
-    { key: '14ayar',     label: '14 AYAR BİLEZİK (₺/gr)',  priceTl: parseFloat(spot?.fourteenKBraceletTry ?? spot?.ayar14Tl ?? 0) },
-    { key: '22ayar',     label: '22 AYAR BİLEZİK (₺/gr)',  priceTl: parseFloat(spot?.twentyTwoKBraceletTry ?? spot?.ayar22Tl ?? 0) },
-    { key: 'try',        label: 'TÜRK LİRASI (₺)',          priceTl: 1 },
+    { key: 'ons',        label: t('ALTIN/ONS ($)'),         priceTl: onsUsd },
+    { key: 'gram',       label: t('GRAM ALTIN (₺)'),         priceTl: gramTry },
+    { key: 'ceyrek',     label: t('ÇEYREK ALTIN (₺)'),       priceTl: parseFloat(spot?.quarterGoldTry ?? spot?.ceyrekTl ?? 0) },
+    { key: 'yarim',      label: t('YARIM ALTIN (₺)'),        priceTl: parseFloat(spot?.halfGoldTry ?? spot?.yarimTl ?? 0) },
+    { key: 'ziynet',     label: t('ZİYNET ALTINI (₺)'),      priceTl: parseFloat(spot?.ziynetGoldTry ?? spot?.tamTl ?? 0) },
+    { key: 'cumhuriyet', label: t('CUMHURİYET ALTINI (₺)'),  priceTl: parseFloat(spot?.republicGoldTry ?? spot?.cumhuriyetTl ?? 0) },
+    { key: '14ayar',     label: t('14 AYAR BİLEZİK (₺/gr)'), priceTl: parseFloat(spot?.fourteenKBraceletTry ?? spot?.ayar14Tl ?? 0) },
+    { key: '22ayar',     label: t('22 AYAR BİLEZİK (₺/gr)'), priceTl: parseFloat(spot?.twentyTwoKBraceletTry ?? spot?.ayar22Tl ?? 0) },
+    { key: 'try',        label: t('TÜRK LİRASI (₺)'),        priceTl: 1 },
   ];
 
   const [fromKey, setFromKey] = useState('ons');
@@ -42,11 +44,11 @@ export default function GoldCalculator({ spot }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
       <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-        <Calculator className="w-5 h-5 text-[#093eaa]" /> Altın Hesaplama
+        <Calculator className="w-5 h-5 text-[#093eaa]" /> {t('Altın Hesaplama')}
       </h2>
       <div className="space-y-4">
         <div>
-          <label className="block text-xs font-bold text-gray-500 mb-1.5">KAYNAK</label>
+          <label className="block text-xs font-bold text-gray-500 mb-1.5">{t('KAYNAK')}</label>
           <select
             value={fromKey}
             onChange={e => setFromKey(e.target.value)}
@@ -56,7 +58,7 @@ export default function GoldCalculator({ spot }) {
           </select>
         </div>
         <div>
-          <label className="block text-xs font-bold text-gray-500 mb-1.5">HEDEF</label>
+          <label className="block text-xs font-bold text-gray-500 mb-1.5">{t('HEDEF')}</label>
           <select
             value={toKey}
             onChange={e => setToKey(e.target.value)}
@@ -66,7 +68,7 @@ export default function GoldCalculator({ spot }) {
           </select>
         </div>
         <div>
-          <label className="block text-xs font-bold text-gray-500 mb-1.5">TUTAR</label>
+          <label className="block text-xs font-bold text-gray-500 mb-1.5">{t('TUTAR')}</label>
           <input
             type="number"
             value={amount}
@@ -85,7 +87,7 @@ export default function GoldCalculator({ spot }) {
           </p>
         </div>
         <p className="text-xs text-gray-400 text-center">
-          Teorik referans fiyatlar kullanılmaktadır. Gösterge niteliğindedir.
+          {t('Teorik referans fiyatlar kullanılmaktadır. Gösterge niteliğindedir.')}
         </p>
       </div>
     </div>

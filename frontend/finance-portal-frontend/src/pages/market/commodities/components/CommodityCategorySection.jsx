@@ -1,7 +1,9 @@
 import { CATEGORY_META } from './commodityConstants';
 import CommodityCard from './CommodityCard';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 export default function CommodityCategorySection({ category, items, spots, loadingSpots, usdTryRate, onCardClick }) {
+  const { t } = useTranslation();
   const catMeta = CATEGORY_META[category];
   if (!catMeta) return null;
 
@@ -14,8 +16,8 @@ export default function CommodityCategorySection({ category, items, spots, loadi
         <div className={`p-1.5 rounded-lg ${catMeta.bg}`}>
           <Icon className={`w-4 h-4 ${catMeta.color}`} />
         </div>
-        <h2 className="text-base font-bold text-gray-800">{catMeta.label}</h2>
-        <span className="text-xs text-gray-400 font-medium">({items.length} emtia)</span>
+        <h2 className="text-base font-bold text-gray-800">{t(catMeta.label)}</h2>
+        <span className="text-xs text-gray-400 font-medium">({items.length} {t('emtia')})</span>
       </div>
 
       {/* Kartlar */}

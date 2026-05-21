@@ -3,8 +3,10 @@ import { Link } from 'react-router-dom';
 import { TrendingUp, TrendingDown, ExternalLink, Loader2 } from 'lucide-react';
 import { getViopContractsByUnderlying } from '../../../../api/marketApi';
 import { parseTrNumber, formatPrice } from '../../../../utils/numberFormat';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 export default function RelatedViopContracts({ symbol }) {
+  const { t } = useTranslation();
   const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -40,11 +42,11 @@ export default function RelatedViopContracts({ symbol }) {
     return (
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
         <h2 className="font-bold text-gray-900 mb-4">
-          İlişkili VİOP Kontratları
+          {t('İlişkili VİOP Kontratları')}
         </h2>
         <div className="flex items-center justify-center py-8">
           <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
-          <span className="ml-2 text-sm text-gray-500">Yükleniyor...</span>
+          <span className="ml-2 text-sm text-gray-500">{t('Yükleniyor...')}</span>
         </div>
       </div>
     );
@@ -54,10 +56,10 @@ export default function RelatedViopContracts({ symbol }) {
     return (
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
         <h2 className="font-bold text-gray-900 mb-4">
-          İlişkili VİOP Kontratları
+          {t('İlişkili VİOP Kontratları')}
         </h2>
         <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-          <p className="text-sm text-red-600">Hata: {error}</p>
+          <p className="text-sm text-red-600">{t('Hata:')} {error}</p>
         </div>
       </div>
     );
@@ -67,10 +69,10 @@ export default function RelatedViopContracts({ symbol }) {
     return (
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
         <h2 className="font-bold text-gray-900 mb-4">
-          İlişkili VİOP Kontratları
+          {t('İlişkili VİOP Kontratları')}
         </h2>
         <div className="bg-gray-50 rounded-xl p-4">
-          <p className="text-sm text-gray-500">Bu hisse için VİOP kontratı bulunamadı.</p>
+          <p className="text-sm text-gray-500">{t('Bu hisse için VİOP kontratı bulunamadı.')}</p>
         </div>
       </div>
     );
@@ -79,7 +81,7 @@ export default function RelatedViopContracts({ symbol }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
       <h2 className="font-bold text-gray-900 mb-4">
-        İlişkili VİOP Kontratları
+        {t('İlişkili VİOP Kontratları')}
       </h2>
 
       <div className="space-y-2">
@@ -100,7 +102,7 @@ export default function RelatedViopContracts({ symbol }) {
                 <p className="text-sm font-bold text-gray-900 truncate group-hover:text-blue-900">
                   {contract.name}
                 </p>
-                <p className="text-xs text-gray-500">Vadeli İşlem</p>
+                <p className="text-xs text-gray-500">{t('Vadeli İşlem')}</p>
               </div>
 
               <div className="flex items-center gap-3 ml-4">
@@ -124,8 +126,7 @@ export default function RelatedViopContracts({ symbol }) {
 
       <div className="mt-4 bg-blue-50 rounded-xl p-3 border border-blue-200">
         <p className="text-xs text-blue-900 leading-relaxed">
-          <span className="font-semibold">VİOP:</span> {symbol} hisse senedine dayalı vadeli işlem sözleşmeleri. 
-          Gelecekteki fiyat hareketlerine göre pozisyon alabilirsiniz.
+          <span className="font-semibold">{t('VİOP:')}</span> {symbol} {t('hisse senedine dayalı vadeli işlem sözleşmeleri. Gelecekteki fiyat hareketlerine göre pozisyon alabilirsiniz.')}
         </p>
       </div>
     </div>

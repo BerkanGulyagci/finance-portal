@@ -9,22 +9,24 @@ import {
   OAUTH_ACTION_COMPLETE_MESSAGE,
 } from '../api/authApi';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../i18n/LanguageContext';
 
 function ActionCompleteCard({ onGoToLogin }) {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-[#f5f6f8] flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 max-w-md w-full text-center">
         <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mb-4">
           <CheckCircle2 className="w-7 h-7" />
         </span>
-        <h1 className="text-lg font-bold text-gray-900 mb-2">İşlem tamamlandı</h1>
-        <p className="text-sm text-gray-600 leading-relaxed mb-6">{OAUTH_ACTION_COMPLETE_MESSAGE}</p>
+        <h1 className="text-lg font-bold text-gray-900 mb-2">{t('İşlem tamamlandı')}</h1>
+        <p className="text-sm text-gray-600 leading-relaxed mb-6">{t(OAUTH_ACTION_COMPLETE_MESSAGE)}</p>
         <button
           type="button"
           onClick={onGoToLogin}
           className="w-full bg-[#093eaa] text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-[#093eaa]/90"
         >
-          Giriş sayfasına dön
+          {t('Giriş sayfasına dön')}
         </button>
       </div>
     </div>
@@ -32,6 +34,7 @@ function ActionCompleteCard({ onGoToLogin }) {
 }
 
 function ErrorCard({ message, onGoToLogin }) {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-[#f5f6f8] flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 max-w-md w-full text-center">
@@ -41,7 +44,7 @@ function ErrorCard({ message, onGoToLogin }) {
           onClick={onGoToLogin}
           className="bg-[#093eaa] text-white px-6 py-2 rounded-xl text-sm font-bold hover:bg-[#093eaa]/90"
         >
-          Giriş sayfasına dön
+          {t('Giriş sayfasına dön')}
         </button>
       </div>
     </div>
@@ -49,6 +52,7 @@ function ErrorCard({ message, onGoToLogin }) {
 }
 
 export default function AuthCallbackPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { login, clearLocalSession } = useAuth();
   const [error, setError] = useState('');
@@ -65,7 +69,7 @@ export default function AuthCallbackPage() {
     const errorParam = params.get('error');
 
     if (errorParam) {
-      setError(`Giriş iptal edildi: ${errorParam}`);
+      setError(`${t('Giriş iptal edildi')}: ${errorParam}`);
       return;
     }
 
@@ -76,7 +80,7 @@ export default function AuthCallbackPage() {
         setActionComplete(true);
         return;
       }
-      setError('Geçersiz callback. Lütfen tekrar giriş yapın.');
+      setError(t('Geçersiz callback. Lütfen tekrar giriş yapın.'));
       return;
     }
 
@@ -111,7 +115,7 @@ export default function AuthCallbackPage() {
         <div className="bg-[#093eaa] p-3 rounded-xl inline-block mb-4">
           <Wallet className="w-8 h-8 text-white" />
         </div>
-        <p className="text-gray-500 text-sm">Giriş yapılıyor...</p>
+        <p className="text-gray-500 text-sm">{t('Giriş yapılıyor...')}</p>
         <div className="flex items-center justify-center gap-1.5 mt-3">
           <div className="w-2 h-2 bg-[#093eaa] rounded-full animate-bounce" />
           <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Plus, X, ChevronDown } from 'lucide-react';
 import { getEvdsBonds } from '../../../../api/marketApi';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 /**
  * EVDS kıymet karşılaştırma seçici.
@@ -13,6 +14,7 @@ import { getEvdsBonds } from '../../../../api/marketApi';
  *   onClear()      — temizleme callback'i
  */
 export default function BondCompareSelector({ mainCode, compareCode, onSelect, onClear }) {
+  const { t } = useTranslation();
   const [open, setOpen]       = useState(false);
   const [search, setSearch]   = useState('');
   const [bonds, setBonds]     = useState([]);
@@ -61,7 +63,7 @@ export default function BondCompareSelector({ mainCode, compareCode, onSelect, o
           <button
             onClick={onClear}
             className="p-1.5 rounded-lg bg-gray-100 hover:bg-rose-100 hover:text-rose-600 transition-all"
-            title="Karşılaştırmayı kaldır"
+            title={t('Karşılaştırmayı kaldır')}
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -72,7 +74,7 @@ export default function BondCompareSelector({ mainCode, compareCode, onSelect, o
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100 transition-all"
         >
           <Plus className="w-3 h-3" />
-          Karşılaştır
+          {t('Karşılaştır')}
           <ChevronDown className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} />
         </button>
       )}
@@ -85,7 +87,7 @@ export default function BondCompareSelector({ mainCode, compareCode, onSelect, o
             <input
               autoFocus
               type="text"
-              placeholder="Kıymet kodu veya tür ara..."
+              placeholder={t('Kıymet kodu veya tür ara...')}
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30"
@@ -102,7 +104,7 @@ export default function BondCompareSelector({ mainCode, compareCode, onSelect, o
               </div>
             )}
             {!loading && filtered.length === 0 && (
-              <p className="text-xs text-gray-400 text-center py-4">Kıymet bulunamadı.</p>
+              <p className="text-xs text-gray-400 text-center py-4">{t('Kıymet bulunamadı.')}</p>
             )}
             {!loading && filtered.map(b => (
               <button
@@ -112,7 +114,7 @@ export default function BondCompareSelector({ mainCode, compareCode, onSelect, o
               >
                 <div>
                   <p className="text-sm font-bold text-[#093eaa] font-mono">{b.instrumentCode}</p>
-                  <p className="text-xs text-gray-400">{b.type} · Vade: {b.maturityDate ?? '-'}</p>
+                  <p className="text-xs text-gray-400">{b.type} · {t('Vade:')} {b.maturityDate ?? '-'}</p>
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-xs font-semibold text-gray-700">{b.indicatorValue != null ? parseFloat(b.indicatorValue).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}</p>
@@ -125,7 +127,7 @@ export default function BondCompareSelector({ mainCode, compareCode, onSelect, o
           <div className="p-2 border-t border-gray-100">
             <button onClick={() => setOpen(false)}
               className="w-full text-xs text-gray-400 py-1 hover:text-gray-600">
-              Kapat
+              {t('Kapat')}
             </button>
           </div>
         </div>

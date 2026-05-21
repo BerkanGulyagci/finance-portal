@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { COMPARE_COLORS, toNum, calcPeriodReturn } from './compareUtils';
+import { useTranslation } from '../../../../../i18n/LanguageContext';
 
 export default function FundCompareSimulation({ detailMap, selectedCodes, range }) {
+  const { t } = useTranslation();
   const [investment, setInvestment] = useState('10000');
 
   const inv = parseFloat(investment || 0);
@@ -11,11 +13,11 @@ export default function FundCompareSimulation({ detailMap, selectedCodes, range 
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="font-bold text-gray-900">TL Yatırım Simülasyonu</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Seçili dönem getirisine göre tahmini değer</p>
+          <h2 className="font-bold text-gray-900">{t('TL Yatırım Simülasyonu')}</h2>
+          <p className="text-xs text-gray-400 mt-0.5">{t('Seçili dönem getirisine göre tahmini değer')}</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500">Yatırım:</span>
+          <span className="text-sm text-gray-500">{t('Yatırım:')}</span>
           <input
             type="number"
             value={investment}
@@ -33,7 +35,7 @@ export default function FundCompareSimulation({ detailMap, selectedCodes, range 
           <thead className="bg-gray-50">
             <tr>
               {['Fon', 'Dönem Getirisi', 'Tahmini Değer', 'Kâr / Zarar'].map(h => (
-                <th key={h} className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap">{h}</th>
+                <th key={h} className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap">{t(h)}</th>
               ))}
             </tr>
           </thead>
@@ -85,7 +87,7 @@ export default function FundCompareSimulation({ detailMap, selectedCodes, range 
 
       <div className="px-5 py-2.5 bg-amber-50 border-t border-amber-100">
         <p className="text-xs text-amber-700">
-          ⚠ Bu simülasyon yatırım tavsiyesi değildir. Seçili dönem normalize getirisi kullanılarak hesaplanmıştır. Geçmiş performans gelecekteki getirilerin garantisi değildir.
+          {t('⚠ Bu simülasyon yatırım tavsiyesi değildir. Seçili dönem normalize getirisi kullanılarak hesaplanmıştır. Geçmiş performans gelecekteki getirilerin garantisi değildir.')}
         </p>
       </div>
     </div>

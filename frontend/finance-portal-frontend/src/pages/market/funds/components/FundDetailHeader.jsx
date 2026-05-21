@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft, BarChart2 } from 'lucide-react';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 export default function FundDetailHeader({ fund, code }) {
+    const { t } = useTranslation();
     const isPos = fund?.changePercent && !fund.changePercent.startsWith('%-');
 
     return (
@@ -48,7 +50,7 @@ export default function FundDetailHeader({ fund, code }) {
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-[#093eaa] text-[#093eaa] bg-white hover:bg-blue-50 transition-all flex-shrink-0"
                 >
                     <BarChart2 className="w-4 h-4" />
-                    Karşılaştır
+                    {t('Karşılaştır')}
                 </Link>
             </div>
         </div>

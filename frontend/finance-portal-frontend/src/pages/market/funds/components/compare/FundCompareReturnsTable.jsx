@@ -1,4 +1,5 @@
 import { COMPARE_COLORS, toNum, fmtPct, fmtPctColor } from './compareUtils';
+import { useTranslation } from '../../../../../i18n/LanguageContext';
 
 const RETURN_ROWS = [
   { key: 'returnOneDay',      label: 'Günlük' },
@@ -13,10 +14,12 @@ const RETURN_ROWS = [
 ];
 
 function BestBadge() {
-  return <span className="ml-1 text-[9px] bg-emerald-100 text-emerald-700 px-1 py-0.5 rounded font-bold">EN İYİ</span>;
+  const { t } = useTranslation();
+  return <span className="ml-1 text-[9px] bg-emerald-100 text-emerald-700 px-1 py-0.5 rounded font-bold">{t('EN İYİ')}</span>;
 }
 
 export default function FundCompareReturnsTable({ detailMap, selectedCodes }) {
+  const { t } = useTranslation();
   function getBest(rowKey) {
     let best = null, bestCode = null;
     selectedCodes.forEach(code => {
@@ -29,15 +32,15 @@ export default function FundCompareReturnsTable({ detailMap, selectedCodes }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-100">
-        <h2 className="font-bold text-gray-900">Dönem Getirileri (Kümülatif)</h2>
-        <p className="text-xs text-gray-400 mt-0.5">Rasyonet / YatırımDirekt kaynaklı resmi getiri değerleri</p>
+        <h2 className="font-bold text-gray-900">{t('Dönem Getirileri (Kümülatif)')}</h2>
+        <p className="text-xs text-gray-400 mt-0.5">{t('Rasyonet / YatırımDirekt kaynaklı resmi getiri değerleri')}</p>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[500px]">
           <thead className="bg-gray-50">
             <tr>
               <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 w-28">
-                Dönem
+                {t('Dönem')}
               </th>
               {selectedCodes.map((code, idx) => (
                 <th key={code} className="text-right px-5 py-3 text-xs font-bold border-b border-gray-200 whitespace-nowrap">
@@ -56,7 +59,7 @@ export default function FundCompareReturnsTable({ detailMap, selectedCodes }) {
               const bestCode = getBest(row.key);
               return (
                 <tr key={row.key} className={`border-t border-gray-100 ${ri % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
-                  <td className="px-5 py-3 text-sm font-semibold text-gray-600">{row.label}</td>
+                  <td className="px-5 py-3 text-sm font-semibold text-gray-600">{t(row.label)}</td>
                   {selectedCodes.map(code => {
                     const v = toNum(detailMap[code]?.[row.key]);
                     const isBest = code === bestCode && v != null;

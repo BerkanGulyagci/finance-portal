@@ -4,6 +4,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { getFundHistory } from '../../../../api/marketApi';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 // Periyot tanımları — backend FundPeriod enum ile eşleşmeli
 const PERIODS = [
@@ -25,6 +26,7 @@ function fmt(val, decimals = 4) {
 }
 
 function ChartTooltip({ active, payload, label }) {
+  const { t } = useTranslation();
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload ?? {};
   const isPos = (d.dailyChangePercent ?? 0) >= 0;
@@ -37,7 +39,7 @@ function ChartTooltip({ active, payload, label }) {
       </p>
       {d.dailyChangeAmount !== 0 && (
         <p className={`text-xs font-medium ${isPos ? 'text-emerald-600' : 'text-rose-600'}`}>
-          Günlük: {isPos ? '+' : ''}{fmt(d.dailyChangeAmount, 4)} TL
+          {t('Günlük:')} {isPos ? '+' : ''}{fmt(d.dailyChangeAmount, 4)} TL
           {' '}({isPos ? '+' : ''}{fmt(d.dailyChangePercent, 2)}%)
         </p>
       )}
@@ -46,15 +48,17 @@ function ChartTooltip({ active, payload, label }) {
 }
 
 function EmptyChart({ message }) {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col items-center justify-center h-72 gap-3 text-gray-400">
       <BarChart2 className="w-10 h-10 opacity-30" />
-      <p className="text-sm text-center px-4">{message ?? 'Grafik verisi yüklenemedi.'}</p>
+      <p className="text-sm text-center px-4">{message ?? t('Grafik verisi yüklenemedi.')}</p>
     </div>
   );
 }
 
 export default function FundPriceChart({ code }) {
+  const { t } = useTranslation();
   const [period, setPeriod]   = useState('ONE_MONTH');
   const [points, setPoints]   = useState([]);
   const [loading, setLoading] = useState(false);
@@ -111,11 +115,11 @@ export default function FundPriceChart({ code }) {
       {/* Başlık + dönem seçici */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div>
-          <h2 className="font-bold text-gray-900">Fiyat Grafiği</h2>
+          <h2 className="font-bold text-gray-900">{t('Fiyat Grafiği')}</h2>
           {periodReturn != null && (
             <span className={`text-sm font-semibold flex items-center gap-1 mt-0.5 ${periodPos ? 'text-emerald-600' : 'text-rose-600'}`}>
               {periodPos ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-              {currentPeriod.label} getiri:{' '}
+              {t(currentPeriod.label)} {t('getiri:')}{' '}
               {periodPos ? '+' : ''}
               {periodReturn.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%
             </span>
@@ -130,13 +134,13 @@ export default function FundPriceChart({ code }) {
                     ? 'bg-[#093eaa] text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}>
-                {p.label}
+                {t(p.label)}
               </button>
             ))}
           </div>
           <button onClick={loadHistory}
             className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 transition-all"
-            title="Yenile">
+            title={t('Yenile')}>
             <RefreshCw className={`w-3.5 h-3.5 text-gray-500 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
@@ -155,11 +159,11 @@ export default function FundPriceChart({ code }) {
         )}
 
         {!loading && error && (
-          <EmptyChart message="Grafik verisi şu an alınamadı. Lütfen daha sonra tekrar deneyin." />
+          <EmptyChart message={t('Grafik verisi şu an alınamadı. Lütfen daha sonra tekrar deneyin.')} />
         )}
 
         {!loading && !error && chartData.length === 0 && (
-          <EmptyChart message="Bu dönem için grafik verisi bulunamadı." />
+          <EmptyChart message={t('Bu dönem için grafik verisi bulunamadı.')} />
         )}
 
         {!loading && !error && chartData.length > 0 && (
@@ -211,7 +215,7 @@ export default function FundPriceChart({ code }) {
       </div>
 
       <p className="text-xs text-gray-400 mt-2">
-        Kaynak: HangiKredi · TEFAS · Günlük kapanış fiyatları
+        {t('Kaynak: HangiKredi · TEFAS · Günlük kapanış fiyatları')}
       </p>
     </div>
   );

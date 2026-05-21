@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 function fmtNum(v, decimals = 2) {
   if (v == null) return null;
@@ -13,6 +14,7 @@ function fmtNum(v, decimals = 2) {
 // SimilarBonds artık kullanılmıyor (BondDetailPage'den kaldırıldı)
 // Gerekirse ileride EVDS listesinden benzer vadeli kıymetler göstermek için kullanılabilir
 export default function SimilarBonds({ bond, allBonds = [] }) {
+  const { t } = useTranslation();
   const days = bond.remainingDays ?? null;
   if (days === null || allBonds.length === 0) return null;
 
@@ -26,16 +28,16 @@ export default function SimilarBonds({ bond, allBonds = [] }) {
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-      <h2 className="text-base font-bold text-gray-900 mb-4">Benzer Vadeli Kıymetler</h2>
+      <h2 className="text-base font-bold text-gray-900 mb-4">{t('Benzer Vadeli Kıymetler')}</h2>
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="bg-gray-50">
-              <th className="text-left px-4 py-2.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Kıymet</th>
-              <th className="text-left px-4 py-2.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Tür</th>
-              <th className="text-right px-4 py-2.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Vade</th>
-              <th className="text-right px-4 py-2.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Kalan Gün</th>
-              <th className="text-right px-4 py-2.5 text-xs font-bold text-gray-500 uppercase tracking-wider">Gösterge Değeri</th>
+              <th className="text-left px-4 py-2.5 text-xs font-bold text-gray-500 uppercase tracking-wider">{t('Kıymet')}</th>
+              <th className="text-left px-4 py-2.5 text-xs font-bold text-gray-500 uppercase tracking-wider">{t('Tür')}</th>
+              <th className="text-right px-4 py-2.5 text-xs font-bold text-gray-500 uppercase tracking-wider">{t('Vade')}</th>
+              <th className="text-right px-4 py-2.5 text-xs font-bold text-gray-500 uppercase tracking-wider">{t('Kalan Gün')}</th>
+              <th className="text-right px-4 py-2.5 text-xs font-bold text-gray-500 uppercase tracking-wider">{t('Gösterge Değeri')}</th>
             </tr>
           </thead>
           <tbody>

@@ -1,3 +1,4 @@
+import { useTranslation } from '../../../i18n/LanguageContext';
 import UserStatusBadge from './UserStatusBadge';
 import UserRolesCell from './UserRolesCell';
 import AdminUserActions from './AdminUserActions';
@@ -10,6 +11,7 @@ export default function AdminUsersTableRow({
   onRequestBan,
   onUnban,
 }) {
+  const { t } = useTranslation();
   const isSelf = user.id === currentUserId;
   const busy = actionUserId === user.id;
 
@@ -18,7 +20,7 @@ export default function AdminUsersTableRow({
       <td className="px-4 py-3 font-semibold text-gray-900">
         {user.username ?? '—'}
         {isSelf && (
-          <span className="ml-2 text-[10px] font-bold text-[#093eaa] uppercase">Siz</span>
+          <span className="ml-2 text-[10px] font-bold text-[#093eaa] uppercase">{t('Siz')}</span>
         )}
       </td>
       <td className="px-4 py-3 text-gray-600">{user.email ?? '—'}</td>

@@ -10,6 +10,7 @@ import { deleteTransaction, getPortfolioById } from '../../../api/portfolioApi';
 import { getCommoditySpot } from '../../../api/marketApi';
 import { isYahooCommoditySymbol } from '../../../utils/commodityPriceUtils';
 import { formatMoney, formatPercent } from '../utils/portfolioFormatUtils';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 function toNumberOrNull(v) {
   if (v == null || v === '') return null;
@@ -43,6 +44,7 @@ const TABS = [
   { key: 'charts', label: 'Grafikler' },
   { key: 'stats', label: 'İstatistikler' },
 ];
+// Tab labels translated via t() at render site below.
 
 function SummaryRow({ label, value, subValue, positive, dotColor, tooltip }) {
   return (
@@ -89,6 +91,7 @@ function SummaryRow({ label, value, subValue, positive, dotColor, tooltip }) {
  * HOLDINGS portföy detay ekranı.
  */
 export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialInstrument, onInitialInstrumentConsumed }) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('holdings');
   const [showAddTx, setShowAddTx] = useState(false);
   const [deletingTxId, setDeletingTxId] = useState(null);
@@ -189,10 +192,10 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
 
   async function handleDeleteTx(txId) {
     if (!txId) {
-      alert('Bu satırda işlem kimliği yok; sayfayı yenileyip tekrar deneyin.');
+      alert(t('Bu satırda işlem kimliği yok; sayfayı yenileyip tekrar deneyin.'));
       return;
     }
-    if (!window.confirm('Bu işlemi silmek istediğinizden emin misiniz?')) return;
+    if (!window.confirm(t('Bu işlemi silmek istediğinizden emin misiniz?'))) return;
     setDeletingTxId(txId);
     try {
       const updated = await deleteTransaction(portfolio.id, txId);
@@ -214,7 +217,7 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
           /* yoksay */
         }
       }
-      alert(msg ? `İşlem silinemedi: ${msg}` : 'İşlem silinemedi. Bağlantınızı kontrol edip tekrar deneyin.');
+      alert(msg ? `${t('İşlem silinemedi:')} ${msg}` : t('İşlem silinemedi. Bağlantınızı kontrol edip tekrar deneyin.'));
     } finally {
       setDeletingTxId(null);
     }
@@ -236,13 +239,13 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
       {/* Portföy Özeti */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="text-base font-bold text-gray-900">Portföy Özeti</h2>
+          <h2 className="text-base font-bold text-gray-900">{t('Portföy Özeti')}</h2>
           <button
             type="button"
             onClick={() => setValuesHidden(v => !v)}
             className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:text-[#093eaa] hover:border-[#093eaa]/30 hover:bg-blue-50/50 transition-colors"
-            title={valuesHidden ? 'Değerleri göster' : 'Değerleri gizle'}
-            aria-label={valuesHidden ? 'Değerleri göster' : 'Değerleri gizle'}
+            title={valuesHidden ? t('Değerleri göster') : t('Değerleri gizle')}
+            aria-label={valuesHidden ? t('Değerleri göster') : t('Değerleri gizle')}
           >
             {valuesHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
@@ -251,7 +254,7 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,32%)_1px_minmax(0,68%)]">
           {/* Sol: metrikler */}
           <div className="p-5 lg:pr-4">
-            <p className="text-sm font-medium text-gray-500 mb-1">Güncel Portföy Değeri</p>
+            <p className="text-sm font-medium text-gray-500 mb-1">{t('Güncel Portföy Değeri')}</p>
             <p className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
               {formatMoney(mv, currency, valuesHidden)}
               {!valuesHidden && (
@@ -264,11 +267,11 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
             <div className="h-px bg-gray-200 mb-1" />
 
             <SummaryRow
-              label="Toplam Maliyet"
+              label={t('Toplam Maliyet')}
               value={formatMoney(cost > 0 ? cost : null, currency, valuesHidden)}
             />
             <SummaryRow
-              label="Günlük K/Z"
+              label={t('Günlük K/Z')}
               value={
                 dailyPnl != null
                   ? `${dailyPos && !valuesHidden ? '+' : ''}${formatMoney(dailyPnl, currency, valuesHidden)}`
@@ -282,15 +285,15 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
               positive={dailyPnl != null ? dailyPos : undefined}
             />
             <SummaryRow
-              label="Açık K/Z"
-              tooltip="Satılmamış pozisyonlardaki anlık kar/zarar."
+              label={t('Açık K/Z')}
+              tooltip={t('Satılmamış pozisyonlardaki anlık kar/zarar.')}
               value={`${isPos && !valuesHidden ? '+' : ''}${formatMoney(pnl, currency, valuesHidden)}`}
               subValue={pnlPct != null ? formatPercent(pnlPct, valuesHidden, { signed: true }) : null}
               positive={isPos}
             />
             <SummaryRow
-              label="Gerçekleşen K/Z"
-              tooltip="Satılan pozisyonlardan oluşan kesinleşmiş kar/zarar."
+              label={t('Gerçekleşen K/Z')}
+              tooltip={t('Satılan pozisyonlardan oluşan kesinleşmiş kar/zarar.')}
               value={formatMoney(realizedPnl, currency, valuesHidden)}
               positive={realizedPnl > 0 ? true : realizedPnl < 0 ? false : undefined}
             />
@@ -312,17 +315,17 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
       {/* Pozisyon Ekle + Sekmeler */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex gap-2 flex-wrap">
-          {TABS.map(t => (
+          {TABS.map(tab => (
             <button
-              key={t.key}
-              onClick={() => setActiveTab(t.key)}
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
               className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-                activeTab === t.key
+                activeTab === tab.key
                   ? 'bg-[#093eaa] text-white'
                   : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
               }`}
             >
-              {t.label}
+              {t(tab.label)}
             </button>
           ))}
         </div>
@@ -330,7 +333,7 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
           onClick={() => setShowAddTx(true)}
           className="flex items-center gap-2 bg-[#093eaa] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#093eaa]/90 transition-all"
         >
-          <Plus className="w-4 h-4" /> Pozisyon Ekle
+          <Plus className="w-4 h-4" /> {t('Pozisyon Ekle')}
         </button>
       </div>
 

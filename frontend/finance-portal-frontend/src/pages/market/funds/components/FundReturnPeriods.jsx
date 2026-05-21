@@ -1,3 +1,5 @@
+import { useTranslation } from '../../../../i18n/LanguageContext';
+
 const PERIODS = [
   { key: 'return1M', label: '1 Ay' },
   { key: 'return3M', label: '3 Ay' },
@@ -20,17 +22,18 @@ function ReturnCell({ label, value, last }) {
 }
 
 export default function FundReturnPeriods({ fund }) {
+  const { t } = useTranslation();
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-100">
-        <h2 className="font-bold text-gray-900">Dönem Getirileri</h2>
-        <p className="text-xs text-gray-400 mt-0.5">Kaynak: HangiKredi</p>
+        <h2 className="font-bold text-gray-900">{t('Dönem Getirileri')}</h2>
+        <p className="text-xs text-gray-400 mt-0.5">{t('Kaynak: HangiKredi')}</p>
       </div>
       <div className="grid grid-cols-3 sm:grid-cols-6 divide-y sm:divide-y-0 divide-x divide-gray-100">
         {PERIODS.map((p, i) => (
           <ReturnCell
             key={p.key}
-            label={p.label}
+            label={t(p.label)}
             value={fund?.[p.key] ?? null}
             last={i === PERIODS.length - 1}
           />

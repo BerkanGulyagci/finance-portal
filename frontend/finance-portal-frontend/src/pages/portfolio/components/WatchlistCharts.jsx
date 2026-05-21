@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AnalysisPdfExportButton from './AnalysisPdfExportButton';
+import { useTranslation } from '../../../i18n/LanguageContext';
 import {
   ResponsiveContainer,
   PieChart,
@@ -70,6 +71,7 @@ const DONUT_COLORS = [
 ];
 
 function ChartTooltip({ active, payload, label }) {
+  const { t } = useTranslation();
   if (!active || !payload?.length) return null;
   const p = payload[0];
   const v = p?.value;
@@ -81,7 +83,7 @@ function ChartTooltip({ active, payload, label }) {
       <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs shadow-md">
         <div className="font-semibold text-gray-800">{name}</div>
         <div className="text-gray-600">
-          Adet: {v.toLocaleString('tr-TR')} · Oran: {formatSharePercent(raw.sharePct)}
+          {t('Adet:')} {v.toLocaleString('tr-TR')} · {t('Oran:')} {formatSharePercent(raw.sharePct)}
         </div>
       </div>
     );
@@ -102,6 +104,7 @@ function ChartTooltip({ active, payload, label }) {
 }
 
 function SummaryCard({ label, value, tone, hint }) {
+  const { t } = useTranslation();
   const toneCls =
     tone === 'up'
       ? 'border-emerald-200 bg-emerald-50/60'
@@ -121,7 +124,7 @@ function SummaryCard({ label, value, tone, hint }) {
             <span
               className="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-amber-300 bg-amber-100 text-[10px] font-bold text-amber-800 outline-none ring-sky-400 transition hover:bg-amber-200 focus-visible:ring-2"
               tabIndex={0}
-              aria-label="Açıklama"
+              aria-label={t('Açıklama')}
             >
               ?
             </span>
@@ -142,21 +145,22 @@ function SummaryCard({ label, value, tone, hint }) {
 }
 
 function MiniTable({ title, rows, valueClass, resolveDetailPath }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       <h4 className="text-sm font-bold text-gray-900">{title}</h4>
       {!rows?.length ? (
-        <p className="mt-4 text-center text-sm text-gray-400">Veri yok</p>
+        <p className="mt-4 text-center text-sm text-gray-400">{t('Veri yok')}</p>
       ) : (
         <div className="mt-3 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 text-left text-xs font-semibold text-gray-500">
-                <th className="py-2 pr-3 min-w-[140px]">Varlık</th>
-                <th className="py-2 pr-2 text-right">Fiyat</th>
-                <th className="py-2 text-right">Fark %</th>
+                <th className="py-2 pr-3 min-w-[140px]">{t('Varlık')}</th>
+                <th className="py-2 pr-2 text-right">{t('Fiyat')}</th>
+                <th className="py-2 text-right">{t('Fark %')}</th>
               </tr>
             </thead>
             <tbody>
@@ -166,7 +170,9 @@ function MiniTable({ title, rows, valueClass, resolveDetailPath }) {
                 const go = () => {
                   if (to) navigate(to);
                 };
-                const typeLabel = WATCHLIST_ASSET_LABELS[item?.assetType] ?? item?.assetType ?? '—';
+                const typeLabel = WATCHLIST_ASSET_LABELS[item?.assetType]
+                  ? t(WATCHLIST_ASSET_LABELS[item?.assetType])
+                  : (item?.assetType ?? '—');
                 const primaryName = getWatchlistChartDisplayTitle(item);
                 const sub = getWatchlistTopListSubtitle(item);
                 return (
@@ -182,7 +188,7 @@ function MiniTable({ title, rows, valueClass, resolveDetailPath }) {
                         go();
                       }
                     }}
-                    title={to ? 'Detaya git' : undefined}
+                    title={to ? t('Detaya git') : undefined}
                     className={`border-b border-gray-50 last:border-0 transition-colors ${
                       to ? 'cursor-pointer hover:bg-sky-50/60' : ''
                     }`}
@@ -225,6 +231,7 @@ function MiniTable({ title, rows, valueClass, resolveDetailPath }) {
  * @param {string} [portfolioName] — PDF raporunda gösterilen izleme listesi adı
  */
 export default function WatchlistCharts({ items = [], loading = false, resolveDetailPath, portfolioName = '' }) {
+  const { t } = useTranslation();
   if (loading) {
     return (
       <div className="p-8 flex justify-center gap-1.5">
@@ -238,7 +245,7 @@ export default function WatchlistCharts({ items = [], loading = false, resolveDe
   if (!items.length) {
     return (
       <div className="p-10 text-center text-sm text-gray-500">
-        İzleme listesinde henüz sembol yok.
+        {t('İzleme listesinde henüz sembol yok.')}
       </div>
     );
   }
@@ -250,7 +257,7 @@ export default function WatchlistCharts({ items = [], loading = false, resolveDe
 
   const donutRows = Object.entries(grouped)
     .map(([type, list]) => {
-      const name = WATCHLIST_ASSET_LABELS[type] ?? type;
+      const name = WATCHLIST_ASSET_LABELS[type] ? t(WATCHLIST_ASSET_LABELS[type]) : type;
       const count = list.length;
       const sharePct = countSharePercent(count, totalForShare);
       return {
@@ -265,10 +272,10 @@ export default function WatchlistCharts({ items = [], loading = false, resolveDe
   const donutData = donutRows.map(r => ({ ...r }));
 
   const dailyBarData = [
-    { name: 'Yükselen', count: status.up, fill: '#10b981' },
-    { name: 'Düşen', count: status.down, fill: '#f43f5e' },
-    { name: 'Yatay', count: status.flat, fill: '#94a3b8' },
-    { name: 'Veri Yok', count: status.nodata, fill: '#fbbf24' },
+    { name: t('Yükselen'), count: status.up, fill: '#10b981' },
+    { name: t('Düşen'), count: status.down, fill: '#f43f5e' },
+    { name: t('Yatay'), count: status.flat, fill: '#94a3b8' },
+    { name: t('Veri Yok'), count: status.nodata, fill: '#fbbf24' },
   ];
 
   const avgByType = calculateAverageChangeByType(items);
@@ -299,42 +306,41 @@ export default function WatchlistCharts({ items = [], loading = false, resolveDe
         className="p-4 md:p-6 pt-2 md:pt-3 space-y-6 min-w-0 w-full"
       >
         <header className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <h2 className="text-lg font-bold text-gray-900">İzleme Listesi Analiz Raporu</h2>
+          <h2 className="text-lg font-bold text-gray-900">{t('İzleme Listesi Analiz Raporu')}</h2>
           <p className="mt-1 text-sm font-medium text-gray-800">
-            İzleme listesi: {portfolioName || '—'}
+            {t('İzleme listesi:')} {portfolioName || '—'}
           </p>
           <p className="mt-1 text-xs text-gray-500">
-            Oluşturulma:{' '}
+            {t('Oluşturulma:')}{' '}
             {new Date().toLocaleString('tr-TR', { dateStyle: 'long', timeStyle: 'short' })}
           </p>
         </header>
 
       {/* Özet kartları */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <SummaryCard label="Toplam Enstrüman" value={status.total} tone="default" />
-        <SummaryCard label="Yükselen" value={status.up} tone="up" />
-        <SummaryCard label="Düşen" value={status.down} tone="down" />
-        <SummaryCard label="Yatay / Değişmeyen" value={status.flat} tone="flat" />
+        <SummaryCard label={t('Toplam Enstrüman')} value={status.total} tone="default" />
+        <SummaryCard label={t('Yükselen')} value={status.up} tone="up" />
+        <SummaryCard label={t('Düşen')} value={status.down} tone="down" />
+        <SummaryCard label={t('Yatay / Değişmeyen')} value={status.flat} tone="flat" />
         <SummaryCard
-          label="Veri Yok"
+          label={t('Veri Yok')}
           value={status.nodata}
           tone="muted"
-          hint="Fiyat/değişim verisi bulunmayan enstrümanlar"
+          hint={t('Fiyat/değişim verisi bulunmayan enstrümanlar')}
         />
       </div>
 
       {!hasPerf && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Yeterli fiyat verisi yok; günlük performans grafikleri ve sıralamalar gösterilemiyor. Varlık türü
-          dağılımı sembol adedine göre çalışmaya devam eder.
+          {t('Yeterli fiyat verisi yok; günlük performans grafikleri ve sıralamalar gösterilemiyor. Varlık türü dağılımı sembol adedine göre çalışmaya devam eder.')}
         </div>
       )}
 
       {/* Varlık türü — donut (önceki görünüm: etiket + legend) + özet tablo */}
       <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <h3 className="text-base font-bold text-gray-900">Varlık Türü Dağılımı</h3>
+        <h3 className="text-base font-bold text-gray-900">{t('Varlık Türü Dağılımı')}</h3>
         <p className="mt-1 text-xs text-gray-500">
-          Dağılım takip edilen sembol adedine göre hesaplanır.
+          {t('Dağılım takip edilen sembol adedine göre hesaplanır.')}
         </p>
 
         <div className="mt-4 h-[280px] w-full min-w-0">
@@ -367,9 +373,9 @@ export default function WatchlistCharts({ items = [], loading = false, resolveDe
           <table className="w-full min-w-[280px] text-sm">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600">
-                <th className="px-3 py-2">Kategori</th>
-                <th className="px-3 py-2 text-right">Adet</th>
-                <th className="px-3 py-2 text-right">Oran</th>
+                <th className="px-3 py-2">{t('Kategori')}</th>
+                <th className="px-3 py-2 text-right">{t('Adet')}</th>
+                <th className="px-3 py-2 text-right">{t('Oran')}</th>
               </tr>
             </thead>
             <tbody>
@@ -403,8 +409,8 @@ export default function WatchlistCharts({ items = [], loading = false, resolveDe
         <>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm min-w-0">
-              <h3 className="text-base font-bold text-gray-900">Günlük Durum</h3>
-              <p className="mt-1 text-xs text-gray-500">Yükselen / düşen / yatay / veri yok adetleri</p>
+              <h3 className="text-base font-bold text-gray-900">{t('Günlük Durum')}</h3>
+              <p className="mt-1 text-xs text-gray-500">{t('Yükselen / düşen / yatay / veri yok adetleri')}</p>
               <div className="mt-4 h-[260px] w-full min-w-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={dailyBarData} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
@@ -423,23 +429,22 @@ export default function WatchlistCharts({ items = [], loading = false, resolveDe
             </div>
 
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm min-w-0">
-              <h3 className="text-base font-bold text-gray-900">Kategori Bazlı Ortalama Değişim</h3>
+              <h3 className="text-base font-bold text-gray-900">{t('Kategori Bazlı Ortalama Değişim')}</h3>
               <p className="mt-1 text-xs text-gray-500">
-                Her varlık türü için ortalama günlük değişim; günlük % verisi olmayan enstrümanlar ve boş
-                kategoriler dahil edilmez.
+                {t('Her varlık türü için ortalama günlük değişim; günlük % verisi olmayan enstrümanlar ve boş kategoriler dahil edilmez.')}
               </p>
               {!avgByType.length ? (
-                <p className="mt-8 text-center text-sm text-gray-500">Yeterli fiyat verisi yok</p>
+                <p className="mt-8 text-center text-sm text-gray-500">{t('Yeterli fiyat verisi yok')}</p>
               ) : (
                 <div className="mt-4 h-[260px] w-full min-w-0">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={avgByType} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
+                    <BarChart data={avgByType.map(e => ({ ...e, label: t(e.label) }))} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                       <XAxis dataKey="label" tick={{ fontSize: 11 }} interval={0} angle={-18} textAnchor="end" height={56} />
                       <YAxis tick={{ fontSize: 11 }} tickFormatter={formatPctAxis} />
                       <ReferenceLine y={0} stroke="#cbd5e1" />
                       <Tooltip content={<ChartTooltip />} />
-                      <Bar dataKey="avg" name="Ortalama %" radius={[6, 6, 0, 0]}>
+                      <Bar dataKey="avg" name={t('Ortalama %')} radius={[6, 6, 0, 0]}>
                         {avgByType.map(e => (
                           <Cell key={e.type} fill={e.avg >= 0 ? '#10b981' : '#f43f5e'} />
                         ))}
@@ -453,13 +458,13 @@ export default function WatchlistCharts({ items = [], loading = false, resolveDe
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <MiniTable
-              title="En Çok Yükselenler"
+              title={t('En Çok Yükselenler')}
               rows={gainers}
               valueClass={pctClass}
               resolveDetailPath={resolveDetailPath}
             />
             <MiniTable
-              title="En Çok Düşenler"
+              title={t('En Çok Düşenler')}
               rows={losers}
               valueClass={pctClass}
               resolveDetailPath={resolveDetailPath}
@@ -469,9 +474,9 @@ export default function WatchlistCharts({ items = [], loading = false, resolveDe
       )}
 
         <footer className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-950 leading-relaxed">
-          <strong className="font-semibold">Yasal uyarı:</strong> Bu rapor yalnızca bilgilendirme amaçlıdır.
-          Gösterilen tablolar ve grafikler <strong className="font-semibold">yatırım tavsiyesi değildir</strong>.
-          Yatırım kararlarınızı kendi risk ve tercihlerinize göre veriniz.
+          <strong className="font-semibold">{t('Yasal uyarı:')}</strong> {t('Bu rapor yalnızca bilgilendirme amaçlıdır.')}
+          {' '}{t('Gösterilen tablolar ve grafikler')} <strong className="font-semibold">{t('yatırım tavsiyesi değildir')}</strong>.
+          {' '}{t('Yatırım kararlarınızı kendi risk ve tercihlerinize göre veriniz.')}
         </footer>
       </div>
     </div>

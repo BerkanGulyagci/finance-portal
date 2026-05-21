@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Trash2 } from 'lucide-react';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 const COMMODITY_NAMES = {
   // Enerji
@@ -132,34 +133,37 @@ export default function WatchlistTable({
   onAddToPortfolio,
   resolveDetailPath,
 }) {
+  const { t } = useTranslation();
   if (!items.length) {
     return (
       <div className="p-12 text-center text-gray-400 text-sm">
-        İzleme listesi boş. "Sembol Ekle" butonuna basarak başlayın.
+        {t('İzleme listesi boş. "Sembol Ekle" butonuna basarak başlayın.')}
       </div>
     );
   }
+
+  const headerKeys =
+    variant === 'bond'
+      ? ['Sembol', 'Değer', 'Eklendiği Fiyat', 'Günlük Fark', 'Günlük Fark %', 'Kalan Gün', 'Kupon %', 'Not', 'Eklenme Tarihi', 'İşlem']
+      : variant === 'fx'
+        ? ['Sembol', 'Alış', 'Satış', 'Eklendiği Fiyat', 'Not', 'Eklenme Tarihi', 'İşlem']
+        : variant === 'fund'
+          ? ['Fon Kodu', 'Fon Adı', 'Son Fiyat', 'Günlük Getiri', '1 Ay', '3 Ay', 'YBG', '1 Yıl', 'Risk', 'Eklenme Tarihi', 'İşlem']
+          : ['Sembol', 'Son Fiyat', 'Eklendiği Fiyat', 'Açılış', 'Yüksek', 'Düşük', 'Fark', 'Fark %', 'Hacim', 'Not', 'Eklenme Tarihi', 'İşlem'];
 
   return (
     <div className="px-3 pb-2 overflow-x-auto">
       <table className={`w-full ${variant === 'fund' ? 'min-w-[1000px]' : 'table-fixed'}`}>
         <thead className="bg-gray-50">
           <tr>
-            {(variant === 'bond'
-              ? ['Sembol', 'Değer', 'Eklendiği Fiyat', 'Günlük Fark', 'Günlük Fark %', 'Kalan Gün', 'Kupon %', 'Not', 'Eklenme Tarihi', 'İşlem']
-              : variant === 'fx'
-                ? ['Sembol', 'Alış', 'Satış', 'Eklendiği Fiyat', 'Not', 'Eklenme Tarihi', 'İşlem']
-                : variant === 'fund'
-                  ? ['Fon Kodu', 'Fon Adı', 'Son Fiyat', 'Günlük Getiri', '1 Ay', '3 Ay', 'YBG', '1 Yıl', 'Risk', 'Eklenme Tarihi', 'İşlem']
-                  : ['Sembol', 'Son Fiyat', 'Eklendiği Fiyat', 'Açılış', 'Yüksek', 'Düşük', 'Fark', 'Fark %', 'Hacim', 'Not', 'Eklenme Tarihi', 'İşlem']
-            ).map(h => (
+            {headerKeys.map(h => (
               <th
                 key={h}
                 className={`text-left px-2 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 ${
                   h === 'Eklenme Tarihi' ? 'w-[110px]' : ''
                 } ${h === 'İşlem' ? 'w-[150px]' : ''} ${variant === 'fund' && h === 'Fon Adı' ? 'min-w-[140px]' : ''}`}
               >
-                {h}
+                {t(h)}
               </th>
             ))}
           </tr>
@@ -244,7 +248,7 @@ export default function WatchlistTable({
                       onClick={() => onAddToPortfolio(item, getDisplayName(item).title)}
                       className="h-7 px-2 rounded-md border border-gray-200 bg-white text-[#093eaa] hover:bg-gray-50 transition-colors text-[11px] font-semibold whitespace-nowrap"
                     >
-                      Varlıklarıma Ekle
+                      {t('Varlıklarıma Ekle')}
                     </button>
                   )}
                 {onDelete && (
@@ -252,7 +256,7 @@ export default function WatchlistTable({
                     onClick={() => onDelete(item.id)}
                     disabled={deletingId === item.id}
                       className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-gray-200 text-gray-400 hover:text-rose-500 hover:border-rose-200 hover:bg-rose-50 transition-colors disabled:opacity-40"
-                    title="Listeden çıkar"
+                    title={t('Listeden çıkar')}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>

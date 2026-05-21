@@ -5,6 +5,7 @@ import { getCryptos } from '../../../api/marketApi';
 import { useAuth } from '../../../context/AuthContext';
 import { useSortable } from '../../../hooks/useSortable';
 import SortableTh from '../../../components/common/SortableTh';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 const PAGE_SIZE = 50;
 
@@ -34,6 +35,7 @@ function num(v, dec = null) {
 }
 
 export default function CryptoPage() {
+  const { t } = useTranslation();
   const [items, setItems]         = useState([]);
   const [loading, setLoading]     = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -64,7 +66,7 @@ export default function CryptoPage() {
           if (p < 3) await new Promise(r => setTimeout(r, 1300));
         } catch (e) {
           if (cancelled) return;
-          if (p === 0) setError(!e.response ? 'Sunucuya ulaşılamıyor.' : `Hata (${e.response?.status})`);
+          if (p === 0) setError(!e.response ? t('Sunucuya ulaşılamıyor.') : `${t('Hata')} (${e.response?.status})`);
           break;
         }
       }
@@ -102,34 +104,34 @@ export default function CryptoPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-2 border-l-4 border-[#093eaa] pl-4">Kripto Para</h1>
-      <p className="text-sm text-gray-500 mb-6 pl-5">CoinGecko verilerine göre TRY bazlı kripto para fiyatları</p>
+      <h1 className="text-2xl font-bold text-gray-900 mb-2 border-l-4 border-[#093eaa] pl-4">{t('Kripto Para')}</h1>
+      <p className="text-sm text-gray-500 mb-6 pl-5">{t('CoinGecko verilerine göre TRY bazlı kripto para fiyatları')}</p>
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        {loading && <div className="p-8 text-center text-gray-400 text-sm">Yükleniyor...</div>}
+        {loading && <div className="p-8 text-center text-gray-400 text-sm">{t('Yükleniyor...')}</div>}
         {error && <div className="p-6 text-rose-500 text-sm">{error}</div>}
 
         {!loading && !error && (
           <>
             <div className="p-4 border-b border-gray-100 flex items-center gap-3">
-              <input type="text" placeholder="Coin adı veya sembol ara..."
+              <input type="text" placeholder={t('Coin adı veya sembol ara...')}
                 value={search} onChange={e => { setSearch(e.target.value); setPage(0); }}
                 className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#093eaa] min-w-[240px]" />
-              <span className="text-xs text-gray-400">{sorted.length} coin</span>
-              {loadingMore && <span className="text-xs text-[#093eaa] animate-pulse">daha fazla yükleniyor...</span>}
+              <span className="text-xs text-gray-400">{sorted.length} {t('coin')}</span>
+              {loadingMore && <span className="text-xs text-[#093eaa] animate-pulse">{t('daha fazla yükleniyor...')}</span>}
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
                     <SortableTh {...thProps('marketCapRank', '#', 'left')} className="w-10" />
-                    <SortableTh {...thProps('name', 'Coin', 'left')} />
-                    <SortableTh {...thProps('currentPrice', 'Fiyat')} />
-                    <SortableTh {...thProps('priceChangePercentage1h', '1sa')} />
-                    <SortableTh {...thProps('priceChangePercentage24h', '24sa')} />
-                    <SortableTh {...thProps('priceChangePercentage7d', '7g')} />
-                    <SortableTh {...thProps('totalVolume', '24s Hacim')} />
-                    <SortableTh {...thProps('marketCap', 'Piyasa Değeri')} />
+                    <SortableTh {...thProps('name', t('Coin'), 'left')} />
+                    <SortableTh {...thProps('currentPrice', t('Fiyat'))} />
+                    <SortableTh {...thProps('priceChangePercentage1h', t('1sa'))} />
+                    <SortableTh {...thProps('priceChangePercentage24h', t('24sa'))} />
+                    <SortableTh {...thProps('priceChangePercentage7d', t('7g'))} />
+                    <SortableTh {...thProps('totalVolume', t('24s Hacim'))} />
+                    <SortableTh {...thProps('marketCap', t('Piyasa Değeri'))} />
                     <th className="px-4 py-3 border-b border-gray-200" />
                   </tr>
                 </thead>
@@ -156,7 +158,7 @@ export default function CryptoPage() {
                       <td className="px-4 py-3 text-sm text-gray-600 text-right">{c.marketCap != null ? `₺${num(c.marketCap, 0)}` : '-'}</td>                      <td className="px-4 py-3 text-right">
                         <button onClick={handleBuy}
                           className="border border-emerald-500 text-emerald-600 text-xs font-bold px-3 py-1 rounded-full hover:bg-emerald-50 transition-colors whitespace-nowrap">
-                          Satın Al
+                          {t('Satın Al')}
                         </button>
                       </td>
                     </tr>
@@ -197,7 +199,7 @@ export default function CryptoPage() {
 
                 <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}
                   className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm hover:bg-gray-50 disabled:opacity-40">›</button>
-                <span className="text-xs text-gray-400 ml-1">{totalPages} sayfa</span>
+                <span className="text-xs text-gray-400 ml-1">{totalPages} {t('sayfa')}</span>
               </div>
             )}
           </>

@@ -5,6 +5,7 @@ import { getFxTcmb, getFxOpen, getBankCurrencyRates, getBankCurrencyRatesByCurre
 import { useSortable } from '../../../hooks/useSortable.js';
 import SortableTh from '../../../components/common/SortableTh.jsx';
 import { FX_META, FlagImg } from '../../../utils/fxMeta.jsx';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 function num(v, dec = 4) {
   return v == null ? '-' : parseFloat(v).toLocaleString('tr-TR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
@@ -40,6 +41,7 @@ const OPEN_BASES = ['USD', 'EUR', 'GBP', 'TRY'];
 const BANK_CURRENCIES = ['Tümü', 'USD', 'EUR', 'GBP', 'CHF', 'JPY', 'SAR', 'NOK', 'DKK', 'AUD', 'CAD', 'SEK'];
 
 export default function FxPage() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('tcmb');
   const [searchParams] = useSearchParams();
 
@@ -71,7 +73,7 @@ export default function FxPage() {
     setLoading(true);
     getFxTcmb()
       .then(setTcmbData)
-      .catch(e => setError(!e.response ? 'Sunucuya ulaşılamıyor.' : `Hata (${e.response.status})`))
+      .catch(e => setError(!e.response ? t('Sunucuya ulaşılamıyor.') : `${t('Hata')} (${e.response.status})`))
       .finally(() => setLoading(false));
   }, []);
 
@@ -82,7 +84,7 @@ export default function FxPage() {
     setError('');
     getFxOpen(openBase)
       .then(setOpenData)
-      .catch(e => setError(!e.response ? 'Sunucuya ulaşılamıyor.' : `Hata (${e.response.status})`))
+      .catch(e => setError(!e.response ? t('Sunucuya ulaşılamıyor.') : `${t('Hata')} (${e.response.status})`))
       .finally(() => setLoading(false));
   }, [activeTab, openBase]);
 
@@ -96,7 +98,7 @@ export default function FxPage() {
       : getBankCurrencyRatesByCurrency(bankCurrency);
     fetchFn
       .then(setBankRates)
-      .catch(e => setError(!e.response ? 'Sunucuya ulaşılamıyor.' : `Hata (${e.response.status})`))
+      .catch(e => setError(!e.response ? t('Sunucuya ulaşılamıyor.') : `${t('Hata')} (${e.response.status})`))
       .finally(() => setLoading(false));
   }, [activeTab, bankCurrency]);
 
@@ -119,21 +121,21 @@ export default function FxPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-2 border-l-4 border-[#093eaa] pl-4">Döviz Kurları</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-2 border-l-4 border-[#093eaa] pl-4">{t('Döviz Kurları')}</h1>
       <p className="text-sm text-gray-500 mb-6 pl-5">
-        {activeTab === 'tcmb'  && 'TCMB resmi döviz kurları (günlük güncellenir) — Türk Lirası bazlı'}
-        {activeTab === 'open'  && 'Open Exchange Rates — gerçek zamanlıya yakın kurlar'}
-        {activeTab === 'banks' && 'Türk bankalarının anlık döviz alış/satış kurları — Hesapkurdu'}
+        {activeTab === 'tcmb'  && t('TCMB resmi döviz kurları (günlük güncellenir) — Türk Lirası bazlı')}
+        {activeTab === 'open'  && t('Open Exchange Rates — gerçek zamanlıya yakın kurlar')}
+        {activeTab === 'banks' && t('Türk bankalarının anlık döviz alış/satış kurları — Hesapkurdu')}
       </p>
 
       {/* Tabs */}
       <div className="flex gap-2 mb-4 flex-wrap">
-        {tabs.map(t => (
-          <button key={t.key} onClick={() => setActiveTab(t.key)}
+        {tabs.map(tab => (
+          <button key={tab.key} onClick={() => setActiveTab(tab.key)}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-              activeTab === t.key ? 'bg-[#093eaa] text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+              activeTab === tab.key ? 'bg-[#093eaa] text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
             }`}>
-            {t.label}
+            {t(tab.label)}
           </button>
         ))}
       </div>
@@ -141,7 +143,7 @@ export default function FxPage() {
       {/* Open FX base selector */}
       {activeTab === 'open' && (
         <div className="flex items-center gap-3 mb-4">
-          <span className="text-sm text-gray-500 font-semibold">Baz Para Birimi:</span>
+          <span className="text-sm text-gray-500 font-semibold">{t('Baz Para Birimi:')}</span>
           <div className="flex gap-2">
             {OPEN_BASES.map(b => (
               <button key={b} onClick={() => setOpenBase(b)}
@@ -158,14 +160,14 @@ export default function FxPage() {
       {/* Banka kurları döviz filtresi */}
       {activeTab === 'banks' && (
         <div className="flex items-center gap-3 mb-4 flex-wrap">
-          <span className="text-sm text-gray-500 font-semibold">Döviz:</span>
+          <span className="text-sm text-gray-500 font-semibold">{t('Döviz:')}</span>
           <div className="flex gap-2 flex-wrap">
             {BANK_CURRENCIES.map(c => (
               <button key={c} onClick={() => setBankCurrency(c)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-all border ${
                   bankCurrency === c ? 'bg-[#093eaa] text-white border-[#093eaa]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                 }`}>
-                {c}
+                {c === 'Tümü' ? t('Tümü') : c}
               </button>
             ))}
           </div>
@@ -178,18 +180,18 @@ export default function FxPage() {
           <div className="px-6 py-3 border-b border-gray-100 bg-gray-50 text-xs text-gray-500 flex items-center justify-between">
             {activeTab === 'tcmb' && tcmbData && (
               <>
-                <span>Kaynak: TCMB · Baz: TRY · {tcmbRates.length} döviz</span>
+                <span>{t('Kaynak:')} TCMB · {t('Baz:')} TRY · {tcmbRates.length} {t('döviz')}</span>
                 <span>{tcmbData.asOf}</span>
               </>
             )}
             {activeTab === 'open' && openData && (
               <>
-                <span>Kaynak: Open Exchange Rates · Baz: {openData.base}</span>
+                <span>{t('Kaynak:')} Open Exchange Rates · {t('Baz:')} {openData.base}</span>
                 <span>{openData.asOf}</span>
               </>
             )}
             {activeTab === 'banks' && (
-              <span>Kaynak: Hesapkurdu · {sortedBanks.length} kayıt{bankCurrency !== 'Tümü' ? ` · ${bankCurrency}` : ''}</span>
+              <span>{t('Kaynak:')} Hesapkurdu · {sortedBanks.length} {t('kayıt')}{bankCurrency !== 'Tümü' ? ` · ${bankCurrency}` : ''}</span>
             )}
           </div>
         )}
@@ -209,13 +211,13 @@ export default function FxPage() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <SortableTh {...tcmbTh('symbol', 'Döviz Kodu')} />
+                  <SortableTh {...tcmbTh('symbol', t('Döviz Kodu'))} />
                   <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200">
-                    Döviz Cinsi
+                    {t('Döviz Cinsi')}
                   </th>
-                  <SortableTh {...tcmbTh('unit', 'Birim', 'right')} />
-                  <SortableTh {...tcmbTh('buy', 'Alış', 'right')} />
-                  <SortableTh {...tcmbTh('sell', 'Satış', 'right')} />
+                  <SortableTh {...tcmbTh('unit', t('Birim'), 'right')} />
+                  <SortableTh {...tcmbTh('buy', t('Alış'), 'right')} />
+                  <SortableTh {...tcmbTh('sell', t('Satış'), 'right')} />
                   <th className="px-4 py-3 border-b border-gray-200 w-8" />
                   <th className="px-4 py-3 border-b border-gray-200 w-10" />
                 </tr>
@@ -252,7 +254,7 @@ export default function FxPage() {
                         <Link
                           to={`/market/compare?symbols=${r.symbol}`}
                           onClick={e => e.stopPropagation()}
-                          title="Karşılaştır"
+                          title={t('Karşılaştır')}
                           className="p-1.5 rounded-lg bg-gray-100 hover:bg-[#093eaa] hover:text-white text-gray-400 transition-all inline-flex"
                         >
                           <BarChart2 className="w-3.5 h-3.5" />
@@ -272,11 +274,11 @@ export default function FxPage() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <SortableTh {...openTh('symbol', 'Döviz')} />
+                  <SortableTh {...openTh('symbol', t('Döviz'))} />
                   <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200">
-                    Döviz Cinsi
+                    {t('Döviz Cinsi')}
                   </th>
-                  <SortableTh {...openTh('sell', 'Kur', 'right')} />
+                  <SortableTh {...openTh('sell', t('Kur'), 'right')} />
                 </tr>
               </thead>
               <tbody>
@@ -304,20 +306,20 @@ export default function FxPage() {
         {!loading && !error && activeTab === 'banks' && (
           <>
             {sortedBanks.length === 0 ? (
-              <div className="p-8 text-center text-gray-400 text-sm">Veri bulunamadı.</div>
+              <div className="p-8 text-center text-gray-400 text-sm">{t('Veri bulunamadı.')}</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr>
-                      <SortableTh {...bankTh('bankName', 'Banka')} />
-                      <SortableTh {...bankTh('currencyCode', 'Döviz')} />
-                      <SortableTh {...bankTh('buyRate', 'Alış', 'right')} />
-                      <SortableTh {...bankTh('sellRate', 'Satış', 'right')} />
-                      <SortableTh {...bankTh('spread', 'Makas', 'right')} />
-                      <SortableTh {...bankTh('dailyChangePercent', 'Günlük %', 'right')} />
+                      <SortableTh {...bankTh('bankName', t('Banka'))} />
+                      <SortableTh {...bankTh('currencyCode', t('Döviz'))} />
+                      <SortableTh {...bankTh('buyRate', t('Alış'), 'right')} />
+                      <SortableTh {...bankTh('sellRate', t('Satış'), 'right')} />
+                      <SortableTh {...bankTh('spread', t('Makas'), 'right')} />
+                      <SortableTh {...bankTh('dailyChangePercent', t('Günlük %'), 'right')} />
                       <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200">
-                        Son Güncelleme
+                        {t('Son Güncelleme')}
                       </th>
                     </tr>
                   </thead>
@@ -371,7 +373,7 @@ export default function FxPage() {
                 {/* JPY uyarısı */}
                 {(bankCurrency === 'JPY' || bankCurrency === 'Tümü') && sortedBanks.some(r => r.currencyCode === 'JPY') && (
                   <div className="px-4 py-2 bg-amber-50 border-t border-amber-100 text-xs text-amber-700">
-                    ⚠️ JPY kurları bankaya göre farklı birimde gösterilebilir: bazı bankalar 1 JPY, bazıları 100 JPY bazında fiyatlar.
+                    {t('⚠️ JPY kurları bankaya göre farklı birimde gösterilebilir: bazı bankalar 1 JPY, bazıları 100 JPY bazında fiyatlar.')}
                   </div>
                 )}
               </div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Ban, User, UserCheck, X } from 'lucide-react';
 import { getUser } from '../../../api/adminApi';
+import { useTranslation } from '../../../i18n/LanguageContext';
 import UserStatusBadge from './UserStatusBadge';
 import UserRolesCell from './UserRolesCell';
 import { formatBanUntil, isActiveUser, isTemporaryBan } from '../utils/banDisplay';
@@ -36,6 +37,7 @@ export default function AdminUserDetailModal({
   onRequestBan,
   onUnban,
 }) {
+  const { t } = useTranslation();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -57,7 +59,7 @@ export default function AdminUserDetailModal({
       })
       .catch(err => {
         if (!cancelled) {
-          setError(err.response?.data?.message || 'Kullanıcı bilgisi yüklenemedi.');
+          setError(err.response?.data?.message || t('Kullanıcı bilgisi yüklenemedi.'));
           setUser(null);
         }
       })
@@ -68,7 +70,7 @@ export default function AdminUserDetailModal({
     return () => {
       cancelled = true;
     };
-  }, [open, userId]);
+  }, [open, userId, t]);
 
   if (!open) return null;
 
@@ -90,10 +92,10 @@ export default function AdminUserDetailModal({
             </span>
             <div className="min-w-0">
               <h2 id="user-detail-title" className="text-lg font-bold text-gray-900 truncate">
-                Kullanıcı Detayı
+                {t('Kullanıcı Detayı')}
               </h2>
               <p className="text-xs text-gray-500 mt-0.5 truncate">
-                {loading ? 'Yükleniyor...' : user?.username ?? '—'}
+                {loading ? t('Yükleniyor...') : user?.username ?? '—'}
               </p>
             </div>
           </div>
@@ -102,7 +104,7 @@ export default function AdminUserDetailModal({
             onClick={onClose}
             disabled={busy}
             className="absolute top-4 right-4 p-1.5 rounded-lg text-gray-400 hover:bg-white hover:text-gray-600"
-            aria-label="Kapat"
+            aria-label={t('Kapat')}
           >
             <X className="w-5 h-5" />
           </button>
@@ -110,7 +112,7 @@ export default function AdminUserDetailModal({
 
         <div className="p-5 overflow-y-auto flex-1">
           {loading && (
-            <p className="text-sm text-gray-500 text-center py-8">Kullanıcı bilgileri yükleniyor...</p>
+            <p className="text-sm text-gray-500 text-center py-8">{t('Kullanıcı bilgileri yükleniyor...')}</p>
           )}
 
           {!loading && error && (
@@ -122,27 +124,27 @@ export default function AdminUserDetailModal({
               <div className="flex items-center justify-between gap-2 mb-4">
                 <UserStatusBadge user={user} />
                 {user.id === currentUserId && (
-                  <span className="text-[10px] font-bold text-[#093eaa] uppercase">Siz</span>
+                  <span className="text-[10px] font-bold text-[#093eaa] uppercase">{t('Siz')}</span>
                 )}
               </div>
 
-              <DetailField label="Kullanıcı adı" value={user.username} />
-              <DetailField label="Ad" value={user.firstName} />
-              <DetailField label="Soyad" value={user.lastName} />
-              <DetailField label="E-posta" value={user.email} />
+              <DetailField label={t('Kullanıcı adı')} value={user.username} />
+              <DetailField label={t('Ad')} value={user.firstName} />
+              <DetailField label={t('Soyad')} value={user.lastName} />
+              <DetailField label={t('E-posta')} value={user.email} />
               <DetailField
-                label="E-posta doğrulama"
-                value={user.emailVerified ? 'Doğrulandı' : 'Doğrulanmadı'}
+                label={t('E-posta doğrulama')}
+                value={user.emailVerified ? t('Doğrulandı') : t('Doğrulanmadı')}
               />
-              <DetailField label="Keycloak hesap" value={user.enabled ? 'Etkin' : 'Devre dışı'} />
+              <DetailField label={t('Keycloak hesap')} value={user.enabled ? t('Etkin') : t('Devre dışı')} />
               {isTemporaryBan(user) && (
-                <DetailField label="Ban bitiş" value={formatBanUntil(user.banUntil) || '—'} />
+                <DetailField label={t('Ban bitiş')} value={formatBanUntil(user.banUntil) || '—'} />
               )}
               <div className="py-2.5 border-b border-gray-100">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Roller</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('Roller')}</p>
                 <UserRolesCell roles={user.roles} />
               </div>
-              <DetailField label="Kullanıcı ID" value={user.id} mono />
+              <DetailField label={t('Kullanıcı ID')} value={user.id} mono />
             </>
           )}
         </div>
@@ -157,7 +159,7 @@ export default function AdminUserDetailModal({
                 className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50"
               >
                 <Ban className="w-4 h-4" />
-                Banla
+                {t('Banla')}
               </button>
             )}
             {canUnbanUser(user) && (
@@ -168,7 +170,7 @@ export default function AdminUserDetailModal({
                 className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
               >
                 <UserCheck className="w-4 h-4" />
-                Unban
+                {t('Unban')}
               </button>
             )}
             <button
@@ -177,7 +179,7 @@ export default function AdminUserDetailModal({
               disabled={busy}
               className="ml-auto px-4 py-2.5 rounded-xl text-sm font-bold border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
             >
-              Kapat
+              {t('Kapat')}
             </button>
           </footer>
         )}

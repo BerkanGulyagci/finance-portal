@@ -8,6 +8,7 @@ import GoldErrorState    from '../gold/components/GoldErrorState';
 import GoldChart         from '../gold/components/GoldChart';
 import GoldChartToolbar  from '../gold/components/GoldChartToolbar';
 import GoldSourceNotice  from '../gold/components/GoldSourceNotice';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 // ── Yardımcı ─────────────────────────────────────────────────────────────────
 function fmt(v, dec = 2) {
@@ -19,9 +20,10 @@ function fmt(v, dec = 2) {
 }
 
 function StatRow({ label, value, colored, positive }) {
+  const { t } = useTranslation();
   return (
     <div className="flex justify-between items-center py-2 border-b border-gray-50">
-      <span className="text-xs font-bold text-gray-500 tracking-wider">{label}</span>
+      <span className="text-xs font-bold text-gray-500 tracking-wider">{t(label)}</span>
       <span className={`text-sm font-semibold ${colored ? (positive ? 'text-emerald-600' : 'text-rose-600') : 'text-gray-900'}`}>
         {value}
       </span>
@@ -124,6 +126,7 @@ function buildDisplayPoints(historyPoints, activeTab, chartMode) {
 
 // ── Ana sayfa ─────────────────────────────────────────────────────────────────
 export default function SilverPage() {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const [spot,         setSpot]         = useState(null);
   const [history,      setHistory]      = useState(null);
@@ -138,12 +141,12 @@ export default function SilverPage() {
   const [showMA90,  setShowMA90]  = useState(false);
   const [showTrend, setShowTrend] = useState(false);
 
-  const activeTab = SILVER_TABS.find(t => t.key === activeTabKey) ?? SILVER_TABS[0];
+  const activeTab = SILVER_TABS.find(tb => tb.key === activeTabKey) ?? SILVER_TABS[0];
 
   useEffect(() => {
-    const t = searchParams.get('tab');
-    if (t && SILVER_TABS.some(x => x.key === t)) {
-      setActiveTabKey(t);
+    const tabParam = searchParams.get('tab');
+    if (tabParam && SILVER_TABS.some(x => x.key === tabParam)) {
+      setActiveTabKey(tabParam);
     }
   }, [searchParams]);
 
@@ -151,7 +154,7 @@ export default function SilverPage() {
     setLoadingSpot(true);
     getSilverSpot()
       .then(setSpot)
-      .catch(() => setError('Gümüş verisi alınamadı.'))
+      .catch(() => setError(t('Gümüş verisi alınamadı.')))
       .finally(() => setLoadingSpot(false));
   }, []);
 
@@ -237,9 +240,9 @@ export default function SilverPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 border-l-4 border-[#093eaa] pl-4">Gümüş</h1>
+        <h1 className="text-2xl font-bold text-gray-900 border-l-4 border-[#093eaa] pl-4">{t('Gümüş')}</h1>
         <p className="text-sm text-gray-500 mt-1.5 pl-4">
-          Gösterilen fiyatlar <span className="font-semibold text-gray-600">Borsa İstanbul (BİST)</span> kıymetli maden referanslarına dayanır.
+          {t('Gösterilen fiyatlar')} <span className="font-semibold text-gray-600">{t('Borsa İstanbul (BİST)')}</span> {t('kıymetli maden referanslarına dayanır.')}
         </p>
       </div>
 
@@ -253,7 +256,7 @@ export default function SilverPage() {
                   ? 'border-[#093eaa] text-[#093eaa] bg-blue-50'
                   : 'border-transparent text-gray-600 hover:text-[#093eaa] hover:bg-gray-50'
               }`}>
-              {tab.label}
+              {t(tab.label)}
             </button>
           ))}
         </div>
@@ -269,16 +272,16 @@ export default function SilverPage() {
               <div className="mb-5">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <h2 className="text-lg font-bold text-gray-700 tracking-wide">
-                    {activeTab.label.toUpperCase()}
+                    {t(activeTab.label).toUpperCase()}
                   </h2>
                   {spot.official && (
                     <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                      Borsa İstanbul
+                      {t('Borsa İstanbul')}
                     </span>
                   )}
                   {spot.stale && (
                     <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                      Eski Veri
+                      {t('Eski Veri')}
                     </span>
                   )}
                 </div>
@@ -294,7 +297,7 @@ export default function SilverPage() {
                   )}
                 </div>
                 {spot.lastValidDate && (
-                  <p className="text-xs text-gray-400 mt-1">BİST: {spot.lastValidDate}</p>
+                  <p className="text-xs text-gray-400 mt-1">{t('BİST:')} {spot.lastValidDate}</p>
                 )}
               </div>
 
@@ -337,10 +340,10 @@ export default function SilverPage() {
               {/* Mum grafik uyarısı */}
               {chartMode === 'candle' && (
                 <div className="mb-3 text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-                  ⚠ Gümüş mum grafiğinde açılış değeri BIST tarafından verilmediği için sentetik olarak hesaplanmıştır.
+                  {t('⚠ Gümüş mum grafiğinde açılış değeri BIST tarafından verilmediği için sentetik olarak hesaplanmıştır.')}
                   {normalizedCount > 0 && (
                     <span className="ml-1">
-                      {normalizedCount} günün aşırı sapmalı değerleri görsel tutarlılık için normalize edildi.
+                      {normalizedCount} {t('günün aşırı sapmalı değerleri görsel tutarlılık için normalize edildi.')}
                     </span>
                   )}
                 </div>
@@ -382,11 +385,11 @@ export default function SilverPage() {
             { label: 'Ons Gümüş ($)',  value: spot.silverUsdOns,                            sym: '$' },
           ].map(card => (
             <div key={card.label} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 text-center">
-              <p className="text-xs text-gray-500 font-semibold mb-2">{card.label}</p>
+              <p className="text-xs text-gray-500 font-semibold mb-2">{t(card.label)}</p>
               <p className="text-2xl font-black text-gray-900">
                 {card.value != null ? `${card.sym}${fmt(card.value, card.dec ?? 2)}` : '-'}
               </p>
-              <p className="text-xs text-gray-400 mt-1">Borsa İstanbul</p>
+              <p className="text-xs text-gray-400 mt-1">{t('Borsa İstanbul')}</p>
             </div>
           ))}
         </div>

@@ -3,8 +3,10 @@ import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { Wallet } from 'lucide-react';
 import { redirectToLogin } from '../api/authApi';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../i18n/LanguageContext';
 
 export default function LoginPage() {
+  const { t } = useTranslation();
   const { isAuthenticated, emailVerified } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -27,7 +29,7 @@ export default function LoginPage() {
       await redirectToLogin(event);
     } catch (err) {
       console.error('PKCE login start failed', err);
-      setLoginError(err.message || 'Giriş başlatılamadı. Lütfen tekrar deneyin.');
+      setLoginError(err.message || t('Giriş başlatılamadı. Lütfen tekrar deneyin.'));
     }
   }
 
@@ -46,14 +48,14 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Hesabınıza Giriş Yapın</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">{t('Hesabınıza Giriş Yapın')}</h2>
           <p className="text-sm text-gray-500 mb-6">
-            Portföyünüzü yönetmek için güvenli giriş yapın.
+            {t('Portföyünüzü yönetmek için güvenli giriş yapın.')}
           </p>
 
           {bannedNotice && (
             <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 mb-6 text-sm text-rose-800">
-              Hesabınız yönetici tarafından devre dışı bırakıldı. Oturumunuz sonlandırıldı.
+              {t('Hesabınız yönetici tarafından devre dışı bırakıldı. Oturumunuz sonlandırıldı.')}
             </div>
           )}
 
@@ -62,9 +64,9 @@ export default function LoginPage() {
             <div className="flex items-start gap-3">
               <span className="text-2xl">🔐</span>
               <div>
-                <p className="text-sm font-semibold text-blue-800">2 Faktörlü Kimlik Doğrulama</p>
+                <p className="text-sm font-semibold text-blue-800">{t('2 Faktörlü Kimlik Doğrulama')}</p>
                 <p className="text-xs text-blue-600 mt-1">
-                  Hesabınız Google Authenticator ile korunmaktadır. İlk girişte TOTP kurulumu yapmanız gerekecektir.
+                  {t('Hesabınız Google Authenticator ile korunmaktadır. İlk girişte TOTP kurulumu yapmanız gerekecektir.')}
                 </p>
               </div>
             </div>
@@ -84,16 +86,16 @@ export default function LoginPage() {
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" />
             </svg>
-            Güvenli Giriş Yap
+            {t('Güvenli Giriş Yap')}
           </button>
 
           <p className="text-xs text-gray-400 text-center mt-4">
-            Keycloak güvenli kimlik doğrulama sistemi kullanılmaktadır.
+            {t('Keycloak güvenli kimlik doğrulama sistemi kullanılmaktadır.')}
           </p>
 
           <p className="text-sm text-center text-gray-500 mt-4">
-            Hesabınız yok mu?{' '}
-            <Link to="/register" className="text-[#093eaa] font-semibold hover:underline">Kayıt Olun</Link>
+            {t('Hesabınız yok mu?')}{' '}
+            <Link to="/register" className="text-[#093eaa] font-semibold hover:underline">{t('Kayıt Olun')}</Link>
           </p>
         </div>
       </div>

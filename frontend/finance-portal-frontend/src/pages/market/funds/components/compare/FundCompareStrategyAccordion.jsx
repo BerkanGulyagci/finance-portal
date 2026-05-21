@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { COMPARE_COLORS } from './compareUtils';
+import { useTranslation } from '../../../../../i18n/LanguageContext';
 
 export default function FundCompareStrategyAccordion({ detailMap, selectedCodes }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState({});
   const hasAny = selectedCodes.some(code => detailMap[code]?.strategy);
   if (!hasAny) return null;
@@ -10,8 +12,8 @@ export default function FundCompareStrategyAccordion({ detailMap, selectedCodes 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-100">
-        <h2 className="font-bold text-gray-900">Yatırım Stratejisi</h2>
-        <p className="text-xs text-gray-400 mt-0.5">Fonların yatırım stratejileri</p>
+        <h2 className="font-bold text-gray-900">{t('Yatırım Stratejisi')}</h2>
+        <p className="text-xs text-gray-400 mt-0.5">{t('Fonların yatırım stratejileri')}</p>
       </div>
       <div className="divide-y divide-gray-100">
         {selectedCodes.map((code, idx) => {
@@ -40,7 +42,7 @@ export default function FundCompareStrategyAccordion({ detailMap, selectedCodes 
                   <p className="text-sm text-gray-700 leading-relaxed">{d.strategy}</p>
                   {d.benchmarkName && (
                     <p className="text-xs text-gray-500 mt-2">
-                      <span className="font-semibold">Kıstas:</span> {d.benchmarkName}
+                      <span className="font-semibold">{t('Kıstas:')}</span> {d.benchmarkName}
                     </p>
                   )}
                 </div>

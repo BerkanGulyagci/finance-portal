@@ -25,8 +25,10 @@ import {
   isSkewedMoneyScale,
   positiveMoneyDomain,
 } from './portfolioChartStyles';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 export default function PortfolioCostValueChart({ holdings, valuesHidden, currency }) {
+  const { t } = useTranslation();
   const { rows, truncated } = calculateCostVsMarketRows(holdings);
 
   const chartData = rows.map(r => ({
@@ -42,17 +44,17 @@ export default function PortfolioCostValueChart({ holdings, valuesHidden, curren
 
   return (
     <PortfolioChartCard
-      title="Maliyet / Piyasa Değeri"
+      title={t('Maliyet / Piyasa Değeri')}
       subtitle={
         skewed
-          ? 'Karşılaştırma için ölçek genişletildi; tam tutarlar için çubuğun üzerine gelin.'
+          ? t('Karşılaştırma için ölçek genişletildi; tam tutarlar için çubuğun üzerine gelin.')
           : truncated
-            ? 'Her pozisyonun maliyeti ile güncel piyasa değeri (en büyük 12 pozisyon).'
-            : 'Her pozisyonun maliyeti ile güncel piyasa değeri karşılaştırılır.'
+            ? t('Her pozisyonun maliyeti ile güncel piyasa değeri (en büyük 12 pozisyon).')
+            : t('Her pozisyonun maliyeti ile güncel piyasa değeri karşılaştırılır.')
       }
     >
       {!chartData.length ? (
-        <p className="text-center text-sm text-gray-400 py-10">Dağılım için yeterli veri bulunamadı.</p>
+        <p className="text-center text-sm text-gray-400 py-10">{t('Dağılım için yeterli veri bulunamadı.')}</p>
       ) : (
         <div className="w-full min-w-0" style={{ height: chartHeight }}>
           <ResponsiveContainer width="100%" height="100%">
@@ -86,14 +88,14 @@ export default function PortfolioCostValueChart({ holdings, valuesHidden, curren
               <Legend wrapperStyle={{ fontSize: 11 }} />
               <Bar
                 dataKey="cost"
-                name="Toplam Maliyet"
+                name={t('Toplam Maliyet')}
                 fill={COLOR_COST}
                 radius={[3, 3, 0, 0]}
                 {...BAR_GROUPED_BAR}
               />
               <Bar
                 dataKey="marketValue"
-                name="Piyasa Değeri"
+                name={t('Piyasa Değeri')}
                 fill={COLOR_MV}
                 radius={[3, 3, 0, 0]}
                 {...BAR_GROUPED_BAR}
@@ -103,7 +105,7 @@ export default function PortfolioCostValueChart({ holdings, valuesHidden, curren
         </div>
       )}
       {valuesHidden && chartData.length > 0 && (
-        <p className="mt-2 text-center text-[10px] text-gray-400">Değerler gizli ({MASK_MONEY})</p>
+        <p className="mt-2 text-center text-[10px] text-gray-400">{t('Değerler gizli')} ({MASK_MONEY})</p>
       )}
     </PortfolioChartCard>
   );

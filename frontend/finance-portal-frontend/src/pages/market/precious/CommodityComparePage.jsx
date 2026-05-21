@@ -4,6 +4,7 @@ import {
   Legend, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import { getPreciousMetalHistory } from '../../../api/marketApi';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 // ── Sabitler ──────────────────────────────────────────────────────────────────
 
@@ -114,6 +115,7 @@ function periodReturn(series, days) {
 // ── Custom Tooltip ────────────────────────────────────────────────────────────
 
 function CustomTooltip({ active, payload, label }) {
+  const { t } = useTranslation();
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-gray-900/95 text-white rounded-xl px-4 py-3 shadow-xl text-xs min-w-[180px]">
@@ -121,7 +123,7 @@ function CustomTooltip({ active, payload, label }) {
       {payload.map(entry => (
         <div key={entry.dataKey} className="flex justify-between gap-4 mb-1">
           <span style={{ color: entry.color }} className="font-semibold">
-            {METALS.find(m => m.key === entry.dataKey)?.label ?? entry.dataKey}
+            {(() => { const m = METALS.find(mt => mt.key === entry.dataKey); return m ? t(m.label) : entry.dataKey; })()}
           </span>
           <span className={`font-bold ${entry.value >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
             {fmtPct(entry.value)}
@@ -147,6 +149,7 @@ async function fetchMetalHistory(metalKey, range, unit) {
 // ── Ana sayfa ─────────────────────────────────────────────────────────────────
 
 export default function CommodityComparePage() {
+  const { t } = useTranslation();
   const [selectedMetals, setSelectedMetals] = useState(
     METALS.filter(m => m.defaultOn).map(m => m.key)
   );
@@ -245,7 +248,7 @@ export default function CommodityComparePage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-900 border-l-4 border-[#093eaa] pl-4">
-        Emtia Karşılaştırma
+        {t('Emtia Karşılaştırma')}
       </h1>
 
       {/* Seçim kartı */}
@@ -253,7 +256,7 @@ export default function CommodityComparePage() {
         <div className="flex flex-wrap gap-6 items-start">
           {/* Metal seçimi */}
           <div>
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Emtia</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t('Emtia')}</p>
             <div className="flex gap-2 flex-wrap">
               {METALS.map(m => {
                 const active = selectedMetals.includes(m.key);
@@ -265,7 +268,7 @@ export default function CommodityComparePage() {
                     style={active ? { backgroundColor: m.color } : {}}>
                     <span className="inline-block w-2.5 h-2.5 rounded-full"
                       style={{ backgroundColor: active ? 'rgba(255,255,255,0.7)' : m.color }} />
-                    {m.label}
+                    {t(m.label)}
                   </button>
                 );
               })}
@@ -274,14 +277,14 @@ export default function CommodityComparePage() {
 
           {/* Dönem */}
           <div>
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Dönem</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t('Dönem')}</p>
             <div className="flex gap-1">
               {RANGES.map(r => (
                 <button key={r.key} onClick={() => setRange(r.key)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                     range === r.key ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}>
-                  {r.label}
+                  {t(r.label)}
                 </button>
               ))}
             </div>
@@ -289,14 +292,14 @@ export default function CommodityComparePage() {
 
           {/* Birim */}
           <div>
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Birim</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t('Birim')}</p>
             <div className="flex gap-1">
               {UNITS.map(u => (
                 <button key={u.key} onClick={() => setUnit(u.key)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                     unit === u.key ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}>
-                  {u.label}
+                  {t(u.label)}
                 </button>
               ))}
             </div>
@@ -315,7 +318,7 @@ export default function CommodityComparePage() {
             <div key={key} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
               <div className="flex items-center gap-2 mb-2">
                 <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: m.color }} />
-                <span className="text-sm font-bold text-gray-800">{m.label}</span>
+                <span className="text-sm font-bold text-gray-800">{t(m.label)}</span>
               </div>
               <p className={`text-xl font-black ${isPos ? 'text-emerald-600' : 'text-rose-600'}`}>
                 {fmtPct(ret)}
@@ -333,9 +336,9 @@ export default function CommodityComparePage() {
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="font-bold text-gray-900">Normalize Performans</h2>
+            <h2 className="font-bold text-gray-900">{t('Normalize Performans')}</h2>
             <p className="text-xs text-gray-400 mt-0.5">
-              Başlangıç tarihi = 0% kabul edilir. Y ekseni: % getiri.
+              {t('Başlangıç tarihi = 0% kabul edilir. Y ekseni: % getiri.')}
             </p>
           </div>
           {loading && (
@@ -360,7 +363,7 @@ export default function CommodityComparePage() {
               <ReferenceLine y={0} stroke="#e2e8f0" strokeDasharray="4 4" />
               <Tooltip content={<CustomTooltip />} />
               <Legend
-                formatter={value => METALS.find(m => m.key === value)?.label ?? value}
+                formatter={value => { const m = METALS.find(mt => mt.key === value); return m ? t(m.label) : value; }}
                 wrapperStyle={{ fontSize: 12, paddingTop: 12 }} />
               {selectedMetals.map(key => {
                 const m = METALS.find(x => x.key === key);
@@ -374,7 +377,7 @@ export default function CommodityComparePage() {
           </ResponsiveContainer>
         ) : (
           <div className="flex items-center justify-center h-64 text-gray-400 text-sm">
-            {loading ? 'Veri yükleniyor...' : 'Grafik verisi bulunamadı.'}
+            {loading ? t('Veri yükleniyor...') : t('Grafik verisi bulunamadı.')}
           </div>
         )}
       </div>
@@ -382,7 +385,7 @@ export default function CommodityComparePage() {
       {/* Tablo 1: Dönem Getirileri */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
-          <h2 className="font-bold text-gray-900">Dönem Getirileri</h2>
+          <h2 className="font-bold text-gray-900">{t('Dönem Getirileri')}</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[600px]">
@@ -390,7 +393,7 @@ export default function CommodityComparePage() {
               <tr>
                 {['Emtia', 'Günlük', 'Haftalık', '1 Ay', '3 Ay', '6 Ay', '1 Yıl'].map(h => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200">
-                    {h}
+                    {t(h)}
                   </th>
                 ))}
               </tr>
@@ -409,7 +412,7 @@ export default function CommodityComparePage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: m.color }} />
-                        <span className="text-sm font-bold text-gray-800">{m.label}</span>
+                        <span className="text-sm font-bold text-gray-800">{t(m.label)}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm">{cell(s?.ret1d)}</td>
@@ -429,7 +432,7 @@ export default function CommodityComparePage() {
       {/* Tablo 2: Risk / Dalgalanma */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
-          <h2 className="font-bold text-gray-900">Risk / Dalgalanma</h2>
+          <h2 className="font-bold text-gray-900">{t('Risk / Dalgalanma')}</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[560px]">
@@ -437,7 +440,7 @@ export default function CommodityComparePage() {
               <tr>
                 {['Emtia', 'Volatilite', 'Max Drawdown', 'En İyi Gün', 'En Kötü Gün'].map(h => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200">
-                    {h}
+                    {t(h)}
                   </th>
                 ))}
               </tr>
@@ -451,7 +454,7 @@ export default function CommodityComparePage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: m.color }} />
-                        <span className="text-sm font-bold text-gray-800">{m.label}</span>
+                        <span className="text-sm font-bold text-gray-800">{t(m.label)}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-700 font-semibold">
@@ -477,9 +480,9 @@ export default function CommodityComparePage() {
       {/* Tablo 3: Güncel Fiyatlar */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-bold text-gray-900">Güncel Fiyatlar</h2>
+          <h2 className="font-bold text-gray-900">{t('Güncel Fiyatlar')}</h2>
           <span className="text-xs text-gray-400 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">
-            Kaynak: Borsa İstanbul
+            {t('Kaynak: Borsa İstanbul')}
           </span>
         </div>
         <div className="overflow-x-auto">
@@ -488,7 +491,7 @@ export default function CommodityComparePage() {
               <tr>
                 {['Emtia', 'USD/Ons', 'TL/Gram', 'Son Veri Tarihi', 'Kaynak'].map(h => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200">
-                    {h}
+                    {t(h)}
                   </th>
                 ))}
               </tr>
@@ -510,7 +513,7 @@ export default function CommodityComparePage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: m.color }} />
-                        <span className="text-sm font-bold text-gray-800">{m.label}</span>
+                        <span className="text-sm font-bold text-gray-800">{t(m.label)}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm font-semibold text-gray-900">
@@ -523,7 +526,7 @@ export default function CommodityComparePage() {
                       {s?.lastDate ?? '-'}
                     </td>
                     <td className="px-4 py-3 text-xs text-emerald-700 font-semibold">
-                      Borsa İstanbul
+                      {t('Borsa İstanbul')}
                     </td>
                   </tr>
                 );
@@ -532,7 +535,7 @@ export default function CommodityComparePage() {
           </table>
         </div>
         <div className="px-5 py-2.5 bg-gray-50 border-t border-gray-100 text-xs text-gray-400">
-          {DISCLAIMER}
+          {t(DISCLAIMER)}
         </div>
       </div>
     </div>

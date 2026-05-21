@@ -1,4 +1,5 @@
 import { GOLD_TABS, fmt } from './goldConstants';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 const TABLE_ROWS = [
   { label: 'Gram Altın',        grossWeight: 1,     fineness: 1.0000, spotField: 'gramGoldTry',          unit: '1g' },
@@ -11,14 +12,15 @@ const TABLE_ROWS = [
 ];
 
 export default function GoldTheoreticalPricesTable({ spot }) {
+  const { t } = useTranslation();
   if (!spot) return null;
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-        <h2 className="font-bold text-gray-900">Teorik Referans Fiyatlar</h2>
+        <h2 className="font-bold text-gray-900">{t('Teorik Referans Fiyatlar')}</h2>
         <span className="text-xs text-gray-400 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">
-          Kaynak: Borsa İstanbul
+          {t('Kaynak: Borsa İstanbul')}
         </span>
       </div>
 
@@ -31,7 +33,7 @@ export default function GoldTheoreticalPricesTable({ spot }) {
                   key={h}
                   className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200"
                 >
-                  {h}
+                  {t(h)}
                 </th>
               ))}
             </tr>
@@ -42,7 +44,7 @@ export default function GoldTheoreticalPricesTable({ spot }) {
               const valid = price != null && !isNaN(parseFloat(price));
               return (
                 <tr key={i} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
-                  <td className="px-5 py-3 text-sm font-bold text-gray-800">{row.label}</td>
+                  <td className="px-5 py-3 text-sm font-bold text-gray-800">{t(row.label)}</td>
                   <td className="px-5 py-3 text-sm text-gray-600">{row.unit}</td>
                   <td className="px-5 py-3 text-sm text-gray-600 font-mono">{row.fineness.toFixed(4)}</td>
                   <td className="px-5 py-3 text-sm font-semibold text-gray-900">
@@ -50,8 +52,8 @@ export default function GoldTheoreticalPricesTable({ spot }) {
                   </td>
                   <td className="px-5 py-3 text-xs text-gray-400">
                     {row.grossWeight === 1
-                      ? `${row.fineness.toFixed(4)} × gram referans`
-                      : `${row.grossWeight}g × ${row.fineness.toFixed(4)} × gram referans`}
+                      ? `${row.fineness.toFixed(4)} × ${t('gram referans')}`
+                      : `${row.grossWeight}g × ${row.fineness.toFixed(4)} × ${t('gram referans')}`}
                   </td>
                 </tr>
               );
@@ -61,8 +63,8 @@ export default function GoldTheoreticalPricesTable({ spot }) {
       </div>
 
       <div className="px-5 py-2.5 bg-gray-50 border-t border-gray-100 text-xs text-gray-400">
-        Gram referans = BIST Ağırlıklı Ortalama TL/Kg ÷ 1000 = ₺{fmt(spot.officialPureGoldGramTry)} &nbsp;|&nbsp;
-        Bu değerler alış/satış fiyatı değildir. İşçilik, basım primi, kuyumcu kârı ve alış-satış makası dahil değildir.
+        {t('Gram referans = BIST Ağırlıklı Ortalama TL/Kg ÷ 1000 =')} ₺{fmt(spot.officialPureGoldGramTry)} &nbsp;|&nbsp;
+        {t('Bu değerler alış/satış fiyatı değildir. İşçilik, basım primi, kuyumcu kârı ve alış-satış makası dahil değildir.')}
       </div>
     </div>
   );

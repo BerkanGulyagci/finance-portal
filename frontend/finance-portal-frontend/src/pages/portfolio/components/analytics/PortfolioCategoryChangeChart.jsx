@@ -27,21 +27,23 @@ import {
   formatCompactPct,
   positivePctDomain,
 } from './portfolioChartStyles';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 export default function PortfolioCategoryChangeChart({ holdings, valuesHidden }) {
+  const { t } = useTranslation();
   const hasDaily = hasAnyDailyChangeData(holdings);
-  const avgByType = calculateAverageChangeByType(holdings);
+  const avgByType = calculateAverageChangeByType(holdings).map(e => ({ ...e, label: t(e.label) }));
   const yDomain = positivePctDomain(avgByType.map(e => e.avg));
 
   return (
     <PortfolioChartCard
-      title="Kategori Bazlı Ortalama Değişim"
-      subtitle="Her varlık türü için ortalama günlük değişim; günlük % verisi olmayanlar dahil edilmez."
+      title={t('Kategori Bazlı Ortalama Değişim')}
+      subtitle={t('Her varlık türü için ortalama günlük değişim; günlük % verisi olmayanlar dahil edilmez.')}
     >
       {!hasDaily ? (
-        <p className="text-center text-sm text-gray-400 py-10">Günlük değişim verisi bulunamadı.</p>
+        <p className="text-center text-sm text-gray-400 py-10">{t('Günlük değişim verisi bulunamadı.')}</p>
       ) : !avgByType.length ? (
-        <p className="text-center text-sm text-gray-400 py-10">Yeterli kategori verisi yok.</p>
+        <p className="text-center text-sm text-gray-400 py-10">{t('Yeterli kategori verisi yok.')}</p>
       ) : (
         <div className="h-[240px] w-full min-w-0">
           <ResponsiveContainer width="100%" height="100%">
@@ -66,7 +68,7 @@ export default function PortfolioCategoryChangeChart({ holdings, valuesHidden })
               />
               <ReferenceLine y={0} stroke="#cbd5e1" strokeWidth={1} />
               <Tooltip content={<PortfolioAnalyticsTooltip valuesHidden={valuesHidden} />} />
-              <Bar dataKey="avg" name="Ortalama %" radius={[3, 3, 0, 0]} {...BAR_VERTICAL_BAR}>
+              <Bar dataKey="avg" name={t('Ortalama %')} radius={[3, 3, 0, 0]} {...BAR_VERTICAL_BAR}>
                 {avgByType.map(e => (
                   <Cell key={e.type} fill={e.avg >= 0 ? COLOR_POS : COLOR_NEG} />
                 ))}

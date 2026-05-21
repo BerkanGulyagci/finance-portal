@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { init as klineInit, dispose as klineDispose, registerOverlay } from 'klinecharts';
 import { Trash2, X } from 'lucide-react';
 import { computeKlinePricePrecision, computeKlineVolumePrecision } from '../../../../utils/numberFormat';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 // ── Custom Overlay Kayıtları ───────────────────────────────────────────────────
 // Dikdörtgen
@@ -78,6 +79,7 @@ const DRAWING_TOOLS = [
 ];
 
 function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll }) {
+  const { t } = useTranslation();
   const [openGroup, setOpenGroup] = useState(null);
 
   return (
@@ -92,7 +94,7 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
                 : 'bg-white text-gray-600 border-gray-200 hover:border-[#093eaa] hover:text-[#093eaa]'
             }`}
           >
-            {group} ▾
+            {t(group)} ▾
           </button>
           {openGroup === group && (
             <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-1 min-w-[180px]">
@@ -110,7 +112,7 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
                   }`}
                 >
                   <span className="w-8 text-center font-mono text-[11px] opacity-70">{tool.icon}</span>
-                  <span>{tool.label}</span>
+                  <span>{t(tool.label)}</span>
                 </button>
               ))}
             </div>
@@ -120,18 +122,18 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
 
       <div className="w-px h-6 bg-gray-200 mx-1" />
 
-      <button onClick={onDeleteSelected} title="Seçili çizimi sil"
+      <button onClick={onDeleteSelected} title={t('Seçili çizimi sil')}
         className="p-1.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 transition-all border border-gray-200">
         <Trash2 className="w-3.5 h-3.5" />
       </button>
-      <button onClick={onClearAll} title="Tüm çizimleri temizle"
+      <button onClick={onClearAll} title={t('Tüm çizimleri temizle')}
         className="p-1.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 transition-all border border-gray-200">
         <X className="w-3.5 h-3.5" />
       </button>
 
       {activeTool && (
         <span className="ml-auto text-xs text-[#093eaa] font-medium bg-blue-50 px-2 py-1 rounded-lg">
-          {DRAWING_TOOLS.flatMap(g => g.tools).find(t => t.id === activeTool)?.label ?? activeTool}
+          {(() => { const lbl = DRAWING_TOOLS.flatMap(g => g.tools).find(it => it.id === activeTool)?.label; return lbl ? t(lbl) : activeTool; })()}
           <button onClick={() => onSelectTool(null)} className="ml-1.5 opacity-60 hover:opacity-100">✕</button>
         </span>
       )}
@@ -160,9 +162,11 @@ export default function CommodityDetailChart({
   points,
   chartMode,
   loading,
-  sourceNote = 'Kaynak: Yahoo Finance · OHLC verisi',
+  sourceNote,
   sourceWarning = null,
 }) {
+  const { t } = useTranslation();
+  const resolvedSourceNote = sourceNote ?? t('Kaynak: Yahoo Finance · OHLC verisi');
   const chartId  = useRef(`commodity_chart_${Date.now()}`);
   const chartRef = useRef(null);
   const indicatorPaneIds = useRef({});
@@ -336,7 +340,7 @@ export default function CommodityDetailChart({
                   active ? 'text-white border-transparent' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
                 }`}
                 style={active ? { backgroundColor: color, borderColor: color } : {}}>
-                {label}
+                {t(label)}
               </button>
             );
           })}
@@ -344,7 +348,7 @@ export default function CommodityDetailChart({
 
         {/* Alt indikatörler */}
         <div className="flex gap-1 flex-wrap items-center">
-          <span className="text-xs text-gray-400">İndikatör:</span>
+          <span className="text-xs text-gray-400">{t('İndikatör:')}</span>
           {SUB_INDICATORS.map(({ name, label, color }) => {
             const active = activeSubInds.includes(name);
             return (
@@ -353,7 +357,7 @@ export default function CommodityDetailChart({
                   active ? 'text-white border-transparent' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
                 }`}
                 style={active ? { backgroundColor: color, borderColor: color } : {}}>
-                {label}
+                {t(label)}
               </button>
             );
           })}
@@ -381,13 +385,13 @@ export default function CommodityDetailChart({
         )}
         {!loading && !points?.length && (
           <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
-            Grafik verisi bulunamadı.
+            {t('Grafik verisi bulunamadı.')}
           </div>
         )}
         <div id={chartId.current} style={{ width: '100%', height: '460px' }} />
       </div>
 
-      {sourceNote && <p className="text-xs text-gray-400 mt-2">{sourceNote}</p>}
+      {resolvedSourceNote && <p className="text-xs text-gray-400 mt-2">{resolvedSourceNote}</p>}
       {sourceWarning && (
         <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
           {sourceWarning}

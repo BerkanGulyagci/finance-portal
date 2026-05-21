@@ -1,4 +1,5 @@
 import { fmt } from './commodityConstants';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 function fmtVolume(v) {
   if (v == null) return '-';
@@ -6,6 +7,7 @@ function fmtVolume(v) {
 }
 
 export default function CommodityDetailOhlcCards({ points }) {
+  const { t } = useTranslation();
   if (!points?.length) return null;
 
   const last = points[points.length - 1];
@@ -22,7 +24,7 @@ export default function CommodityDetailOhlcCards({ points }) {
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
       {cards.map(card => (
         <div key={card.label} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{card.label}</p>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t(card.label)}</p>
           <p className="text-base font-black text-gray-900">
             {card.value != null
               ? card.isVolume

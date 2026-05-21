@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 function InfoRow({ title, text }) {
   return (
@@ -11,6 +12,7 @@ function InfoRow({ title, text }) {
 }
 
 export default function FundInfoTable({ fund }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 
   const labels = fund?.infoLabels ?? [];
@@ -21,7 +23,7 @@ export default function FundInfoTable({ fund }) {
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-      <h2 className="font-bold text-gray-900 mb-4">{fund?.code} Fon Bilgisi</h2>
+      <h2 className="font-bold text-gray-900 mb-4">{fund?.code} {t('Fon Bilgisi')}</h2>
       <div>
         {visible.map((label, i) => (
           <InfoRow key={i} title={label.title} text={label.text} />
@@ -33,9 +35,9 @@ export default function FundInfoTable({ fund }) {
           className="mt-3 flex items-center gap-1.5 text-sm text-[#093eaa] font-semibold hover:underline"
         >
           {expanded ? (
-            <><ChevronUp className="w-4 h-4" /> Daha az göster</>
+            <><ChevronUp className="w-4 h-4" /> {t('Daha az göster')}</>
           ) : (
-            <><ChevronDown className="w-4 h-4" /> Daha fazla görüntüle ({labels.length - minCount} daha)</>
+            <><ChevronDown className="w-4 h-4" /> {t('Daha fazla görüntüle')} ({labels.length - minCount} {t('daha')})</>
           )}
         </button>
       )}

@@ -1,4 +1,5 @@
 import { fmtNum, fmtPct, calculatePeriodChangePercent } from './bondChartUtils';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 /**
  * Karşılaştırma özet kartları.
@@ -18,6 +19,7 @@ export default function BondComparisonSummary({
   compareCode, compareDetail, compareHistory = [],
   period,
 }) {
+  const { t } = useTranslation();
   if (!compareCode) return null;
 
   const mainPeriodPct    = calculatePeriodChangePercent(mainHistory);
@@ -31,7 +33,7 @@ export default function BondComparisonSummary({
         periodPct={mainPeriodPct}
         period={period}
         color="#093eaa"
-        label="Ana Kıymet"
+        label={t('Ana Kıymet')}
       />
       <SummaryCard
         code={compareCode}
@@ -39,13 +41,14 @@ export default function BondComparisonSummary({
         periodPct={comparePeriodPct}
         period={period}
         color="#f97316"
-        label="Karşılaştırılan Kıymet"
+        label={t('Karşılaştırılan Kıymet')}
       />
     </div>
   );
 }
 
 function SummaryCard({ code, detail, periodPct, period, color, label }) {
+  const { t } = useTranslation();
   const lastValue    = detail?.indicatorValue  != null ? parseFloat(detail.indicatorValue)  : null;
   const dailyPct     = detail?.dailyChangePercent != null ? parseFloat(detail.dailyChangePercent) : null;
   const couponRate   = detail?.couponRate != null ? parseFloat(detail.couponRate) : null;
@@ -68,11 +71,11 @@ function SummaryCard({ code, detail, periodPct, period, color, label }) {
 
       {/* Değerler */}
       <div className="space-y-2">
-        <Row label="Son Gösterge Değeri">
+        <Row label={t('Son Gösterge Değeri')}>
           <span className="font-bold text-gray-900">{lastValue != null ? fmtNum(lastValue, 2) : '-'}</span>
         </Row>
 
-        <Row label={`${period ?? 'Seçili Periyot'} Değişimi`}>
+        <Row label={`${period ?? t('Seçili Periyot')} ${t('Değişimi')}`}>
           {periodPct != null ? (
             <span className={`font-bold text-xs ${periodPos ? 'text-emerald-600' : 'text-rose-600'}`}>
               {fmtPct(periodPct, 2)}
@@ -80,7 +83,7 @@ function SummaryCard({ code, detail, periodPct, period, color, label }) {
           ) : <span className="text-gray-300 text-xs">-</span>}
         </Row>
 
-        <Row label="Günlük Değişim %">
+        <Row label={t('Günlük Değişim %')}>
           {dailyPct != null ? (
             <span className={`font-semibold text-xs ${dailyPos ? 'text-emerald-600' : 'text-rose-600'}`}>
               {fmtPct(dailyPct, 2)}
@@ -88,30 +91,30 @@ function SummaryCard({ code, detail, periodPct, period, color, label }) {
           ) : <span className="text-gray-300 text-xs">-</span>}
         </Row>
 
-        <Row label="Kupon Faiz Oranı">
+        <Row label={t('Kupon Faiz Oranı')}>
           <span className="text-sm font-semibold text-gray-700">
             {couponRate != null ? `%${fmtNum(couponRate, 2)}` : '-'}
           </span>
         </Row>
 
-        <Row label="Vade Tarihi">
+        <Row label={t('Vade Tarihi')}>
           <span className="text-sm text-gray-600">{maturityDate}</span>
         </Row>
 
-        <Row label="Kalan Gün">
+        <Row label={t('Kalan Gün')}>
           {remaining != null ? (
             <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
               remaining <= 90  ? 'bg-amber-100 text-amber-700' :
               remaining <= 365 ? 'bg-blue-100 text-blue-700'   :
                                  'bg-gray-100 text-gray-600'
             }`}>
-              {remaining} gün
+              {remaining} {t('gün')}
             </span>
           ) : <span className="text-gray-300 text-xs">-</span>}
         </Row>
       </div>
 
-      <p className="text-xs text-gray-300 mt-3">Kaynak: TCMB EVDS</p>
+      <p className="text-xs text-gray-300 mt-3">{t('Kaynak:')} TCMB EVDS</p>
     </div>
   );
 }

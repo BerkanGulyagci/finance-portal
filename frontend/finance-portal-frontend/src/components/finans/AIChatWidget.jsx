@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Bot, X, Send, MessageCircle } from 'lucide-react';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 export function AIChatWidget() {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { id: 1, text: 'Merhaba! Bugünkü piyasa hareketlerini özetlememi ister misiniz? Ya da bir hisseyi analiz edebilirim.', isBot: true },
+    { id: 1, text: t('Merhaba! Bugünkü piyasa hareketlerini özetlememi ister misiniz? Ya da bir hisseyi analiz edebilirim.'), isBot: true },
   ]);
   const [input, setInput] = useState('');
 
@@ -16,7 +18,7 @@ export function AIChatWidget() {
     setTimeout(() => {
       setMessages(prev => [...prev, {
         id: prev.length + 1,
-        text: 'Sorunuzu analiz ediyorum. Size en güncel piyasa verileriyle yardımcı olacağım.',
+        text: t('Sorunuzu analiz ediyorum. Size en güncel piyasa verileriyle yardımcı olacağım.'),
         isBot: true,
       }]);
     }, 1000);
@@ -37,8 +39,8 @@ export function AIChatWidget() {
         <div className="flex items-center gap-2">
           <Bot className="w-5 h-5" />
           <div>
-            <h5 className="text-sm font-bold">Warren AI</h5>
-            <span className="text-[10px] opacity-80 uppercase">Finansal Asistan</span>
+            <h5 className="text-sm font-bold">{t('Warren AI')}</h5>
+            <span className="text-[10px] opacity-80 uppercase">{t('Finansal Asistan')}</span>
           </div>
         </div>
         <button onClick={() => setIsOpen(false)} className="opacity-80 hover:opacity-100 transition-opacity">
@@ -60,7 +62,7 @@ export function AIChatWidget() {
         <div className="relative">
           <input
             type="text"
-            placeholder="Sorunuzu buraya yazın..."
+            placeholder={t('Sorunuzu buraya yazın...')}
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSend()}

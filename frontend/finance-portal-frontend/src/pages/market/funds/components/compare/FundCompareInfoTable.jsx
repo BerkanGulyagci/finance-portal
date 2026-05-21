@@ -1,4 +1,5 @@
 import { COMPARE_COLORS, toNum, fmtBig } from './compareUtils';
+import { useTranslation } from '../../../../../i18n/LanguageContext';
 
 /** NaN, null, undefined, "NaN" string → "-" */
 function safe(v) {
@@ -29,18 +30,19 @@ const INFO_ROWS = [
 ];
 
 export default function FundCompareInfoTable({ detailMap, selectedCodes }) {
+  const { t } = useTranslation();
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-100">
-        <h2 className="font-bold text-gray-900">Fon Bilgileri</h2>
-        <p className="text-xs text-gray-400 mt-0.5">Temel fon özellikleri karşılaştırması</p>
+        <h2 className="font-bold text-gray-900">{t('Fon Bilgileri')}</h2>
+        <p className="text-xs text-gray-400 mt-0.5">{t('Temel fon özellikleri karşılaştırması')}</p>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[500px]">
           <thead className="bg-gray-50">
             <tr>
               <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 w-36">
-                Özellik
+                {t('Özellik')}
               </th>
               {selectedCodes.map((code, idx) => (
                 <th key={code} className="text-left px-5 py-3 text-xs font-bold border-b border-gray-200 whitespace-nowrap">
@@ -63,7 +65,7 @@ export default function FundCompareInfoTable({ detailMap, selectedCodes }) {
               })
               .map((row, ri) => (
               <tr key={row.key} className={`border-t border-gray-100 ${ri % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
-                <td className="px-5 py-3 text-sm font-semibold text-gray-600 whitespace-nowrap">{row.label}</td>
+                <td className="px-5 py-3 text-sm font-semibold text-gray-600 whitespace-nowrap">{t(row.label)}</td>
                 {selectedCodes.map(code => (
                   <td key={code} className="px-5 py-3 text-sm text-gray-800">
                     {row.fmt(detailMap[code]?.[row.key])}

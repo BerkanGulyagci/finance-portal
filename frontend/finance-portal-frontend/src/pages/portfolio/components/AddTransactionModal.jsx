@@ -13,6 +13,7 @@ import {
   formatGoldQuantity,
   goldQuantitySuffix,
 } from '../utils/goldTransactionMeta';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 // ── helpers ────────────────────────────────────────────────────────────────────
 
@@ -156,6 +157,7 @@ export default function AddTransactionModal({
   onAdded,
   initialInstrument = null,
 }) {
+  const { t } = useTranslation();
   const [step, setStep] = useState(initialInstrument ? 'form' : 'search');
   const [instrument, setInstrument] = useState(initialInstrument);
 
@@ -420,9 +422,9 @@ export default function AddTransactionModal({
 
     if (!price) {
       setError(
-        isFund ? 'Birim pay değeri 0\'dan büyük olmalıdır.'
-          : isBond ? 'Gösterge değeri 0\'dan büyük olmalıdır.'
-            : 'Fiyat 0\'dan büyük olmalıdır.',
+        isFund ? t("Birim pay değeri 0'dan büyük olmalıdır.")
+          : isBond ? t("Gösterge değeri 0'dan büyük olmalıdır.")
+            : t("Fiyat 0'dan büyük olmalıdır."),
       );
       return;
     }
@@ -431,18 +433,18 @@ export default function AddTransactionModal({
 
     if (isAmountMode) {
       if (!amountCalc) {
-        setError(`${isBuy ? 'Yatırım' : 'Satış'} tutarı 0'dan büyük olmalıdır.`);
+        setError(isBuy ? t("Yatırım tutarı 0'dan büyük olmalıdır.") : t("Satış tutarı 0'dan büyük olmalıdır."));
         return;
       }
       if (amountCalc.commissionOverflow) {
-        setError('Komisyon tutar değerinden büyük veya eşit olamaz.');
+        setError(t('Komisyon tutar değerinden büyük veya eşit olamaz.'));
         return;
       }
       if (amountCalc.isZero) {
         setError(
           isBuy
-            ? 'Bu tutar ile en az 1 adet alınamıyor.'
-            : 'Bu tutar ile en az 1 adet satılamıyor.',
+            ? t('Bu tutar ile en az 1 adet alınamıyor.')
+            : t('Bu tutar ile en az 1 adet satılamıyor.'),
         );
         return;
       }
@@ -453,7 +455,7 @@ export default function AddTransactionModal({
         const availFmt = isGold && goldMeta
           ? `${formatGoldQuantity(availableQty, goldMeta)} ${goldQuantitySuffix(goldMeta)}`
           : `${fmtNum(availableQty, useQtyFloor ? 0 : 8)} ${symShort}`;
-        setError(`Satış miktarı (${qtyFmt}) eldeki miktarı (${availFmt}) aşıyor.`);
+        setError(t('Satış miktarı ({qty}) eldeki miktarı ({avail}) aşıyor.', { qty: qtyFmt, avail: availFmt }));
         return;
       }
       finalQuantity = amountCalc.qty;
@@ -461,34 +463,34 @@ export default function AddTransactionModal({
       const q = parseFloat(form.quantity);
       if (!q || q <= 0) {
         setError(
-          isFund ? 'Pay miktarı 0\'dan büyük olmalıdır.'
-            : isFuture ? 'Kontrat adedi 0\'dan büyük tam sayı olmalıdır.'
+          isFund ? t("Pay miktarı 0'dan büyük olmalıdır.")
+            : isFuture ? t("Kontrat adedi 0'dan büyük tam sayı olmalıdır.")
               : isGold && goldMeta
-                ? `${goldMeta.quantityLabel} 0'dan büyük olmalıdır.`
-                : 'Miktar 0\'dan büyük olmalıdır.',
+                ? t("{label} 0'dan büyük olmalıdır.", { label: t(goldMeta.quantityLabel) })
+                : t("Miktar 0'dan büyük olmalıdır."),
         );
         return;
       }
       if (isFuture) {
         if (!Number.isInteger(q)) {
-          setError('Kontrat adedi tam sayı olmalıdır; küsuratlı kontrat girilemez.');
+          setError(t('Kontrat adedi tam sayı olmalıdır; küsuratlı kontrat girilemez.'));
           return;
         }
       }
       if (isGold && goldMeta && !isValidGoldQuantity(q, goldMeta.floorQty)) {
-        setError('Bu altın türünde miktar tam adet olmalıdır.');
+        setError(t('Bu altın türünde miktar tam adet olmalıdır.'));
         return;
       }
       if (quantitySellExceedsBond) {
-        setError('Satış miktarı eldeki miktarı aşamaz.');
+        setError(t('Satış miktarı eldeki miktarı aşamaz.'));
         return;
       }
       if (quantitySellExceedsFund) {
-        setError('Satış miktarı eldeki pay miktarını aşamaz.');
+        setError(t('Satış miktarı eldeki pay miktarını aşamaz.'));
         return;
       }
       if (quantitySellExceedsGold) {
-        setError('Satış miktarı eldeki miktarı aşamaz.');
+        setError(t('Satış miktarı eldeki miktarı aşamaz.'));
         return;
       }
       finalQuantity = isFuture ? parseInt(String(q), 10) : q;
@@ -510,7 +512,7 @@ export default function AddTransactionModal({
       onAdded(updated);
       onClose();
     } catch (err) {
-      setError(extractApiErrorMessage(err) || 'İşlem eklenemedi.');
+      setError(extractApiErrorMessage(err) || t('İşlem eklenemedi.'));
     } finally {
       setLoading(false);
     }
@@ -559,7 +561,7 @@ export default function AddTransactionModal({
       const unit = goldQuantitySuffix(goldMeta);
       return unit ? `${formatGoldQuantity(qty, goldMeta)} ${unit}` : formatGoldQuantity(qty, goldMeta);
     }
-    if (useQtyFloor) return `${fmtNum(qty, 0)} adet`;
+    if (useQtyFloor) return `${fmtNum(qty, 0)} ${t('adet')}`;
     return `${fmtNum(qty, 8).replace(/\.?0+$/, '')} ${symShort}`;
   }
 
@@ -570,7 +572,7 @@ export default function AddTransactionModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#3a4155]">
           <div>
-            <h2 className="font-bold text-lg">İşlem Ekle</h2>
+            <h2 className="font-bold text-lg">{t('İşlem Ekle')}</h2>
             <p className="text-sm text-gray-400">
               <span className="font-bold text-white">{instrument?.symbol}</span>
               {instrument?.name && instrument.name !== instrument.symbol && (
@@ -580,7 +582,7 @@ export default function AddTransactionModal({
           </div>
           <div className="flex items-center gap-2">
             <button type="button" onClick={() => setStep('search')} className="text-xs text-[#4a6cf7] hover:underline">
-              Değiştir
+              {t('Değiştir')}
             </button>
             <button type="button" onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
               <X className="w-5 h-5" />
@@ -592,18 +594,18 @@ export default function AddTransactionModal({
 
           {/* BUY / SELL */}
           <div className="grid grid-cols-2 gap-2">
-            {['BUY', 'SELL'].map(t => (
+            {['BUY', 'SELL'].map(txType => (
               <button
-                key={t}
+                key={txType}
                 type="button"
-                onClick={() => handleTransactionTypeChange(t)}
+                onClick={() => handleTransactionTypeChange(txType)}
                 className={`py-2.5 rounded-xl text-sm font-bold transition-all ${
-                  form.transactionType === t
-                    ? t === 'BUY' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
+                  form.transactionType === txType
+                    ? txType === 'BUY' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
                     : 'bg-[#252b3b] text-gray-400 hover:bg-[#2f3650]'
                 }`}
               >
-                {t === 'BUY' ? '📈 Alış' : '📉 Satış'}
+                {txType === 'BUY' ? `📈 ${t('Alış')}` : `📉 ${t('Satış')}`}
               </button>
             ))}
           </div>
@@ -615,12 +617,12 @@ export default function AddTransactionModal({
                 {
                   value: 'quantity',
                   label: isFund
-                    ? (isBuy ? 'Pay Miktarı ile' : 'Pay Miktarı ile satış')
-                    : 'Miktar ile',
+                    ? (isBuy ? t('Pay Miktarı ile') : t('Pay Miktarı ile satış'))
+                    : t('Miktar ile'),
                 },
                 {
                   value: 'amount',
-                  label: isBuy ? 'Tutar ile' : 'Satış Tutarı ile',
+                  label: isBuy ? t('Tutar ile') : t('Satış Tutarı ile'),
                 },
               ].map(opt => (
                 <button
@@ -647,8 +649,8 @@ export default function AddTransactionModal({
                 <>
                   <label className="block text-xs font-semibold text-gray-400 mb-1.5">
                     {isBuy
-                      ? `Yatırım Tutarı${currency ? ` (${currency})` : ''} *`
-                      : `Satış Tutarı${currency ? ` (${currency})` : ''} *`}
+                      ? `${t('Yatırım Tutarı')}${currency ? ` (${currency})` : ''} *`
+                      : `${t('Satış Tutarı')}${currency ? ` (${currency})` : ''} *`}
                   </label>
                   <input
                     type="number" step="any" min="0"
@@ -662,12 +664,12 @@ export default function AddTransactionModal({
                 <>
                   <label className="block text-xs font-semibold text-gray-400 mb-1.5">
                     {isFund
-                      ? 'Pay Miktarı *'
+                      ? `${t('Pay Miktarı')} *`
                       : isFuture
-                        ? 'Kontrat Adedi *'
+                        ? `${t('Kontrat Adedi')} *`
                         : isGold && goldMeta
-                          ? `${goldMeta.quantityLabel} *`
-                          : 'Miktar *'}
+                          ? `${t(goldMeta.quantityLabel)} *`
+                          : `${t('Miktar')} *`}
                   </label>
                   <input
                     type="number"
@@ -694,13 +696,13 @@ export default function AddTransactionModal({
             <div>
               <label className="block text-xs font-semibold text-gray-400 mb-1.5">
                 {isFund
-                  ? 'Birim Pay Değeri *'
+                  ? `${t('Birim Pay Değeri')} *`
                   : isBond
-                    ? 'Gösterge Değeri *'
+                    ? `${t('Gösterge Değeri')} *`
                     : isGold && goldMeta
-                      ? `${goldMeta.priceLabel} *`
-                      : 'Fiyat *'}
-                {hasPriceAutoFill && <span className="ml-1 text-emerald-400 font-normal">otomatik</span>}
+                      ? `${t(goldMeta.priceLabel)} *`
+                      : `${t('Fiyat')} *`}
+                {hasPriceAutoFill && <span className="ml-1 text-emerald-400 font-normal">{t('otomatik')}</span>}
               </label>
               <input
                 type="number" step="any" min="0"
@@ -724,35 +726,35 @@ export default function AddTransactionModal({
           </div>
 
           {isGold && goldMeta?.infoNote && (
-            <p className="text-[11px] text-gray-500 -mt-2 leading-snug">{goldMeta.infoNote}</p>
+            <p className="text-[11px] text-gray-500 -mt-2 leading-snug">{t(goldMeta.infoNote)}</p>
           )}
 
           {/* FX için kur açıklaması — kurum perspektifi nedeniyle çapraz kullanım */}
           {instrument?.assetType === 'FX' && (
             <p className="text-[11px] text-gray-500 -mt-2 leading-snug">
               {isBuy
-                ? 'Döviz alış işleminde TCMB satış kuru kullanılır (kurum dövizi size satar).'
-                : 'Döviz satış işleminde TCMB alış kuru kullanılır (kurum dövizinizi alır).'}
+                ? t('Döviz alış işleminde TCMB satış kuru kullanılır (kurum dövizi size satar).')
+                : t('Döviz satış işleminde TCMB alış kuru kullanılır (kurum dövizinizi alır).')}
             </p>
           )}
 
           {/* Komisyon */}
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-              {isGold || isBond ? 'Komisyon / Masraf' : 'Komisyon'}
+              {isGold || isBond ? t('Komisyon / Masraf') : t('Komisyon')}
             </label>
             <input
               type="number" step="any" min="0"
               value={form.commission}
               onChange={e => set('commission', e.target.value)}
-              placeholder="0.00 (isteğe bağlı)"
+              placeholder={t('0.00 (isteğe bağlı)')}
               className="w-full bg-[#252b3b] border border-[#3a4155] rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#4a6cf7]"
             />
           </div>
 
           {/* Tarih */}
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-1.5">İşlem Tarihi *</label>
+            <label className="block text-xs font-semibold text-gray-400 mb-1.5">{t('İşlem Tarihi *')}</label>
             <input
               type="datetime-local"
               value={form.transactionDate}
@@ -770,35 +772,35 @@ export default function AddTransactionModal({
             }`}>
               {amountCalc.commissionOverflow ? (
                 <p className="text-rose-400 font-semibold">
-                  Komisyon tutar değerinden büyük veya eşit olamaz.
+                  {t('Komisyon tutar değerinden büyük veya eşit olamaz.')}
                 </p>
               ) : amountCalc.exceedsAvailable ? (
                 <p className="text-rose-400 font-semibold">
-                  Satış miktarı eldeki miktarı aşıyor.
-                  {availableQty != null && ` (Eldeki: ${formatSummaryQty(availableQty)})`}
+                  {t('Satış miktarı eldeki miktarı aşıyor.')}
+                  {availableQty != null && ` (${t('Eldeki:')} ${formatSummaryQty(availableQty)})`}
                 </p>
               ) : amountCalc.isZero ? (
                 <p className="text-rose-400 font-semibold">
                   {isBuy
                     ? (isGold && goldMeta?.floorQty
-                      ? 'Bu tutar ile en az 1 adet alınamıyor.'
-                      : 'Bu tutar ile işlem yapılamıyor.')
+                      ? t('Bu tutar ile en az 1 adet alınamıyor.')
+                      : t('Bu tutar ile işlem yapılamıyor.'))
                     : (isGold && goldMeta?.floorQty
-                      ? 'Bu tutar ile en az 1 adet satılamıyor.'
-                      : 'Bu tutar ile işlem yapılamıyor.')}
+                      ? t('Bu tutar ile en az 1 adet satılamıyor.')
+                      : t('Bu tutar ile işlem yapılamıyor.'))}
                 </p>
               ) : isBuy ? (
                 /* BUY özeti */
                 <>
                   {isGold ? (
                     <>
-                      <SummaryRow label="Kullanılan tutar" value={fmtWithCcy(amountCalc.used, currency)} />
-                      <SummaryRow label="Hesaplanan miktar" value={formatSummaryQty(amountCalc.qty)} highlight />
+                      <SummaryRow label={t('Kullanılan tutar')} value={fmtWithCcy(amountCalc.used, currency)} />
+                      <SummaryRow label={t('Hesaplanan miktar')} value={formatSummaryQty(amountCalc.qty)} highlight />
                       {commission > 0 && (
-                        <SummaryRow label="Komisyon / Masraf" value={fmtWithCcy(commission, currency)} />
+                        <SummaryRow label={t('Komisyon / Masraf')} value={fmtWithCcy(commission, currency)} />
                       )}
                       <SummaryRow
-                        label="Toplam ödeme"
+                        label={t('Toplam ödeme')}
                         value={fmtWithCcy(
                           amountCalc.totalPayment != null ? amountCalc.totalPayment : parseFloat(form.tradeAmount),
                           currency,
@@ -808,18 +810,18 @@ export default function AddTransactionModal({
                     </>
                   ) : (
                     <>
-                      <SummaryRow label="Hesaplanan miktar" value={formatSummaryQty(amountCalc.qty)} highlight />
-                      <SummaryRow label="Kullanılan tutar" value={fmtWithCcy(amountCalc.used, currency)} />
-                      {commission > 0 && <SummaryRow label="Komisyon" value={fmtWithCcy(commission, currency)} />}
+                      <SummaryRow label={t('Hesaplanan miktar')} value={formatSummaryQty(amountCalc.qty)} highlight />
+                      <SummaryRow label={t('Kullanılan tutar')} value={fmtWithCcy(amountCalc.used, currency)} />
+                      {commission > 0 && <SummaryRow label={t('Komisyon')} value={fmtWithCcy(commission, currency)} />}
                       {useQtyFloor && (
                         <SummaryRow
-                          label="Kalan nakit"
+                          label={t('Kalan nakit')}
                           value={fmtWithCcy(amountCalc.remaining, currency)}
                           dim={amountCalc.remaining <= 0}
                         />
                       )}
                       <SummaryRow
-                        label="Toplam ödeme"
+                        label={t('Toplam ödeme')}
                         value={fmtWithCcy(
                           amountCalc.totalPayment != null ? amountCalc.totalPayment : parseFloat(form.tradeAmount),
                           currency,
@@ -832,17 +834,17 @@ export default function AddTransactionModal({
               ) : (
                 /* SELL özeti */
                 <>
-                  <SummaryRow label="Satış tutarı" value={fmtWithCcy(amountCalc.grossSell, currency)} />
-                  <SummaryRow label="Hesaplanan miktar" value={formatSummaryQty(amountCalc.qty)} highlight />
+                  <SummaryRow label={t('Satış tutarı')} value={fmtWithCcy(amountCalc.grossSell, currency)} />
+                  <SummaryRow label={t('Hesaplanan miktar')} value={formatSummaryQty(amountCalc.qty)} highlight />
                   {commission > 0 && (
                     <SummaryRow
-                      label={isGold ? 'Komisyon / Masraf' : 'Komisyon'}
+                      label={isGold ? t('Komisyon / Masraf') : t('Komisyon')}
                       value={fmtWithCcy(commission, currency)}
                     />
                   )}
-                  <SummaryRow label="Tahmini net gelir" value={fmtWithCcy(amountCalc.netIncome, currency)} highlight />
+                  <SummaryRow label={t('Tahmini net gelir')} value={fmtWithCcy(amountCalc.netIncome, currency)} highlight />
                   {availableQty != null && (
-                    <SummaryRow label="Eldeki miktar" value={formatSummaryQty(availableQty)} dim />
+                    <SummaryRow label={t('Eldeki miktar')} value={formatSummaryQty(availableQty)} dim />
                   )}
                 </>
               )}
@@ -854,24 +856,24 @@ export default function AddTransactionModal({
                 : 'bg-[#252b3b]'
             }`}>
               {goldPieceQtyInvalid && (
-                <p className="text-rose-400 font-semibold">Bu altın türünde miktar tam adet olmalıdır.</p>
+                <p className="text-rose-400 font-semibold">{t('Bu altın türünde miktar tam adet olmalıdır.')}</p>
               )}
               {quantitySellExceedsFund && (
                 <p className="text-rose-400 font-semibold">
-                  Satış miktarı eldeki pay miktarını aşamaz.
-                  {availableQty != null && ` (Eldeki: ${fmtNum(availableQty, 8).replace(/\.?0+$/, '')} pay)`}
+                  {t('Satış miktarı eldeki pay miktarını aşamaz.')}
+                  {availableQty != null && ` (${t('Eldeki:')} ${fmtNum(availableQty, 8).replace(/\.?0+$/, '')} ${t('pay')})`}
                 </p>
               )}
               {quantitySellExceedsGold && (
                 <p className="text-rose-400 font-semibold">
-                  Satış miktarı eldeki miktarı aşamaz.
-                  {availableQty != null && ` (Eldeki: ${formatSummaryQty(availableQty)})`}
+                  {t('Satış miktarı eldeki miktarı aşamaz.')}
+                  {availableQty != null && ` (${t('Eldeki:')} ${formatSummaryQty(availableQty)})`}
                 </p>
               )}
               {quantitySellExceedsBond && (
                 <p className="text-rose-400 font-semibold">
-                  Satış miktarı eldeki miktarı aşamaz.
-                  {availableQty != null && ` (Eldeki: ${fmtNum(availableQty, 8).replace(/\.?0+$/, '')})`}
+                  {t('Satış miktarı eldeki miktarı aşamaz.')}
+                  {availableQty != null && ` (${t('Eldeki:')} ${fmtNum(availableQty, 8).replace(/\.?0+$/, '')})`}
                 </p>
               )}
               {quantityModeTotal != null && !quantitySellExceedsFund && !quantitySellExceedsGold && !quantitySellExceedsBond && !goldPieceQtyInvalid && (
@@ -879,51 +881,51 @@ export default function AddTransactionModal({
                   {isBuy ? (
                     <>
                       <SummaryRow
-                        label={isGold && goldMeta ? goldMeta.quantityLabel.replace(' *', '') : 'Miktar'}
+                        label={isGold && goldMeta ? t(goldMeta.quantityLabel.replace(' *', '')) : t('Miktar')}
                         value={formatSummaryQty(parseFloat(form.quantity))}
                       />
                       <SummaryRow
                         label={
                           isBond
-                            ? 'Gösterge Değeri'
+                            ? t('Gösterge Değeri')
                             : isGold && goldMeta
-                              ? goldMeta.priceLabel.replace(' *', '')
-                              : 'Fiyat'
+                              ? t(goldMeta.priceLabel.replace(' *', ''))
+                              : t('Fiyat')
                         }
                         value={fmtWithCcy(price, currency)}
                       />
                       {(commission > 0 || isBond) && (
                         <SummaryRow
-                          label={isGold || isBond ? 'Komisyon / Masraf' : 'Komisyon'}
+                          label={isGold || isBond ? t('Komisyon / Masraf') : t('Komisyon')}
                           value={fmtWithCcy(commission, currency)}
                         />
                       )}
-                      <SummaryRow label="Toplam ödeme" value={fmtWithCcy(quantityModeTotal.total, currency)} highlight />
+                      <SummaryRow label={t('Toplam ödeme')} value={fmtWithCcy(quantityModeTotal.total, currency)} highlight />
                     </>
                   ) : (
                     <>
                       <SummaryRow
-                        label={isGold && goldMeta ? goldMeta.quantityLabel.replace(' *', '') : 'Miktar'}
+                        label={isGold && goldMeta ? t(goldMeta.quantityLabel.replace(' *', '')) : t('Miktar')}
                         value={formatSummaryQty(parseFloat(form.quantity))}
                       />
                       <SummaryRow
                         label={
                           isBond
-                            ? 'Gösterge Değeri'
+                            ? t('Gösterge Değeri')
                             : isGold && goldMeta
-                              ? goldMeta.priceLabel.replace(' *', '')
-                              : 'Fiyat'
+                              ? t(goldMeta.priceLabel.replace(' *', ''))
+                              : t('Fiyat')
                         }
                         value={fmtWithCcy(price, currency)}
                       />
                       {(commission > 0 || isBond) && (
                         <SummaryRow
-                          label={isGold || isBond ? 'Komisyon / Masraf' : 'Komisyon'}
+                          label={isGold || isBond ? t('Komisyon / Masraf') : t('Komisyon')}
                           value={fmtWithCcy(commission, currency)}
                         />
                       )}
                       <SummaryRow
-                        label={isBond ? 'Net Tahsilat' : 'Tahmini net gelir'}
+                        label={isBond ? t('Net Tahsilat') : t('Tahmini net gelir')}
                         value={fmtWithCcy(quantityModeTotal.netIncome, currency)}
                         highlight
                       />
@@ -946,7 +948,7 @@ export default function AddTransactionModal({
               onClick={onClose}
               className="flex-1 px-4 py-2.5 border border-[#3a4155] rounded-xl text-sm font-semibold text-gray-400 hover:bg-[#252b3b] transition-colors"
             >
-              İptal
+              {t('İptal')}
             </button>
             <button
               type="submit"
@@ -955,7 +957,7 @@ export default function AddTransactionModal({
                 isBuy ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-rose-500 hover:bg-rose-600'
               }`}
             >
-              {loading ? 'Ekleniyor…' : isBuy ? 'Alış Ekle' : 'Satış Ekle'}
+              {loading ? t('Ekleniyor…') : isBuy ? t('Alış Ekle') : t('Satış Ekle')}
             </button>
           </div>
         </form>

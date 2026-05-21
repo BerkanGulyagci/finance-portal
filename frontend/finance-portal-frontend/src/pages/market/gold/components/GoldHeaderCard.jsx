@@ -1,8 +1,10 @@
 import { useMemo } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { fmt, getSpotPrice } from './goldConstants';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 export default function GoldHeaderCard({ spot, activeTab, historyPoints }) {
+  const { t } = useTranslation();
   if (!spot || !activeTab) return null;
 
   const isUsd = activeTab.currency === 'USD';
@@ -51,16 +53,16 @@ export default function GoldHeaderCard({ spot, activeTab, historyPoints }) {
     <div className="mb-5">
       <div className="flex items-center gap-2 mb-1 flex-wrap">
         <h2 className="text-lg font-bold text-gray-700 tracking-wide">
-          {activeTab.label.toUpperCase()}
+          {t(activeTab.label).toUpperCase()}
         </h2>
         {spot.official && (
           <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-            Borsa İstanbul
+            {t('Borsa İstanbul')}
           </span>
         )}
         {spot.fallback && (
           <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-            Fallback
+            {t('Fallback')}
           </span>
         )}
       </div>
@@ -81,7 +83,7 @@ export default function GoldHeaderCard({ spot, activeTab, historyPoints }) {
       {/* Güncelleme zamanı */}
       {(spot.lastUpdated || spot.updatedAt) && (
         <p className="text-xs text-gray-400 mt-1">
-          Güncelleme:{' '}
+          {t('Güncelleme:')}{' '}
           {(() => {
             try {
               const raw = spot.lastUpdated ?? spot.updatedAt;
@@ -90,7 +92,7 @@ export default function GoldHeaderCard({ spot, activeTab, historyPoints }) {
               return spot.lastUpdated ?? spot.updatedAt;
             }
           })()}
-          {spot.bistDate && ` · BİST: ${spot.bistDate}`}
+          {spot.bistDate && ` · ${t('BİST:')} ${spot.bistDate}`}
         </p>
       )}
     </div>

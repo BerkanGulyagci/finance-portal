@@ -1,14 +1,5 @@
+import { useTranslation } from '../../../i18n/LanguageContext';
 import AdminUsersTableRow from './AdminUsersTableRow';
-
-const COLUMNS = [
-  { key: 'username', label: 'Kullanıcı' },
-  { key: 'email', label: 'E-posta' },
-  { key: 'firstName', label: 'Ad' },
-  { key: 'lastName', label: 'Soyad' },
-  { key: 'enabled', label: 'Durum' },
-  { key: 'roles', label: 'Roller' },
-  { key: 'actions', label: 'İşlem', align: 'right' },
-];
 
 export default function AdminUsersTable({
   users,
@@ -18,6 +9,18 @@ export default function AdminUsersTable({
   onRequestBan,
   onUnban,
 }) {
+  const { t } = useTranslation();
+
+  const COLUMNS = [
+    { key: 'username', label: t('Kullanıcı') },
+    { key: 'email', label: t('E-posta') },
+    { key: 'firstName', label: t('Ad') },
+    { key: 'lastName', label: t('Soyad') },
+    { key: 'enabled', label: t('Durum') },
+    { key: 'roles', label: t('Roller') },
+    { key: 'actions', label: t('İşlem'), align: 'right' },
+  ];
+
   return (
     <section className="overflow-x-auto">
       <table className="w-full text-sm">

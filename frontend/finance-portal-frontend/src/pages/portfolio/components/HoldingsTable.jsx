@@ -6,6 +6,7 @@ import { getWatchlistDetailPath } from '../constants/watchlistMarketRoutes';
 import { CommodityDualPrice } from './CommodityPriceHint';
 import { isYahooCommoditySymbol } from '../../../utils/commodityPriceUtils';
 import { MASK_MONEY, MASK_PERCENT, MASK_QTY } from '../utils/portfolioFormatUtils';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 // ── Sabitler ─────────────────────────────────────────────────────────────────
 
@@ -86,19 +87,19 @@ function holdingsBondMix(holdings) {
   return { hasBond, onlyBond, mixed };
 }
 
-function columnHeaderLabel(col, mix) {
-  if (!mix.hasBond) return col.label;
+function columnHeaderLabel(col, mix, t) {
+  if (!mix.hasBond) return t(col.label);
   if (col.key === 'avgCost') {
-    if (mix.onlyBond) return 'Ort. Gösterge (maliyet)';
-    if (mix.mixed) return 'Ortalama alış / gösterge';
-    return col.label;
+    if (mix.onlyBond) return t('Ort. Gösterge (maliyet)');
+    if (mix.mixed) return t('Ortalama alış / gösterge');
+    return t(col.label);
   }
   if (col.key === 'currentPrice') {
-    if (mix.onlyBond) return 'Güncel gösterge';
-    if (mix.mixed) return 'Mevcut fiyat / gösterge';
-    return col.label;
+    if (mix.onlyBond) return t('Güncel gösterge');
+    if (mix.mixed) return t('Mevcut fiyat / gösterge');
+    return t(col.label);
   }
-  return col.label;
+  return t(col.label);
 }
 
 // ── Format yardımcıları ───────────────────────────────────────────────────────
@@ -300,7 +301,7 @@ function PnlPct({ value, valuesHidden }) {
 
 // ── Hücre render ─────────────────────────────────────────────────────────────
 
-function renderCell(key, h, commoditySpots, valuesHidden) {
+function renderCell(key, h, commoditySpots, valuesHidden, t) {
   const cur = h.currency;
   const isFund = String(h.assetType ?? '').toUpperCase() === 'FUND';
   const isYahooCommodity =
@@ -316,7 +317,7 @@ function renderCell(key, h, commoditySpots, valuesHidden) {
           <Link
             to={detailPath}
             className="text-sm text-gray-800 block max-w-[180px] truncate font-medium hover:text-[#093eaa] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#093eaa]/40 rounded"
-            title={`${name} — Piyasa detayı`}
+            title={`${name} — ${t('Piyasa detayı')}`}
           >
             {name}
           </Link>
@@ -335,7 +336,7 @@ function renderCell(key, h, commoditySpots, valuesHidden) {
     case 'assetType':
       return (
         <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-semibold whitespace-nowrap">
-          {ASSET_LABELS[h.assetType] ?? h.assetType}
+          {ASSET_LABELS[h.assetType] ? t(ASSET_LABELS[h.assetType]) : h.assetType}
         </span>
       );
 
@@ -443,9 +444,9 @@ function renderCell(key, h, commoditySpots, valuesHidden) {
           className="text-sm font-mono text-gray-700"
           title={
             isBond
-              ? 'DİBS için borsa işlem hacmi verisi yok (EVDS gösterge serisi).'
+              ? t('DİBS için borsa işlem hacmi verisi yok (EVDS gösterge serisi).')
               : isFuture
-                ? 'Toplam açık pozisyon (kontrat)'
+                ? t('Toplam açık pozisyon (kontrat)')
                 : undefined
           }
         >
@@ -489,6 +490,7 @@ function renderCell(key, h, commoditySpots, valuesHidden) {
 // ── Sütun düzenleyici (inline panel) ─────────────────────────────────────────
 
 function ColumnEditor({ open, onToggle, selected, onChange }) {
+  const { t } = useTranslation();
   const [warn, setWarn] = useState(false);
 
   function toggle(key) {
@@ -516,7 +518,7 @@ function ColumnEditor({ open, onToggle, selected, onChange }) {
       {/* Toolbar satırı */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
         <span className="text-xs text-gray-400">
-          {selected.length} sütun görüntüleniyor
+          {t('{count} sütun görüntüleniyor', { count: selected.length })}
         </span>
         <button
           type="button"
@@ -527,7 +529,7 @@ function ColumnEditor({ open, onToggle, selected, onChange }) {
               : 'text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}
         >
           <Settings2 className="w-3.5 h-3.5" />
-          Düzenle
+          {t('Düzenle')}
           {open ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
         </button>
       </div>
@@ -536,10 +538,10 @@ function ColumnEditor({ open, onToggle, selected, onChange }) {
       {open && (
         <div className="border-b border-gray-200 bg-gray-50 px-4 py-4">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-bold text-gray-800">Sütunları Düzenle</span>
+            <span className="text-sm font-bold text-gray-800">{t('Sütunları Düzenle')}</span>
             <div className="flex items-center gap-3">
               <span className="text-xs text-gray-400">
-                Seçili:{' '}
+                {t('Seçili:')}{' '}
                 <span className={selected.length >= MAX_COLS ? 'text-amber-600 font-bold' : 'font-semibold'}>
                   {selected.length}
                 </span>{' '}
@@ -550,14 +552,14 @@ function ColumnEditor({ open, onToggle, selected, onChange }) {
                 onClick={() => { onChange(DEFAULT_KEYS); setWarn(false); }}
                 className="text-xs text-[#093eaa] hover:underline font-medium"
               >
-                Sıfırla
+                {t('Sıfırla')}
               </button>
             </div>
           </div>
 
           {warn && (
             <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
-              En fazla {MAX_COLS} sütun seçilebilir.
+              {t('En fazla {max} sütun seçilebilir.', { max: MAX_COLS })}
             </p>
           )}
 
@@ -568,7 +570,7 @@ function ColumnEditor({ open, onToggle, selected, onChange }) {
               if (!cols?.length) return null;
               return (
                 <div key={group}>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{group}</p>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{t(group)}</p>
                   <div className="space-y-1">
                     {cols.map(col => {
                       const checked  = selected.includes(col.key);
@@ -587,7 +589,7 @@ function ColumnEditor({ open, onToggle, selected, onChange }) {
                             onChange={() => toggle(col.key)}
                             className="w-3.5 h-3.5 rounded accent-[#093eaa] shrink-0"
                           />
-                          <span className="text-xs font-medium leading-tight">{col.label}</span>
+                          <span className="text-xs font-medium leading-tight">{t(col.label)}</span>
                         </label>
                       );
                     })}
@@ -609,6 +611,7 @@ function ColumnEditor({ open, onToggle, selected, onChange }) {
  *   holdings: PortfolioHoldingResponse[]
  */
 export default function HoldingsTable({ holdings = [], commoditySpots = {}, valuesHidden = false }) {
+  const { t } = useTranslation();
   const [selectedKeys, setSelectedKeys] = useState(DEFAULT_KEYS);
   const [editorOpen, setEditorOpen]     = useState(false);
 
@@ -618,7 +621,7 @@ export default function HoldingsTable({ holdings = [], commoditySpots = {}, valu
   if (!holdings.length) {
     return (
       <div className="p-12 text-center text-gray-400 text-sm">
-        Henüz varlık yok. "Pozisyon Ekle" butonuna basarak başlayın.
+        {t('Henüz varlık yok. "Pozisyon Ekle" butonuna basarak başlayın.')}
       </div>
     );
   }
@@ -642,7 +645,7 @@ export default function HoldingsTable({ holdings = [], commoditySpots = {}, valu
                   key={col.key}
                   className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap"
                 >
-                  {columnHeaderLabel(col, bondMix)}
+                  {columnHeaderLabel(col, bondMix, t)}
                 </th>
               ))}
             </tr>
@@ -652,7 +655,7 @@ export default function HoldingsTable({ holdings = [], commoditySpots = {}, valu
               <tr key={`${h.assetType}-${h.symbol}`} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
                 {visibleCols.map(col => (
                   <td key={col.key} className="px-4 py-3">
-                    {renderCell(col.key, h, commoditySpots, valuesHidden)}
+                    {renderCell(col.key, h, commoditySpots, valuesHidden, t)}
                   </td>
                 ))}
               </tr>

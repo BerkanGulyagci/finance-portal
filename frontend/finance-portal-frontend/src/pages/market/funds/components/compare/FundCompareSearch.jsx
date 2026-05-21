@@ -1,10 +1,12 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { Search, X } from 'lucide-react';
 import { COMPARE_COLORS } from './compareUtils';
+import { useTranslation } from '../../../../../i18n/LanguageContext';
 
 const MAX_FUNDS = 4;
 
 export default function FundCompareSearch({ allFunds, selected, onAdd, onRemove, onCompare, loading, range, onRangeChange }) {
+  const { t } = useTranslation();
   const [query, setQuery]       = useState('');
   const [open, setOpen]         = useState(false);
   const inputRef = useRef(null);
@@ -54,7 +56,7 @@ export default function FundCompareSearch({ allFunds, selected, onAdd, onRemove,
       {/* Seçili fonlar */}
       <div>
         <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2.5">
-          Fon Seç ({selected.length}/{MAX_FUNDS})
+          {t('Fon Seç')} ({selected.length}/{MAX_FUNDS})
         </p>
         <div className="flex flex-wrap gap-2 min-h-[36px] items-center">
           {selected.map((code, idx) => {
@@ -87,7 +89,7 @@ export default function FundCompareSearch({ allFunds, selected, onAdd, onRemove,
                   onChange={e => { setQuery(e.target.value); setOpen(true); }}
                   onFocus={() => setOpen(true)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Kod veya isim ara..."
+                  placeholder={t('Kod veya isim ara...')}
                   className="text-sm text-gray-700 bg-transparent outline-none w-40 placeholder-gray-400"
                 />
                 {query && (
@@ -122,7 +124,7 @@ export default function FundCompareSearch({ allFunds, selected, onAdd, onRemove,
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 range === r.key ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}>
-              {r.label}
+              {t(r.label)}
             </button>
           ))}
         </div>
@@ -133,10 +135,10 @@ export default function FundCompareSearch({ allFunds, selected, onAdd, onRemove,
           {loading ? (
             <>
               <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              Yükleniyor...
+              {t('Yükleniyor...')}
             </>
           ) : (
-            'Karşılaştır'
+            t('Karşılaştır')
           )}
         </button>
       </div>

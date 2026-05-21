@@ -26,6 +26,7 @@ import {
   formatYahooChartSourceNote,
 } from './cryptoChartRanges';
 import { getCryptoChart, getCryptoOhlc } from '../../../api/marketApi';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 const CURRENCIES = ['TRY', 'USD', 'EUR'];
 const CURRENCY_SYMBOLS = { TRY: '₺', USD: '$', EUR: '€' };
@@ -105,12 +106,13 @@ function calcRSI(data, period = 14) {
 }
 
 function RSIBadge({ rsi }) {
+  const { t } = useTranslation();
   if (rsi == null) return null;
   const val = parseFloat(rsi.toFixed(1));
   let label, bg, text;
-  if (val >= 70)      { label = 'Aşırı Alım'; bg = 'bg-rose-100';    text = 'text-rose-700'; }
-  else if (val <= 30) { label = 'Aşırı Satım'; bg = 'bg-emerald-100'; text = 'text-emerald-700'; }
-  else                { label = 'Normal';       bg = 'bg-gray-100';    text = 'text-gray-600'; }
+  if (val >= 70)      { label = t('Aşırı Alım'); bg = 'bg-rose-100';    text = 'text-rose-700'; }
+  else if (val <= 30) { label = t('Aşırı Satım'); bg = 'bg-emerald-100'; text = 'text-emerald-700'; }
+  else                { label = t('Normal');       bg = 'bg-gray-100';    text = 'text-gray-600'; }
 
   // Gauge yüzdesi (0-100 → 0%-100%)
   const pct = Math.min(100, Math.max(0, val));
@@ -171,6 +173,7 @@ function resolveTvSymbol(coinId, symbol) {
 }
 
 function TradingViewChart({ coinId, symbol }) {
+  const { t } = useTranslation();
   const tvSymbol = resolveTvSymbol(coinId, symbol);
   const exchange = tvSymbol.split(':')[0];
   const src = `https://www.tradingview.com/widgetembed/?frameElementId=tv_chart&symbol=${encodeURIComponent(tvSymbol)}&interval=60&hidesidetoolbar=0&hidetoptoolbar=0&symboledit=1&saveimage=0&toolbarbg=f1f3f6&studies=[]&theme=light&style=1&timezone=Europe%2FIstanbul&withdateranges=1&showpopupbutton=1&locale=tr`;
@@ -178,13 +181,14 @@ function TradingViewChart({ coinId, symbol }) {
     <div>
       <iframe src={src} style={{ width: '100%', height: '620px', border: 'none' }}
         allowTransparency allowFullScreen title="TradingView Chart" />
-      <p className="text-xs text-gray-400 px-6 pb-3">Grafik Kaynağı: {exchange}</p>
+      <p className="text-xs text-gray-400 px-6 pb-3">{t('Grafik Kaynağı:')} {exchange}</p>
     </div>
   );
 }
 
 /* ─── KlineCharts Çizgi Grafiği (Crypto için) ─── */
 function CryptoLineChart({ chartData, currency, compareCoins, compareData, coinId, mainCoinSymbol, activeMAs }) {
+  const { t } = useTranslation();
   const chartId = useRef(`kline_crypto_${Date.now()}`);
   const chartRef = useRef(null);
   const isComparing = compareCoins && compareCoins.length > 0;
@@ -425,7 +429,7 @@ function CryptoLineChart({ chartData, currency, compareCoins, compareData, coinI
   if (!chartData || chartData.length === 0) {
     return (
       <div className="flex items-center justify-center h-[520px] text-gray-400 text-sm">
-        Grafik verisi yüklenemedi.
+        {t('Grafik verisi yüklenemedi.')}
       </div>
     );
   }
@@ -456,7 +460,7 @@ function CryptoLineChart({ chartData, currency, compareCoins, compareData, coinI
       )}
 
       <p className="text-xs text-gray-400 mt-2">
-        Kaynak: CoinGecko · {currency} bazlı{isComparing ? ' · % değişim bazlı karşılaştırma' : ''}
+        {t('Kaynak: CoinGecko ·')} {currency} {t('bazlı')}{isComparing ? t(' · % değişim bazlı karşılaştırma') : ''}
       </p>
     </div>
   );
@@ -464,6 +468,7 @@ function CryptoLineChart({ chartData, currency, compareCoins, compareData, coinI
 
 // Karşılaştırma dropdown bileşeni
 function CompareDropdown({ compareCoins, onAdd, onRemove, allCoins }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const ref = useRef(null);
@@ -492,7 +497,7 @@ function CompareDropdown({ compareCoins, onAdd, onRemove, allCoins }) {
         }`}
       >
         <Plus className="w-3 h-3" />
-        Karşılaştır
+        {t('Karşılaştır')}
         {compareCoins.length > 0 && <span className="bg-white/30 rounded-full px-1">{compareCoins.length}</span>}
         <ChevronDown className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
@@ -503,7 +508,7 @@ function CompareDropdown({ compareCoins, onAdd, onRemove, allCoins }) {
             <input
               autoFocus
               type="text"
-              placeholder="Coin ara..."
+              placeholder={t('Coin ara...')}
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#093eaa]"
@@ -512,7 +517,7 @@ function CompareDropdown({ compareCoins, onAdd, onRemove, allCoins }) {
 
           {compareCoins.length > 0 && (
             <div className="px-3 pt-2 pb-1">
-              <p className="text-xs text-gray-400 mb-1.5">Seçili</p>
+              <p className="text-xs text-gray-400 mb-1.5">{t('Seçili')}</p>
               <div className="flex flex-wrap gap-1">
                 {compareCoins.map((c, i) => (
                   <span key={c.id} className="flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full text-white"
@@ -526,7 +531,7 @@ function CompareDropdown({ compareCoins, onAdd, onRemove, allCoins }) {
           )}
 
           <div className="max-h-48 overflow-y-auto">
-            {!search && <p className="text-xs text-gray-400 px-3 pt-2 pb-1">Popüler</p>}
+            {!search && <p className="text-xs text-gray-400 px-3 pt-2 pb-1">{t('Popüler')}</p>}
             {suggestions.map(c => {
               const selected = compareCoins.some(x => x.id === c.id);
               return (
@@ -543,7 +548,7 @@ function CompareDropdown({ compareCoins, onAdd, onRemove, allCoins }) {
 
           <div className="p-2 border-t border-gray-100">
             <button onClick={() => setOpen(false)}
-              className="w-full text-xs text-gray-500 py-1 hover:text-gray-700">Kapat</button>
+              className="w-full text-xs text-gray-500 py-1 hover:text-gray-700">{t('Kapat')}</button>
           </div>
         </div>
       )}
@@ -552,6 +557,7 @@ function CompareDropdown({ compareCoins, onAdd, onRemove, allCoins }) {
 }
 
 export default function CryptoDetailPage() {
+  const { t } = useTranslation();
   const { coinId } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
@@ -863,12 +869,12 @@ export default function CryptoDetailPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <Link to="/market/crypto" className="inline-flex items-center gap-1.5 text-sm text-[#093eaa] font-semibold hover:underline">
-          <ArrowLeft className="w-4 h-4" /> Kripto Para
+          <ArrowLeft className="w-4 h-4" /> {t('Kripto Para')}
         </Link>
         <button
           onClick={() => isAuthenticated ? navigate('/portfolio') : navigate('/login', { state: { from: '/portfolio' } })}
           className="px-4 py-2 bg-emerald-500 text-white text-sm font-bold rounded-xl hover:bg-emerald-600 transition-all">
-          Satın Al
+          {t('Satın Al')}
         </button>
       </div>
 
@@ -904,13 +910,13 @@ export default function CryptoDetailPage() {
               <p className="text-3xl font-black text-gray-900 mb-1">{fmtPrice(coin.currentPrice, currency)}</p>
               <span className={`flex items-center gap-1 text-sm font-bold ${pos24h ? 'text-emerald-600' : 'text-rose-600'}`}>
                 {pos24h ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                {pos24h ? '+' : ''}{fmt(change24h)}% (24s)
+                {pos24h ? '+' : ''}{fmt(change24h)}% ({t('24s')})
               </span>
               {coin.low24h != null && coin.high24h != null && (
                 <div className="mt-3">
                   <div className="flex justify-between text-xs text-gray-400 mb-1">
                     <span>{fmtPrice(coin.low24h, currency)}</span>
-                    <span className="text-gray-500 font-semibold">24s Aralık</span>
+                    <span className="text-gray-500 font-semibold">{t('24s Aralık')}</span>
                     <span>{fmtPrice(coin.high24h, currency)}</span>
                   </div>
                   <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -924,11 +930,11 @@ export default function CryptoDetailPage() {
 
           {coin && (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Dönemsel Getiri</p>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">{t('Dönemsel Getiri')}</p>
               <div className="grid grid-cols-3 gap-2">
                 {[{ label: '1sa', val: coin.priceChangePercentage1h }, { label: '24sa', val: coin.priceChangePercentage24h }, { label: '7g', val: coin.priceChangePercentage7d }].map(item => (
                   <div key={item.label} className="text-center bg-gray-50 rounded-xl p-2">
-                    <p className="text-xs text-gray-400 mb-1">{item.label}</p>
+                    <p className="text-xs text-gray-400 mb-1">{t(item.label)}</p>
                     {pct(item.val)}
                   </div>
                 ))}
@@ -941,7 +947,7 @@ export default function CryptoDetailPage() {
 
           {coin && (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Piyasa Verileri</p>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">{t('Piyasa Verileri')}</p>
               <div className="space-y-2.5">
                 {[
                   { label: 'Piyasa Değeri', value: coin.marketCap != null ? fmtPrice(coin.marketCap, currency) : '-' },
@@ -951,7 +957,7 @@ export default function CryptoDetailPage() {
                   { label: 'Maksimum Arz', value: maxSupply != null ? `${parseFloat(maxSupply).toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ${coin.symbol?.toUpperCase()}` : '∞' },
                 ].map(item => (
                   <div key={item.label} className="flex justify-between items-center text-sm">
-                    <span className="text-gray-500">{item.label}</span>
+                    <span className="text-gray-500">{t(item.label)}</span>
                     <span className="font-semibold text-gray-900 text-right">{item.value}</span>
                   </div>
                 ))}
@@ -961,24 +967,24 @@ export default function CryptoDetailPage() {
 
           {(ath != null || atl != null) && (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Tüm Zamanlar</p>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">{t('Tüm Zamanlar')}</p>
               <div className="space-y-3">
                 {ath != null && (
                   <div>
                     <div className="flex justify-between text-sm mb-0.5">
-                      <span className="text-gray-500">En Yüksek</span>
+                      <span className="text-gray-500">{t('En Yüksek')}</span>
                       <span className="font-bold text-emerald-600">{fmtPrice(ath, currency)}</span>
                     </div>
-                    <div className="text-xs text-gray-400 text-right">{athPct != null ? `${fmt(athPct)}% şu anki fiyattan` : ''}</div>
+                    <div className="text-xs text-gray-400 text-right">{athPct != null ? `${fmt(athPct)}% ${t('şu anki fiyattan')}` : ''}</div>
                   </div>
                 )}
                 {atl != null && (
                   <div>
                     <div className="flex justify-between text-sm mb-0.5">
-                      <span className="text-gray-500">En Düşük</span>
+                      <span className="text-gray-500">{t('En Düşük')}</span>
                       <span className="font-bold text-rose-600">{fmtPrice(atl, currency)}</span>
                     </div>
-                    <div className="text-xs text-gray-400 text-right">{atlPct != null ? `+${fmt(atlPct)}% şu anki fiyattan` : ''}</div>
+                    <div className="text-xs text-gray-400 text-right">{atlPct != null ? `+${fmt(atlPct)}% ${t('şu anki fiyattan')}` : ''}</div>
                   </div>
                 )}
               </div>
@@ -987,7 +993,7 @@ export default function CryptoDetailPage() {
 
           {coin && (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">{coin.symbol?.toUpperCase()} Çevirici</p>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">{coin.symbol?.toUpperCase()} {t('Çevirici')}</p>
               <div className="space-y-2">
                 <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2">
                   <input type="number" value={convAmount} onChange={e => setConvAmount(e.target.value)}
@@ -1004,7 +1010,7 @@ export default function CryptoDetailPage() {
 
           {detail && (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Bilgi</p>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">{t('Bilgi')}</p>
               <div className="space-y-2">
                 {homepage && (
                   <a href={homepage} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#093eaa] hover:underline">
@@ -1043,7 +1049,7 @@ export default function CryptoDetailPage() {
                 {[{ key: 'line', label: '〰 Çizgi' }, { key: 'candle', label: '🕯 Mum' }].map(m => (
                   <button key={m.key} onClick={() => setChartMode(m.key)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${chartMode === m.key ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                    {m.label}
+                    {t(m.label)}
                   </button>
                 ))}
               </div>
@@ -1063,7 +1069,7 @@ export default function CryptoDetailPage() {
                 {CRYPTO_CHART_RANGES.map((r, i) => (
                   <button key={r.label} onClick={() => setRangeIdx(i)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${rangeIdx === i ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                    {r.label}
+                    {t(r.label)}
                   </button>
                 ))}
               </div>
@@ -1123,13 +1129,13 @@ export default function CryptoDetailPage() {
                   loading={chartLoading || compareLoading}
                   sourceNote={(() => {
                     const n = chartMode === 'candle' ? ohlcData.length : linePoints.length;
-                    const range = historyFrom ? ` · ${historyFrom.toLocaleDateString('tr-TR')} – bugün` : '';
-                    const pts = n ? ` · ${n} nokta` : '';
+                    const range = historyFrom ? ` · ${historyFrom.toLocaleDateString('tr-TR')} – ${t('bugün')}` : '';
+                    const pts = n ? ` · ${n} ${t('nokta')}` : '';
                     if (rangeConfig.yahoo) {
-                      if (!n) return `Kaynak: ${chartSource || 'Yahoo Finance'} — veri yok`;
-                      return `Kaynak: ${chartSource}${range}${pts}`;
+                      if (!n) return `${t('Kaynak:')} ${chartSource || 'Yahoo Finance'} — ${t('veri yok')}`;
+                      return `${t('Kaynak:')} ${chartSource}${range}${pts}`;
                     }
-                    return `Kaynak: CoinGecko · ${currency} bazlı${pts}`;
+                    return `${t('Kaynak:')} CoinGecko · ${currency} ${t('bazlı')}${pts}`;
                   })()}
                   sourceWarning={chartTryFallbackWarning}
                 />
@@ -1139,13 +1145,13 @@ export default function CryptoDetailPage() {
 
           {shortDesc && (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">{coin?.name} Hakkında</p>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">{coin?.name} {t('Hakkında')}</p>
               <p className="text-sm text-gray-700 leading-relaxed">
                 {showDesc ? description.replace(/<[^>]+>/g, '') : shortDesc}
                 {description.length > 300 && (
                   <button onClick={() => setShowDesc(s => !s)}
                     className="ml-1 text-[#093eaa] font-semibold hover:underline inline-flex items-center gap-0.5">
-                    {showDesc ? <><ChevronUp className="w-3 h-3" /> Daha az</> : <><ChevronDown className="w-3 h-3" /> Devamını oku</>}
+                    {showDesc ? <><ChevronUp className="w-3 h-3" /> {t('Daha az')}</> : <><ChevronDown className="w-3 h-3" /> {t('Devamını oku')}</>}
                   </button>
                 )}
               </p>
@@ -1155,7 +1161,7 @@ export default function CryptoDetailPage() {
           {/* Benzer Coinler */}
           {similarCoins.length > 0 && (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">Benzer Coinler</p>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">{t('Benzer Coinler')}</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {similarCoins.map(c => {
                   const pos = (c.priceChangePercentage24h ?? 0) >= 0;

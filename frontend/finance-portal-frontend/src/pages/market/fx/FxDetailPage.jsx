@@ -5,6 +5,7 @@ import { getFxHistory, getFxTcmb } from '../../../api/marketApi.js';
 import { getBloombergHtNews } from '../../../api/newsApi.js';
 import { FX_META, FlagImg } from '../../../utils/fxMeta.jsx';
 import { init as klineInit, dispose as klineDispose } from 'klinecharts';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function fmt(v, dec = 4) {
@@ -17,6 +18,7 @@ const RANGE_LABELS = { '1W': '1H', '1M': '1A', '3M': '3A', '6M': '6A', '1Y': '1Y
 
 /* ─── KlineCharts Çizgi Grafiği (FX için) ─── */
 function FxKlineChart({ chartPoints, lineColor }) {
+  const { t } = useTranslation();
   const chartId = useRef(`kline_fx_${Date.now()}`);
   const chartRef = useRef(null);
 
@@ -72,7 +74,7 @@ function FxKlineChart({ chartPoints, lineColor }) {
   if (!chartPoints || chartPoints.length === 0) {
     return (
       <div className="flex items-center justify-center h-[420px] text-gray-400 text-sm">
-        Grafik verisi yüklenemedi.
+        {t('Grafik verisi yüklenemedi.')}
       </div>
     );
   }
@@ -86,6 +88,7 @@ function FxKlineChart({ chartPoints, lineColor }) {
 
 // ── Döviz Çevirici ────────────────────────────────────────────────────────────
 function FxConverter({ symbol, allRates }) {
+  const { t } = useTranslation();
   const sym = symbol?.toUpperCase();
   // Tüm dövizler + TRY
   const currencies = ['TRY', ...Object.keys(FX_META).filter(k => k !== 'TRY')];
@@ -120,12 +123,12 @@ function FxConverter({ symbol, allRates }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
       <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-        <ArrowLeftRight className="w-5 h-5 text-[#093eaa]" /> Döviz Çevirici
+        <ArrowLeftRight className="w-5 h-5 text-[#093eaa]" /> {t('Döviz Çevirici')}
       </h2>
       <div className="space-y-3">
         {/* Kaynak */}
         <div>
-          <label className="block text-xs font-bold text-gray-500 mb-1.5">KAYNAK</label>
+          <label className="block text-xs font-bold text-gray-500 mb-1.5">{t('KAYNAK')}</label>
           <div className="flex gap-2">
             <select
               value={fromCur}
@@ -151,7 +154,7 @@ function FxConverter({ symbol, allRates }) {
           <button
             onClick={swap}
             className="p-2 rounded-full bg-gray-100 hover:bg-[#093eaa] hover:text-white transition-all group"
-            title="Ters çevir"
+            title={t('Ters çevir')}
           >
             <ArrowLeftRight className="w-4 h-4 text-gray-500 group-hover:text-white" />
           </button>
@@ -159,7 +162,7 @@ function FxConverter({ symbol, allRates }) {
 
         {/* Hedef */}
         <div>
-          <label className="block text-xs font-bold text-gray-500 mb-1.5">HEDEF</label>
+          <label className="block text-xs font-bold text-gray-500 mb-1.5">{t('HEDEF')}</label>
           <select
             value={toCur}
             onChange={e => setToCur(e.target.value)}
@@ -186,7 +189,7 @@ function FxConverter({ symbol, allRates }) {
             1 {fromCur} = {((getRateTry(fromCur) ?? 1) / (getRateTry(toCur) ?? 1)).toLocaleString('tr-TR', { minimumFractionDigits: 4, maximumFractionDigits: 6 })} {toCur}
           </p>
         )}
-        <p className="text-xs text-gray-400 text-center">TCMB resmi kurları kullanılmaktadır.</p>
+        <p className="text-xs text-gray-400 text-center">{t('TCMB resmi kurları kullanılmaktadır.')}</p>
       </div>
     </div>
   );
@@ -194,8 +197,9 @@ function FxConverter({ symbol, allRates }) {
 
 // ── İlgili Haberler ───────────────────────────────────────────────────────────
 function FxNews({ symbol }) {
+  const { t } = useTranslation();
   const [news, setNews] = useState([]);
-  const [label, setLabel] = useState('İlgili Haberler');
+  const [label, setLabel] = useState(t('İlgili Haberler'));
   const meta = FX_META[symbol?.toUpperCase()];
 
   useEffect(() => {
@@ -214,10 +218,10 @@ function FxNews({ symbol }) {
 
         if (filtered.length >= 3) {
           setNews(filtered.slice(0, 6));
-          setLabel(`${symbol?.toUpperCase()} Haberleri`);
+          setLabel(`${symbol?.toUpperCase()} ${t('Haberleri')}`);
         } else {
           setNews(items.slice(0, 6));
-          setLabel('Son Haberler');
+          setLabel(t('Son Haberler'));
         }
       })
       .catch(() => {});
@@ -229,7 +233,7 @@ function FxNews({ symbol }) {
         <Newspaper className="w-5 h-5 text-[#093eaa]" /> {label}
       </h2>
       {news.length === 0 ? (
-        <p className="text-gray-400 text-sm">Haberler yükleniyor...</p>
+        <p className="text-gray-400 text-sm">{t('Haberler yükleniyor...')}</p>
       ) : (
         <div className="space-y-4">
           {news.map((item, i) => (
@@ -262,6 +266,7 @@ function FxNews({ symbol }) {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function FxDetailPage() {
+  const { t } = useTranslation();
   const { symbol } = useParams();
   const sym = symbol?.toUpperCase();
 
@@ -332,7 +337,7 @@ export default function FxDetailPage() {
       {/* Back */}
       <div className="flex items-center justify-between">
         <Link to="/market/fx" className="inline-flex items-center gap-1.5 text-sm text-[#093eaa] font-semibold hover:underline">
-          <ArrowLeft className="w-4 h-4" /> Döviz Kurları
+          <ArrowLeft className="w-4 h-4" /> {t('Döviz Kurları')}
         </Link>
         {/* Watchlist + Karşılaştır butonları */}
         <button
@@ -344,14 +349,14 @@ export default function FxDetailPage() {
           }`}
         >
           <Star className={`w-4 h-4 ${inWatchlist ? 'fill-amber-400 text-amber-400' : ''}`} />
-          {inWatchlist ? 'İzleme Listesinde' : 'İzleme Listesine Ekle'}
+          {inWatchlist ? t('İzleme Listesinde') : t('İzleme Listesine Ekle')}
         </button>
         <Link
           to={`/market/compare?symbols=${sym}`}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-[#093eaa] text-[#093eaa] bg-white hover:bg-blue-50 transition-all"
         >
           <BarChart2 className="w-4 h-4" />
-          Karşılaştır
+          {t('Karşılaştır')}
         </Link>
       </div>
 
@@ -391,7 +396,7 @@ export default function FxDetailPage() {
                 </div>
               )}
             </div>
-            <button onClick={loadHistory} className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-all" title="Yenile">
+            <button onClick={loadHistory} className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-all" title={t('Yenile')}>
               <RefreshCw className={`w-4 h-4 text-gray-500 ${loadingChart ? 'animate-spin' : ''}`} />
             </button>
           </div>
@@ -426,7 +431,7 @@ export default function FxDetailPage() {
               />
             ) : !loading && (
               <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-                Grafik verisi yüklenemedi.
+                {t('Grafik verisi yüklenemedi.')}
               </div>
             )}
           </div>
@@ -441,7 +446,7 @@ export default function FxDetailPage() {
               { label: 'Birim',  value: unit ?? '-' },
             ].map(item => (
               <div key={item.label} className="bg-gray-50 rounded-xl p-4 text-center">
-                <p className="text-xs text-gray-500 font-semibold mb-1">{item.label}</p>
+                <p className="text-xs text-gray-500 font-semibold mb-1">{t(item.label)}</p>
                 <p className="text-sm font-bold text-gray-900">{item.value}</p>
               </div>
             ))}

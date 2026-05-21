@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { X, Plus, TrendingUp, TrendingDown, BarChart2 } from 'lucide-react';
 import { getFxHistory } from '../../../api/marketApi';
 import { FX_META, FlagImg } from '../../../utils/fxMeta.jsx';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 // ── Sabit renkler ─────────────────────────────────────────────────────────────
 const COLORS = ['#093eaa', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316'];
@@ -149,6 +150,7 @@ function EChartsCompareChart({ chartData, instruments, formatDate }) {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function ComparePage() {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -337,16 +339,16 @@ export default function ComparePage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900 border-l-4 border-[#093eaa] pl-4">
-          Enstrüman Karşılaştırma
+          {t('Enstrüman Karşılaştırma')}
         </h1>
         <p className="text-sm text-gray-500 mt-1 pl-5">
-          Birden fazla dövizi aynı grafikte karşılaştır — başlangıca göre yüzde değişim
+          {t('Birden fazla dövizi aynı grafikte karşılaştır — başlangıca göre yüzde değişim')}
         </p>
       </div>
 
       {/* Enstrüman seçici */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Enstrüman Ekle</p>
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">{t('Enstrüman Ekle')}</p>
         <div className="flex flex-wrap gap-2 mb-3">
           {instruments.map((inst, idx) => (
             <span
@@ -366,7 +368,7 @@ export default function ComparePage() {
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 border-dashed border-gray-300 text-sm text-gray-400 cursor-pointer hover:border-[#093eaa] hover:text-[#093eaa] transition-colors"
                 onClick={() => setShowSuggestions(true)}>
                 <Plus className="w-3.5 h-3.5" />
-                Ekle
+                {t('Ekle')}
               </div>
               {showSuggestions && (
                 <div className="absolute top-10 left-0 z-20 bg-white border border-gray-200 rounded-xl shadow-xl w-64 p-2">
@@ -374,7 +376,7 @@ export default function ComparePage() {
                     autoFocus
                     value={search}
                     onChange={e => setSearch(e.target.value)}
-                    placeholder="Ara... (USD, EUR...)"
+                    placeholder={t('Ara... (USD, EUR...)')}
                     className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg mb-2 focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30"
                   />
                   <div className="max-h-48 overflow-y-auto space-y-0.5">
@@ -390,12 +392,12 @@ export default function ComparePage() {
                       </button>
                     ))}
                     {filtered.length === 0 && (
-                      <p className="text-xs text-gray-400 text-center py-3">Sonuç bulunamadı</p>
+                      <p className="text-xs text-gray-400 text-center py-3">{t('Sonuç bulunamadı')}</p>
                     )}
                   </div>
                   <button onClick={() => setShowSuggestions(false)}
                     className="w-full mt-2 text-xs text-gray-400 hover:text-gray-600 py-1">
-                    Kapat
+                    {t('Kapat')}
                   </button>
                 </div>
               )}
@@ -421,7 +423,7 @@ export default function ComparePage() {
             className="ml-auto px-5 py-2 bg-[#093eaa] text-white rounded-xl text-sm font-bold hover:bg-[#0730a0] transition-all disabled:opacity-50 flex items-center gap-2"
           >
             <BarChart2 className="w-4 h-4" />
-            {loading ? 'Yükleniyor...' : 'Karşılaştır'}
+            {loading ? t('Yükleniyor...') : t('Karşılaştır')}
           </button>
         </div>
       </div>
@@ -431,8 +433,8 @@ export default function ComparePage() {
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="font-bold text-gray-900">Göreceli Performans (%)</h2>
-              <p className="text-xs text-gray-400 mt-0.5">Dönem başına göre yüzde değişim (rebased) · Scroll ile zoom</p>
+              <h2 className="font-bold text-gray-900">{t('Göreceli Performans (%)')}</h2>
+              <p className="text-xs text-gray-400 mt-0.5">{t('Dönem başına göre yüzde değişim (rebased) · Scroll ile zoom')}</p>
             </div>
           </div>
           <EChartsCompareChart
@@ -447,10 +449,10 @@ export default function ComparePage() {
       {loaded && (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
-            <h2 className="font-bold text-gray-900">Performans Metrikleri</h2>
+            <h2 className="font-bold text-gray-900">{t('Performans Metrikleri')}</h2>
             {topPerformer && (
               <div className="flex items-center gap-2 text-sm">
-                <span className="text-gray-500">En iyi:</span>
+                <span className="text-gray-500">{t('En iyi:')}</span>
                 <span className="font-bold text-emerald-600 flex items-center gap-1">
                   <TrendingUp className="w-4 h-4" />
                   {topPerformer.label}
@@ -474,7 +476,7 @@ export default function ComparePage() {
                     'Volatilite',
                   ].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap">
-                      {h}
+                      {t(h)}
                     </th>
                   ))}
                 </tr>
@@ -526,9 +528,9 @@ export default function ComparePage() {
       {loaded && (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-4 flex-wrap">
-            <h2 className="font-bold text-gray-900">TL Yatırım Simülasyonu</h2>
+            <h2 className="font-bold text-gray-900">{t('TL Yatırım Simülasyonu')}</h2>
             <div className="flex items-center gap-2 ml-auto">
-              <span className="text-sm text-gray-500">Yatırım tutarı:</span>
+              <span className="text-sm text-gray-500">{t('Yatırım tutarı:')}</span>
               <input
                 type="number"
                 value={investment}
@@ -545,7 +547,7 @@ export default function ComparePage() {
                 <tr>
                   {['Enstrüman', 'Başlangıç Fiyatı', 'Alınan Birim', 'Bitiş Fiyatı', 'Nihai Değer (₺)', 'Kâr/Zarar'].map(h => (
                     <th key={h} className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap">
-                      {h}
+                      {t(h)}
                     </th>
                   ))}
                 </tr>
@@ -589,7 +591,7 @@ export default function ComparePage() {
             </table>
           </div>
           <div className="px-5 py-2 bg-gray-50 border-t border-gray-100 text-xs text-gray-400">
-            * Simülasyon dönem başı ve sonu TCMB resmi kurları kullanılarak hesaplanmıştır. Gerçek alım-satım maliyetleri dahil değildir. Gösterge niteliğindedir.
+            {t('* Simülasyon dönem başı ve sonu TCMB resmi kurları kullanılarak hesaplanmıştır. Gerçek alım-satım maliyetleri dahil değildir. Gösterge niteliğindedir.')}
           </div>
         </div>
       )}
@@ -598,8 +600,8 @@ export default function ComparePage() {
       {!loaded && !loading && (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-12 text-center">
           <BarChart2 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 font-semibold">Enstrümanları seçip "Karşılaştır" butonuna tıkla</p>
-          <p className="text-gray-400 text-sm mt-1">En fazla 7 enstrüman karşılaştırabilirsin</p>
+          <p className="text-gray-500 font-semibold">{t('Enstrümanları seçip "Karşılaştır" butonuna tıkla')}</p>
+          <p className="text-gray-400 text-sm mt-1">{t('En fazla 7 enstrüman karşılaştırabilirsin')}</p>
         </div>
       )}
     </div>

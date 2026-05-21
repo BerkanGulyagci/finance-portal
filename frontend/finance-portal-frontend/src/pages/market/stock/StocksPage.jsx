@@ -4,6 +4,7 @@ import { getStocks, getStockChart, getAllStocks } from '../../../api/marketApi';
 import { useSortable } from '../../../hooks/useSortable';
 import SortableTh from '../../../components/common/SortableTh';
 import { STOCK_CHART_RANGES, formatStockChartTimeLabel } from './stockChartRanges';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 const PAGE_SIZE = 20;
 
@@ -17,6 +18,7 @@ const INDEX_FILTERS = [
 const CHART_RANGES = STOCK_CHART_RANGES;
 
 function IndexChart({ symbol, label }) {
+  const { t } = useTranslation();
   const [data, setData]         = useState([]);
   const [loading, setLoading]   = useState(true);
   const [rangeIdx, setRangeIdx] = useState(2); // default 1A
@@ -94,7 +96,7 @@ function IndexChart({ symbol, label }) {
             const p = params[0];
             return `<div style="font-size:11px;color:#6b7280;font-weight:600;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #f0f0f0">${p.axisValue}</div>
               <div style="display:flex;justify-content:space-between;gap:16px;align-items:center">
-                <span style="font-size:11px;color:#6b7280">Değer:</span>
+                <span style="font-size:11px;color:#6b7280">${t('Değer:')}</span>
                 <span style="font-weight:700;font-size:11px;color:#111827">${p.value != null ? parseFloat(p.value).toLocaleString('tr-TR', { maximumFractionDigits: 2 }) : '-'}</span>
               </div>`;
           },
@@ -156,14 +158,14 @@ function IndexChart({ symbol, label }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 mb-6">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <h2 className="text-base font-bold text-gray-900">{label} Endeksi</h2>
+        <h2 className="text-base font-bold text-gray-900">{label} {t('Endeksi')}</h2>
         <div className="flex gap-1">
           {CHART_RANGES.map((r, i) => (
             <button key={r.label} onClick={() => setRangeIdx(i)}
               className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
                 i === rangeIdx ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
               }`}>
-              {r.label}
+              {t(r.label)}
             </button>
           ))}
         </div>
@@ -182,7 +184,7 @@ function IndexChart({ symbol, label }) {
         )}
         {!loading && data.length === 0 && (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span className="text-gray-400 text-sm">Grafik verisi yüklenemedi.</span>
+            <span className="text-gray-400 text-sm">{t('Grafik verisi yüklenemedi.')}</span>
           </div>
         )}
         <div ref={chartRef} style={{ width: '100%', height: '100%', visibility: loading || data.length === 0 ? 'hidden' : 'visible' }} />
@@ -191,13 +193,13 @@ function IndexChart({ symbol, label }) {
       {change != null && (
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
           <div>
-            <p className="text-xs text-gray-400">{activeRange.label} Değişim</p>
+            <p className="text-xs text-gray-400">{t(activeRange.label)} {t('Değişim')}</p>
             <p className={`text-sm font-bold ${isUp ? 'text-emerald-600' : 'text-rose-600'}`}>
               {isUp ? '+' : ''}₺{absChange} ({isUp ? '+' : ''}{change}%)
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-gray-400">Son Değer</p>
+            <p className="text-xs text-gray-400">{t('Son Değer')}</p>
             <p className="text-sm font-bold text-gray-900">
               {data[data.length - 1]?.price.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
             </p>
@@ -218,6 +220,7 @@ function num(v, dec = 2) {
 }
 
 export default function StocksPage() {
+  const { t } = useTranslation();
   const [pageData, setPageData]     = useState(null);
   const [allStocksCache, setAllStocksCache] = useState([]); // tüm hisseler arama için
   const [loading, setLoading]       = useState(true);
@@ -234,7 +237,7 @@ export default function StocksPage() {
     setError('');
     getStocks(p, sz, idx || undefined)
       .then(data => setPageData(data))
-      .catch(e => setError(!e.response ? 'Sunucuya ulaşılamıyor.' : `Hata (${e.response.status})`))
+      .catch(e => setError(!e.response ? t('Sunucuya ulaşılamıyor.') : `${t('Hata')} (${e.response.status})`))
       .finally(() => setLoading(false));
   }, []);
 
@@ -281,7 +284,7 @@ export default function StocksPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <h1 className="text-2xl font-bold text-gray-900 border-l-4 border-[#093eaa] pl-4">Hisse Senetleri</h1>
+        <h1 className="text-2xl font-bold text-gray-900 border-l-4 border-[#093eaa] pl-4">{t('Hisse Senetleri')}</h1>
         <Link
           to="/market/stocks/compare"
           className="flex items-center gap-1.5 px-4 py-2 bg-[#093eaa] text-white text-sm font-bold rounded-xl hover:bg-[#0730a0] transition-all"
@@ -289,12 +292,12 @@ export default function StocksPage() {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
           </svg>
-          Karşılaştır
+          {t('Karşılaştır')}
         </Link>
       </div>
       <p className="text-sm text-gray-500 mb-4 pl-5">
-        Borsa İstanbul (BIST) hisse senedi fiyatları
-        {totalElements > 0 && <span className="ml-2 text-gray-400">· {totalElements} hisse</span>}
+        {t('Borsa İstanbul (BIST) hisse senedi fiyatları')}
+        {totalElements > 0 && <span className="ml-2 text-gray-400">· {totalElements} {t('hisse')}</span>}
       </p>
 
       {/* Endeks filtre butonları */}
@@ -306,7 +309,7 @@ export default function StocksPage() {
                 ? 'bg-[#093eaa] text-white shadow-sm'
                 : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
             }`}>
-            {f.label}
+            {t(f.label)}
           </button>
         ))}
       </div>
@@ -319,7 +322,7 @@ export default function StocksPage() {
         <div className="p-4 border-b border-gray-100 flex items-center gap-3 flex-wrap">
           <input
             type="text"
-            placeholder="Sembol veya şirket ara..."
+            placeholder={t('Sembol veya şirket ara...')}
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#093eaa] min-w-[240px]"
@@ -329,7 +332,7 @@ export default function StocksPage() {
               className="px-3 py-2 border border-gray-200 rounded-xl text-sm hover:bg-gray-50">✕</button>
           )}
           <span className="text-xs text-gray-400 ml-auto">
-            {activeIndex ? `${sorted.length} hisse` : search ? `${sorted.length} sonuç (tüm hisseler)` : `Sayfa ${page + 1} / ${totalPages} · ${sorted.length} sonuç`}
+            {activeIndex ? `${sorted.length} ${t('hisse')}` : search ? `${sorted.length} ${t('sonuç (tüm hisseler)')}` : `${t('Sayfa')} ${page + 1} / ${totalPages} · ${sorted.length} ${t('sonuç')}`}
           </span>
         </div>
 
@@ -340,7 +343,7 @@ export default function StocksPage() {
               <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
               <div className="w-2 h-2 bg-[#093eaa]/30 rounded-full animate-bounce [animation-delay:200ms]" />
             </div>
-            <p className="text-gray-400 text-sm">Hisseler yükleniyor...</p>
+            <p className="text-gray-400 text-sm">{t('Hisseler yükleniyor...')}</p>
           </div>
         )}
         {error && <div className="p-6 text-rose-500 text-sm">{error}</div>}
@@ -350,20 +353,20 @@ export default function StocksPage() {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <SortableTh {...thProps('symbol', 'Sembol')} />
-                  <SortableTh {...thProps('name', 'Şirket')} />
-                  <SortableTh {...thProps('price', 'Fiyat', 'right')} />
-                  <SortableTh {...thProps('change', 'Değişim', 'right')} />
+                  <SortableTh {...thProps('symbol', t('Sembol'))} />
+                  <SortableTh {...thProps('name', t('Şirket'))} />
+                  <SortableTh {...thProps('price', t('Fiyat'), 'right')} />
+                  <SortableTh {...thProps('change', t('Değişim'), 'right')} />
                   <SortableTh {...thProps('changePercent', '%', 'right')} />
-                  <SortableTh {...thProps('dayHigh', 'Yüksek', 'right')} />
-                  <SortableTh {...thProps('dayLow', 'Düşük', 'right')} />
-                  <SortableTh {...thProps('volume', 'Hacim', 'right')} />
-                  <SortableTh {...thProps('exchange', 'Borsa')} />
+                  <SortableTh {...thProps('dayHigh', t('Yüksek'), 'right')} />
+                  <SortableTh {...thProps('dayLow', t('Düşük'), 'right')} />
+                  <SortableTh {...thProps('volume', t('Hacim'), 'right')} />
+                  <SortableTh {...thProps('exchange', t('Borsa'))} />
                 </tr>
               </thead>
               <tbody>
                 {sorted.length === 0
-                  ? <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400 text-sm">Sonuç bulunamadı.</td></tr>
+                  ? <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400 text-sm">{t('Sonuç bulunamadı.')}</td></tr>
                   : sorted.map(r => (
                     <tr key={r.symbol} className="border-t border-gray-100 hover:bg-blue-50 transition-colors cursor-pointer">
                       <td className="px-4 py-3 font-bold text-sm">
@@ -394,7 +397,7 @@ export default function StocksPage() {
         {/* Pagination — sadece endeks filtresi ve arama yokken */}
         {totalPages > 1 && !loading && !activeIndex && !search && (
           <div className="p-4 flex items-center justify-between border-t border-gray-100 flex-wrap gap-3">
-            <span className="text-xs text-gray-500">Toplam {totalElements} hisse · Sayfa {page + 1} / {totalPages}</span>
+            <span className="text-xs text-gray-500">{t('Toplam')} {totalElements} {t('hisse')} · {t('Sayfa')} {page + 1} / {totalPages}</span>
             <div className="flex gap-1">
               <button disabled={page === 0} onClick={() => handlePageChange(0)}
                 className="px-2 py-1.5 rounded border border-gray-200 text-xs hover:bg-gray-50 disabled:opacity-40">«</button>

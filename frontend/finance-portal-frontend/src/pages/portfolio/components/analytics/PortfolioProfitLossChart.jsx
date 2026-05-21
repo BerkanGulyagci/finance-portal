@@ -26,8 +26,10 @@ import {
   signedNumericDomain,
 } from './portfolioChartStyles';
 import { formatMoney } from '../../utils/portfolioFormatUtils';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 export default function PortfolioProfitLossChart({ holdings, valuesHidden, currency }) {
+  const { t } = useTranslation();
   const { rows, truncated } = calculateProfitLossByHolding(holdings);
 
   const chartData = rows.map(r => ({
@@ -40,15 +42,15 @@ export default function PortfolioProfitLossChart({ holdings, valuesHidden, curre
 
   return (
     <PortfolioChartCard
-      title="Varlık Bazlı Kar/Zarar"
+      title={t('Varlık Bazlı Kar/Zarar')}
       subtitle={
         truncated
-          ? 'Satılmamış pozisyonların anlık K/Z (en yüksek mutlak değerler, max 12).'
-          : 'Satılmamış pozisyonların anlık kar/zarar dağılımı.'
+          ? t('Satılmamış pozisyonların anlık K/Z (en yüksek mutlak değerler, max 12).')
+          : t('Satılmamış pozisyonların anlık kar/zarar dağılımı.')
       }
     >
       {!chartData.length ? (
-        <p className="text-center text-sm text-gray-400 py-10">Kar/zarar verisi bulunamadı.</p>
+        <p className="text-center text-sm text-gray-400 py-10">{t('Kar/zarar verisi bulunamadı.')}</p>
       ) : (
         <div className="w-full min-w-0" style={{ height: chartHeight }}>
           <ResponsiveContainer width="100%" height="100%">
@@ -80,7 +82,7 @@ export default function PortfolioProfitLossChart({ holdings, valuesHidden, curre
               />
               <Bar
                 dataKey="profitLoss"
-                name="K/Z"
+                name={t('K/Z')}
                 radius={[0, 3, 3, 0]}
                 {...BAR_HORIZONTAL_BAR}
               >

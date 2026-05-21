@@ -8,6 +8,7 @@ import {
   isYahooCommoditySymbol,
 } from '../../../utils/commodityPriceUtils';
 import { pickSilverGramCloseTry } from '../../../utils/silverPriceUtils';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 /**
  * Yeniden kullanılabilir enstrüman arama modal'ı.
@@ -448,6 +449,7 @@ function buildCommoditySections(allItems, query, expanded) {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function InstrumentSearchModal({ portfolioName, onSelect, onClose }) {
+  const { t } = useTranslation();
   const [activeType, setActiveType] = useState('STOCK');
   const [query, setQuery] = useState('');
   const [allItems, setAllItems] = useState([]);   // tüm veri
@@ -730,7 +732,7 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
             )}
           </div>
           <p className="text-xs text-gray-500 mt-0.5">
-            {activeType === 'BOND' && item.type ? item.type : currentType?.label}
+            {activeType === 'BOND' && item.type ? t(item.type) : (currentType?.label ? t(currentType.label) : '')}
             {item.category && (
               <span className={`ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold ${
                 item.category === 'BES'     ? 'bg-emerald-500/20 text-emerald-400' :
@@ -743,14 +745,14 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
             )}
             {item.metal && (
               <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400">
-                BİST
+                {t('BİST')}
               </span>
             )}
           </p>
         </div>
         <div className="flex items-center gap-2 ml-2 shrink-0">
           <span className="text-xs text-gray-500 bg-[#2f3650] px-2 py-0.5 rounded">
-            {activeType === 'BOND' ? 'dibs' : currentType?.label?.toLowerCase()}
+            {activeType === 'BOND' ? t('dibs') : (currentType?.label ? t(currentType.label).toLowerCase() : '')}
           </span>
           <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
         </div>
@@ -771,30 +773,30 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
         {/* Header */}
         <div className="px-6 pt-6 pb-4 shrink-0">
           <div className="flex items-start justify-between mb-1">
-            <h2 className="text-xl font-bold">Enstrüman Seç</h2>
+            <h2 className="text-xl font-bold">{t('Enstrüman Seç')}</h2>
             <button type="button" onClick={onClose} className="text-gray-400 hover:text-white transition-colors mt-0.5">
               <X className="w-5 h-5" />
             </button>
           </div>
           {portfolioName && (
-            <p className="text-sm text-gray-400">{portfolioName} portföyüne ekle</p>
+            <p className="text-sm text-gray-400">{t('{name} portföyüne ekle', { name: portfolioName })}</p>
           )}
         </div>
 
         {/* Tip filtreleri */}
         <div className="px-6 pb-3 shrink-0 flex gap-2 flex-wrap">
-          {ASSET_TYPES.map(t => (
+          {ASSET_TYPES.map(at => (
             <button
-              key={t.value}
+              key={at.value}
               type="button"
-              onClick={() => handleTypeChange(t.value)}
+              onClick={() => handleTypeChange(at.value)}
               className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                activeType === t.value
+                activeType === at.value
                   ? 'bg-[#4a6cf7] text-white'
                   : 'bg-[#252b3b] text-gray-400 hover:bg-[#2f3650]'
               }`}
             >
-              {t.label}
+              {t(at.label)}
             </button>
           ))}
         </div>
@@ -808,7 +810,7 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
               type="text"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder={currentType?.placeholder ?? 'Sembol veya enstrüman ara...'}
+              placeholder={currentType?.placeholder ? t(currentType.placeholder) : t('Sembol veya enstrüman ara...')}
               autoFocus
               className="w-full bg-[#252b3b] border border-[#3a4155] rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#4a6cf7]"
             />
@@ -821,13 +823,13 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
             <span className="text-xs text-gray-500">
               {activeType === 'COMMODITY' && commodityView ? (
                 query.trim()
-                  ? `${commodityView.totalCount} sonuç · "${query}" için`
+                  ? t('{count} sonuç · "{query}" için', { count: commodityView.totalCount, query })
                   : commodityExpanded
-                    ? `${commodityView.totalCount} enstrüman`
-                    : `${commodityView.visibleCount} öne çıkan · ${commodityView.totalCount} toplam`
+                    ? t('{count} enstrüman', { count: commodityView.totalCount })
+                    : t('{visible} öne çıkan · {total} toplam', { visible: commodityView.visibleCount, total: commodityView.totalCount })
               ) : query.trim()
-                ? `${filtered.length} sonuç · "${query}" için`
-                : `${allItems.length} enstrüman`}
+                ? t('{count} sonuç · "{query}" için', { count: filtered.length, query })
+                : t('{count} enstrüman', { count: allItems.length })}
             </span>
           </div>
         )}
@@ -850,10 +852,10 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
           {!loading && activeType === 'COMMODITY' && commodityView && commodityEmptyQuery && (
             <div className="px-4 py-8 text-center">
               <p className="text-gray-400 text-sm">
-                <span className="font-semibold">&quot;{query}&quot;</span> için sonuç bulunamadı.
+                <span className="font-semibold">&quot;{query}&quot;</span> {t('için sonuç bulunamadı.')}
               </p>
               <p className="text-xs text-gray-600 mt-1">
-                Farklı bir sembol veya tür deneyin.
+                {t('Farklı bir sembol veya tür deneyin.')}
               </p>
             </div>
           )}
@@ -861,17 +863,17 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
           {!loading && activeType !== 'COMMODITY' && displayed.length === 0 && allItems.length > 0 && (
             <div className="px-4 py-8 text-center">
               <p className="text-gray-400 text-sm">
-                <span className="font-semibold">&quot;{query}&quot;</span> için sonuç bulunamadı.
+                <span className="font-semibold">&quot;{query}&quot;</span> {t('için sonuç bulunamadı.')}
               </p>
               <p className="text-xs text-gray-600 mt-1">
-                Farklı bir sembol veya tür deneyin.
+                {t('Farklı bir sembol veya tür deneyin.')}
               </p>
             </div>
           )}
 
           {!loading && allItems.length === 0 && (
             <div className="px-4 py-8 text-center text-gray-500 text-sm">
-              Veri yüklenemedi. Lütfen tekrar deneyin.
+              {t('Veri yüklenemedi. Lütfen tekrar deneyin.')}
             </div>
           )}
 
@@ -881,7 +883,7 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
                 <div key={section.key}>
                   {section.title && (
                     <div className="px-4 py-2 text-[11px] font-bold text-gray-500 uppercase tracking-wide bg-[#151925] border-b border-[#3a4155] sticky top-0 z-[1]">
-                      {section.title}
+                      {t(section.title)}
                     </div>
                   )}
                   {section.items.map((item, i) => renderInstrumentRow(item, i, section.key))}
@@ -893,7 +895,7 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
                   onClick={() => setCommodityExpanded(true)}
                   className="w-full py-3 text-xs text-[#4a6cf7] hover:text-[#6b8cf7] transition-colors text-center border-t border-[#3a4155]"
                 >
-                  Diğer emtiaları göster ({commodityView.totalCount - commodityView.visibleCount} gizli)
+                  {t('Diğer emtiaları göster ({count} gizli)', { count: commodityView.totalCount - commodityView.visibleCount })}
                 </button>
               )}
               {!commodityView.showExpandButton && commodityExpanded && !query.trim() && (
@@ -902,7 +904,7 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
                   onClick={() => setCommodityExpanded(false)}
                   className="w-full py-2.5 text-xs text-gray-500 hover:text-gray-300 transition-colors text-center border-t border-[#3a4155]"
                 >
-                  Daha az göster
+                  {t('Daha az göster')}
                 </button>
               )}
             </>
@@ -917,7 +919,7 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
               onClick={loadMore}
               className="w-full py-3 text-xs text-[#4a6cf7] hover:text-[#6b8cf7] transition-colors text-center border-t border-[#3a4155]"
             >
-              Daha fazla göster ({filtered.length - displayed.length} kaldı)
+              {t('Daha fazla göster ({count} kaldı)', { count: filtered.length - displayed.length })}
             </button>
           )}
         </div>
@@ -931,7 +933,7 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
               rel="noreferrer"
               className="text-xs text-[#4a6cf7] hover:underline flex items-center gap-1"
             >
-              {seeAll.label} →
+              {t(seeAll.label)} →
             </a>
           </div>
         )}

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { fmtPct } from './bondChartUtils';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 // ── Yardımcılar ───────────────────────────────────────────────────────────────
 
@@ -78,6 +79,7 @@ function Row({ label, value, badge, badgeColor, loading }) {
 // ── Ana bileşen ───────────────────────────────────────────────────────────────
 
 export default function BondIndicators({ bond, historyPoints = [], historyLoading = false }) {
+  const { t } = useTranslation();
   const days           = bond.remainingDays ?? null;
   const dailyChange    = bond.dailyChange    != null ? parseFloat(bond.dailyChange)    : null;
   const dailyChangePct = bond.dailyChangePercent != null ? parseFloat(bond.dailyChangePercent) : null;
@@ -129,78 +131,78 @@ export default function BondIndicators({ bond, historyPoints = [], historyLoadin
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-      <h2 className="text-sm font-bold text-gray-900 mb-3">Göstergeler</h2>
+      <h2 className="text-sm font-bold text-gray-900 mb-3">{t('Göstergeler')}</h2>
 
       {/* ── Temel ── */}
       <Row
-        label="Vade Durumu"
-        value={days != null ? `${days} gün` : null}
-        badge={maturityLabel}
+        label={t('Vade Durumu')}
+        value={days != null ? `${days} ${t('gün')}` : null}
+        badge={maturityLabel ? t(maturityLabel) : null}
         badgeColor={maturityColor}
       />
       <Row
-        label="Günlük Hareket"
+        label={t('Günlük Hareket')}
         value={dailyChange != null ? `${dailyChange > 0 ? '+' : ''}${fmtNum(dailyChange, 4)}` : null}
-        badge={movementLabel}
+        badge={movementLabel ? t(movementLabel) : null}
         badgeColor={movementColor}
       />
       <Row
-        label="Günlük Değişim %"
+        label={t('Günlük Değişim %')}
         value={dailyChangePct != null
           ? <span className={pctColor(dailyChangePct)}>{fmtPct(dailyChangePct, 2)}</span>
           : null}
       />      <Row
-        label="Kupon Durumu"
+        label={t('Kupon Durumu')}
         value={couponRate != null ? `%${fmtNum(couponRate, 2)}` : null}
-        badge={couponRate != null ? 'Kuponlu' : 'Bilgi yok'}
+        badge={couponRate != null ? t('Kuponlu') : t('Bilgi yok')}
         badgeColor={couponRate != null ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-400'}
       />
 
       {/* ── Tarihsel ── */}
       <p className="text-xs text-gray-400 font-medium mt-3 mb-1 pt-2 border-t border-dashed border-gray-100">
-        Tarihsel İndikatörler
+        {t('Tarihsel İndikatörler')}
       </p>
 
       <Row
         label="MA7"
         value={ma7 != null ? fmtNum(ma7, 4) : null}
-        badge={ma7 == null && !historyLoading ? 'Yetersiz Veri' : null}
+        badge={ma7 == null && !historyLoading ? t('Yetersiz Veri') : null}
         badgeColor="bg-gray-100 text-gray-400"
         loading={historyLoading}
       />
       <Row
         label="MA30"
         value={ma30 != null ? fmtNum(ma30, 4) : null}
-        badge={ma30 == null && !historyLoading ? 'Yetersiz Veri' : null}
+        badge={ma30 == null && !historyLoading ? t('Yetersiz Veri') : null}
         badgeColor="bg-gray-100 text-gray-400"
         loading={historyLoading}
       />
       <Row
-        label="Trend"
-        badge={!historyLoading ? (trendLabel ?? 'Yetersiz Veri') : null}
+        label={t('Trend')}
+        badge={!historyLoading ? (trendLabel ? t(trendLabel) : t('Yetersiz Veri')) : null}
         badgeColor={trendColor || 'bg-gray-100 text-gray-400'}
         loading={historyLoading}
       />
       <Row
-        label="1 Aylık Değişim"
+        label={t('1 Aylık Değişim')}
         value={monthPct != null
           ? <span className={pctColor(monthPct)}>{fmtPct(monthPct, 2)}</span>
           : null}
-        badge={monthPct == null && !historyLoading ? 'Yetersiz Veri' : null}
+        badge={monthPct == null && !historyLoading ? t('Yetersiz Veri') : null}
         badgeColor="bg-gray-100 text-gray-400"
         loading={historyLoading}
       />
       <Row
-        label="Yılbaşından Beri"
+        label={t('Yılbaşından Beri')}
         value={ytdPct != null
           ? <span className={pctColor(ytdPct)}>{fmtPct(ytdPct, 2)}</span>
           : null}
-        badge={ytdPct == null && !historyLoading ? 'Yetersiz Veri' : null}
+        badge={ytdPct == null && !historyLoading ? t('Yetersiz Veri') : null}
         badgeColor="bg-gray-100 text-gray-400"
         loading={historyLoading}
       />
       <Row
-        label="Veri Kaynağı"
+        label={t('Veri Kaynağı')}
         badge="TCMB EVDS"
         badgeColor="bg-blue-50 text-[#093eaa]"
       />

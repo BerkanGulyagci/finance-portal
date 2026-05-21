@@ -8,14 +8,17 @@ const RISK_COLORS = [
   '#991b1b',
 ];
 
+import { useTranslation } from '../../../../i18n/LanguageContext';
+
 const RISK_LABELS = ['', 'Çok Düşük', 'Düşük', 'Orta-Düşük', 'Orta', 'Orta-Yüksek', 'Yüksek', 'Çok Yüksek'];
 
 export default function FundRiskMeter({ riskValue, code }) {
+  const { t } = useTranslation();
   if (!riskValue) return null;
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-      <h2 className="font-bold text-gray-900 mb-4">{code} Fon Risk Değeri</h2>
+      <h2 className="font-bold text-gray-900 mb-4">{code} {t('Fon Risk Değeri')}</h2>
 
       <div className="flex gap-1 mb-3">
         {[1, 2, 3, 4, 5, 6, 7].map(level => (
@@ -34,8 +37,8 @@ export default function FundRiskMeter({ riskValue, code }) {
       </div>
 
       <div className="flex justify-between text-xs text-gray-400 mb-4">
-        <span>Düşük Risk</span>
-        <span>Yüksek Risk</span>
+        <span>{t('Düşük Risk')}</span>
+        <span>{t('Yüksek Risk')}</span>
       </div>
 
       <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-3">
@@ -46,10 +49,9 @@ export default function FundRiskMeter({ riskValue, code }) {
           {riskValue}
         </div>
         <div>
-          <p className="text-sm font-bold text-gray-900">{RISK_LABELS[riskValue]}</p>
+          <p className="text-sm font-bold text-gray-900">{t(RISK_LABELS[riskValue])}</p>
           <p className="text-xs text-gray-400 mt-0.5">
-            Fonun haftalık getirileri üzerinden, volatilitesi dikkate alınarak hesaplanır.
-            1 en az riskli, 7 en fazla riskli olmak üzere Risk Değeri 1 ile 7 arasındadır.
+            {t('Fonun haftalık getirileri üzerinden, volatilitesi dikkate alınarak hesaplanır. 1 en az riskli, 7 en fazla riskli olmak üzere Risk Değeri 1 ile 7 arasındadır.')}
           </p>
         </div>
       </div>

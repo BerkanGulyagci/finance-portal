@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { init as klineInit, dispose as klineDispose, registerOverlay } from 'klinecharts';
 import { Trash2, X } from 'lucide-react';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 // ── Custom overlay kayıtları (bir kez) ───────────────────────────────────────
 let _overlaysRegistered = false;
@@ -71,6 +72,7 @@ const SUB_INDICATORS = [
 
 // ── Drawing Toolbar ───────────────────────────────────────────────────────────
 function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll }) {
+  const { t } = useTranslation();
   const [openGroup, setOpenGroup] = useState(null);
 
   useEffect(() => {
@@ -87,12 +89,12 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
           <button
             onClick={() => setOpenGroup(openGroup === group ? null : group)}
             className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
-              tools.some(t => t.id === activeTool)
+              tools.some(tool => tool.id === activeTool)
                 ? 'bg-[#093eaa] text-white border-[#093eaa]'
                 : 'bg-white text-gray-600 border-gray-200 hover:border-[#093eaa] hover:text-[#093eaa]'
             }`}
           >
-            {group} ▾
+            {t(group)} ▾
           </button>
           {openGroup === group && (
             <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-1 min-w-[180px]">
@@ -104,7 +106,7 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
                   }`}
                 >
                   <span className="w-8 text-center font-mono text-[11px] opacity-70">{tool.icon}</span>
-                  <span>{tool.label}</span>
+                  <span>{t(tool.label)}</span>
                 </button>
               ))}
             </div>
@@ -112,17 +114,17 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
         </div>
       ))}
       <div className="w-px h-6 bg-gray-200 mx-1" />
-      <button onClick={onDeleteSelected} title="Seçili çizimi sil"
+      <button onClick={onDeleteSelected} title={t('Seçili çizimi sil')}
         className="p-1.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 transition-all border border-gray-200">
         <Trash2 className="w-3.5 h-3.5" />
       </button>
-      <button onClick={onClearAll} title="Tüm çizimleri temizle"
+      <button onClick={onClearAll} title={t('Tüm çizimleri temizle')}
         className="p-1.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 transition-all border border-gray-200">
         <X className="w-3.5 h-3.5" />
       </button>
       {activeTool && (
         <span className="ml-auto text-xs text-[#093eaa] font-medium bg-blue-50 px-2 py-1 rounded-lg">
-          {DRAWING_TOOLS.flatMap(g => g.tools).find(t => t.id === activeTool)?.label ?? activeTool}
+          {(() => { const lbl = DRAWING_TOOLS.flatMap(g => g.tools).find(it => it.id === activeTool)?.label; return lbl ? t(lbl) : activeTool; })()}
           <button onClick={() => onSelectTool(null)} className="ml-1.5 opacity-60 hover:opacity-100">✕</button>
         </span>
       )}
@@ -336,9 +338,10 @@ function GoldCandleChart({ points, showMA7, showMA30, showMA90, showTrend,
 }
 
 function GoldNoData() {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center justify-center h-[320px] text-gray-400 text-sm">
-      Grafik verisi yüklenemedi.
+      {t('Grafik verisi yüklenemedi.')}
     </div>
   );
 }
@@ -348,6 +351,7 @@ export default function GoldChart({
   points, chartMode, isDown, loading,
   showMA7, showMA30, showMA90, showTrend, currency,
 }) {
+  const { t } = useTranslation();
   const [activeSubInds, setActiveSubInds] = useState([]);
   const subPaneIds  = useRef({});
   const chartRef    = useRef(null);
@@ -390,7 +394,7 @@ export default function GoldChart({
     <div className="space-y-2">
       {/* Alt indikatörler */}
       <div className="flex items-center gap-1.5 flex-wrap">
-        <span className="text-xs text-gray-400 font-medium">İndikatör:</span>
+        <span className="text-xs text-gray-400 font-medium">{t('İndikatör:')}</span>
         {SUB_INDICATORS.map(({ name, label, color }) => {
           const active = activeSubInds.includes(name);
           return (
@@ -399,7 +403,7 @@ export default function GoldChart({
                 active ? 'text-white border-transparent' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
               }`}
               style={active ? { backgroundColor: color } : {}}>
-              {label}
+              {t(label)}
             </button>
           );
         })}

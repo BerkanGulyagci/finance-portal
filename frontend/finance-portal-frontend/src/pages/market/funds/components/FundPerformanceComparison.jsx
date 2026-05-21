@@ -1,3 +1,5 @@
+import { useTranslation } from '../../../../i18n/LanguageContext';
+
 // Geçmiş performans karşılaştırması — Dolar, Altın, BIST100 vs Fon
 const BAR_COLORS = {
   Dolar:   '#f59e0b',
@@ -11,6 +13,7 @@ function getColor(code, isPos) {
 }
 
 export default function FundPerformanceComparison({ fund }) {
+  const { t } = useTranslation();
   const items = fund?.performanceComparison ?? [];
   if (!items.length) return null;
 
@@ -18,8 +21,8 @@ export default function FundPerformanceComparison({ fund }) {
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-      <h2 className="font-bold text-gray-900 mb-1">{fund?.code} Geçmiş Performans</h2>
-      <p className="text-xs text-gray-400 mb-5">Son 1 aylık performans karşılaştırması</p>
+      <h2 className="font-bold text-gray-900 mb-1">{fund?.code} {t('Geçmiş Performans')}</h2>
+      <p className="text-xs text-gray-400 mb-5">{t('Son 1 aylık performans karşılaştırması')}</p>
 
       <div className="space-y-4">
         {items.map((item, i) => {

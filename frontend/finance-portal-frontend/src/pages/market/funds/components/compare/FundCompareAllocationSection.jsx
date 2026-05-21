@@ -1,4 +1,5 @@
 import { COMPARE_COLORS, toNum } from './compareUtils';
+import { useTranslation } from '../../../../../i18n/LanguageContext';
 
 const PIE_COLORS = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16'];
 
@@ -38,14 +39,15 @@ function MiniDonut({ items }) {
 }
 
 export default function FundCompareAllocationSection({ detailMap, selectedCodes }) {
+  const { t } = useTranslation();
   const hasAny = selectedCodes.some(code => (detailMap[code]?.assetAllocation?.length ?? 0) > 0);
   if (!hasAny) return null;
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-100">
-        <h2 className="font-bold text-gray-900">Varlık Dağılımı</h2>
-        <p className="text-xs text-gray-400 mt-0.5">Fonların portföy dağılımı karşılaştırması</p>
+        <h2 className="font-bold text-gray-900">{t('Varlık Dağılımı')}</h2>
+        <p className="text-xs text-gray-400 mt-0.5">{t('Fonların portföy dağılımı karşılaştırması')}</p>
       </div>
       <div className={`grid gap-0 divide-x divide-gray-100 ${selectedCodes.length === 2 ? 'grid-cols-2' : selectedCodes.length === 3 ? 'grid-cols-3' : 'grid-cols-2 lg:grid-cols-4'}`}>
         {selectedCodes.map((code, idx) => {
@@ -58,7 +60,7 @@ export default function FundCompareAllocationSection({ detailMap, selectedCodes 
                 <span className="font-bold text-sm" style={{ color }}>{code}</span>
               </div>
               {alloc.length === 0 ? (
-                <p className="text-xs text-gray-400">Varlık dağılımı verisi bulunamadı.</p>
+                <p className="text-xs text-gray-400">{t('Varlık dağılımı verisi bulunamadı.')}</p>
               ) : (
                 <div className="flex items-start gap-3">
                   <MiniDonut items={alloc} />

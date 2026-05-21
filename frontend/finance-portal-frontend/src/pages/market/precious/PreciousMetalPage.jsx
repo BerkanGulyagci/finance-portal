@@ -8,6 +8,7 @@ import GoldErrorState    from '../gold/components/GoldErrorState';
 import GoldChart         from '../gold/components/GoldChart';
 import GoldChartToolbar  from '../gold/components/GoldChartToolbar';
 import GoldSourceNotice  from '../gold/components/GoldSourceNotice';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 // ── Yardımcı ─────────────────────────────────────────────────────────────────
 function fmt(v, dec = 2) {
@@ -19,9 +20,10 @@ function fmt(v, dec = 2) {
 }
 
 function StatRow({ label, value, colored, positive }) {
+  const { t } = useTranslation();
   return (
     <div className="flex justify-between items-center py-2 border-b border-gray-50">
-      <span className="text-xs font-bold text-gray-500 tracking-wider">{label}</span>
+      <span className="text-xs font-bold text-gray-500 tracking-wider">{t(label)}</span>
       <span className={`text-sm font-semibold ${colored ? (positive ? 'text-emerald-600' : 'text-rose-600') : 'text-gray-900'}`}>
         {value}
       </span>
@@ -77,6 +79,7 @@ const METAL_TAB_KEYS = ['try_gram', 'try_kg', 'usd_ons', 'eur_ons'];
  * @param {string} accentColor - Tailwind renk sınıfı (opsiyonel)
  */
 export default function PreciousMetalPage({ metal, metalName }) {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const [spot,         setSpot]         = useState(null);
   const [history,      setHistory]      = useState(null);
@@ -91,14 +94,14 @@ export default function PreciousMetalPage({ metal, metalName }) {
   const [showTrend, setShowTrend] = useState(false);
 
   const activeTab = {
-    ...METAL_TABS.find(t => t.key === activeTabKey) ?? METAL_TABS[0],
-    label: METAL_TABS.find(t => t.key === activeTabKey)?.label(metalName) ?? metalName,
+    ...METAL_TABS.find(tb => tb.key === activeTabKey) ?? METAL_TABS[0],
+    label: METAL_TABS.find(tb => tb.key === activeTabKey)?.label(metalName) ?? metalName,
   };
 
   useEffect(() => {
-    const t = searchParams.get('tab');
-    if (t && METAL_TAB_KEYS.includes(t)) {
-      setActiveTabKey(t);
+    const tabParam = searchParams.get('tab');
+    if (tabParam && METAL_TAB_KEYS.includes(tabParam)) {
+      setActiveTabKey(tabParam);
     }
   }, [searchParams]);
 
@@ -106,7 +109,7 @@ export default function PreciousMetalPage({ metal, metalName }) {
     setLoadingSpot(true);
     getPreciousMetalSpot(metal)
       .then(setSpot)
-      .catch(() => setError(`${metalName} verisi alınamadı.`))
+      .catch(() => setError(`${metalName} ${t('verisi alınamadı.')}`))
       .finally(() => setLoadingSpot(false));
   }, [metal, metalName]);
 
@@ -161,7 +164,7 @@ export default function PreciousMetalPage({ metal, metalName }) {
       <div>
         <h1 className="text-2xl font-bold text-gray-900 border-l-4 border-[#093eaa] pl-4">{metalName}</h1>
         <p className="text-sm text-gray-500 mt-1.5 pl-4">
-          Gösterilen fiyatlar <span className="font-semibold text-gray-600">Borsa İstanbul (BİST)</span> kıymetli maden referanslarına dayanır.
+          {t('Gösterilen fiyatlar')} <span className="font-semibold text-gray-600">{t('Borsa İstanbul (BİST)')}</span> {t('kıymetli maden referanslarına dayanır.')}
         </p>
       </div>
 
@@ -195,12 +198,12 @@ export default function PreciousMetalPage({ metal, metalName }) {
                   </h2>
                   {spot.official && (
                     <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                      Borsa İstanbul
+                      {t('Borsa İstanbul')}
                     </span>
                   )}
                   {spot.stale && (
                     <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                      Eski Veri
+                      {t('Eski Veri')}
                     </span>
                   )}
                 </div>
@@ -216,7 +219,7 @@ export default function PreciousMetalPage({ metal, metalName }) {
                   )}
                 </div>
                 {spot.lastValidDate && (
-                  <p className="text-xs text-gray-400 mt-1">BİST: {spot.lastValidDate}</p>
+                  <p className="text-xs text-gray-400 mt-1">{t('BİST:')} {spot.lastValidDate}</p>
                 )}
               </div>
 
@@ -291,7 +294,7 @@ export default function PreciousMetalPage({ metal, metalName }) {
               <p className="text-xl font-black text-gray-900">
                 {card.value != null ? `${card.sym}${fmt(card.value, card.dec ?? 2)}` : '-'}
               </p>
-              <p className="text-xs text-gray-400 mt-1">Borsa İstanbul</p>
+              <p className="text-xs text-gray-400 mt-1">{t('Borsa İstanbul')}</p>
             </div>
           ))}
         </div>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X } from 'lucide-react';
 import { addWatchlistItem } from '../../../api/portfolioApi';
 import InstrumentSearchModal from './InstrumentSearchModal';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 /**
  * İzleme listesine sembol ekleme modal'ı.
@@ -14,6 +15,7 @@ import InstrumentSearchModal from './InstrumentSearchModal';
  *   onAdded(newItem): void
  */
 export default function AddWatchlistItemModal({ portfolioId, portfolioName, onClose, onAdded }) {
+  const { t } = useTranslation();
   const [step, setStep] = useState('search'); // 'search' | 'confirm'
   const [instrument, setInstrument] = useState(null);
   const [notes, setNotes] = useState('');
@@ -38,7 +40,7 @@ export default function AddWatchlistItemModal({ portfolioId, portfolioName, onCl
       onClose();
     } catch (err) {
       const msg = err.response?.data?.message;
-      setError(typeof msg === 'string' ? msg : 'Sembol eklenemedi.');
+      setError(typeof msg === 'string' ? msg : t('Sembol eklenemedi.'));
     } finally {
       setLoading(false);
     }
@@ -59,7 +61,7 @@ export default function AddWatchlistItemModal({ portfolioId, portfolioName, onCl
       <div className="bg-[#1a1f2e] rounded-2xl shadow-2xl w-full max-w-sm text-white">
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#3a4155]">
           <div>
-            <h2 className="font-bold">İzleme Listesine Ekle</h2>
+            <h2 className="font-bold">{t('İzleme Listesine Ekle')}</h2>
             <p className="text-sm text-gray-400">
               <span className="font-bold text-white">{instrument?.symbol}</span>
               <span className="ml-1 text-gray-500">· {instrument?.assetType}</span>
@@ -67,7 +69,7 @@ export default function AddWatchlistItemModal({ portfolioId, portfolioName, onCl
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => setStep('search')} className="text-xs text-[#4a6cf7] hover:underline">
-              Değiştir
+              {t('Değiştir')}
             </button>
             <button onClick={onClose} className="text-gray-400 hover:text-white">
               <X className="w-5 h-5" />
@@ -78,13 +80,13 @@ export default function AddWatchlistItemModal({ portfolioId, portfolioName, onCl
         <div className="p-6 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-              Not <span className="font-normal">(isteğe bağlı)</span>
+              {t('Not')} <span className="font-normal">{t('(isteğe bağlı)')}</span>
             </label>
             <input
               type="text"
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              placeholder="Kısa bir not..."
+              placeholder={t('Kısa bir not...')}
               className="w-full bg-[#252b3b] border border-[#3a4155] rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#4a6cf7]"
             />
           </div>
@@ -98,14 +100,14 @@ export default function AddWatchlistItemModal({ portfolioId, portfolioName, onCl
               onClick={onClose}
               className="flex-1 px-4 py-2.5 border border-[#3a4155] rounded-xl text-sm font-semibold text-gray-400 hover:bg-[#252b3b] transition-colors"
             >
-              İptal
+              {t('İptal')}
             </button>
             <button
               onClick={handleAdd}
               disabled={loading}
               className="flex-1 bg-sky-500 hover:bg-sky-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-60 transition-colors"
             >
-              {loading ? 'Ekleniyor...' : 'Ekle'}
+              {loading ? t('Ekleniyor...') : t('Ekle')}
             </button>
           </div>
         </div>

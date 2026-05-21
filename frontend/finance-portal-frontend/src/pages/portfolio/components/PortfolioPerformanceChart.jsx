@@ -3,6 +3,7 @@ import { init as klineInit, dispose as klineDispose } from 'klinecharts';
 import { getPortfolioPerformance } from '../../../api/portfolioApi';
 import { formatChartValue, MASK_MONEY } from '../utils/portfolioFormatUtils';
 import { computeKlinePricePrecision } from '../../../utils/numberFormat';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 const RANGES = [
   { key: '5D', label: '5D' },
@@ -21,11 +22,11 @@ const LINE_COLOR = '#093eaa';
 const LINE_COLOR_POS = '#059669';
 const LINE_COLOR_NEG = '#e11d48';
 
-function formatExcludedLabel(symbol) {
+function formatExcludedLabel(symbol, t) {
   if (!symbol) return '';
-  if (symbol.startsWith('SILVER')) return 'Gümüş';
+  if (symbol.startsWith('SILVER')) return t('Gümüş');
   if (/VADELI$/i.test(symbol)) {
-    return symbol.replace(/VADELI$/i, 'Vadeli');
+    return symbol.replace(/VADELI$/i, t('Vadeli'));
   }
   if (symbol.length > 32) return `${symbol.slice(0, 30)}…`;
   return symbol;
@@ -109,6 +110,7 @@ function PortfolioPerformanceKlineChart({
   lineColor,
   valuesHidden,
 }) {
+  const { t } = useTranslation();
   const chartId = useRef(`kline_portfolio_perf_${Date.now()}`);
   const chartRef = useRef(null);
   const containerRef = useRef(null);
@@ -258,7 +260,7 @@ function PortfolioPerformanceKlineChart({
         const left = Math.min(Math.max(rawX + 14, 8), w - tooltipW - 8);
         const top = Math.min(Math.max(rawY - tooltipH - 8, 8), h - tooltipH - 8);
 
-        const valueLabel = metric === 'GROWTH' ? 'Dönem getirisi' : 'Portföy değeri';
+        const valueLabel = metric === 'GROWTH' ? t('Dönem getirisi') : t('Portföy değeri');
         setHoverInfo({
           date: formatTooltipDate(row.date),
           valueLabel,
@@ -296,12 +298,12 @@ function PortfolioPerformanceKlineChart({
       }
       chartRef.current = null;
     };
-  }, [chartData, metric, lineColor, valuesHidden]);
+  }, [chartData, metric, lineColor, valuesHidden, t]);
 
   if (!chartData?.length) {
     return (
       <div className="flex items-center justify-center h-[300px] text-sm text-gray-400">
-        Grafik verisi yok.
+        {t('Grafik verisi yok.')}
       </div>
     );
   }
@@ -318,7 +320,7 @@ function PortfolioPerformanceKlineChart({
           <p className="text-sm font-semibold text-gray-900">{hoverInfo.valueText}</p>
           {hoverInfo.marketValueText && (
             <p className="mt-1 text-[11px] text-gray-500">
-              Portföy:{' '}
+              {t('Portföy:')}{' '}
               <span className="font-medium text-gray-700">{hoverInfo.marketValueText}</span>
             </p>
           )}
@@ -336,6 +338,7 @@ export default function PortfolioPerformanceChart({
   portfolioId,
   valuesHidden = false,
 }) {
+  const { t } = useTranslation();
   const [range, setRange] = useState('1M');
   const [metric, setMetric] = useState('VALUE');
   const [loading, setLoading] = useState(true);
@@ -352,13 +355,13 @@ export default function PortfolioPerformanceChart({
     } catch (err) {
       const msg =
         err.response?.data?.message ||
-        (err.response?.status === 400 ? 'Geçersiz istek' : 'Performans verisi yüklenemedi');
-      setError(typeof msg === 'string' ? msg : 'Performans verisi yüklenemedi');
+        (err.response?.status === 400 ? t('Geçersiz istek') : t('Performans verisi yüklenemedi'));
+      setError(typeof msg === 'string' ? msg : t('Performans verisi yüklenemedi'));
       setPerf(null);
     } finally {
       setLoading(false);
     }
-  }, [portfolioId, range, metric]);
+  }, [portfolioId, range, metric, t]);
 
   useEffect(() => {
     load();
@@ -392,8 +395,8 @@ export default function PortfolioPerformanceChart({
   const excludedCount = excludedAssets.length;
   const excludedName =
     excludedCount === 1
-      ? formatExcludedLabel(excludedAssets[0]?.symbol)
-      : excludedAssets.map(a => formatExcludedLabel(a?.symbol)).filter(Boolean).join(', ');
+      ? formatExcludedLabel(excludedAssets[0]?.symbol, t)
+      : excludedAssets.map(a => formatExcludedLabel(a?.symbol, t)).filter(Boolean).join(', ');
 
   const hasJump =
     metric === 'VALUE' &&
@@ -427,11 +430,11 @@ export default function PortfolioPerformanceChart({
           value={metric}
           onChange={e => setMetric(e.target.value)}
           className="text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30"
-          aria-label="Grafik metriği"
+          aria-label={t('Grafik metriği')}
         >
           {METRICS.map(m => (
             <option key={m.key} value={m.key}>
-              {m.label}
+              {t(m.label)}
             </option>
           ))}
         </select>
@@ -439,29 +442,28 @@ export default function PortfolioPerformanceChart({
 
       {excludedCount > 0 && (
         <div className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1.5 mb-2 leading-snug">
-          <p>{excludedCount} varlık grafik hesaplamasına dahil edilemedi.</p>
+          <p>{t('{count} varlık grafik hesaplamasına dahil edilemedi.', { count: excludedCount })}</p>
           {excludedName && (
             <p className="mt-1 text-amber-700/90 truncate" title={excludedName}>
-              {excludedCount === 1 ? 'Dahil edilmeyen: ' : 'Dahil edilmeyenler: '}
+              {excludedCount === 1 ? t('Dahil edilmeyen:') : t('Dahil edilmeyenler:')}{' '}
               {excludedName}
             </p>
           )}
           <p className="mt-0.5 text-amber-600/85">
-            Özet kart tüm pozisyonları gösterir. Geçmiş günler yalnızca tarihsel fiyatı bulunan
-            varlıklarla hesaplanır; bugünün noktası özet ile aynı canlı değeri yansıtır.
+            {t('Özet kart tüm pozisyonları gösterir. Geçmiş günler yalnızca tarihsel fiyatı bulunan varlıklarla hesaplanır; bugünün noktası özet ile aynı canlı değeri yansıtır.')}
           </p>
         </div>
       )}
 
       <p className="text-[10px] text-gray-400 mb-1">
-        Tekerlek ile yakınlaştırın, sürükleyerek kaydırın.
-        {hasJump ? ' Büyük sıçrama varsa grafik son anlamlı güne odaklanır.' : ''}
+        {t('Tekerlek ile yakınlaştırın, sürükleyerek kaydırın.')}
+        {hasJump ? ` ${t('Büyük sıçrama varsa grafik son anlamlı güne odaklanır.')}` : ''}
       </p>
 
       <div className="relative flex-1 min-h-[300px]">
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center text-sm text-gray-400 z-10 bg-white/80">
-            Yükleniyor…
+            {t('Yükleniyor…')}
           </div>
         )}
         {!loading && error && (
@@ -480,7 +482,7 @@ export default function PortfolioPerformanceChart({
         )}
         {!loading && !error && chartData.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center text-sm text-gray-400">
-            Bu aralık için grafik verisi yok.
+            {t('Bu aralık için grafik verisi yok.')}
           </div>
         )}
       </div>

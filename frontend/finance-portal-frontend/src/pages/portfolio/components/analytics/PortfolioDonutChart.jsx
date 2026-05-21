@@ -9,6 +9,7 @@ import {
 import PortfolioAnalyticsTooltip from './PortfolioAnalyticsTooltip';
 import { formatMoney } from '../../utils/portfolioFormatUtils';
 import { CHART_DONUT_COLORS, formatSharePercent } from '../../utils/portfolioAnalyticsHelpers';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 const EXPAND_PX = 10;
 
@@ -39,11 +40,12 @@ function renderActiveShape(props) {
 }
 
 function CenterDetail({ item, total, valuesHidden, currency, color, hint }) {
+  const { t } = useTranslation();
   if (!item) {
     return (
       <div className="text-center px-2">
         <p className="text-[10px] font-medium text-gray-400">{hint}</p>
-        <p className="text-xs font-semibold text-gray-600 mt-0.5">Dilime tıklayın</p>
+        <p className="text-xs font-semibold text-gray-600 mt-0.5">{t('Dilime tıklayın')}</p>
       </div>
     );
   }
@@ -87,6 +89,7 @@ export default function PortfolioDonutChart({
   getCellKey = (entry, i) => entry.type ?? `${entry.name}-${i}`,
   onSelect,
 }) {
+  const { t } = useTranslation();
   const [activeIndex, setActiveIndex] = useState(null);
   const [hoverIndex, setHoverIndex] = useState(null);
 
@@ -216,7 +219,7 @@ export default function PortfolioDonutChart({
                 valuesHidden={valuesHidden}
                 currency={currency}
                 color={centerColor}
-                hint="Dağılım"
+                hint={t('Dağılım')}
               />
             )}
           </div>
@@ -224,10 +227,10 @@ export default function PortfolioDonutChart({
       </div>
 
       <p className="mt-1 text-center text-[10px] text-gray-400">
-        Dilim veya etikete tıklayarak detayı görün
+        {t('Dilim veya etikete tıklayarak detayı görün')}
       </p>
 
-      <ul className="mt-2 flex flex-wrap gap-1.5 justify-center" role="listbox" aria-label="Dağılım kalemleri">
+      <ul className="mt-2 flex flex-wrap gap-1.5 justify-center" role="listbox" aria-label={t('Dağılım kalemleri')}>
         {data.map((entry, i) => {
           const isActive = activeIndex === i;
           const isHover = hoverIndex === i;

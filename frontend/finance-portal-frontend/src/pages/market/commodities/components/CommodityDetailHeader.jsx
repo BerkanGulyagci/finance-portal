@@ -9,6 +9,7 @@ import {
   getTrySpotPrice,
   canToggleTry,
 } from './commodityConstants';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 function formatOhlcValue(value, spot, usdTryRate) {
   if (value == null) return '-';
@@ -21,6 +22,7 @@ function formatOhlcValue(value, spot, usdTryRate) {
 }
 
 export default function CommodityDetailHeader({ meta, spot, usdTryRate, showTry, onToggleCurrency }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const catMeta = CATEGORY_META[meta?.category] ?? CATEGORY_META.ENERGY;
   const pct = spot ? fmtPct(spot.changePercent) : null;
@@ -37,7 +39,7 @@ export default function CommodityDetailHeader({ meta, spot, usdTryRate, showTry,
         className="inline-flex items-center gap-1.5 text-sm text-[#093eaa] font-semibold hover:underline mb-4"
       >
         <ArrowLeft className="w-4 h-4" />
-        Global Emtialar
+        {t('Global Emtialar')}
       </button>
 
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -51,10 +53,10 @@ export default function CommodityDetailHeader({ meta, spot, usdTryRate, showTry,
             <span
               className={`text-xs font-bold px-2 py-0.5 rounded-full ${catMeta.bg} ${catMeta.color} border ${catMeta.border}`}
             >
-              {catMeta.label}
+              {t(catMeta.label)}
             </span>
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-              Vadeli
+              {t('Vadeli')}
             </span>
             <span className="text-xs font-mono text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">
               {meta?.symbol}
@@ -70,7 +72,7 @@ export default function CommodityDetailHeader({ meta, spot, usdTryRate, showTry,
                 className={`text-left rounded-xl px-2 py-1 -mx-2 transition-colors ${
                   toggleable ? 'hover:bg-gray-50 cursor-pointer' : 'cursor-default'
                 }`}
-                title={toggleable ? (showTry ? 'USD göster' : 'TL göster') : undefined}
+                title={toggleable ? (showTry ? t('USD göster') : t('TL göster')) : undefined}
               >
                 {showTry && tryPrice != null ? (
                   <>
@@ -121,7 +123,7 @@ export default function CommodityDetailHeader({ meta, spot, usdTryRate, showTry,
               )}
             </div>
           ) : (
-            <p className="text-gray-400 text-sm">Fiyat verisi alınamadı</p>
+            <p className="text-gray-400 text-sm">{t('Fiyat verisi alınamadı')}</p>
           )}
         </div>
 
@@ -134,7 +136,7 @@ export default function CommodityDetailHeader({ meta, spot, usdTryRate, showTry,
               { label: '52H Düşük', value: spot.weekLow52 },
             ].map((item) => (
               <div key={item.label} className="bg-gray-50 rounded-xl px-3 py-2">
-                <p className="text-xs text-gray-400 mb-0.5">{item.label}</p>
+                <p className="text-xs text-gray-400 mb-0.5">{t(item.label)}</p>
                 <p className="font-bold text-gray-800">
                   {formatOhlcValue(item.value, spot, usdTryRate)}
                 </p>

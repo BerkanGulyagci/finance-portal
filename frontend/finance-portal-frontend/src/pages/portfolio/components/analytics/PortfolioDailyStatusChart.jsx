@@ -13,28 +13,30 @@ import PortfolioChartCard from './PortfolioChartCard';
 import PortfolioAnalyticsTooltip from './PortfolioAnalyticsTooltip';
 import { calculateDailyStatus } from '../../utils/portfolioAnalyticsHelpers';
 import { BAR_VERTICAL_BAR, BAR_VERTICAL_CHART, CHART_GRID, TICK } from './portfolioChartStyles';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 export default function PortfolioDailyStatusChart({ holdings }) {
+  const { t } = useTranslation();
   const status = calculateDailyStatus(holdings);
   const data = [
-    { name: 'Yükselen', count: status.up, fill: '#22c55e' },
-    { name: 'Düşen', count: status.down, fill: '#ef4444' },
-    { name: 'Yatay', count: status.flat, fill: '#94a3b8' },
-    { name: 'Veri Yok', count: status.nodata, fill: '#fbbf24' },
+    { name: t('Yükselen'), count: status.up, fill: '#22c55e' },
+    { name: t('Düşen'), count: status.down, fill: '#ef4444' },
+    { name: t('Yatay'), count: status.flat, fill: '#94a3b8' },
+    { name: t('Veri Yok'), count: status.nodata, fill: '#fbbf24' },
   ];
 
   if (!status.total) {
     return (
-      <PortfolioChartCard title="Günlük Durum" subtitle="Günlük değişim durumuna göre pozisyon adedi.">
-        <p className="text-center text-sm text-gray-400 py-10">Pozisyon bulunamadı.</p>
+      <PortfolioChartCard title={t('Günlük Durum')} subtitle={t('Günlük değişim durumuna göre pozisyon adedi.')}>
+        <p className="text-center text-sm text-gray-400 py-10">{t('Pozisyon bulunamadı.')}</p>
       </PortfolioChartCard>
     );
   }
 
   return (
     <PortfolioChartCard
-      title="Günlük Durum"
-      subtitle="Yükselen / düşen / yatay / veri yok — pozisyon adedi (günlük % verisine göre)."
+      title={t('Günlük Durum')}
+      subtitle={t('Yükselen / düşen / yatay / veri yok — pozisyon adedi (günlük % verisine göre).')}
     >
       <div className="h-[240px] w-full min-w-0">
         <ResponsiveContainer width="100%" height="100%">

@@ -1,3 +1,5 @@
+import { useTranslation } from '../../../../i18n/LanguageContext';
+
 // Renk paleti — fon içeriği dağılımı için
 const COLORS = [
   '#3b82f6', '#6366f1', '#8b5cf6', '#a78bfa',
@@ -5,6 +7,7 @@ const COLORS = [
 ];
 
 export default function FundDistribution({ fund }) {
+  const { t } = useTranslation();
   const items = fund?.distribution ?? [];
   if (!items.length) return null;
 
@@ -12,7 +15,7 @@ export default function FundDistribution({ fund }) {
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-      <h2 className="font-bold text-gray-900 mb-1">{fund?.code} Fon İçeriği</h2>
+      <h2 className="font-bold text-gray-900 mb-1">{fund?.code} {t('Fon İçeriği')}</h2>
       {fund?.updateDate && (
         <p className="text-xs text-gray-400 mb-4">
           {new Date(fund.updateDate).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' })}

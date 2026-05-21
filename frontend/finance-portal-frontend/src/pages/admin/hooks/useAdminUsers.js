@@ -1,19 +1,21 @@
 import { useCallback, useEffect, useState } from 'react';
 import { banUser, getUsers, unbanUser } from '../../../api/adminApi';
 import { useToast } from '../../../context/ToastContext';
+import { useTranslation } from '../../../i18n/LanguageContext';
 import { BAN_STATUS_FILTER } from '../utils/banDisplay';
 
 const PAGE_SIZE = 20;
 const SEARCH_DEBOUNCE_MS = 400;
 
-function mapLoadError(err) {
-  if (!err.response) return 'Sunucuya ulaşılamıyor.';
-  if (err.response.status === 403) return 'Bu işlem için yönetici yetkisi gerekir.';
-  if (err.response.status === 401) return 'Oturum süreniz dolmuş olabilir. Lütfen tekrar giriş yapın.';
-  return err.response?.data?.message || `Kullanıcılar yüklenemedi (${err.response.status}).`;
+function mapLoadError(err, t) {
+  if (!err.response) return t('Sunucuya ulaşılamıyor.');
+  if (err.response.status === 403) return t('Bu işlem için yönetici yetkisi gerekir.');
+  if (err.response.status === 401) return t('Oturum süreniz dolmuş olabilir. Lütfen tekrar giriş yapın.');
+  return err.response?.data?.message || t('Kullanıcılar yüklenemedi ({status}).', { status: err.response.status });
 }
 
 export function useAdminUsers() {
+  const { t } = useTranslation();
   const toast = useToast();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,13 +42,13 @@ export function useAdminUsers() {
       setUsers(data?.users ?? []);
       setHasMore(Boolean(data?.hasMore));
     } catch (err) {
-      setError(mapLoadError(err));
+      setError(mapLoadError(err, t));
       setUsers([]);
       setHasMore(false);
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, page, statusFilter]);
+  }, [searchQuery, page, statusFilter, t]);
 
   useEffect(() => {
     loadUsers();
@@ -104,26 +106,26 @@ export function useAdminUsers() {
     setActionUserId(banTarget.id);
     try {
       const res = await banUser(banTarget.id, banPayload);
-      toast.success(res?.message || 'Ban işlemi başarılı.');
+      toast.success(res?.message || t('Ban işlemi başarılı.'));
       setBanTarget(null);
       await loadUsers();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Ban işlemi başarısız.');
+      toast.error(err.response?.data?.message || t('Ban işlemi başarısız.'));
     } finally {
       setActionUserId(null);
     }
   }
 
   async function unban(user) {
-    if (!window.confirm(`${user.username} kullanıcısının banını kaldırmak istediğinize emin misiniz?`)) return;
+    if (!window.confirm(t('{username} kullanıcısının banını kaldırmak istediğinize emin misiniz?', { username: user.username }))) return;
     setDetailUserId(null);
     setActionUserId(user.id);
     try {
       const res = await unbanUser(user.id);
-      toast.success(res?.message || 'Ban kaldırıldı.');
+      toast.success(res?.message || t('Ban kaldırıldı.'));
       await loadUsers();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Unban işlemi başarısız.');
+      toast.error(err.response?.data?.message || t('Unban işlemi başarısız.'));
     } finally {
       setActionUserId(null);
     }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Eye, Briefcase } from 'lucide-react';
 import { createPortfolio, getMyPortfolios } from '../../../api/portfolioApi';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 const TYPE_OPTIONS = [
   {
@@ -29,6 +30,7 @@ const TYPE_OPTIONS = [
  *   onCreated(list)    → yeni portföy listesiyle çağrılır
  */
 export default function CreatePortfolioModal({ onClose, onCreated }) {
+  const { t } = useTranslation();
   const [selectedType, setSelectedType] = useState('HOLDINGS');
   const [form, setForm] = useState({ name: '', description: '', currency: 'TRY' });
   const [loading, setLoading] = useState(false);
@@ -40,7 +42,7 @@ export default function CreatePortfolioModal({ onClose, onCreated }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!form.name.trim()) { setError('Portföy adı zorunludur.'); return; }
+    if (!form.name.trim()) { setError(t('Portföy adı zorunludur.')); return; }
     setLoading(true);
     setError('');
     try {
@@ -55,7 +57,7 @@ export default function CreatePortfolioModal({ onClose, onCreated }) {
       onCreated(updated);
       onClose();
     } catch (err) {
-      setError(err.response?.data?.message || 'Portföy oluşturulamadı.');
+      setError(err.response?.data?.message || t('Portföy oluşturulamadı.'));
     } finally {
       setLoading(false);
     }
@@ -66,7 +68,7 @@ export default function CreatePortfolioModal({ onClose, onCreated }) {
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 className="font-bold text-gray-900 text-lg">Portföy tipini seçin</h2>
+          <h2 className="font-bold text-gray-900 text-lg">{t('Portföy tipini seçin')}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
             <X className="w-5 h-5" />
           </button>
@@ -103,9 +105,9 @@ export default function CreatePortfolioModal({ onClose, onCreated }) {
                     }`} />
                   </div>
                   <span className={`font-bold text-sm ${active ? 'text-gray-900' : 'text-gray-600'}`}>
-                    {opt.label}
+                    {t(opt.label)}
                   </span>
-                  <span className="text-xs text-gray-400 leading-tight">{opt.desc}</span>
+                  <span className="text-xs text-gray-400 leading-tight">{t(opt.desc)}</span>
                 </button>
               );
             })}
@@ -114,13 +116,13 @@ export default function CreatePortfolioModal({ onClose, onCreated }) {
           {/* Portföy adı */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-              Portföy Adı *
+              {t('Portföy Adı *')}
             </label>
             <input
               type="text"
               value={form.name}
               onChange={e => set('name', e.target.value)}
-              placeholder="Örn: Hisse Portföyüm"
+              placeholder={t('Örn: Hisse Portföyüm')}
               className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30 focus:border-[#093eaa]"
             />
           </div>
@@ -128,13 +130,13 @@ export default function CreatePortfolioModal({ onClose, onCreated }) {
           {/* Açıklama */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-              Açıklama <span className="text-gray-400 font-normal">(isteğe bağlı)</span>
+              {t('Açıklama')} <span className="text-gray-400 font-normal">{t('(isteğe bağlı)')}</span>
             </label>
             <input
               type="text"
               value={form.description}
               onChange={e => set('description', e.target.value)}
-              placeholder="Kısa bir açıklama..."
+              placeholder={t('Kısa bir açıklama...')}
               className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30 focus:border-[#093eaa]"
             />
           </div>
@@ -143,7 +145,7 @@ export default function CreatePortfolioModal({ onClose, onCreated }) {
           {selectedType === 'HOLDINGS' && (
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                Para Birimi
+                {t('Para Birimi')}
               </label>
               <select
                 value={form.currency}
@@ -168,14 +170,14 @@ export default function CreatePortfolioModal({ onClose, onCreated }) {
               onClick={onClose}
               className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors"
             >
-              İptal
+              {t('İptal')}
             </button>
             <button
               type="submit"
               disabled={loading}
               className="flex-1 bg-[#093eaa] text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-[#093eaa]/90 disabled:opacity-60 transition-colors"
             >
-              {loading ? 'Oluşturuluyor...' : 'Oluştur'}
+              {loading ? t('Oluşturuluyor...') : t('Oluştur')}
             </button>
           </div>
         </form>

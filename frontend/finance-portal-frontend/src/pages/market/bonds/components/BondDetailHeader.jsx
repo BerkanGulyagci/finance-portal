@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 export default function BondDetailHeader({ bond }) {
+  const { t } = useTranslation();
   const days = bond.remainingDays ?? null;
 
   const daysColor =
@@ -34,17 +36,17 @@ export default function BondDetailHeader({ bond }) {
             <div className="flex flex-wrap gap-2 mt-2">
               {bond.issueDate && (
                 <span className="px-2.5 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
-                  İhraç: {bond.issueDate}
+                  {t('İhraç:')} {bond.issueDate}
                 </span>
               )}
               {bond.maturityDate && (
                 <span className="px-2.5 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
-                  Vade: {bond.maturityDate}
+                  {t('Vade:')} {bond.maturityDate}
                 </span>
               )}
               {days != null && (
                 <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full ${daysColor}`}>
-                  Kalan: {days} gün
+                  {t('Kalan:')} {days} {t('gün')}
                 </span>
               )}
             </div>
@@ -53,8 +55,8 @@ export default function BondDetailHeader({ bond }) {
 
         {/* Sağ */}
         <div className="text-right text-xs text-gray-400 space-y-0.5">
-          <p>Kaynak: <span className="font-semibold text-[#093eaa]">TCMB EVDS</span></p>
-          <p>Son Güncelleme: <span className="font-semibold text-gray-600">{lastUpdated}</span></p>
+          <p>{t('Kaynak:')} <span className="font-semibold text-[#093eaa]">TCMB EVDS</span></p>
+          <p>{t('Son Güncelleme:')} <span className="font-semibold text-gray-600">{lastUpdated}</span></p>
         </div>
       </div>
     </div>

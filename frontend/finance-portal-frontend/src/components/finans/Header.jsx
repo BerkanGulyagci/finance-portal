@@ -1,68 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, ChevronDown, Menu, X, User, Settings, Shield, LogOut } from 'lucide-react';
+import { Search, ChevronDown, Menu, X, User, Settings, Shield, LogOut, Globe } from 'lucide-react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-
-// ── Nav item definitions ──────────────────────────────────────────────────────
-const navItems = [
-  { name: 'Haberler', path: '/news', auth: false },
-  { name: 'Dashboard', path: '/dashboard', auth: true },
-  { name: 'Portföy', path: '/portfolio', auth: true },
-];
-
-// ── Dropdown menus (Bloomberg style) ─────────────────────────────────────────
-const dropdownMenus = [
-  {
-    label: 'Piyasalar',
-    items: [
-      { label: 'Hisse Senetleri', path: '/market/stocks', desc: 'BIST hisse fiyatları' },
-      { label: 'Kripto Para', path: '/market/crypto', desc: 'CoinGecko TRY bazlı' },
-      { label: 'Vadeli İşlemler', path: '/market/futures', desc: 'VİOP ve küresel vadeli' },
-      { label: 'Tahvil / Bono', path: '/market/bonds', desc: 'Devlet İç Borçlanma Senetleri' },
-    ],
-  },
-  {
-    label: 'Döviz',
-    items: [
-      { label: 'TCMB Kurları', path: '/market/fx', desc: 'Resmi döviz kurları' },
-      { label: 'Open Exchange Rates', path: '/market/fx', desc: 'Gerçek zamanlı kurlar' },
-      { label: 'Banka Kurları', path: '/market/fx?tab=banks', desc: 'Türk bankalarının alış/satış kurları' },
-      { label: 'Karşılaştır', path: '/market/compare', desc: 'Dövizleri karşılaştır' },
-    ],
-  },
-  {
-    label: 'Emtia',
-    groups: [
-      {
-        title: 'Kıymetli Madenler',
-        items: [
-          { label: 'Altın',    path: '/market/gold',      desc: 'Ons, gram, çeyrek altın' },
-          { label: 'Gümüş',   path: '/market/silver',    desc: 'Gram, kg, ons gümüş' },
-          { label: 'Platin',  path: '/market/platinum',  desc: 'TL/Gram, USD/Ons' },
-          { label: 'Paladyum',path: '/market/palladium', desc: 'TL/Gram, USD/Ons' },
-        ],
-      },
-      {
-        title: 'Analiz',
-        items: [
-          { label: 'Emtia Karşılaştırma', path: '/market/commodities/compare', desc: 'Normalize performans karşılaştırması' },
-          { label: 'Diğer Emtialar', path: '/market/commodities', desc: 'Enerji, tarım, sanayi metalleri' },
-        ],
-      },
-    ],
-  },
-  {
-    label: 'Yatırım Fonları',
-    items: [
-      { label: 'Tüm Fonlar',      path: '/market/tefas',         desc: 'TEFAS · BES · OKS · Osmanlı Portföy' },
-      { label: 'Fon Karşılaştır', path: '/market/tefas/compare', desc: 'Fonları karşılaştır' },
-      { label: 'Global Fonlar',   path: '/market/funds',         desc: 'ETF ve yatırım fonları' },
-    ],
-  },
-];
+import { useTranslation } from '../../i18n/LanguageContext';
 
 // ── Generic Dropdown ──────────────────────────────────────────────────────────
-function NavDropdown({ menu, onClose }) {
+function NavDropdown({ menu, onClose, t }) {
   // groups varsa gruplu render, yoksa düz liste
   if (menu.groups) {
     return (
@@ -72,14 +15,14 @@ function NavDropdown({ menu, onClose }) {
             {/* Grup başlığı */}
             <div className="px-4 pt-2 pb-1">
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                {group.title}
+                {t(group.title)}
               </span>
             </div>
             {group.items.map(item => (
               <Link key={item.path + item.label} to={item.path} onClick={onClose}
                 className="flex flex-col px-4 py-2.5 hover:bg-gray-50 transition-colors group pl-6">
-                <span className="text-sm font-semibold text-gray-900 group-hover:text-[#093eaa]">{item.label}</span>
-                <span className="text-xs text-gray-400 mt-0.5">{item.desc}</span>
+                <span className="text-sm font-semibold text-gray-900 group-hover:text-[#093eaa]">{t(item.label)}</span>
+                <span className="text-xs text-gray-400 mt-0.5">{t(item.desc)}</span>
               </Link>
             ))}
           </div>
@@ -93,8 +36,8 @@ function NavDropdown({ menu, onClose }) {
       {menu.items.map(item => (
         <Link key={item.path + item.label} to={item.path} onClick={onClose}
           className="flex flex-col px-4 py-3 hover:bg-gray-50 transition-colors group">
-          <span className="text-sm font-semibold text-gray-900 group-hover:text-[#093eaa]">{item.label}</span>
-          <span className="text-xs text-gray-400 mt-0.5">{item.desc}</span>
+          <span className="text-sm font-semibold text-gray-900 group-hover:text-[#093eaa]">{t(item.label)}</span>
+          <span className="text-xs text-gray-400 mt-0.5">{t(item.desc)}</span>
         </Link>
       ))}
     </div>
@@ -102,7 +45,7 @@ function NavDropdown({ menu, onClose }) {
 }
 
 // ── Profile menu ──────────────────────────────────────────────────────────────
-function ProfileMenu({ onClose }) {
+function ProfileMenu({ onClose, t }) {
   const { logout } = useAuth();
   const navigate = useNavigate();
 
@@ -124,19 +67,50 @@ function ProfileMenu({ onClose }) {
     <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50">
       <Link to="/profile" onClick={onClose} className={itemClass}>
         <User className="w-4 h-4 shrink-0" />
-        Profilim
+        {t('Profilim')}
       </Link>
       <button type="button" onClick={() => openProfileModal('name')} className={itemClass}>
         <Settings className="w-4 h-4 shrink-0" />
-        Hesap Ayarları
+        {t('Hesap Ayarları')}
       </button>
       <button type="button" onClick={() => openProfileModal('password')} className={itemClass}>
         <Shield className="w-4 h-4 shrink-0" />
-        Şifre Değiştir
+        {t('Şifre Değiştir')}
       </button>
       <button type="button" onClick={handleLogout} className={`${itemClass} text-red-700 hover:text-red-800`}>
         <LogOut className="w-4 h-4 shrink-0" />
-        Çıkış Yap
+        {t('Çıkış Yap')}
+      </button>
+    </div>
+  );
+}
+
+// ── Language toggle ──────────────────────────────────────────────────────────
+function LanguageToggle({ className = '' }) {
+  const { language, setLanguage } = useTranslation();
+  const isEn = language === 'en';
+  return (
+    <div className={`inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 p-0.5 ${className}`}>
+      <Globe className="w-3.5 h-3.5 text-gray-400 ml-1.5" />
+      <button
+        type="button"
+        onClick={() => setLanguage('tr')}
+        aria-pressed={!isEn}
+        className={`px-2 py-1 rounded-md text-xs font-bold transition-colors ${
+          !isEn ? 'bg-white text-[#093eaa] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+        }`}
+      >
+        TR
+      </button>
+      <button
+        type="button"
+        onClick={() => setLanguage('en')}
+        aria-pressed={isEn}
+        className={`px-2 py-1 rounded-md text-xs font-bold transition-colors ${
+          isEn ? 'bg-white text-[#093eaa] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+        }`}
+      >
+        EN
       </button>
     </div>
   );
@@ -148,9 +122,68 @@ export function Header() {
   const [openMenu, setOpenMenu] = useState(null); // index of open dropdown
   const [profileOpen, setProfileOpen] = useState(false);
   const { isAuthenticated, isAdmin, logout, username } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const navRef = useRef(null);
   const profileRef = useRef(null);
+
+  // ── Nav item definitions ────────────────────────────────────────────────────
+  const navItems = [
+    { name: 'Haberler', path: '/news', auth: false },
+    { name: 'Dashboard', path: '/dashboard', auth: true },
+    { name: 'Portföy', path: '/portfolio', auth: true },
+  ];
+
+  // ── Dropdown menus (Bloomberg style) ────────────────────────────────────────
+  const dropdownMenus = [
+    {
+      label: 'Piyasalar',
+      items: [
+        { label: 'Hisse Senetleri', path: '/market/stocks', desc: 'BIST hisse fiyatları' },
+        { label: 'Kripto Para', path: '/market/crypto', desc: 'CoinGecko TRY bazlı' },
+        { label: 'Vadeli İşlemler', path: '/market/futures', desc: 'VİOP ve küresel vadeli' },
+        { label: 'Tahvil / Bono', path: '/market/bonds', desc: 'Devlet İç Borçlanma Senetleri' },
+      ],
+    },
+    {
+      label: 'Döviz',
+      items: [
+        { label: 'TCMB Kurları', path: '/market/fx', desc: 'Resmi döviz kurları' },
+        { label: 'Open Exchange Rates', path: '/market/fx', desc: 'Gerçek zamanlı kurlar' },
+        { label: 'Banka Kurları', path: '/market/fx?tab=banks', desc: 'Türk bankalarının alış/satış kurları' },
+        { label: 'Karşılaştır', path: '/market/compare', desc: 'Dövizleri karşılaştır' },
+      ],
+    },
+    {
+      label: 'Emtia',
+      groups: [
+        {
+          title: 'Kıymetli Madenler',
+          items: [
+            { label: 'Altın',    path: '/market/gold',      desc: 'Ons, gram, çeyrek altın' },
+            { label: 'Gümüş',   path: '/market/silver',    desc: 'Gram, kg, ons gümüş' },
+            { label: 'Platin',  path: '/market/platinum',  desc: 'TL/Gram, USD/Ons' },
+            { label: 'Paladyum',path: '/market/palladium', desc: 'TL/Gram, USD/Ons' },
+          ],
+        },
+        {
+          title: 'Analiz',
+          items: [
+            { label: 'Emtia Karşılaştırma', path: '/market/commodities/compare', desc: 'Normalize performans karşılaştırması' },
+            { label: 'Diğer Emtialar', path: '/market/commodities', desc: 'Enerji, tarım, sanayi metalleri' },
+          ],
+        },
+      ],
+    },
+    {
+      label: 'Yatırım Fonları',
+      items: [
+        { label: 'Tüm Fonlar',      path: '/market/tefas',         desc: 'TEFAS · BES · OKS · Osmanlı Portföy' },
+        { label: 'Fon Karşılaştır', path: '/market/tefas/compare', desc: 'Fonları karşılaştır' },
+        { label: 'Global Fonlar',   path: '/market/funds',         desc: 'ETF ve yatırım fonları' },
+      ],
+    },
+  ];
 
   useEffect(() => {
     function handleClick(e) {
@@ -176,7 +209,7 @@ export function Header() {
           <Link
             to="/"
             className="flex items-center gap-2.5 sm:gap-3 shrink-0 min-w-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#093eaa]/40 rounded-lg"
-            aria-label="FinansPortalı — ana sayfa"
+            aria-label={t('FinansPortalı — ana sayfa')}
           >
             <img
               src="/brand-logo.png"
@@ -188,8 +221,8 @@ export function Header() {
               decoding="async"
             />
             <span className="text-lg font-bold tracking-tight truncate leading-tight flex items-center">
-              <span className="text-[#093eaa]">Finans</span>
-              <span className="text-gray-900">Portalı</span>
+              <span className="text-[#093eaa]">{t('Finans')}</span>
+              <span className="text-gray-900">{t('Portalı')}</span>
             </span>
           </Link>
 
@@ -201,7 +234,7 @@ export function Header() {
                 className={({ isActive }) =>
                   `px-3 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${isActive ? 'text-[#093eaa] bg-blue-50' : 'text-gray-700 hover:text-[#093eaa] hover:bg-gray-50'}`
                 }>
-                {item.name}
+                {t(item.name)}
               </NavLink>
             ))}
 
@@ -211,7 +244,7 @@ export function Header() {
                 className={({ isActive }) =>
                   `px-3 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${isActive ? 'text-[#093eaa] bg-blue-50' : 'text-gray-700 hover:text-[#093eaa] hover:bg-gray-50'}`
                 }>
-                Admin Panel
+                {t('Admin Panel')}
               </NavLink>
             )}
 
@@ -220,10 +253,10 @@ export function Header() {
                 <button
                   onClick={() => setOpenMenu(openMenu === idx ? null : idx)}
                   className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${openMenu === idx ? 'text-[#093eaa] bg-blue-50' : 'text-gray-700 hover:text-[#093eaa] hover:bg-gray-50'}`}>
-                  {menu.label}
+                  {t(menu.label)}
                   <ChevronDown className={`w-3 h-3 transition-transform ${openMenu === idx ? 'rotate-180' : ''}`} />
                 </button>
-                {openMenu === idx && <NavDropdown menu={menu} onClose={() => setOpenMenu(null)} />}
+                {openMenu === idx && <NavDropdown menu={menu} onClose={() => setOpenMenu(null)} t={t} />}
               </div>
             ))}
           </nav>
@@ -232,9 +265,12 @@ export function Header() {
           <div className="flex items-center gap-2">
             <div className="relative hidden lg:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input type="text" placeholder="Ara..."
+              <input type="text" placeholder={t('Ara...')}
                 className="pl-9 pr-4 py-1.5 bg-gray-100 border-none rounded-full text-sm w-40 focus:outline-none focus:ring-2 focus:ring-[#093eaa] focus:w-56 transition-all" />
             </div>
+
+            {/* Language toggle — TR / EN */}
+            <LanguageToggle className="hidden sm:inline-flex" />
 
             {isAuthenticated ? (
               <div className="relative hidden sm:block" ref={profileRef}>
@@ -244,20 +280,20 @@ export function Header() {
                   className={`flex items-center gap-1.5 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-gray-200 transition-all ${profileOpen ? 'ring-2 ring-[#093eaa]/30' : ''}`}
                 >
                   <User className="w-4 h-4" />
-                  <span className="max-w-[120px] truncate">{username || 'Hesabım'}</span>
+                  <span className="max-w-[120px] truncate">{username || t('Hesabım')}</span>
                   <ChevronDown className={`w-3 h-3 transition-transform ${profileOpen ? 'rotate-180' : ''}`} />
                 </button>
-                {profileOpen && <ProfileMenu onClose={() => setProfileOpen(false)} />}
+                {profileOpen && <ProfileMenu onClose={() => setProfileOpen(false)} t={t} />}
               </div>
             ) : (
               <div className="flex items-center gap-2">
                 <Link to="/login"
                   className="text-gray-700 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-gray-50 transition-all border border-gray-200">
-                  Giriş Yap
+                  {t('Giriş Yap')}
                 </Link>
                 <Link to="/register"
                   className="bg-[#093eaa] text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-[#093eaa]/90 transition-all">
-                  Kayıt Ol
+                  {t('Kayıt Ol')}
                 </Link>
               </div>
             )}
@@ -271,50 +307,56 @@ export function Header() {
         {/* Mobile Menu */}
         {mobileOpen && (
           <div className="md:hidden py-3 border-t border-gray-200 space-y-1">
+            {/* Mobile language toggle */}
+            <div className="px-4 py-2 flex items-center justify-between border-b border-gray-100 mb-2">
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('Dil')}</span>
+              <LanguageToggle />
+            </div>
+
             {navItems.filter(item => !item.auth || isAuthenticated).map(item => (
               <Link key={item.path} to={item.path} onClick={() => setMobileOpen(false)}
                 className="block px-4 py-2.5 text-sm font-semibold hover:bg-gray-50 rounded-lg transition-colors">
-                {item.name}
+                {t(item.name)}
               </Link>
             ))}
             {isAdmin && (
               <Link to="/admin/users" onClick={() => setMobileOpen(false)}
                 className="block px-4 py-2.5 text-sm font-semibold text-[#093eaa] hover:bg-gray-50 rounded-lg transition-colors">
-                Admin Panel
+                {t('Admin Panel')}
               </Link>
             )}
             {isAuthenticated && (
               <div className="px-4 py-2 border-b border-gray-100 mb-2 space-y-1">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Hesap</p>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t('Hesap')}</p>
                 <Link to="/profile" onClick={() => setMobileOpen(false)}
                   className="block py-2 text-sm font-semibold text-gray-700 hover:text-[#093eaa]">
-                  Profilim
+                  {t('Profilim')}
                 </Link>
                 <Link to="/profile?modal=name" onClick={() => setMobileOpen(false)}
                   className="block py-2 text-sm font-semibold text-gray-700 hover:text-[#093eaa]">
-                  Hesap Ayarları
+                  {t('Hesap Ayarları')}
                 </Link>
                 <Link to="/profile?modal=password" onClick={() => setMobileOpen(false)}
                   className="block py-2 text-sm font-semibold text-gray-700 hover:text-[#093eaa]">
-                  Şifre Değiştir
+                  {t('Şifre Değiştir')}
                 </Link>
                 <button type="button" onClick={() => { setMobileOpen(false); handleLogout(); }}
                   className="block w-full text-left py-2 text-sm font-semibold text-red-700">
-                  Çıkış Yap
+                  {t('Çıkış Yap')}
                 </button>
               </div>
             )}
             {dropdownMenus.map(menu => (
               <div key={menu.label} className="px-4 py-2">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{menu.label}</p>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t(menu.label)}</p>
                 {menu.groups
                   ? menu.groups.map(group => (
                       <div key={group.title} className="mb-2">
-                        <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest mb-1 pl-1">{group.title}</p>
+                        <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest mb-1 pl-1">{t(group.title)}</p>
                         {group.items.map(item => (
                           <Link key={item.path + item.label} to={item.path} onClick={() => setMobileOpen(false)}
                             className="block py-1.5 pl-3 text-sm font-semibold text-gray-700 hover:text-[#093eaa] transition-colors">
-                            {item.label}
+                            {t(item.label)}
                           </Link>
                         ))}
                       </div>
@@ -322,12 +364,24 @@ export function Header() {
                   : menu.items.map(item => (
                       <Link key={item.path + item.label} to={item.path} onClick={() => setMobileOpen(false)}
                         className="block py-1.5 text-sm font-semibold text-gray-700 hover:text-[#093eaa] transition-colors">
-                        {item.label}
+                        {t(item.label)}
                       </Link>
                     ))
                 }
               </div>
             ))}
+            {!isAuthenticated && (
+              <div className="px-4 pt-2 flex gap-2">
+                <Link to="/login" onClick={() => setMobileOpen(false)}
+                  className="flex-1 text-center text-gray-700 px-3 py-2 rounded-lg text-sm font-bold border border-gray-200">
+                  {t('Giriş Yap')}
+                </Link>
+                <Link to="/register" onClick={() => setMobileOpen(false)}
+                  className="flex-1 text-center bg-[#093eaa] text-white px-3 py-2 rounded-lg text-sm font-bold">
+                  {t('Kayıt Ol')}
+                </Link>
+              </div>
+            )}
           </div>
         )}
       </div>

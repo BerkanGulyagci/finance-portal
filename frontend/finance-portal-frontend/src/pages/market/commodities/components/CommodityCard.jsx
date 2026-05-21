@@ -9,8 +9,10 @@ import {
   getTrySpotPrice,
   canToggleTry,
 } from './commodityConstants';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 export default function CommodityCard({ meta, spot, loading, onClick }) {
+  const { t } = useTranslation();
   const catMeta = CATEGORY_META[meta.category] ?? CATEGORY_META.ENERGY;
   const pct = spot ? fmtPct(spot.changePercent) : null;
   const isPos = pct ? pct.value >= 0 : null;
@@ -41,10 +43,10 @@ export default function CommodityCard({ meta, spot, loading, onClick }) {
           <span
             className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${catMeta.bg} ${catMeta.color} border ${catMeta.border}`}
           >
-            {catMeta.label}
+            {t(catMeta.label)}
           </span>
           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-            Vadeli
+            {t('Vadeli')}
           </span>
         </div>
       </div>
@@ -58,7 +60,7 @@ export default function CommodityCard({ meta, spot, loading, onClick }) {
         <div>
           <div
             onClick={handlePriceClick}
-            title={toggleable ? (showTry ? 'USD göster' : 'TL göster') : undefined}
+            title={toggleable ? (showTry ? t('USD göster') : t('TL göster')) : undefined}
             className={`rounded-lg px-1 -mx-1 transition-colors ${
               toggleable ? 'cursor-pointer hover:bg-gray-50 active:bg-gray-100' : ''
             }`}
@@ -114,7 +116,7 @@ export default function CommodityCard({ meta, spot, loading, onClick }) {
       ) : (
         <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-2">
           <AlertCircle className="w-3.5 h-3.5" />
-          Veri alınamadı
+          {t('Veri alınamadı')}
         </div>
       )}
 

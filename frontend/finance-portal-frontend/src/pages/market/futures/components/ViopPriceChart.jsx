@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { RefreshCw, TrendingUp, TrendingDown, BarChart2, Plus, X, ChevronDown, Trash2 } from 'lucide-react';
 import { init as klineInit, dispose as klineDispose, registerIndicator, registerOverlay } from 'klinecharts';
 import { getViopChart, getViopContracts } from '../../../../api/marketApi';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 // ── Custom Overlay Kayıtları (bir kez çalışır) ────────────────────────────────
 let overlaysRegistered = false;
@@ -72,6 +73,7 @@ const DRAWING_TOOLS = [
 ];
 
 function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll }) {
+  const { t } = useTranslation();
   const [openGroup, setOpenGroup] = useState(null);
   return (
     <div className="flex flex-wrap items-center gap-1.5 p-2 bg-gray-50 border border-gray-200 rounded-xl mb-2">
@@ -80,11 +82,11 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
           <button
             onClick={() => setOpenGroup(openGroup === group ? null : group)}
             className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
-              tools.some(t => t.id === activeTool)
+              tools.some(tool => tool.id === activeTool)
                 ? 'bg-[#093eaa] text-white border-[#093eaa]'
                 : 'bg-white text-gray-600 border-gray-200 hover:border-[#093eaa] hover:text-[#093eaa]'
             }`}>
-            {group} ▾
+            {t(group)} ▾
           </button>
           {openGroup === group && (
             <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-1 min-w-[180px]">
@@ -95,7 +97,7 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
                     tool.id === activeTool ? 'bg-[#093eaa] text-white' : 'text-gray-700 hover:bg-gray-50'
                   }`}>
                   <span className="w-8 text-center font-mono text-[11px] opacity-70">{tool.icon}</span>
-                  <span>{tool.label}</span>
+                  <span>{t(tool.label)}</span>
                 </button>
               ))}
             </div>
@@ -103,17 +105,17 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
         </div>
       ))}
       <div className="w-px h-6 bg-gray-200 mx-1" />
-      <button onClick={onDeleteSelected} title="Seçili çizimi sil"
+      <button onClick={onDeleteSelected} title={t('Seçili çizimi sil')}
         className="p-1.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 transition-all border border-gray-200">
         <Trash2 className="w-3.5 h-3.5" />
       </button>
-      <button onClick={onClearAll} title="Tüm çizimleri temizle"
+      <button onClick={onClearAll} title={t('Tüm çizimleri temizle')}
         className="p-1.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 transition-all border border-gray-200">
         <X className="w-3.5 h-3.5" />
       </button>
       {activeTool && (
         <span className="ml-auto text-xs text-[#093eaa] font-medium bg-blue-50 px-2 py-1 rounded-lg">
-          {DRAWING_TOOLS.flatMap(g => g.tools).find(t => t.id === activeTool)?.label ?? activeTool}
+          {(() => { const lbl = DRAWING_TOOLS.flatMap(g => g.tools).find(it => it.id === activeTool)?.label; return lbl ? t(lbl) : activeTool; })()}
           <button onClick={() => onSelectTool(null)} className="ml-1.5 opacity-60 hover:opacity-100">✕</button>
         </span>
       )}
@@ -233,6 +235,7 @@ function buildStyles(lineColor) {
 // ── KLineCharts bileşeni ──────────────────────────────────────────────────────
 
 function ViopKlineChart({ mainPoints, comparePoints, compareName, isComparing, showMA7, showMA30, showEMA, showBOLL, showRSI, rsiPaneRef, activeTool, chartRef: externalRef }) {
+  const { t } = useTranslation();
   const chartId  = useRef(`viop_kline_${Math.random().toString(36).slice(2)}`);
   const chartRef = useRef(null);
 
@@ -405,7 +408,7 @@ function ViopKlineChart({ mainPoints, comparePoints, compareName, isComparing, s
     return (
       <div className="flex flex-col items-center justify-center h-[380px] gap-3 text-gray-400">
         <BarChart2 className="w-10 h-10 opacity-30" />
-        <p className="text-sm">Bu dönem için grafik verisi bulunamadı.</p>
+        <p className="text-sm">{t('Bu dönem için grafik verisi bulunamadı.')}</p>
       </div>
     );
   }
@@ -436,6 +439,7 @@ function Toggle({ label, active, color, onClick, disabled }) {
 // ── Sözleşme seçici dropdown ──────────────────────────────────────────────────
 
 function ViopCompareSelector({ mainName, compareName, onSelect, onClear }) {
+  const { t } = useTranslation();
   const [open, setOpen]           = useState(false);
   const [search, setSearch]       = useState('');
   const [contracts, setContracts] = useState([]);
@@ -475,7 +479,7 @@ function ViopCompareSelector({ mainName, compareName, onSelect, onClear }) {
           </span>
           <button onClick={onClear}
             className="p-1.5 rounded-lg bg-gray-100 hover:bg-rose-100 hover:text-rose-600 transition-all"
-            title="Karşılaştırmayı kaldır">
+            title={t('Karşılaştırmayı kaldır')}>
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -483,7 +487,7 @@ function ViopCompareSelector({ mainName, compareName, onSelect, onClear }) {
         <button onClick={() => setOpen(o => !o)}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100 transition-all">
           <Plus className="w-3 h-3" />
-          Karşılaştır
+          {t('Karşılaştır')}
           <ChevronDown className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} />
         </button>
       )}
@@ -491,7 +495,7 @@ function ViopCompareSelector({ mainName, compareName, onSelect, onClear }) {
       {open && !compareName && (
         <div className="absolute top-full right-0 mt-1 w-80 bg-white border border-gray-200 rounded-xl shadow-xl z-50">
           <div className="p-3 border-b border-gray-100">
-            <input autoFocus type="text" placeholder="Sözleşme ara..."
+            <input autoFocus type="text" placeholder={t('Sözleşme ara...')}
               value={search} onChange={e => setSearch(e.target.value)}
               className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30" />
           </div>
@@ -504,7 +508,7 @@ function ViopCompareSelector({ mainName, compareName, onSelect, onClear }) {
               </div>
             )}
             {!loading && filtered.length === 0 && (
-              <p className="text-xs text-gray-400 text-center py-4">Sözleşme bulunamadı.</p>
+              <p className="text-xs text-gray-400 text-center py-4">{t('Sözleşme bulunamadı.')}</p>
             )}
             {!loading && filtered.map(c => (
               <button key={c.name}
@@ -518,7 +522,7 @@ function ViopCompareSelector({ mainName, compareName, onSelect, onClear }) {
             ))}
           </div>
           <div className="p-2 border-t border-gray-100">
-            <button onClick={() => setOpen(false)} className="w-full text-xs text-gray-400 py-1 hover:text-gray-600">Kapat</button>
+            <button onClick={() => setOpen(false)} className="w-full text-xs text-gray-400 py-1 hover:text-gray-600">{t('Kapat')}</button>
           </div>
         </div>
       )}
@@ -529,6 +533,7 @@ function ViopCompareSelector({ mainName, compareName, onSelect, onClear }) {
 // ── Ana bileşen ───────────────────────────────────────────────────────────────
 
 export default function ViopPriceChart({ contractName }) {
+  const { t } = useTranslation();
   const [period, setPeriod]     = useState('ONE_DAY');
   const [points, setPoints]     = useState([]);
   const [loading, setLoading]   = useState(false);
@@ -639,12 +644,12 @@ export default function ViopPriceChart({ contractName }) {
       {/* ── Başlık satırı ── */}
       <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
         <div>
-          <h2 className="font-bold text-gray-900">VİOP Sözleşme Grafiği</h2>
+          <h2 className="font-bold text-gray-900">{t('VİOP Sözleşme Grafiği')}</h2>
           {/* Tek seri: periyot değişimi */}
           {!isComparing && mainPct != null && status === 'ok' && (
             <span className={`text-sm font-semibold flex items-center gap-1 mt-0.5 ${mainPct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
               {mainPct >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-              {currentPeriod.label} değişim: {fmtPct(mainPct, 2)}
+              {t(currentPeriod.label)} {t('değişim:')} {fmtPct(mainPct, 2)}
             </span>
           )}
           {/* Karşılaştırma: her iki seri */}
@@ -676,12 +681,12 @@ export default function ViopPriceChart({ contractName }) {
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   period === p.key ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}>
-                {p.label}
+                {t(p.label)}
               </button>
             ))}
           </div>
           <button onClick={() => fetchMain(contractName, period)}
-            className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 transition-all" title="Yenile">
+            className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 transition-all" title={t('Yenile')}>
             <RefreshCw className={`w-3.5 h-3.5 text-gray-500 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
         </div>
@@ -691,7 +696,7 @@ export default function ViopPriceChart({ contractName }) {
       <div className="flex items-center gap-3 mb-4 flex-wrap">
         <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
           <span className="px-3 py-1 rounded-md text-xs font-bold bg-white text-gray-900 shadow-sm">
-            {isComparing ? 'Performans Grafiği' : 'Değer Grafiği'}
+            {isComparing ? t('Performans Grafiği') : t('Değer Grafiği')}
           </span>
         </div>
 
@@ -724,7 +729,7 @@ export default function ViopPriceChart({ contractName }) {
             <span className="font-bold text-gray-700">{shortName(compareName)}</span>
             {comparePoints.length > 0 && <span className="text-gray-500">{fmt(parseFloat(comparePoints[comparePoints.length - 1]?.value))}</span>}
           </span>
-          <span className="ml-auto text-gray-400 text-xs">İlk değer = 100 bazlı normalize</span>
+          <span className="ml-auto text-gray-400 text-xs">{t('İlk değer = 100 bazlı normalize')}</span>
         </div>
       )}
 
@@ -743,28 +748,28 @@ export default function ViopPriceChart({ contractName }) {
         {!isLoading && status === 'unsupported' && (
           <div className="flex flex-col items-center justify-center h-[380px] gap-3 text-gray-400">
             <BarChart2 className="w-10 h-10 opacity-30" />
-            <p className="text-sm font-semibold text-gray-600">Bu sözleşme türü için grafik desteği henüz eklenmedi.</p>
-            <p className="text-xs text-gray-400">Opsiyon sözleşmeleri şu an grafik göstermemektedir.</p>
+            <p className="text-sm font-semibold text-gray-600">{t('Bu sözleşme türü için grafik desteği henüz eklenmedi.')}</p>
+            <p className="text-xs text-gray-400">{t('Opsiyon sözleşmeleri şu an grafik göstermemektedir.')}</p>
           </div>
         )}
 
         {!isLoading && status === 'empty' && (
           <div className="flex flex-col items-center justify-center h-[380px] gap-3 text-gray-400">
             <BarChart2 className="w-10 h-10 opacity-30" />
-            <p className="text-sm font-semibold text-gray-600">Bu dönem için VİOP grafik verisi bulunamadı.</p>
+            <p className="text-sm font-semibold text-gray-600">{t('Bu dönem için VİOP grafik verisi bulunamadı.')}</p>
           </div>
         )}
 
         {!isLoading && status === 'error' && (
           <div className="flex flex-col items-center justify-center h-[380px] gap-3 text-gray-400">
             <BarChart2 className="w-10 h-10 opacity-30" />
-            <p className="text-sm font-semibold text-rose-600">VİOP grafik verisi şu anda alınamadı.</p>
+            <p className="text-sm font-semibold text-rose-600">{t('VİOP grafik verisi şu anda alınamadı.')}</p>
           </div>
         )}
 
         {compareError && !isLoading && (
           <div className="mb-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
-            Karşılaştırma verisi alınamadı. Ana sözleşme grafiği gösteriliyor.
+            {t('Karşılaştırma verisi alınamadı. Ana sözleşme grafiği gösteriliyor.')}
           </div>
         )}
 
@@ -777,8 +782,8 @@ export default function ViopPriceChart({ contractName }) {
                 onSelectTool={(toolId) => setActiveTool(toolId)}
                 onDeleteSelected={() => { chartInstanceRef.current?.removeOverlay(); }}
                 onClearAll={() => {
-                  DRAWING_TOOLS.flatMap(g => g.tools).forEach(t => {
-                    try { chartInstanceRef.current?.removeOverlay({ name: t.id }); } catch {}
+                  DRAWING_TOOLS.flatMap(g => g.tools).forEach(it => {
+                    try { chartInstanceRef.current?.removeOverlay({ name: it.id }); } catch {}
                   });
                   setActiveTool(null);
                 }}
@@ -803,8 +808,8 @@ export default function ViopPriceChart({ contractName }) {
       </div>
 
       <p className="text-xs text-gray-400 mt-3">
-        Kaynak: İş Yatırım · isyatirim.com.tr
-        {isComparing ? ' · Karşılaştırma grafiği normalize edilmiştir (ilk değer = 100 baz).' : ''}
+        {t('Kaynak: İş Yatırım · isyatirim.com.tr')}
+        {isComparing ? t(' · Karşılaştırma grafiği normalize edilmiştir (ilk değer = 100 baz).') : ''}
       </p>
     </div>
   );

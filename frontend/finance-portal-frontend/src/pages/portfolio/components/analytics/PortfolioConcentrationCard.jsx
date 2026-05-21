@@ -3,6 +3,7 @@ import {
   calculateConcentrationMetrics,
   formatSharePercent,
 } from '../../utils/portfolioAnalyticsHelpers';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 const RISK_STYLES = {
   high: 'border-rose-200 bg-rose-50/70 text-rose-800',
@@ -21,16 +22,17 @@ function MetricTile({ label, value, sub }) {
 }
 
 export default function PortfolioConcentrationCard({ holdings, valuesHidden }) {
+  const { t } = useTranslation();
   const m = calculateConcentrationMetrics(holdings);
 
   return (
     <PortfolioChartCard
-      title="Portföy Yoğunlaşması"
-      subtitle="Tek pozisyon veya kategoriye bağımlılık özeti."
+      title={t('Portföy Yoğunlaşması')}
+      subtitle={t('Tek pozisyon veya kategoriye bağımlılık özeti.')}
       className="lg:col-span-2"
     >
       {!m.hasData ? (
-        <p className="text-center text-sm text-gray-400 py-8">Dağılım için yeterli veri bulunamadı.</p>
+        <p className="text-center text-sm text-gray-400 py-8">{t('Dağılım için yeterli veri bulunamadı.')}</p>
       ) : (
         <>
           {m.risk && (
@@ -39,13 +41,13 @@ export default function PortfolioConcentrationCard({ holdings, valuesHidden }) {
                 RISK_STYLES[m.risk.level] ?? RISK_STYLES.low
               }`}
             >
-              {m.risk.label}
+              {t(m.risk.label)}
             </div>
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <MetricTile
-              label="En büyük pozisyon"
+              label={t('En büyük pozisyon')}
               value={m.topPosition?.name ?? '—'}
               sub={
                 m.topPosition
@@ -54,16 +56,16 @@ export default function PortfolioConcentrationCard({ holdings, valuesHidden }) {
               }
             />
             <MetricTile
-              label="En büyük kategori"
-              value={m.topCategory?.name ?? '—'}
+              label={t('En büyük kategori')}
+              value={m.topCategory ? t(m.topCategory.name) : '—'}
               sub={
                 m.topCategory
                   ? formatSharePercent(m.topCategory.sharePct, valuesHidden)
                   : null
               }
             />
-            <MetricTile label="Pozisyon sayısı" value={String(m.positionCount)} />
-            <MetricTile label="Varlık türü sayısı" value={String(m.typeCount)} />
+            <MetricTile label={t('Pozisyon sayısı')} value={String(m.positionCount)} />
+            <MetricTile label={t('Varlık türü sayısı')} value={String(m.typeCount)} />
           </div>
         </>
       )}

@@ -4,6 +4,7 @@ import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown } from 'lucide-react'
 import { init as klineInit, dispose as klineDispose } from 'klinecharts';
 import { getRasyonetFundDetail } from '../../../api/marketApi';
 import { FUND_CHART_RANGES, buildFundChartSeries } from './fundChartSeries';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 // ── Yardımcılar ───────────────────────────────────────────────────────────────
 
@@ -51,6 +52,7 @@ function fmtPercentField(raw) {
 // ── Risk göstergesi ───────────────────────────────────────────────────────────
 
 function RiskMeter({ level }) {
+  const { t } = useTranslation();
   if (level == null) return null;
   const colors = ['', '#22c55e', '#84cc16', '#eab308', '#f97316', '#ef4444', '#dc2626', '#7c3aed'];
   return (
@@ -62,7 +64,7 @@ function RiskMeter({ level }) {
         ))}
       </div>
       <span className="text-sm font-bold" style={{ color: colors[level] }}>
-        Risk {level}/7
+        {t('Risk')} {level}/7
       </span>
     </div>
   );
@@ -101,6 +103,7 @@ const FUND_DRAWING_TOOLS = [
 ];
 
 function FundDrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll }) {
+  const { t } = useTranslation();
   const [openGroup, setOpenGroup] = useState(null);
   return (
     <div className="flex flex-wrap items-center gap-1.5 p-2 bg-gray-50 border border-gray-200 rounded-xl mb-2">
@@ -109,11 +112,11 @@ function FundDrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClea
           <button
             onClick={() => setOpenGroup(openGroup === group ? null : group)}
             className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
-              tools.some(t => t.id === activeTool)
+              tools.some(tool => tool.id === activeTool)
                 ? 'bg-[#093eaa] text-white border-[#093eaa]'
                 : 'bg-white text-gray-600 border-gray-200 hover:border-[#093eaa] hover:text-[#093eaa]'
             }`}>
-            {group} ▾
+            {t(group)} ▾
           </button>
           {openGroup === group && (
             <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-1 min-w-[180px]">
@@ -124,7 +127,7 @@ function FundDrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClea
                     tool.id === activeTool ? 'bg-[#093eaa] text-white' : 'text-gray-700 hover:bg-gray-50'
                   }`}>
                   <span className="w-8 text-center font-mono text-[11px] opacity-70">{tool.icon}</span>
-                  <span>{tool.label}</span>
+                  <span>{t(tool.label)}</span>
                 </button>
               ))}
             </div>
@@ -132,13 +135,13 @@ function FundDrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClea
         </div>
       ))}
       <div className="w-px h-6 bg-gray-200 mx-1" />
-      <button onClick={onDeleteSelected} title="Seçili çizimi sil"
+      <button onClick={onDeleteSelected} title={t('Seçili çizimi sil')}
         className="p-1.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 transition-all border border-gray-200">
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
         </svg>
       </button>
-      <button onClick={onClearAll} title="Tüm çizimleri temizle"
+      <button onClick={onClearAll} title={t('Tüm çizimleri temizle')}
         className="p-1.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 transition-all border border-gray-200">
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -146,7 +149,7 @@ function FundDrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClea
       </button>
       {activeTool && (
         <span className="ml-auto text-xs text-[#093eaa] font-medium bg-blue-50 px-2 py-1 rounded-lg">
-          {FUND_DRAWING_TOOLS.flatMap(g => g.tools).find(t => t.id === activeTool)?.label ?? activeTool}
+          {(() => { const lbl = FUND_DRAWING_TOOLS.flatMap(g => g.tools).find(it => it.id === activeTool)?.label; return lbl ? t(lbl) : activeTool; })()}
           <button onClick={() => onSelectTool(null)} className="ml-1.5 opacity-60 hover:opacity-100">✕</button>
         </span>
       )}
@@ -161,6 +164,7 @@ const FUND_MA_DEFS = [
 ];
 
 function FundPriceChart({ priceHistory, monthlyReturns }) {
+  const { t } = useTranslation();
   const [range, setRange]           = useState('1Y');
   const [activeMAs, setActiveMAs]   = useState([]);
   const [showTrend, setShowTrend]   = useState(false);
@@ -181,7 +185,7 @@ function FundPriceChart({ priceHistory, monthlyReturns }) {
     const first = vals[0], last = vals[vals.length - 1];
     const pct = ((last - first) / first) * 100;
     if (isNaN(pct)) return null;
-    const label = pct > 1 ? 'Yükselen Trend' : pct < -1 ? 'Düşen Trend' : 'Yatay Trend';
+    const label = pct > 1 ? t('Yükselen Trend') : pct < -1 ? t('Düşen Trend') : t('Yatay Trend');
     const color = pct > 1 ? '#10b981' : pct < -1 ? '#ef4444' : '#f59e0b';
     return {
       pct, label, color,
@@ -387,7 +391,7 @@ function FundPriceChart({ priceHistory, monthlyReturns }) {
   }, [filtered]);
 
   if (!priceHistory || priceHistory.length === 0) {
-    return <div className="flex items-center justify-center h-48 text-gray-400 text-sm">Fiyat geçmişi bulunamadı.</div>;
+    return <div className="flex items-center justify-center h-48 text-gray-400 text-sm">{t('Fiyat geçmişi bulunamadı.')}</div>;
   }
 
   return (
@@ -408,14 +412,14 @@ function FundPriceChart({ priceHistory, monthlyReturns }) {
           )}
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
-          <span className="text-xs text-gray-400">{filtered.length} veri noktası</span>
+          <span className="text-xs text-gray-400">{filtered.length} {t('veri noktası')}</span>
           <div className="flex gap-1">
             {FUND_CHART_RANGES.map(r => (
               <button key={r.key} onClick={() => setRange(r.key)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   range === r.key ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}>
-                {r.label}
+                {t(r.label)}
               </button>
             ))}
           </div>
@@ -432,7 +436,7 @@ function FundPriceChart({ priceHistory, monthlyReturns }) {
                 active ? 'text-white border-transparent' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
               }`}
               style={active ? { backgroundColor: color, borderColor: color } : {}}>
-              {label}
+              {t(label)}
             </button>
           );
         })}
@@ -443,7 +447,7 @@ function FundPriceChart({ priceHistory, monthlyReturns }) {
               ? 'bg-amber-500 text-white border-amber-500'
               : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
           }`}>
-          📈 Trend
+          📈 {t('Trend')}
         </button>
       </div>
 
@@ -475,7 +479,7 @@ function FundPriceChart({ priceHistory, monthlyReturns }) {
 
       {range === '5Y' && usesMonthlyExtension && (
         <p className="text-xs text-amber-700/90 mt-2">
-          5Y görünüm: son ~1 yıl günlük fiyat; daha eski dönem aylık getirilerden tahmini seri (Rasyonet).
+          {t('5Y görünüm: son ~1 yıl günlük fiyat; daha eski dönem aylık getirilerden tahmini seri (Rasyonet).')}
         </p>
       )}
     </div>
@@ -581,6 +585,7 @@ function MonthlyReturnChart({ monthlyReturns }) {
 const PIE_COLORS = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16','#ec4899','#6366f1'];
 
 function AssetAllocationChart({ assetAllocation }) {
+  const { t } = useTranslation();
   const [hovered, setHovered] = useState(null);
   if (!assetAllocation || assetAllocation.length === 0) return null;
 
@@ -637,7 +642,7 @@ function AssetAllocationChart({ assetAllocation }) {
               </text>
             </>
           ) : (
-            <text x={cx} y={cy + 5} textAnchor="middle" fontSize={13} fill="#9ca3af">Dağılım</text>
+            <text x={cx} y={cy + 5} textAnchor="middle" fontSize={13} fill="#9ca3af">{t('Dağılım')}</text>
           )}
         </svg>
       </div>
@@ -645,8 +650,8 @@ function AssetAllocationChart({ assetAllocation }) {
       {/* Tablo */}
       <div className="flex-1 w-full">
         <div className="grid grid-cols-[1fr_auto] text-xs text-gray-400 font-semibold pb-1 border-b border-gray-100 mb-1 px-1">
-          <span>Varlık</span>
-          <span>% Oran</span>
+          <span>{t('Varlık')}</span>
+          <span>{t('% Oran')}</span>
         </div>
         {slices.map((s, i) => (
           <div key={i}
@@ -660,13 +665,14 @@ function AssetAllocationChart({ assetAllocation }) {
             <span className="text-gray-900 font-semibold">%{(toFloat(s.percentage) ?? 0).toFixed(2)}</span>
           </div>
         ))}
-        <p className="text-[10px] text-gray-400 mt-2 px-1">Veriler saatlik olarak güncellenmektedir.</p>
+        <p className="text-[10px] text-gray-400 mt-2 px-1">{t('Veriler saatlik olarak güncellenmektedir.')}</p>
       </div>
     </div>
   );
 }
 
 export default function TefasFundDetailPage() {
+  const { t } = useTranslation();
   const { code }   = useParams();
   const location   = useLocation();
   const [fund, setFund]       = useState(location.state?.listItem ?? null);
@@ -692,10 +698,10 @@ export default function TefasFundDetailPage() {
     setError('');
     getRasyonetFundDetail(code, sourceCode)
       .then(data => {
-        if (!data) setError('Fon bilgisi bulunamadı.');
+        if (!data) setError(t('Fon bilgisi bulunamadı.'));
         else setDetail(data);
       })
-      .catch(() => setError('Veriler yüklenemedi.'))
+      .catch(() => setError(t('Veriler yüklenemedi.')))
       .finally(() => setLoading(false));
   }, [code, sourceCode]);
 
@@ -715,7 +721,7 @@ export default function TefasFundDetailPage() {
     <div className="max-w-5xl mx-auto space-y-5">
       {/* Geri */}
       <Link to="/market/tefas" className="inline-flex items-center gap-1.5 text-sm text-[#093eaa] font-semibold hover:underline">
-        <ArrowLeft className="w-4 h-4" /> TEFAS Fonları
+        <ArrowLeft className="w-4 h-4" /> {t('TEFAS Fonları')}
       </Link>
 
       {/* ── Header ── */}
@@ -739,7 +745,7 @@ export default function TefasFundDetailPage() {
             {ret1m != null && (
               <p className={`text-sm font-semibold flex items-center justify-end gap-1 mt-1 ${ret1mColor}`}>
                 {ret1mPos ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                1 Ay: {ret1mText}
+                {t('1 Ay:')} {ret1mText}
               </p>
             )}
           </div>
@@ -751,7 +757,7 @@ export default function TefasFundDetailPage() {
           {d?.kapLink && (
             <a href={d.kapLink} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 text-xs text-[#093eaa] hover:underline font-semibold">
-              <ExternalLink className="w-3.5 h-3.5" /> KAP Fon Bilgileri
+              <ExternalLink className="w-3.5 h-3.5" /> {t('KAP Fon Bilgileri')}
             </a>
           )}
         </div>
@@ -776,12 +782,12 @@ export default function TefasFundDetailPage() {
         <>
           {/* Tab butonları */}
           <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit">
-            {TABS.map(t => (
-              <button key={t.key} onClick={() => setActiveTab(t.key)}
+            {TABS.map(tab => (
+              <button key={tab.key} onClick={() => setActiveTab(tab.key)}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                  activeTab === t.key ? 'bg-white text-[#093eaa] shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  activeTab === tab.key ? 'bg-white text-[#093eaa] shadow-sm' : 'text-gray-500 hover:text-gray-700'
                 }`}>
-                {t.label}
+                {t(tab.label)}
               </button>
             ))}
           </div>
@@ -790,21 +796,21 @@ export default function TefasFundDetailPage() {
           {activeTab === 'performance' && (
             <div className="space-y-5">
               <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
-                <ReturnCard label="Günlük" value={d.returnOneDay} />
-                <ReturnCard label="Haftalık" value={d.returnOneWeek} />
-                <ReturnCard label="1 Ay" value={d.returnOneMonth} />
-                <ReturnCard label="3 Ay" value={d.returnThreeMonths} />
-                <ReturnCard label="6 Ay" value={d.returnSixMonths} />
-                <ReturnCard label="YBG" value={d.returnYearToDate} />
-                <ReturnCard label="1 Yıl" value={d.returnOneYear} />
-                <ReturnCard label="3 Yıl" value={d.returnThreeYears} />
-                <ReturnCard label="5 Yıl" value={d.returnFiveYears} />
+                <ReturnCard label={t('Günlük')} value={d.returnOneDay} />
+                <ReturnCard label={t('Haftalık')} value={d.returnOneWeek} />
+                <ReturnCard label={t('1 Ay')} value={d.returnOneMonth} />
+                <ReturnCard label={t('3 Ay')} value={d.returnThreeMonths} />
+                <ReturnCard label={t('6 Ay')} value={d.returnSixMonths} />
+                <ReturnCard label={t('YBG')} value={d.returnYearToDate} />
+                <ReturnCard label={t('1 Yıl')} value={d.returnOneYear} />
+                <ReturnCard label={t('3 Yıl')} value={d.returnThreeYears} />
+                <ReturnCard label={t('5 Yıl')} value={d.returnFiveYears} />
               </div>
 
               {/* Aylık getiri grafiği */}
               {d.monthlyReturns && d.monthlyReturns.length > 0 && (
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-                  <h2 className="font-bold text-gray-900 mb-4">Aylık Getiri (Son 24 Ay)</h2>
+                  <h2 className="font-bold text-gray-900 mb-4">{t('Aylık Getiri (Son 24 Ay)')}</h2>
                   <MonthlyReturnChart monthlyReturns={d.monthlyReturns} />
                 </div>
               )}
@@ -812,22 +818,22 @@ export default function TefasFundDetailPage() {
               {/* Risk bilgileri */}
               {(d.riskBest || d.riskWorst || d.riskPositiveRateOfReturn) && (
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-                  <h2 className="font-bold text-gray-900 mb-4">Risk ve Performans</h2>
+                  <h2 className="font-bold text-gray-900 mb-4">{t('Risk ve Performans')}</h2>
                   <div className="grid grid-cols-3 gap-4">
                     <div className="bg-emerald-50 rounded-xl p-4 text-center">
-                      <p className="text-xs text-gray-500 mb-1">En İyi Ay Getirisi</p>
+                      <p className="text-xs text-gray-500 mb-1">{t('En İyi Ay Getirisi')}</p>
                       <p className="text-lg font-bold text-emerald-600">
                         {d.riskBest ? `+${parseFloat(d.riskBest).toFixed(2)}%` : '-'}
                       </p>
                     </div>
                     <div className="bg-rose-50 rounded-xl p-4 text-center">
-                      <p className="text-xs text-gray-500 mb-1">En Kötü Ay Getirisi</p>
+                      <p className="text-xs text-gray-500 mb-1">{t('En Kötü Ay Getirisi')}</p>
                       <p className="text-lg font-bold text-rose-600">
                         {d.riskWorst ? `${parseFloat(d.riskWorst).toFixed(2)}%` : '-'}
                       </p>
                     </div>
                     <div className="bg-blue-50 rounded-xl p-4 text-center">
-                      <p className="text-xs text-gray-500 mb-1">Pozitif Getiri Oranı</p>
+                      <p className="text-xs text-gray-500 mb-1">{t('Pozitif Getiri Oranı')}</p>
                       <p className="text-lg font-bold text-[#093eaa]">{d.riskPositiveRateOfReturn ?? '-'}</p>
                     </div>
                   </div>
@@ -840,14 +846,14 @@ export default function TefasFundDetailPage() {
           {activeTab === 'chart' && (
             <div className="space-y-5">
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-                <h2 className="font-bold text-gray-900 mb-2">Fiyat Grafiği</h2>
+                <h2 className="font-bold text-gray-900 mb-2">{t('Fiyat Grafiği')}</h2>
                 <FundPriceChart priceHistory={d.priceHistory} monthlyReturns={d.monthlyReturns} />
-                <p className="text-xs text-gray-400 mt-3">Kaynak: Rasyonet · YatırımDirekt</p>
+                <p className="text-xs text-gray-400 mt-3">{t('Kaynak: Rasyonet · YatırımDirekt')}</p>
               </div>
 
               {d.assetAllocation && d.assetAllocation.length > 0 && (
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-                  <h2 className="font-bold text-gray-900 mb-4">Varlık Dağılımı</h2>
+                  <h2 className="font-bold text-gray-900 mb-4">{t('Varlık Dağılımı')}</h2>
                   <AssetAllocationChart assetAllocation={d.assetAllocation} />
                 </div>
               )}
@@ -859,7 +865,7 @@ export default function TefasFundDetailPage() {
             <div className="space-y-5">
               {/* Temel bilgiler */}
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-                <h2 className="font-bold text-gray-900 mb-4">Fon Temel Bilgileri</h2>
+                <h2 className="font-bold text-gray-900 mb-4">{t('Fon Temel Bilgileri')}</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-0">
                   {[
                     ['Fon Kodu', d.code ?? '-'],
@@ -877,7 +883,7 @@ export default function TefasFundDetailPage() {
                     ['Kurucu', d.founderName ?? '-'],
                   ].map(([label, value]) => (
                     <div key={label} className="flex justify-between items-start py-3 border-b border-gray-100 px-1">
-                      <span className="text-sm text-gray-500 w-44 shrink-0">{label}</span>
+                      <span className="text-sm text-gray-500 w-44 shrink-0">{t(label)}</span>
                       <span className="text-sm text-gray-900 font-medium text-right">{value}</span>
                     </div>
                   ))}
@@ -887,7 +893,7 @@ export default function TefasFundDetailPage() {
               {/* Strateji */}
               {d.strategy && (
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-                  <h2 className="font-bold text-gray-900 mb-3">Yatırım Stratejisi</h2>
+                  <h2 className="font-bold text-gray-900 mb-3">{t('Yatırım Stratejisi')}</h2>
                   <p className="text-sm text-gray-700 leading-relaxed">{d.strategy}</p>
                 </div>
               )}
@@ -899,9 +905,7 @@ export default function TefasFundDetailPage() {
       {/* Disclaimer */}
       <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
         <p className="text-xs text-amber-800 leading-relaxed">
-          <span className="font-bold">⚠ Uyarı:</span> Bu sayfada yer alan veriler yatırım tavsiyesi değildir.
-          Geçmiş performans gelecekteki getirilerin garantisi değildir.
-          Veriler Rasyonet / YatırımDirekt kaynaklıdır.
+          <span className="font-bold">{t('⚠ Uyarı:')}</span> {t('Bu sayfada yer alan veriler yatırım tavsiyesi değildir. Geçmiş performans gelecekteki getirilerin garantisi değildir. Veriler Rasyonet / YatırımDirekt kaynaklıdır.')}
         </p>
       </div>
     </div>

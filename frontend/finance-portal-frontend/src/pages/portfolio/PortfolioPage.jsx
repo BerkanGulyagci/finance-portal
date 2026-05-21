@@ -5,6 +5,7 @@ import { getMyPortfolios, deletePortfolio } from '../../api/portfolioApi';
 import CreatePortfolioModal from './components/CreatePortfolioModal';
 import EditPortfolioModal from './components/EditPortfolioModal';
 import PortfolioTypeBadge from './components/PortfolioTypeBadge';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 function fmt(value, dec = 2) {
   if (value === null || value === undefined) return '-';
@@ -25,6 +26,7 @@ function PnlBadge({ value }) {
 }
 
 export default function PortfolioPage() {
+  const { t } = useTranslation();
   const [portfolios, setPortfolios] = useState([]);
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState('');
@@ -38,9 +40,9 @@ export default function PortfolioPage() {
       const data = await getMyPortfolios();
       setPortfolios(data ?? []);
     } catch (err) {
-      if (!err.response) setError('Sunucuya ulaşılamıyor.');
-      else if ([401, 403].includes(err.response.status)) setError('Giriş yapmanız gerekiyor.');
-      else setError(`Portföyler yüklenemedi (${err.response.status}).`);
+      if (!err.response) setError(t('Sunucuya ulaşılamıyor.'));
+      else if ([401, 403].includes(err.response.status)) setError(t('Giriş yapmanız gerekiyor.'));
+      else setError(t('Portföyler yüklenemedi ({status}).', { status: err.response.status }));
     } finally {
       setLoading(false);
     }
@@ -51,13 +53,13 @@ export default function PortfolioPage() {
   async function handleDelete(e, portfolioId) {
     e.preventDefault();
     e.stopPropagation();
-    if (!window.confirm('Bu portföyü silmek istediğinizden emin misiniz? Tüm veriler silinecek.')) return;
+    if (!window.confirm(t('Bu portföyü silmek istediğinizden emin misiniz? Tüm veriler silinecek.'))) return;
     setDeletingId(portfolioId);
     try {
       await deletePortfolio(portfolioId);
       setPortfolios(prev => prev.filter(p => p.id !== portfolioId));
     } catch {
-      alert('Portföy silinemedi.');
+      alert(t('Portföy silinemedi.'));
     } finally {
       setDeletingId(null);
     }
@@ -88,15 +90,15 @@ export default function PortfolioPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 border-l-4 border-[#093eaa] pl-4">
-            Portföylerim
+            {t('Portföylerim')}
           </h1>
-          <p className="text-sm text-gray-500 mt-1 pl-5">{portfolios.length} portföy</p>
+          <p className="text-sm text-gray-500 mt-1 pl-5">{t('{count} portföy', { count: portfolios.length })}</p>
         </div>
         <button
           onClick={() => setShowCreate(true)}
           className="flex items-center gap-2 bg-[#093eaa] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#093eaa]/90 transition-all"
         >
-          <Plus className="w-4 h-4" /> Yeni Portföy
+          <Plus className="w-4 h-4" /> {t('Yeni Portföy')}
         </button>
       </div>
 
@@ -108,7 +110,7 @@ export default function PortfolioPage() {
             <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
             <div className="w-2 h-2 bg-[#093eaa]/30 rounded-full animate-bounce [animation-delay:200ms]" />
           </div>
-          <p className="text-gray-400 text-sm mt-3">Yükleniyor...</p>
+          <p className="text-gray-400 text-sm mt-3">{t('Yükleniyor...')}</p>
         </div>
       )}
 
@@ -125,15 +127,15 @@ export default function PortfolioPage() {
           <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
             <TrendingUp className="w-8 h-8 text-[#093eaa]" />
           </div>
-          <h3 className="font-bold text-gray-900 mb-2">Henüz portföy yok</h3>
+          <h3 className="font-bold text-gray-900 mb-2">{t('Henüz portföy yok')}</h3>
           <p className="text-gray-500 text-sm mb-4">
-            İlk portföyünüzü oluşturun ve yatırımlarınızı takip edin.
+            {t('İlk portföyünüzü oluşturun ve yatırımlarınızı takip edin.')}
           </p>
           <button
             onClick={() => setShowCreate(true)}
             className="bg-[#093eaa] text-white px-6 py-2 rounded-xl text-sm font-semibold hover:bg-[#093eaa]/90"
           >
-            Portföy Oluştur
+            {t('Portföy Oluştur')}
           </button>
         </div>
       )}
@@ -180,20 +182,20 @@ export default function PortfolioPage() {
                   <div className="text-sm text-gray-500">
                     <span className="font-semibold text-gray-700">
                       {p.watchlistItemCount ?? 0}
-                    </span> sembol takip ediliyor
+                    </span> {t('sembol takip ediliyor')}
                   </div>
                 ) : (
                   <div className="space-y-2.5">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Toplam Maliyet</span>
+                      <span className="text-gray-500">{t('Toplam Maliyet')}</span>
                       <span className="font-semibold text-gray-900">{fmt(cost)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Piyasa Değeri</span>
+                      <span className="text-gray-500">{t('Piyasa Değeri')}</span>
                       <span className="font-semibold text-gray-900">{mv > 0 ? fmt(mv) : '-'}</span>
                     </div>
                     <div className="flex justify-between text-sm pt-2 border-t border-gray-100">
-                      <span className="text-gray-500">Kâr / Zarar</span>
+                      <span className="text-gray-500">{t('Kâr / Zarar')}</span>
                       <div className="flex items-center gap-2">
                         <PnlBadge value={pnl} />
                         {pnlPct && <span className="text-xs text-gray-400">({pnlPct}%)</span>}
@@ -205,15 +207,15 @@ export default function PortfolioPage() {
                 {/* Alt bilgi */}
                 <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
                   {isWatchlist ? (
-                    <span>{p.watchlistItemCount ?? 0} sembol · 0 işlem</span>
+                    <span>{t('{count} sembol · 0 işlem', { count: p.watchlistItemCount ?? 0 })}</span>
                   ) : (
-                    <span>{p.holdings?.length ?? 0} varlık · {p.transactions?.length ?? 0} işlem</span>
+                    <span>{t('{assets} varlık · {tx} işlem', { assets: p.holdings?.length ?? 0, tx: p.transactions?.length ?? 0 })}</span>
                   )}
                   <div className="flex items-center gap-2">
                     <button
                       onClick={e => { e.preventDefault(); e.stopPropagation(); setEditingPortfolio(p); }}
                       className="text-gray-300 hover:text-[#093eaa] transition-colors"
-                      title="Portföyü düzenle"
+                      title={t('Portföyü düzenle')}
                     >
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
@@ -221,7 +223,7 @@ export default function PortfolioPage() {
                       onClick={e => handleDelete(e, p.id)}
                       disabled={deletingId === p.id}
                       className="text-gray-300 hover:text-rose-500 transition-colors disabled:opacity-40"
-                      title="Portföyü sil"
+                      title={t('Portföyü sil')}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>

@@ -1,7 +1,9 @@
 import { TrendingUp, TrendingDown, Clock, Plus } from 'lucide-react';
 import { parseTrNumber, formatPrice } from '../../../../utils/numberFormat';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 export default function ViopContractHeader({ contract }) {
+  const { t } = useTranslation();
   if (!contract) return null;
 
   // changePercent'ten % işaretini temizle ve parse et
@@ -42,7 +44,7 @@ export default function ViopContractHeader({ contract }) {
           )}
           <div className="flex-1">
             <h1 className="text-2xl font-black text-gray-900 mb-1">{contract.name}</h1>
-            <p className="text-sm text-gray-500">Vadeli İşlem Sözleşmesi · VİOP</p>
+            <p className="text-sm text-gray-500">{t('Vadeli İşlem Sözleşmesi · VİOP')}</p>
           </div>
         </div>
 
@@ -58,10 +60,10 @@ export default function ViopContractHeader({ contract }) {
           <button
             onClick={handleAddToPortfolio}
             className="flex items-center gap-2 px-4 py-2 bg-[#093eaa] text-white text-sm font-semibold rounded-lg hover:bg-[#072d7a] transition-colors shadow-sm"
-            title="Portföye Ekle"
+            title={t('Portföye Ekle')}
           >
             <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Portföye Ekle</span>
+            <span className="hidden sm:inline">{t('Portföye Ekle')}</span>
           </button>
         </div>
       </div>

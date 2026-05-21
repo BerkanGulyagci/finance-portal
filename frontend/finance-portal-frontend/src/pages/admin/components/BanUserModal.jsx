@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Ban, Clock, Infinity, User, X } from 'lucide-react';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 const BAN_TYPE = {
   PERMANENT: 'PERMANENT',
@@ -11,12 +12,6 @@ const DURATION_UNIT = {
   HOURS: 'HOURS',
   DAYS: 'DAYS',
 };
-
-const UNIT_OPTIONS = [
-  { value: DURATION_UNIT.MINUTES, label: 'Dakika' },
-  { value: DURATION_UNIT.HOURS, label: 'Saat' },
-  { value: DURATION_UNIT.DAYS, label: 'Gün' },
-];
 
 function ModeButton({ active, onClick, disabled, children, className = '' }) {
   return (
@@ -36,10 +31,17 @@ function ModeButton({ active, onClick, disabled, children, className = '' }) {
 }
 
 export default function BanUserModal({ user, open, busy, onClose, onConfirm }) {
+  const { t } = useTranslation();
   const [banType, setBanType] = useState(BAN_TYPE.TEMPORARY);
   const [durationValue, setDurationValue] = useState('8');
   const [durationUnit, setDurationUnit] = useState(DURATION_UNIT.HOURS);
   const [formError, setFormError] = useState('');
+
+  const UNIT_OPTIONS = [
+    { value: DURATION_UNIT.MINUTES, label: t('Dakika') },
+    { value: DURATION_UNIT.HOURS, label: t('Saat') },
+    { value: DURATION_UNIT.DAYS, label: t('Gün') },
+  ];
 
   useEffect(() => {
     if (open) {
@@ -63,7 +65,7 @@ export default function BanUserModal({ user, open, busy, onClose, onConfirm }) {
 
     const value = Number.parseInt(durationValue, 10);
     if (!Number.isInteger(value) || value <= 0) {
-      setFormError('Süre pozitif tam sayı olmalıdır.');
+      setFormError(t('Süre pozitif tam sayı olmalıdır.'));
       return;
     }
 
@@ -78,15 +80,15 @@ export default function BanUserModal({ user, open, busy, onClose, onConfirm }) {
     banType === BAN_TYPE.PERMANENT
       ? {
           tone: 'permanent',
-          title: 'Kalıcı ban uygulanacak',
-          description: 'Kullanıcı hesabı süresiz olarak devre dışı bırakılır ve oturumları sonlandırılır.',
+          title: t('Kalıcı ban uygulanacak'),
+          description: t('Kullanıcı hesabı süresiz olarak devre dışı bırakılır ve oturumları sonlandırılır.'),
         }
       : {
           tone: 'temporary',
-          title: `Geçici ban: ${durationValue || '—'} ${
+          title: `${t('Geçici ban')}: ${durationValue || '—'} ${
             UNIT_OPTIONS.find(o => o.value === durationUnit)?.label?.toLowerCase() ?? ''
           }`,
-          description: 'Süre dolduğunda hesap otomatik olarak yeniden etkinleştirilir.',
+          description: t('Süre dolduğunda hesap otomatik olarak yeniden etkinleştirilir.'),
         };
 
   const summaryStyles = {
@@ -112,9 +114,9 @@ export default function BanUserModal({ user, open, busy, onClose, onConfirm }) {
             </span>
             <div>
               <h2 id="ban-modal-title" className="text-lg font-bold text-gray-900">
-                Kullanıcıyı Banla
+                {t('Kullanıcıyı Banla')}
               </h2>
-              <p className="text-xs text-gray-500 mt-0.5">Kalıcı veya süreli ban uygulayın</p>
+              <p className="text-xs text-gray-500 mt-0.5">{t('Kalıcı veya süreli ban uygulayın')}</p>
             </div>
           </div>
           <button
@@ -122,7 +124,7 @@ export default function BanUserModal({ user, open, busy, onClose, onConfirm }) {
             onClick={onClose}
             disabled={busy}
             className="absolute top-4 right-4 p-1.5 rounded-lg text-gray-400 hover:bg-white hover:text-gray-600"
-            aria-label="Kapat"
+            aria-label={t('Kapat')}
           >
             <X className="w-5 h-5" />
           </button>
@@ -136,14 +138,14 @@ export default function BanUserModal({ user, open, busy, onClose, onConfirm }) {
             <div className="min-w-0">
               <p className="font-bold text-gray-900 truncate">{user.username ?? '—'}</p>
               <p className="text-xs text-gray-600 truncate">
-                {[user.firstName, user.lastName].filter(Boolean).join(' ') || 'Ad soyad yok'}
+                {[user.firstName, user.lastName].filter(Boolean).join(' ') || t('Ad soyad yok')}
               </p>
-              <p className="text-xs text-gray-500 truncate">{user.email ?? 'E-posta yok'}</p>
+              <p className="text-xs text-gray-500 truncate">{user.email ?? t('E-posta yok')}</p>
             </div>
           </section>
 
           <section className="space-y-2">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Ban türü</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t('Ban türü')}</p>
             <div className="grid grid-cols-2 gap-2">
               <ModeButton
                 active={banType === BAN_TYPE.TEMPORARY}
@@ -155,7 +157,7 @@ export default function BanUserModal({ user, open, busy, onClose, onConfirm }) {
                 className="flex items-center justify-center gap-2 px-3 py-3"
               >
                 <Clock className="w-4 h-4" />
-                Geçici ban
+                {t('Geçici ban')}
               </ModeButton>
               <ModeButton
                 active={banType === BAN_TYPE.PERMANENT}
@@ -167,14 +169,14 @@ export default function BanUserModal({ user, open, busy, onClose, onConfirm }) {
                 className="flex items-center justify-center gap-2 px-3 py-3"
               >
                 <Infinity className="w-4 h-4" />
-                Kalıcı ban
+                {t('Kalıcı ban')}
               </ModeButton>
             </div>
           </section>
 
           {banType === BAN_TYPE.TEMPORARY && (
             <section className="space-y-2">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Süre</p>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t('Süre')}</p>
               <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
                 <input
                   type="number"
@@ -185,7 +187,7 @@ export default function BanUserModal({ user, open, busy, onClose, onConfirm }) {
                     setDurationValue(e.target.value);
                     setFormError('');
                   }}
-                  placeholder="Örn. 8"
+                  placeholder={t('Örn. 8')}
                   className="w-full bg-transparent text-sm font-semibold text-gray-900 focus:outline-none"
                 />
                 <select
@@ -224,14 +226,14 @@ export default function BanUserModal({ user, open, busy, onClose, onConfirm }) {
               disabled={busy}
               className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
             >
-              İptal
+              {t('İptal')}
             </button>
             <button
               type="submit"
               disabled={busy}
               className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold bg-rose-600 text-white hover:bg-rose-700 shadow-sm disabled:opacity-50"
             >
-              {busy ? 'Banlanıyor...' : 'Banı Uygula'}
+              {busy ? t('Banlanıyor...') : t('Banı Uygula')}
             </button>
           </footer>
         </form>

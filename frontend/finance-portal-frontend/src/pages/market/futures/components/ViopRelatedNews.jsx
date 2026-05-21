@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Newspaper } from 'lucide-react';
 import { getBloombergHtNews } from '../../../../api/newsApi';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 export default function ViopRelatedNews({ contract }) {
+  const { t } = useTranslation();
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -59,7 +61,7 @@ export default function ViopRelatedNews({ contract }) {
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
         <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
           <Newspaper className="w-5 h-5 text-[#093eaa]" />
-          İlgili Haberler
+          {t('İlgili Haberler')}
         </h2>
         <div className="flex items-center gap-2 py-4">
           <div className="w-2 h-2 bg-[#093eaa] rounded-full animate-bounce" />
@@ -74,11 +76,11 @@ export default function ViopRelatedNews({ contract }) {
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
       <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
         <Newspaper className="w-5 h-5 text-[#093eaa]" />
-        İlgili Haberler
+        {t('İlgili Haberler')}
       </h2>
 
       {news.length === 0 ? (
-        <p className="text-gray-400 text-sm">Haber bulunamadı.</p>
+        <p className="text-gray-400 text-sm">{t('Haber bulunamadı.')}</p>
       ) : (
         <div className="space-y-4">
           {news.map((item, i) => (

@@ -15,11 +15,13 @@ import FundCompareSimulation      from './components/compare/FundCompareSimulati
 import CompareLoadingState        from './components/compare/CompareLoadingState';
 import CompareEmptyState          from './components/compare/CompareEmptyState';
 import CompareErrorState          from './components/compare/CompareErrorState';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 const MAX_FUNDS = 4;
 const DEFAULT_RANGE = '1Y';
 
 export default function TefasComparePage() {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -83,12 +85,12 @@ export default function TefasComparePage() {
       try {
         const detail = await getRasyonetFundDetail(code, 'TMF');
         if (!detail) {
-          newErrors[code] = 'Fon detayı bulunamadı.';
+          newErrors[code] = t('Fon detayı bulunamadı.');
         } else {
           newDetails[code] = detail;
         }
       } catch (e) {
-        newErrors[code] = 'Veri alınamadı.';
+        newErrors[code] = t('Veri alınamadı.');
       }
     }));
 
@@ -106,13 +108,13 @@ export default function TefasComparePage() {
       {/* Başlık */}
       <div>
         <Link to="/market/tefas" className="inline-flex items-center gap-1.5 text-sm text-[#093eaa] font-semibold hover:underline mb-2">
-          <ArrowLeft className="w-4 h-4" /> TEFAS Fonları
+          <ArrowLeft className="w-4 h-4" /> {t('TEFAS Fonları')}
         </Link>
         <h1 className="text-2xl font-bold text-gray-900 border-l-4 border-[#093eaa] pl-4">
-          Fon Karşılaştırma
+          {t('Fon Karşılaştırma')}
         </h1>
         <p className="text-sm text-gray-500 mt-1 pl-5">
-          2–4 fon seçin, normalize performans grafiği ve detaylı karşılaştırma tablosu görün
+          {t('2–4 fon seçin, normalize performans grafiği ve detaylı karşılaştırma tablosu görün')}
         </p>
       </div>
 
@@ -188,9 +190,7 @@ export default function TefasComparePage() {
           {/* Disclaimer */}
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
             <p className="text-xs text-amber-800 leading-relaxed">
-              <span className="font-bold">⚠ Uyarı:</span> Bu sayfada yer alan veriler yatırım tavsiyesi değildir.
-              Geçmiş performans gelecekteki getirilerin garantisi değildir.
-              Veriler Rasyonet / YatırımDirekt kaynaklıdır.
+              <span className="font-bold">{t('⚠ Uyarı:')}</span> {t('Bu sayfada yer alan veriler yatırım tavsiyesi değildir. Geçmiş performans gelecekteki getirilerin garantisi değildir. Veriler Rasyonet / YatırımDirekt kaynaklıdır.')}
             </p>
           </div>
         </div>

@@ -1,11 +1,13 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 export default function AdminUsersPagination({ page, hasMore, loading, onPrev, onNext }) {
+  const { t } = useTranslation();
   const pageNumber = page + 1;
 
   return (
     <section className="flex items-center justify-between gap-3 px-4 py-3 border-t border-gray-100 bg-gray-50/50">
-      <p className="text-xs text-gray-500 font-medium">Sayfa {pageNumber}</p>
+      <p className="text-xs text-gray-500 font-medium">{t('Sayfa')} {pageNumber}</p>
       <div className="flex items-center gap-2">
         <button
           type="button"
@@ -14,7 +16,7 @@ export default function AdminUsersPagination({ page, hasMore, loading, onPrev, o
           className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40"
         >
           <ChevronLeft className="w-4 h-4" />
-          Önceki
+          {t('Önceki')}
         </button>
         <button
           type="button"
@@ -22,7 +24,7 @@ export default function AdminUsersPagination({ page, hasMore, loading, onPrev, o
           disabled={loading || !hasMore}
           className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-40"
         >
-          Sonraki
+          {t('Sonraki')}
           <ChevronRight className="w-4 h-4" />
         </button>
       </div>

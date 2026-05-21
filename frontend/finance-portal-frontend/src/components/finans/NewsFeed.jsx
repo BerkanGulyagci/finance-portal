@@ -1,13 +1,14 @@
 import { useEffect, useState, useRef } from 'react';
 import { RefreshCw, Globe, Newspaper } from 'lucide-react';
 import { getBloombergHtNews, getNews, proxyImageUrl } from '../../api/newsApi';
+import { useTranslation } from '../../i18n/LanguageContext';
 
-function formatTime(raw) {
+function formatTime(raw, t) {
   if (!raw) return '';
   try {
     const diff = Math.floor((Date.now() - new Date(raw).getTime()) / 60000);
-    if (diff < 60) return `${diff} dk önce`;
-    if (diff < 1440) return `${Math.floor(diff / 60)} saat önce`;
+    if (diff < 60) return `${diff} ${t('dk önce')}`;
+    if (diff < 1440) return `${Math.floor(diff / 60)} ${t('saat önce')}`;
     return new Date(raw).toLocaleDateString('tr-TR');
   } catch { return raw; }
 }
@@ -20,6 +21,7 @@ const CATEGORY_COLORS = {
 const PAGE_SIZE = 8;
 
 function ArticleList({ articles, loading }) {
+  const { t } = useTranslation();
   const [page, setPage] = useState(0);
 
   // Reset page when articles change (tab switch)
@@ -43,7 +45,7 @@ function ArticleList({ articles, loading }) {
     </div>
   );
 
-  if (!articles.length) return <p className="text-gray-400 text-sm py-4">Haber bulunamadı.</p>;
+  if (!articles.length) return <p className="text-gray-400 text-sm py-4">{t('Haber bulunamadı.')}</p>;
 
   return (
     <>
@@ -61,9 +63,9 @@ function ArticleList({ articles, loading }) {
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
                 <span className={`text-xs font-bold px-2 py-0.5 rounded ${CATEGORY_COLORS[article.source] ?? CATEGORY_COLORS.default}`}>
-                  {article.source ?? 'HABER'}
+                  {article.source ?? t('HABER')}
                 </span>
-                <span className="text-xs text-gray-500">{formatTime(article.publishedAt)}</span>
+                <span className="text-xs text-gray-500">{formatTime(article.publishedAt, t)}</span>
               </div>
               <h3 className="text-xl font-bold group-hover:text-[#093eaa] transition-colors mb-3 leading-tight">
                 {article.url
@@ -84,7 +86,7 @@ function ArticleList({ articles, loading }) {
             onClick={() => setPage(p => p + 1)}
             className="border border-gray-200 bg-white px-8 py-3 rounded-xl font-bold hover:bg-gray-50 transition-all flex items-center gap-2 group text-sm"
           >
-            Daha Fazla Yükle
+            {t('Daha Fazla Yükle')}
             <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
           </button>
         </div>
@@ -94,6 +96,7 @@ function ArticleList({ articles, loading }) {
 }
 
 export function NewsFeed() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('bloomberg');
 
   // Separate state per tab — lazy loaded, cached after first fetch
@@ -130,8 +133,8 @@ export function NewsFeed() {
   }
 
   const tabs = [
-    { key: 'bloomberg', label: 'Gündem Haberleri', icon: Newspaper },
-    { key: 'intl',      label: 'Dünyadan Haberler', icon: Globe },
+    { key: 'bloomberg', label: t('Gündem Haberleri'), icon: Newspaper },
+    { key: 'intl',      label: t('Dünyadan Haberler'), icon: Globe },
   ];
 
   return (

@@ -11,6 +11,7 @@ import {
   parseMarketValue,
   PORTFOLIO_ASSET_LABELS,
 } from '../../utils/portfolioAnalyticsHelpers';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 function parsePrice(h) {
   const cp = h?.currentPrice;
@@ -22,9 +23,12 @@ function parsePrice(h) {
 }
 
 function MoverRow({ row, valuesHidden, currency, onNavigate }) {
+  const { t } = useTranslation();
   const { holding: h, changePercent } = row;
   const to = getWatchlistDetailPath(h.assetType, h.symbol);
-  const typeLabel = PORTFOLIO_ASSET_LABELS[h.assetType] ?? h.assetType ?? '—';
+  const typeLabel = PORTFOLIO_ASSET_LABELS[h.assetType]
+    ? t(PORTFOLIO_ASSET_LABELS[h.assetType])
+    : (h.assetType ?? '—');
   const price = parsePrice(h);
   const pctCls =
     changePercent > 0 ? 'text-emerald-600' : changePercent < 0 ? 'text-rose-600' : 'text-gray-500';
@@ -96,30 +100,31 @@ export default function PortfolioGainersLosersCard({
   currency = 'TRY',
   limit = 5,
 }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const gainers = getTopGainers(holdings, limit);
   const losers = getTopLosers(holdings, limit);
 
   return (
     <PortfolioChartCard
-      title="Yükselenler ve Düşenler"
-      subtitle="Günlük veya açık K/Z yüzdesine göre; her iki liste her zaman gösterilir."
+      title={t('Yükselenler ve Düşenler')}
+      subtitle={t('Günlük veya açık K/Z yüzdesine göre; her iki liste her zaman gösterilir.')}
       className="lg:col-span-2"
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0">
         <MoverColumn
-          title="Yükselenler"
+          title={t('Yükselenler')}
           rows={gainers}
-          emptyMsg="Yükselen varlık bulunamadı."
+          emptyMsg={t('Yükselen varlık bulunamadı.')}
           valuesHidden={valuesHidden}
           currency={currency}
           onNavigate={to => navigate(to)}
           tone="up"
         />
         <MoverColumn
-          title="Düşenler"
+          title={t('Düşenler')}
           rows={losers}
-          emptyMsg="Düşen varlık bulunamadı."
+          emptyMsg={t('Düşen varlık bulunamadı.')}
           valuesHidden={valuesHidden}
           currency={currency}
           onNavigate={to => navigate(to)}

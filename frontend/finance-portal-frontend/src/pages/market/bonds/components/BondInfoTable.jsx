@@ -1,3 +1,5 @@
+import { useTranslation } from '../../../../i18n/LanguageContext';
+
 function fmtNum(v, decimals = 2) {
   if (v == null) return null;
   const n = parseFloat(v);
@@ -17,6 +19,7 @@ function Row({ label, value, highlight }) {
 }
 
 export default function BondInfoTable({ bond }) {
+  const { t } = useTranslation();
   const dailyChange    = bond.dailyChange    != null ? parseFloat(bond.dailyChange)    : null;
   const dailyChangePct = bond.dailyChangePercent != null ? parseFloat(bond.dailyChangePercent) : null;
   const changePos = dailyChange != null && dailyChange > 0;
@@ -26,30 +29,30 @@ export default function BondInfoTable({ bond }) {
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-      <h2 className="text-sm font-bold text-gray-900 mb-3">Kıymet Bilgileri</h2>
+      <h2 className="text-sm font-bold text-gray-900 mb-3">{t('Kıymet Bilgileri')}</h2>
 
-      <Row label="Kıymet Kodu"       value={bond.instrumentCode} highlight />
-      <Row label="Tür"               value={bond.type} />
-      <Row label="İhraç Tarihi"      value={bond.issueDate} />
-      <Row label="Vade Tarihi"       value={bond.maturityDate} />
-      <Row label="Kalan Gün"         value={bond.remainingDays != null ? `${bond.remainingDays} gün` : null} />
-
-      <p className="text-xs text-gray-400 font-medium mt-3 mb-1 pt-2 border-t border-dashed border-gray-100">
-        EVDS Değerleri
-      </p>
-
-      <Row label="Gösterge Değeri"   value={fmtNum(bond.indicatorValue, 2)} highlight />
-      <Row label="Önceki Değer"      value={fmtNum(bond.previousValue, 2)} />
-      <Row label="Günlük Değişim"    value={changeStr} />
-      <Row label="Günlük Değişim %"  value={changePctStr} />
-      <Row label="Kupon Faiz Oranı"  value={bond.couponRate != null ? `%${fmtNum(bond.couponRate, 2)}` : null} />
+      <Row label={t('Kıymet Kodu')}       value={bond.instrumentCode} highlight />
+      <Row label={t('Tür')}               value={bond.type} />
+      <Row label={t('İhraç Tarihi')}      value={bond.issueDate} />
+      <Row label={t('Vade Tarihi')}       value={bond.maturityDate} />
+      <Row label={t('Kalan Gün')}         value={bond.remainingDays != null ? `${bond.remainingDays} ${t('gün')}` : null} />
 
       <p className="text-xs text-gray-400 font-medium mt-3 mb-1 pt-2 border-t border-dashed border-gray-100">
-        Meta
+        {t('EVDS Değerleri')}
       </p>
 
-      <Row label="Kaynak"            value={bond.source ?? 'TCMB EVDS'} />
-      <Row label="Son Güncelleme"    value={bond.lastUpdated} />
+      <Row label={t('Gösterge Değeri')}   value={fmtNum(bond.indicatorValue, 2)} highlight />
+      <Row label={t('Önceki Değer')}      value={fmtNum(bond.previousValue, 2)} />
+      <Row label={t('Günlük Değişim')}    value={changeStr} />
+      <Row label={t('Günlük Değişim %')}  value={changePctStr} />
+      <Row label={t('Kupon Faiz Oranı')}  value={bond.couponRate != null ? `%${fmtNum(bond.couponRate, 2)}` : null} />
+
+      <p className="text-xs text-gray-400 font-medium mt-3 mb-1 pt-2 border-t border-dashed border-gray-100">
+        {t('Meta')}
+      </p>
+
+      <Row label={t('Kaynak')}            value={bond.source ?? 'TCMB EVDS'} />
+      <Row label={t('Son Güncelleme')}    value={bond.lastUpdated} />
     </div>
   );
 }

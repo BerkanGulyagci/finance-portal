@@ -9,6 +9,7 @@ import { getStockMidasDetail, getStockChart, getStockOhlc } from '../../../api/m
 import { init as klineInit, dispose as klineDispose, registerOverlay } from 'klinecharts';
 import RelatedViopContracts from './components/RelatedViopContracts';
 import { STOCK_CHART_RANGES } from './stockChartRanges';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 // ── Custom Overlay Kayıtları (uygulama başında bir kez çalışır) ──────────────
 // customRect: 2 köşe noktasıyla dikdörtgen çizer
@@ -145,6 +146,7 @@ const DRAWING_TOOLS = [
 
 /* ─── Drawing Toolbar Bileşeni ─── */
 function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll }) {
+  const { t } = useTranslation();
   const [openGroup, setOpenGroup] = useState(null);
 
   return (
@@ -154,12 +156,12 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
           <button
             onClick={() => setOpenGroup(openGroup === group ? null : group)}
             className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
-              tools.some(t => t.id === activeTool)
+              tools.some(tool => tool.id === activeTool)
                 ? 'bg-[#093eaa] text-white border-[#093eaa]'
                 : 'bg-white text-gray-600 border-gray-200 hover:border-[#093eaa] hover:text-[#093eaa]'
             }`}
           >
-            {group} ▾
+            {t(group)} ▾
           </button>
           {openGroup === group && (
             <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-1 min-w-[180px]">
@@ -177,7 +179,7 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
                   }`}
                 >
                   <span className="w-8 text-center font-mono text-[11px] opacity-70">{tool.icon}</span>
-                  <span>{tool.label}</span>
+                  <span>{t(tool.label)}</span>
                 </button>
               ))}
             </div>
@@ -191,7 +193,7 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
       {/* Seçili çizimi sil */}
       <button
         onClick={onDeleteSelected}
-        title="Seçili çizimi sil"
+        title={t('Seçili çizimi sil')}
         className="p-1.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 transition-all border border-gray-200"
       >
         <Trash2 className="w-3.5 h-3.5" />
@@ -200,7 +202,7 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
       {/* Tümünü temizle */}
       <button
         onClick={onClearAll}
-        title="Tüm çizimleri temizle"
+        title={t('Tüm çizimleri temizle')}
         className="p-1.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 transition-all border border-gray-200"
       >
         <X className="w-3.5 h-3.5" />
@@ -209,7 +211,7 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
       {/* Aktif araç göstergesi */}
       {activeTool && (
         <span className="ml-auto text-xs text-[#093eaa] font-medium bg-blue-50 px-2 py-1 rounded-lg">
-          {DRAWING_TOOLS.flatMap(g => g.tools).find(t => t.id === activeTool)?.label ?? activeTool}
+          {(() => { const lbl = DRAWING_TOOLS.flatMap(g => g.tools).find(it => it.id === activeTool)?.label; return lbl ? t(lbl) : activeTool; })()}
           <button onClick={() => onSelectTool(null)} className="ml-1.5 opacity-60 hover:opacity-100">✕</button>
         </span>
       )}
@@ -233,6 +235,7 @@ const SUB_INDICATORS = [
 ];
 
 function CandlestickChart({ symbol }) {
+  const { t } = useTranslation();
   const chartId = useRef(`kline_${Date.now()}`);
   const chartRef = useRef(null);
   const indicatorPaneIds = useRef({}); // Her indikatör için pane ID'sini sakla
@@ -433,7 +436,7 @@ function CandlestickChart({ symbol }) {
 
       {/* ── Alt indikatör butonları ── */}
       <div className="flex gap-1 mb-2 flex-wrap items-center">
-        <span className="text-xs text-gray-400 mr-1">İndikatör:</span>
+        <span className="text-xs text-gray-400 mr-1">{t('İndikatör:')}</span>
         {SUB_INDICATORS.map(({ name, label, color }) => {
           const active = activeSubInds.includes(name);
           return (
@@ -468,7 +471,7 @@ function CandlestickChart({ symbol }) {
         )}
         {error && !loading && (
           <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
-            Mum grafiği verisi yüklenemedi.
+            {t('Mum grafiği verisi yüklenemedi.')}
           </div>
         )}
         <div id={chartId.current} style={{ width: '100%', height: '460px' }} />
@@ -480,6 +483,7 @@ function CandlestickChart({ symbol }) {
 
 /* ─── KlineCharts Çizgi Grafiği ─── */
 function LineChart({ symbol }) {
+  const { t } = useTranslation();
   const chartId = useRef(`kline_line_${Date.now()}`);
   const chartRef = useRef(null);
   const [rangeIdx, setRangeIdx] = useState(2);
@@ -612,7 +616,7 @@ function LineChart({ symbol }) {
         )}
         {error && !loading && (
           <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
-            Grafik verisi yüklenemedi.
+            {t('Grafik verisi yüklenemedi.')}
           </div>
         )}
         <div id={chartId.current} style={{ width: '100%', height: '380px' }} />
@@ -621,10 +625,12 @@ function LineChart({ symbol }) {
   );
 }
 
-function MetricCard({ label, value, highlight }) {  if (!value) return null;
+function MetricCard({ label, value, highlight }) {
+  const { t } = useTranslation();
+  if (!value) return null;
   return (
     <div className="bg-gray-50 rounded-xl p-4">
-      <p className="text-xs text-gray-400 mb-1">{label}</p>
+      <p className="text-xs text-gray-400 mb-1">{t(label)}</p>
       <p className={`text-sm font-bold ${highlight ? 'text-[#093eaa]' : 'text-gray-900'}`}>{value}</p>
     </div>
   );
@@ -632,10 +638,11 @@ function MetricCard({ label, value, highlight }) {  if (!value) return null;
 
 /* ─── Info Row ─── */
 function InfoRow({ label, value }) {
+  const { t } = useTranslation();
   if (!value) return null;
   return (
     <div className="flex justify-between items-start py-3.5 border-b border-gray-100 last:border-0">
-      <span className="text-sm text-gray-500 w-44 shrink-0">{label}</span>
+      <span className="text-sm text-gray-500 w-44 shrink-0">{t(label)}</span>
       <span className="text-sm text-gray-900 font-medium text-right max-w-xs">{value}</span>
     </div>
   );
@@ -643,6 +650,7 @@ function InfoRow({ label, value }) {
 
 /* ─── Main Page ─── */
 export default function StockDetailPage() {
+  const { t } = useTranslation();
   const { symbol } = useParams();
   const [midas, setMidas] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -654,7 +662,7 @@ export default function StockDetailPage() {
     Promise.all([
       getStockMidasDetail(symbol).catch(() => null),
     ]).then(([m]) => { setMidas(m); })
-      .catch(e => setError(!e.response ? 'Sunucuya ulaşılamıyor.' : `Hata (${e.response.status})`))
+      .catch(e => setError(!e.response ? t('Sunucuya ulaşılamıyor.') : `${t('Hata')} (${e.response.status})`))
       .finally(() => setLoading(false));
   }, [symbol]);
 
@@ -679,9 +687,9 @@ export default function StockDetailPage() {
           )}
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              {ticker} Hisse {midas?.name ? `- ${midas.name}` : ''}
+              {ticker} {t('Hisse')} {midas?.name ? `- ${midas.name}` : ''}
             </h1>
-            <p className="text-xs text-gray-400 mt-0.5">Borsa İstanbul · Veriler 15 dk gecikmeli · Kaynak: Midas</p>
+            <p className="text-xs text-gray-400 mt-0.5">{t('Borsa İstanbul · Veriler 15 dk gecikmeli · Kaynak: Midas')}</p>
           </div>
         </div>
       </div>
@@ -707,13 +715,13 @@ export default function StockDetailPage() {
                 <p className="text-4xl font-bold text-gray-900">
                   {midas?.currentPrice ?? '-'}
                 </p>
-                <p className="text-sm text-gray-400 mt-1">Güncel Fiyat</p>
+                <p className="text-sm text-gray-400 mt-1">{t('Güncel Fiyat')}</p>
               </div>
               <div className="p-6">
                 <p className="text-2xl font-bold text-gray-900 truncate">
                   {midas?.dailyVolume ?? '-'}
                 </p>
-                <p className="text-sm text-gray-400 mt-1">Günlük İşlem Hacmi</p>
+                <p className="text-sm text-gray-400 mt-1">{t('Günlük İşlem Hacmi')}</p>
               </div>
             </div>
 
@@ -723,7 +731,7 @@ export default function StockDetailPage() {
                 {[{ key: 'tv', label: 'Mum Grafik' }, { key: 'line', label: 'Çizgi' }].map(m => (
                   <button key={m.key} onClick={() => setChartMode(m.key)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${chartMode === m.key ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                    {m.label}
+                    {t(m.label)}
                   </button>
                 ))}
               </div>
@@ -737,7 +745,7 @@ export default function StockDetailPage() {
               <div className="px-6 pb-5">
                 <span className={`text-sm font-bold flex items-center gap-1.5 ${isPos ? 'text-emerald-600' : 'text-rose-600'}`}>
                   {isPos ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                  Günlük Değişim: {midas.dailyChange ?? ''} ({midas.dailyChangePercent})
+                  {t('Günlük Değişim:')} {midas.dailyChange ?? ''} ({midas.dailyChangePercent})
                 </span>
               </div>
             )}
@@ -775,12 +783,12 @@ export default function StockDetailPage() {
           {/* ── Ortaklık Yapısı ── */}
           {midas?.shareholders?.length > 0 && (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-              <h2 className="text-base font-bold text-gray-900 mb-6">{ticker} Ortaklık Yapısı</h2>
+              <h2 className="text-base font-bold text-gray-900 mb-6">{ticker} {t('Ortaklık Yapısı')}</h2>
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Ticari Ünvan</th>
-                    <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Pay Oranı (%)</th>
+                    <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">{t('Ticari Ünvan')}</th>
+                    <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">{t('Pay Oranı (%)')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -797,10 +805,10 @@ export default function StockDetailPage() {
 
           {/* ── Şirket Hakkında ── */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-            <h2 className="text-base font-bold text-gray-900 mb-1">{ticker} - Şirket Hakkında</h2>
+            <h2 className="text-base font-bold text-gray-900 mb-1">{ticker} - {t('Şirket Hakkında')}</h2>
             {midas?.name && (
               <p className="text-sm text-gray-400 mb-6">
-                {midas.name} şirketiyle ilgili bilmen gerekenleri aşağıda bulabilirsin.
+                {midas.name} {t('şirketiyle ilgili bilmen gerekenleri aşağıda bulabilirsin.')}
               </p>
             )}
             <InfoRow label="CEO"              value={midas?.ceo} />
@@ -838,7 +846,7 @@ export default function StockDetailPage() {
 
           {!midas && !chart && (
             <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-              <p className="text-gray-400">Bu hisse için detay verisi bulunamadı.</p>
+              <p className="text-gray-400">{t('Bu hisse için detay verisi bulunamadı.')}</p>
             </div>
           )}
         </>

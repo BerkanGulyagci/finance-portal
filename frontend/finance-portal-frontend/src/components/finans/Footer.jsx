@@ -1,5 +1,6 @@
 import { Globe, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 const footerLinks = {
   haberler: [
@@ -23,6 +24,7 @@ const footerLinks = {
 };
 
 export function Footer() {
+  const { t } = useTranslation();
   return (
     <footer className="bg-white border-t border-gray-200 mt-20 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -44,7 +46,7 @@ export function Footer() {
               </div>
             </div>
             <p className="text-sm text-gray-500 mb-6">
-              Türkiye'nin ve dünyanın en güncel finans haberlerini, verilerini ve analizlerini sunan bağımsız platform.
+              {t("Türkiye'nin ve dünyanın en güncel finans haberlerini, verilerini ve analizlerini sunan bağımsız platform.")}
             </p>
             <div className="flex gap-4">
               <a href="#" className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:text-[#093eaa] transition-colors">
@@ -57,28 +59,28 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="font-bold mb-4 text-gray-900">Haberler</h4>
+            <h4 className="font-bold mb-4 text-gray-900">{t('Haberler')}</h4>
             <ul className="space-y-2 text-sm text-gray-500">
               {footerLinks.haberler.map(l => (
-                <li key={l.label}><Link to={l.path} className="hover:text-[#093eaa] transition-colors">{l.label}</Link></li>
+                <li key={l.label}><Link to={l.path} className="hover:text-[#093eaa] transition-colors">{t(l.label)}</Link></li>
               ))}
             </ul>
           </div>
 
           <div>
-            <h4 className="font-bold mb-4 text-gray-900">Piyasalar</h4>
+            <h4 className="font-bold mb-4 text-gray-900">{t('Piyasalar')}</h4>
             <ul className="space-y-2 text-sm text-gray-500">
               {footerLinks.piyasalar.map(l => (
-                <li key={l.label}><Link to={l.path} className="hover:text-[#093eaa] transition-colors">{l.label}</Link></li>
+                <li key={l.label}><Link to={l.path} className="hover:text-[#093eaa] transition-colors">{t(l.label)}</Link></li>
               ))}
             </ul>
           </div>
 
           <div>
-            <h4 className="font-bold mb-4 text-gray-900">Kurumsal</h4>
+            <h4 className="font-bold mb-4 text-gray-900">{t('Kurumsal')}</h4>
             <ul className="space-y-2 text-sm text-gray-500">
               {footerLinks.kurumsal.map(l => (
-                <li key={l.label}><a href={l.path} className="hover:text-[#093eaa] transition-colors">{l.label}</a></li>
+                <li key={l.label}><a href={l.path} className="hover:text-[#093eaa] transition-colors">{t(l.label)}</a></li>
               ))}
             </ul>
           </div>
@@ -86,7 +88,7 @@ export function Footer() {
 
         <div className="border-t border-gray-200 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-xs text-gray-400">
-            © 2025 Finans Portalı. Tüm hakları saklıdır. Veriler gecikmeli olarak yansıtılabilir.
+            {t('© 2025 Finans Portalı. Tüm hakları saklıdır. Veriler gecikmeli olarak yansıtılabilir.')}
           </p>
         </div>
       </div>

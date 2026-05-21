@@ -7,8 +7,10 @@ import BondInfoTable        from './components/BondInfoTable';
 import BondAnalysisCard     from './components/BondAnalysisCard';
 import BondEvdsHistoryChart from './components/BondEvdsHistoryChart';
 import { fmtPct } from './components/bondChartUtils';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 export default function BondDetailPage() {
+  const { t } = useTranslation();
   const { symbol } = useParams();
   const location   = useLocation();
 
@@ -24,8 +26,8 @@ export default function BondDetailPage() {
     setLoading(true);
     setError('');
     getEvdsBondDetail(code)
-      .then(data => { if (!data) setError('Kıymet bulunamadı.'); else setBond(data); })
-      .catch(e => setError(e.response?.status === 404 ? `Kıymet bulunamadı: ${code}` : 'TCMB EVDS verileri şu anda alınamadı.'))
+      .then(data => { if (!data) setError(t('Kıymet bulunamadı.')); else setBond(data); })
+      .catch(e => setError(e.response?.status === 404 ? `${t('Kıymet bulunamadı:')} ${code}` : t('TCMB EVDS verileri şu anda alınamadı.')))
       .finally(() => setLoading(false));
   }, [symbol]);
 
@@ -55,8 +57,8 @@ export default function BondDetailPage() {
   if (error || !bond) {
     return (
       <div className="max-w-3xl mx-auto py-12 text-center space-y-4">
-        <p className="text-rose-500 text-sm">{error || 'Kıymet bulunamadı.'}</p>
-        <Link to="/market/bonds" className="text-[#093eaa] text-sm hover:underline">← Listeye Dön</Link>
+        <p className="text-rose-500 text-sm">{error || t('Kıymet bulunamadı.')}</p>
+        <Link to="/market/bonds" className="text-[#093eaa] text-sm hover:underline">{t('← Listeye Dön')}</Link>
       </div>
     );
   }
@@ -94,8 +96,7 @@ export default function BondDetailPage() {
       {/* 5. Disclaimer */}
       <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
         <p className="text-xs text-amber-800 leading-relaxed">
-          <span className="font-bold">⚠ Uyarı:</span> Bu sayfada yer alan veriler TCMB EVDS kaynaklı gösterge değerleridir.
-          Alış/satış fiyatı değildir. Yatırım tavsiyesi niteliği taşımaz.
+          <span className="font-bold">{t('⚠ Uyarı:')}</span> {t('Bu sayfada yer alan veriler TCMB EVDS kaynaklı gösterge değerleridir. Alış/satış fiyatı değildir. Yatırım tavsiyesi niteliği taşımaz.')}
         </p>
       </div>
     </div>
@@ -104,6 +105,7 @@ export default function BondDetailPage() {
 
 // ── Özet metrik satırı ────────────────────────────────────────────────────────
 function MetricBar({ bond }) {
+  const { t } = useTranslation();
   function fmtNum(v, d = 2) {
     if (v == null) return '-';
     const n = parseFloat(v);
@@ -146,7 +148,7 @@ function MetricBar({ bond }) {
           className={`bg-white rounded-2xl border shadow-sm p-5 ${m.accent ? 'border-[#093eaa]/25' : 'border-gray-200'}`}
         >
           <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-2 leading-tight">
-            {m.label}
+            {t(m.label)}
           </p>
           <p className={`text-2xl font-bold font-mono leading-none ${m.valueColor ?? (m.accent ? 'text-[#093eaa]' : 'text-gray-900')}`}>
             {m.value}

@@ -23,18 +23,20 @@ import {
   signedNumericDomain,
 } from './portfolioChartStyles';
 import { formatMoney } from '../../utils/portfolioFormatUtils';
+import { useTranslation } from '../../../../i18n/LanguageContext';
 
 export default function PortfolioTypeProfitLossChart({ holdings, valuesHidden, currency }) {
-  const rows = calculateProfitLossByType(holdings);
+  const { t } = useTranslation();
+  const rows = calculateProfitLossByType(holdings).map(r => ({ ...r, label: t(r.label) }));
   const yDomain = signedNumericDomain(rows.map(r => r.profitLoss));
 
   return (
     <PortfolioChartCard
-      title="Varlık Türü Bazlı Kar/Zarar"
-      subtitle="Kategorilere göre toplam açık kar/zarar (marketValue − totalCost)."
+      title={t('Varlık Türü Bazlı Kar/Zarar')}
+      subtitle={t('Kategorilere göre toplam açık kar/zarar (marketValue − totalCost).')}
     >
       {!rows.length ? (
-        <p className="text-center text-sm text-gray-400 py-10">Kar/zarar verisi bulunamadı.</p>
+        <p className="text-center text-sm text-gray-400 py-10">{t('Kar/zarar verisi bulunamadı.')}</p>
       ) : (
         <div className="h-[240px] w-full min-w-0">
           <ResponsiveContainer width="100%" height="100%">
@@ -70,7 +72,7 @@ export default function PortfolioTypeProfitLossChart({ holdings, valuesHidden, c
                   />
                 }
               />
-              <Bar dataKey="profitLoss" name="K/Z" radius={[3, 3, 0, 0]} {...BAR_VERTICAL_BAR}>
+              <Bar dataKey="profitLoss" name={t('K/Z')} radius={[3, 3, 0, 0]} {...BAR_VERTICAL_BAR}>
                 {rows.map(e => (
                   <Cell key={e.type} fill={e.profitLoss >= 0 ? COLOR_POS : COLOR_NEG} />
                 ))}

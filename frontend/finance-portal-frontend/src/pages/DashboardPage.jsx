@@ -5,6 +5,7 @@ import { getMyPortfolios } from '../api/portfolioApi';
 import { getCryptos, getFxTcmb } from '../api/marketApi';
 import { getBloombergHtNews, proxyImageUrl } from '../api/newsApi';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../i18n/LanguageContext';
 
 function StatCard({ icon: Icon, label, value, sub, color = 'text-[#093eaa]' }) {
   return (
@@ -22,6 +23,7 @@ function StatCard({ icon: Icon, label, value, sub, color = 'text-[#093eaa]' }) {
 }
 
 export default function DashboardPage() {
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
   const [portfolios, setPortfolios] = useState([]);
   const [cryptos, setCryptos] = useState([]);
@@ -45,33 +47,33 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-bold text-gray-900 border-l-4 border-[#093eaa] pl-4">Dashboard</h1>
+      <h1 className="text-2xl font-bold text-gray-900 border-l-4 border-[#093eaa] pl-4">{t('Dashboard')}</h1>
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Wallet} label="Toplam Portföy Değeri"
+        <StatCard icon={Wallet} label={t('Toplam Portföy Değeri')}
           value={isAuthenticated ? totalValue.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) : '—'}
-          sub={isAuthenticated ? `${portfolios.length} portföy` : 'Giriş yapın'} />
-        <StatCard icon={TrendingUp} label="Toplam Kar/Zarar"
+          sub={isAuthenticated ? t('{count} portföy', { count: portfolios.length }) : t('Giriş yapın')} />
+        <StatCard icon={TrendingUp} label={t('Toplam Kar/Zarar')}
           value={isAuthenticated ? totalPnl.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) : '—'}
           color={totalPnl >= 0 ? 'text-emerald-600' : 'text-rose-600'} />
         <StatCard icon={BarChart3} label="USD/TRY"
           value={usd ? usd.sell.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) : '—'}
-          sub="TCMB satış kuru" />
+          sub={t('TCMB satış kuru')} />
         <StatCard icon={BarChart3} label="EUR/TRY"
           value={eur ? eur.sell.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) : '—'}
-          sub="TCMB satış kuru" />
+          sub={t('TCMB satış kuru')} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Top Cryptos */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-bold text-gray-900">Kripto Piyasası</h2>
-            <Link to="/market" className="text-xs text-[#093eaa] font-semibold hover:underline">Tümü →</Link>
+            <h2 className="font-bold text-gray-900">{t('Kripto Piyasası')}</h2>
+            <Link to="/market" className="text-xs text-[#093eaa] font-semibold hover:underline">{t('Tümü →')}</Link>
           </div>
           <div className="space-y-3">
-            {cryptos.length === 0 && <p className="text-sm text-gray-400">Yükleniyor...</p>}
+            {cryptos.length === 0 && <p className="text-sm text-gray-400">{t('Yükleniyor...')}</p>}
             {cryptos.map(c => {
               const pct = parseFloat(c.priceChangePercentage24h ?? 0);
               return (
@@ -100,12 +102,12 @@ export default function DashboardPage() {
         <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-bold text-gray-900 flex items-center gap-2">
-              <Newspaper className="w-4 h-4 text-[#093eaa]" /> Son Haberler
+              <Newspaper className="w-4 h-4 text-[#093eaa]" /> {t('Son Haberler')}
             </h2>
-            <Link to="/news" className="text-xs text-[#093eaa] font-semibold hover:underline">Tümü →</Link>
+            <Link to="/news" className="text-xs text-[#093eaa] font-semibold hover:underline">{t('Tümü →')}</Link>
           </div>
           <div className="space-y-4">
-            {news.length === 0 && <p className="text-sm text-gray-400">Yükleniyor...</p>}
+            {news.length === 0 && <p className="text-sm text-gray-400">{t('Yükleniyor...')}</p>}
             {news.map((item, i) => (
               <div key={i} className={`flex gap-3 ${i > 0 ? 'border-t border-gray-100 pt-4' : ''}`}>
                 {item.imageUrl && (
@@ -130,8 +132,8 @@ export default function DashboardPage() {
       {isAuthenticated && portfolios.length > 0 && (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-bold text-gray-900">Portföylerim</h2>
-            <Link to="/portfolio" className="text-xs text-[#093eaa] font-semibold hover:underline">Tümü →</Link>
+            <h2 className="font-bold text-gray-900">{t('Portföylerim')}</h2>
+            <Link to="/portfolio" className="text-xs text-[#093eaa] font-semibold hover:underline">{t('Tümü →')}</Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {portfolios.slice(0, 3).map(p => {
@@ -140,11 +142,11 @@ export default function DashboardPage() {
                 <div key={p.id} className="border border-gray-100 rounded-xl p-4">
                   <p className="font-bold text-gray-900 mb-2">{p.name}</p>
                   <div className="flex justify-between text-xs text-gray-500">
-                    <span>Değer</span>
+                    <span>{t('Değer')}</span>
                     <span className="font-semibold text-gray-800">{(p.totalMarketValue ?? 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
                   </div>
                   <div className="flex justify-between text-xs mt-1">
-                    <span className="text-gray-500">K/Z</span>
+                    <span className="text-gray-500">{t('K/Z')}</span>
                     <span className={`font-bold ${pnl >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                       {pnl.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                     </span>

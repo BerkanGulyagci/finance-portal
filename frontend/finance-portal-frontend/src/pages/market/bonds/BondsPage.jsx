@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { getEvdsBonds } from '../../../api/marketApi';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 // ── Format yardımcıları ───────────────────────────────────────────────────────
 
@@ -24,6 +25,7 @@ function fmtPct(v, d = 2) {
 // ── Kalan gün badge ───────────────────────────────────────────────────────────
 
 function DaysBadge({ days }) {
+  const { t } = useTranslation();
   if (days == null) return <span className="text-gray-300">-</span>;
   const color =
     days <= 90  ? 'bg-amber-100 text-amber-700' :
@@ -31,7 +33,7 @@ function DaysBadge({ days }) {
                   'bg-gray-100 text-gray-600';
   return (
     <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${color}`}>
-      {days} gün
+      {days} {t('gün')}
     </span>
   );
 }
@@ -74,6 +76,7 @@ function SortTh({ label, field, sortBy, sortDir, onSort, align = 'left' }) {
 // ── Pagination ────────────────────────────────────────────────────────────────
 
 function Pagination({ page, totalPages, totalItems, size, onChange }) {
+  const { t } = useTranslation();
   if (totalPages <= 1) return null;
   const from = page * size + 1;
   const to   = Math.min((page + 1) * size, totalItems);
@@ -86,8 +89,8 @@ function Pagination({ page, totalPages, totalItems, size, onChange }) {
   return (
     <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 flex-wrap gap-2">
       <p className="text-xs text-gray-400">
-        <span className="font-semibold text-gray-600">{totalItems}</span> aktif kıymetten{' '}
-        <span className="font-semibold text-gray-600">{from}–{to}</span> arası gösteriliyor
+        <span className="font-semibold text-gray-600">{totalItems}</span> {t('aktif kıymetten')}{' '}
+        <span className="font-semibold text-gray-600">{from}–{to}</span> {t('arası gösteriliyor')}
       </p>
       <div className="flex items-center gap-1">
         <button onClick={() => onChange(0)} disabled={page === 0}
@@ -124,6 +127,7 @@ const SIZE_OPTIONS = [25, 50, 100];
 // ── Ana bileşen ───────────────────────────────────────────────────────────────
 
 export default function BondsPage() {
+  const { t } = useTranslation();
   // Filtre state'leri
   const [search,       setSearch]       = useState('');
   const [type,         setType]         = useState('');
@@ -173,7 +177,7 @@ export default function BondsPage() {
         setTotalItems(data.totalItems ?? 0);
         setTotalPages(data.totalPages ?? 0);
       })
-      .catch(e => setError(!e.response ? 'TCMB EVDS verileri şu anda alınamadı.' : `Hata (${e.response.status})`))
+      .catch(e => setError(!e.response ? t('TCMB EVDS verileri şu anda alınamadı.') : `${t('Hata')} (${e.response.status})`))
       .finally(() => setLoading(false));
   }, [page, size, debouncedSearch, type, maturityIdx, sortBy, sortDir]);
 
@@ -197,10 +201,10 @@ export default function BondsPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-2 border-l-4 border-[#093eaa] pl-4">
-        Tahvil / Bono
+        {t('Tahvil / Bono')}
       </h1>
       <p className="text-sm text-gray-500 mb-5 pl-5">
-        Devlet İç Borçlanma Senetleri (DİBS) · TCMB EVDS Gösterge Değerleri · Kaynak: TCMB EVDS
+        {t('Devlet İç Borçlanma Senetleri (DİBS) · TCMB EVDS Gösterge Değerleri · Kaynak: TCMB EVDS')}
       </p>
 
       {/* ── Filtre paneli ── */}
@@ -208,7 +212,7 @@ export default function BondsPage() {
         <div className="flex flex-wrap gap-3 items-end">
           {/* Arama */}
           <div className="flex-1 min-w-[180px] max-w-xs">
-            <label className="block text-xs font-semibold text-gray-500 mb-1">Kıymet Kodu Ara</label>
+            <label className="block text-xs font-semibold text-gray-500 mb-1">{t('Kıymet Kodu Ara')}</label>
             <div className="relative">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -225,21 +229,21 @@ export default function BondsPage() {
 
           {/* Tür */}
           <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1">Tür</label>
+            <label className="block text-xs font-semibold text-gray-500 mb-1">{t('Tür')}</label>
             <select
               value={type}
               onChange={e => { setType(e.target.value); setPage(0); }}
               className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30 bg-white"
             >
-              {TYPE_OPTIONS.map(t => (
-                <option key={t} value={t}>{t || 'Tümü'}</option>
+              {TYPE_OPTIONS.map(opt => (
+                <option key={opt} value={opt}>{opt ? t(opt) : t('Tümü')}</option>
               ))}
             </select>
           </div>
 
           {/* Vade filtresi */}
           <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1">Vade</label>
+            <label className="block text-xs font-semibold text-gray-500 mb-1">{t('Vade')}</label>
             <div className="flex gap-1">
               {MATURITY_FILTERS.map((f, i) => (
                 <button
@@ -251,7 +255,7 @@ export default function BondsPage() {
                       : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-[#093eaa] hover:text-[#093eaa]'
                   }`}
                 >
-                  {f.label}
+                  {t(f.label)}
                 </button>
               ))}
             </div>
@@ -259,7 +263,7 @@ export default function BondsPage() {
 
           {/* Sayfa boyutu */}
           <div className="ml-auto">
-            <label className="block text-xs font-semibold text-gray-500 mb-1">Sayfa Boyutu</label>
+            <label className="block text-xs font-semibold text-gray-500 mb-1">{t('Sayfa Boyutu')}</label>
             <select
               value={size}
               onChange={e => { setSize(Number(e.target.value)); setPage(0); }}
@@ -275,19 +279,19 @@ export default function BondsPage() {
       {!loading && !error && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
           <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <p className="text-xs text-gray-400 mb-1">Toplam Aktif Kıymet</p>
+            <p className="text-xs text-gray-400 mb-1">{t('Toplam Aktif Kıymet')}</p>
             <p className="text-xl font-bold text-gray-900">{totalItems}</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <p className="text-xs text-gray-400 mb-1">Bu Sayfada</p>
+            <p className="text-xs text-gray-400 mb-1">{t('Bu Sayfada')}</p>
             <p className="text-xl font-bold text-[#093eaa]">{items.length}</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <p className="text-xs text-gray-400 mb-1">Toplam Sayfa</p>
+            <p className="text-xs text-gray-400 mb-1">{t('Toplam Sayfa')}</p>
             <p className="text-xl font-bold text-gray-900">{totalPages}</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <p className="text-xs text-gray-400 mb-1">Kaynak</p>
+            <p className="text-xs text-gray-400 mb-1">{t('Kaynak')}</p>
             <p className="text-sm font-bold text-gray-900">TCMB EVDS</p>
           </div>
         </div>
@@ -302,7 +306,7 @@ export default function BondsPage() {
               <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
               <div className="w-2 h-2 bg-[#093eaa]/30 rounded-full animate-bounce [animation-delay:200ms]" />
             </div>
-            <p className="text-gray-400 text-sm">EVDS tahvil/bono verileri yükleniyor...</p>
+            <p className="text-gray-400 text-sm">{t('EVDS tahvil/bono verileri yükleniyor...')}</p>
           </div>
         )}
 
@@ -318,21 +322,21 @@ export default function BondsPage() {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <SortTh {...thProps('Kıymet Kodu', 'instrumentCode')} />
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Tür</th>
-                    <SortTh {...thProps('Vade Tarihi', 'maturityDate')} />
-                    <SortTh {...thProps('Kalan Gün', 'remainingDays', 'right')} />
-                    <SortTh {...thProps('EVDS Gösterge Değeri', 'indicatorValue', 'right')} />
-                    <SortTh {...thProps('Günlük Değişim %', 'dailyChangePercent', 'right')} />
-                    <SortTh {...thProps('Kupon Faiz Oranı', 'couponRate', 'right')} />
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Kaynak</th>
+                    <SortTh {...thProps(t('Kıymet Kodu'), 'instrumentCode')} />
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('Tür')}</th>
+                    <SortTh {...thProps(t('Vade Tarihi'), 'maturityDate')} />
+                    <SortTh {...thProps(t('Kalan Gün'), 'remainingDays', 'right')} />
+                    <SortTh {...thProps(t('EVDS Gösterge Değeri'), 'indicatorValue', 'right')} />
+                    <SortTh {...thProps(t('Günlük Değişim %'), 'dailyChangePercent', 'right')} />
+                    <SortTh {...thProps(t('Kupon Faiz Oranı'), 'couponRate', 'right')} />
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('Kaynak')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="px-4 py-8 text-center text-gray-400 text-sm">
-                        Gösterilecek EVDS tahvil/bono verisi bulunamadı.
+                        {t('Gösterilecek EVDS tahvil/bono verisi bulunamadı.')}
                       </td>
                     </tr>
                   ) : items.map((b, i) => (
@@ -382,7 +386,7 @@ export default function BondsPage() {
             />
 
             <div className="px-4 py-2 bg-gray-50 border-t border-gray-100 text-xs text-gray-400">
-              * Gösterge değerleri TCMB EVDS kaynaklıdır. Alış/satış fiyatı değildir. Yatırım tavsiyesi niteliği taşımaz.
+              {t('* Gösterge değerleri TCMB EVDS kaynaklıdır. Alış/satış fiyatı değildir. Yatırım tavsiyesi niteliği taşımaz.')}
             </div>
           </>
         )}

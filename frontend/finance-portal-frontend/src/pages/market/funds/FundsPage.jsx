@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getFunds } from '../../../api/marketApi';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 function pct(v) {
   if (v == null) return <span className="text-gray-400">-</span>;
@@ -11,28 +12,29 @@ function num(v, dec = 2) {
 }
 
 export default function FundsPage() {
+  const { t } = useTranslation();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    getFunds(0, 50).then(r => setItems(r.content ?? [])).catch(e => setError(!e.response ? 'Sunucuya ulaşılamıyor.' : `Hata (${e.response.status})`)).finally(() => setLoading(false));
+    getFunds(0, 50).then(r => setItems(r.content ?? [])).catch(e => setError(!e.response ? t('Sunucuya ulaşılamıyor.') : `${t('Hata')} (${e.response.status})`)).finally(() => setLoading(false));
   }, []);
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-2 border-l-4 border-[#093eaa] pl-4">Global Fonlar</h1>
-      <p className="text-sm text-gray-500 mb-6 pl-5">Küresel ETF ve yatırım fonları</p>
+      <h1 className="text-2xl font-bold text-gray-900 mb-2 border-l-4 border-[#093eaa] pl-4">{t('Global Fonlar')}</h1>
+      <p className="text-sm text-gray-500 mb-6 pl-5">{t('Küresel ETF ve yatırım fonları')}</p>
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        {loading && <div className="p-8 text-center text-gray-400 text-sm">Yükleniyor...</div>}
+        {loading && <div className="p-8 text-center text-gray-400 text-sm">{t('Yükleniyor...')}</div>}
         {error && <div className="p-6 text-rose-500 text-sm">{error}</div>}
         {!loading && !error && (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>{['Sembol', 'Ad', 'Fiyat', 'Değişim', '%', 'Yüksek', 'Düşük', 'Hacim', 'Borsa'].map(h =>
-                  <th key={h} className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap border-b border-gray-200">{h}</th>
+                  <th key={h} className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap border-b border-gray-200">{t(h)}</th>
                 )}</tr>
               </thead>
               <tbody>

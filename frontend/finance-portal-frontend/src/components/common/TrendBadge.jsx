@@ -1,4 +1,5 @@
 import { computeTrend, TREND_SIGNAL, TREND_METHOD_LABEL } from '../../utils/trendUtils';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 /**
  * TrendBadge
@@ -18,8 +19,9 @@ import { computeTrend, TREND_SIGNAL, TREND_METHOD_LABEL } from '../../utils/tren
  *   showMethod {boolean} - Hesaplama yöntemini badge'in yanında göster (debug)
  */
 export default function TrendBadge({ item, size = 'sm', showMethod = false }) {
+  const { t } = useTranslation();
   const { signal, method } = computeTrend(item);
-  const tooltip = TREND_METHOD_LABEL[method] ?? method;
+  const tooltip = t(TREND_METHOD_LABEL[method] ?? method);
 
   if (!signal) {
     return (
@@ -67,7 +69,7 @@ export default function TrendBadge({ item, size = 'sm', showMethod = false }) {
           ${CFG.text} ${CFG.bg} ${CFG.border}`}
       >
         <span aria-hidden="true">{CFG.icon}</span>
-        {CFG.label}
+        {t(CFG.label)}
       </span>
       {showMethod && (
         <span className="text-[10px] text-gray-400 font-mono">[{method}]</span>
