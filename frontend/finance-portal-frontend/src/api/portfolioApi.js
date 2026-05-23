@@ -39,6 +39,17 @@ export async function addTransaction(portfolioId, payload) {
   return wrapper.data;
 }
 
+/**
+ * Bir varlığın belirli bir tarihteki kapanış fiyatı — işlem ekleme modalında otomatik
+ * doldurma için. { price, date, found } döner; veri yoksa found=false.
+ */
+export async function getPriceAtDate(assetType, symbol, date) {
+  const { data } = await client.get('/api/portfolios/price-at', {
+    params: { assetType, symbol, date },
+  });
+  return data.data ?? { price: null, date: null, found: false };
+}
+
 export async function deleteTransaction(portfolioId, transactionId) {
   const { data: wrapper } = await client.delete(
     `/api/portfolios/${portfolioId}/transactions/${transactionId}`
@@ -52,6 +63,30 @@ export async function getPortfolioPerformance(portfolioId, range, metric) {
   const { data: wrapper } = await client.get(
     `/api/portfolios/${portfolioId}/performance`,
     { params: { range, metric } },
+  );
+  return wrapper.data;
+}
+
+export async function getPortfolioWhatIf(portfolioId) {
+  const { data: wrapper } = await client.get(`/api/portfolios/${portfolioId}/what-if`);
+  return wrapper.data;
+}
+
+export async function getPortfolioWhatIfSeries(portfolioId, assetType, symbol, benchmarks = [], sim = null) {
+  const params = {};
+  if (sim && sim.assetType && sim.symbol && sim.amount && sim.date) {
+    params.simAssetType = sim.assetType;
+    params.simSymbol = sim.symbol;
+    params.simAmount = sim.amount;
+    params.simDate = sim.date;
+  } else if (assetType && symbol) {
+    params.assetType = assetType;
+    params.symbol = symbol;
+  }
+  if (benchmarks.length) params.benchmark = benchmarks;
+  const { data: wrapper } = await client.get(
+    `/api/portfolios/${portfolioId}/what-if-series`,
+    { params, paramsSerializer: { indexes: null } }, // benchmark=a&benchmark=b (Spring List)
   );
   return wrapper.data;
 }

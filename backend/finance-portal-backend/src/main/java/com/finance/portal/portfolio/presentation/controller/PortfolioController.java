@@ -1,11 +1,16 @@
 package com.finance.portal.portfolio.presentation.controller;
 
+import com.finance.portal.common.domain.AssetType;
 import com.finance.portal.common.presentation.dto.ApiResponse;
 import com.finance.portal.portfolio.application.performance.PortfolioPerformanceResult;
+import com.finance.portal.portfolio.application.port.PortfolioHistoricalPricePort;
+import com.finance.portal.portfolio.application.whatif.PortfolioWhatIfResult;
+import com.finance.portal.portfolio.application.whatif.WhatIfSeriesResult;
 import com.finance.portal.portfolio.presentation.dto.AddTransactionRequest;
 import com.finance.portal.portfolio.presentation.dto.AddWatchlistItemRequest;
 import com.finance.portal.portfolio.presentation.dto.CreatePortfolioRequest;
 import com.finance.portal.portfolio.presentation.dto.PortfolioResponse;
+import com.finance.portal.portfolio.presentation.dto.PriceAtDateResponse;
 import com.finance.portal.portfolio.presentation.dto.UpdatePortfolioRequest;
 import com.finance.portal.portfolio.presentation.dto.WatchlistItemResponse;
 import com.finance.portal.portfolio.service.PortfolioService;
@@ -25,7 +30,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.Optional;
 import java.util.UUID;
 
 @Validated
@@ -34,9 +44,44 @@ import java.util.UUID;
 public class PortfolioController {
 
     private final PortfolioService portfolioService;
+    private final PortfolioHistoricalPricePort historicalPricePort;
 
-    public PortfolioController(PortfolioService portfolioService) {
+    public PortfolioController(PortfolioService portfolioService,
+                              PortfolioHistoricalPricePort historicalPricePort) {
         this.portfolioService = portfolioService;
+        this.historicalPricePort = historicalPricePort;
+    }
+
+    /**
+     * Bir varlığın belirli bir tarihteki kapanış fiyatı (işlem ekleme modalında otomatik
+     * doldurma için). İstenen tarihte veri yoksa o tarihten önceki en yakın işlem günü
+     * kullanılır; hiç veri yoksa (örn. tipin o kadar eski geçmişi yok) {@code found=false}.
+     */
+    @GetMapping("/price-at")
+    public ResponseEntity<ApiResponse<PriceAtDateResponse>> getPriceAtDate(
+            @RequestParam String assetType,
+            @RequestParam String symbol,
+            @RequestParam String date) {
+        PriceAtDateResponse body;
+        try {
+            AssetType type = AssetType.valueOf(assetType.trim().toUpperCase());
+            LocalDate d = LocalDate.parse(date.trim());
+            Optional<NavigableMap<LocalDate, BigDecimal>> series =
+                    historicalPricePort.fetchDailyClosePrices(type, symbol, d.minusDays(10), d);
+            BigDecimal price = null;
+            LocalDate priceDate = null;
+            if (series.isPresent()) {
+                Map.Entry<LocalDate, BigDecimal> entry = series.get().floorEntry(d);
+                if (entry != null) {
+                    price = entry.getValue();
+                    priceDate = entry.getKey();
+                }
+            }
+            body = new PriceAtDateResponse(price, priceDate, price != null);
+        } catch (Exception e) {
+            body = new PriceAtDateResponse(null, null, false);
+        }
+        return ResponseEntity.ok(ApiResponse.success(body));
     }
 
     // ── HOLDINGS portföy endpointleri ─────────────────────────────────────────
@@ -83,6 +128,46 @@ public class PortfolioController {
         PortfolioPerformanceResult performance =
                 portfolioService.getPortfolioPerformance(userId, portfolioId, range, metric);
         return ResponseEntity.ok(ApiResponse.success(performance, "Portfolio performance retrieved successfully"));
+    }
+
+    @GetMapping("/{portfolioId}/what-if")
+    public ResponseEntity<ApiResponse<PortfolioWhatIfResult>> getPortfolioWhatIf(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID portfolioId
+    ) {
+        String userId = jwt.getSubject();
+        PortfolioWhatIfResult whatIf = portfolioService.getPortfolioWhatIf(userId, portfolioId);
+        return ResponseEntity.ok(ApiResponse.success(whatIf, "Portfolio what-if retrieved successfully"));
+    }
+
+    @GetMapping("/{portfolioId}/what-if-series")
+    public ResponseEntity<ApiResponse<WhatIfSeriesResult>> getPortfolioWhatIfSeries(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID portfolioId,
+            @RequestParam(required = false) String assetType,
+            @RequestParam(required = false) String symbol,
+            @RequestParam(required = false) List<String> benchmark,
+            @RequestParam(required = false) String simAssetType,
+            @RequestParam(required = false) String simSymbol,
+            @RequestParam(required = false) BigDecimal simAmount,
+            @RequestParam(required = false) String simDate
+    ) {
+        String userId = jwt.getSubject();
+        WhatIfSeriesResult series;
+        // Özel/simülasyon modu: sim* parametreleri varsa portföy yerine sentetik pozisyon kullanılır.
+        if (simSymbol != null && !simSymbol.isBlank() && simAmount != null && simDate != null && !simDate.isBlank()) {
+            LocalDate date;
+            try {
+                date = LocalDate.parse(simDate.trim());
+            } catch (Exception e) {
+                date = null;
+            }
+            series = portfolioService.getPortfolioWhatIfSimSeries(
+                    userId, portfolioId, simAssetType, simSymbol, simAmount, date, benchmark);
+        } else {
+            series = portfolioService.getPortfolioWhatIfSeries(userId, portfolioId, assetType, symbol, benchmark);
+        }
+        return ResponseEntity.ok(ApiResponse.success(series, "Portfolio what-if series retrieved successfully"));
     }
 
     @PostMapping("/{portfolioId}/transactions")

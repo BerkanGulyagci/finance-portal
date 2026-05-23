@@ -157,6 +157,28 @@ function fmtPct(v, dec = 2) {
   return `%${fmt(0, dec)}`;
 }
 
+/**
+ * Az veri olduğunda (örn. "1 Gün" → ~10 nokta) klinecharts noktaları sağ kenara yaslayıp
+ * solu boş bırakır (asimetrik görüntü). Bar aralığını grafik genişliğine göre ayarlayarak
+ * tüm noktaların genişliği doldurmasını sağlar. Çok noktalı periyotlarda (60+) varsayılan
+ * davranış korunur (son kısım gösterilir, kaydırılabilir).
+ */
+function fitChartToWidth(chart, id, count) {
+  if (!chart || !count) return;
+  requestAnimationFrame(() => {
+    try {
+      const el = document.getElementById(id);
+      const width = el?.clientWidth ?? 0;
+      if (width <= 0) return;
+      chart.setOffsetRightDistance(6);
+      if (count <= 60) {
+        const space = Math.max(3, (width - 12) / count);
+        chart.setBarSpace(space);
+      }
+    } catch (_) { /* yoksay */ }
+  });
+}
+
 /** VIOP point → KLineCharts format */
 function toKlineData(points) {
   return points
@@ -277,6 +299,7 @@ function ViopKlineChart({ mainPoints, comparePoints, compareName, isComparing, s
 
       chart.setStyles(buildStyles(MAIN_COLOR));
       chart.applyNewData(klineData);
+      fitChartToWidth(chart, id, klineData.length);
 
       // Karşılaştırma serisi overlay
       const cmpValues = klineData.map(d => cmpMap.get(d.timestamp) ?? null);
@@ -304,6 +327,7 @@ function ViopKlineChart({ mainPoints, comparePoints, compareName, isComparing, s
       const color = isUp ? '#10b981' : '#ef4444';
       chart.setStyles(buildStyles(color));
       chart.applyNewData(klineData);
+      fitChartToWidth(chart, id, klineData.length);
 
       // MA
       const maParams = [...(showMA7 ? [7] : []), ...(showMA30 ? [30] : [])];
@@ -406,14 +430,14 @@ function ViopKlineChart({ mainPoints, comparePoints, compareName, isComparing, s
 
   if (!mainPoints?.length) {
     return (
-      <div className="flex flex-col items-center justify-center h-[380px] gap-3 text-gray-400">
+      <div className="flex flex-col items-center justify-center h-[288px] gap-3 text-gray-400">
         <BarChart2 className="w-10 h-10 opacity-30" />
         <p className="text-sm">{t('Bu dönem için grafik verisi bulunamadı.')}</p>
       </div>
     );
   }
 
-  return <div id={chartId.current} style={{ width: '100%', height: '380px' }} />;
+  return <div id={chartId.current} style={{ width: '100%', height: '288px' }} />;
 }
 
 // ── Toggle butonu ─────────────────────────────────────────────────────────────
@@ -539,7 +563,7 @@ export default function ViopPriceChart({ contractName }) {
   const [loading, setLoading]   = useState(false);
   const [status, setStatus]     = useState('idle'); // idle | ok | empty | unsupported | error
 
-  const [showMA7, setShowMA7]   = useState(true);
+  const [showMA7, setShowMA7]   = useState(false);
   const [showMA30, setShowMA30] = useState(false);
   const [showEMA, setShowEMA]   = useState(false);
   const [showBOLL, setShowBOLL] = useState(false);
@@ -604,7 +628,7 @@ export default function ViopPriceChart({ contractName }) {
       setShowMA7(false); setShowMA30(false); setShowEMA(false); setShowBOLL(false);
       setShowRSI(false); setActiveTool(null);
     } else {
-      setShowMA7(true); setShowMA30(false); setShowEMA(false); setShowBOLL(false);
+      setShowMA7(false); setShowMA30(false); setShowEMA(false); setShowBOLL(false);
     }
   }, [compareName]);
 
@@ -734,7 +758,7 @@ export default function ViopPriceChart({ contractName }) {
       )}
 
       {/* ── Grafik alanı ── */}
-      <div className="relative" style={{ minHeight: '380px' }}>
+      <div className="relative" style={{ minHeight: '288px' }}>
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/70 z-10 rounded-xl">
             <div className="flex gap-1.5">
@@ -746,7 +770,7 @@ export default function ViopPriceChart({ contractName }) {
         )}
 
         {!isLoading && status === 'unsupported' && (
-          <div className="flex flex-col items-center justify-center h-[380px] gap-3 text-gray-400">
+          <div className="flex flex-col items-center justify-center h-[288px] gap-3 text-gray-400">
             <BarChart2 className="w-10 h-10 opacity-30" />
             <p className="text-sm font-semibold text-gray-600">{t('Bu sözleşme türü için grafik desteği henüz eklenmedi.')}</p>
             <p className="text-xs text-gray-400">{t('Opsiyon sözleşmeleri şu an grafik göstermemektedir.')}</p>
@@ -754,14 +778,14 @@ export default function ViopPriceChart({ contractName }) {
         )}
 
         {!isLoading && status === 'empty' && (
-          <div className="flex flex-col items-center justify-center h-[380px] gap-3 text-gray-400">
+          <div className="flex flex-col items-center justify-center h-[288px] gap-3 text-gray-400">
             <BarChart2 className="w-10 h-10 opacity-30" />
             <p className="text-sm font-semibold text-gray-600">{t('Bu dönem için VİOP grafik verisi bulunamadı.')}</p>
           </div>
         )}
 
         {!isLoading && status === 'error' && (
-          <div className="flex flex-col items-center justify-center h-[380px] gap-3 text-gray-400">
+          <div className="flex flex-col items-center justify-center h-[288px] gap-3 text-gray-400">
             <BarChart2 className="w-10 h-10 opacity-30" />
             <p className="text-sm font-semibold text-rose-600">{t('VİOP grafik verisi şu anda alınamadı.')}</p>
           </div>

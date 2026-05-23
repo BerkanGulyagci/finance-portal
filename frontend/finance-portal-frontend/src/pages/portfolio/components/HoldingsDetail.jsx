@@ -7,7 +7,7 @@ import PortfolioPerformanceChart from './PortfolioPerformanceChart';
 import PortfolioAnalyticsSection from './analytics/PortfolioAnalyticsSection';
 import PortfolioStatsSummary from './analytics/PortfolioStatsSummary';
 import { deleteTransaction, getPortfolioById } from '../../../api/portfolioApi';
-import { getCommoditySpot } from '../../../api/marketApi';
+import { getCommoditySpot, getFxTcmb, getCryptos, getGoldSpot } from '../../../api/marketApi';
 import { isYahooCommoditySymbol } from '../../../utils/commodityPriceUtils';
 import { formatMoney, formatPercent } from '../utils/portfolioFormatUtils';
 import { useTranslation } from '../../../i18n/LanguageContext';
@@ -42,7 +42,7 @@ const TABS = [
   { key: 'holdings', label: 'Varlıklar' },
   { key: 'transactions', label: 'İşlemler' },
   { key: 'charts', label: 'Grafikler' },
-  { key: 'stats', label: 'İstatistikler' },
+  { key: 'stats', label: 'Fırsat Maliyeti' },
 ];
 // Tab labels translated via t() at render site below.
 
@@ -65,7 +65,7 @@ function SummaryRow({ label, value, subValue, positive, dotColor, tooltip }) {
               />
               <span
                 role="tooltip"
-                className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 hidden group-hover:block group-focus-within:block z-20 w-52 rounded-lg bg-gray-900 text-white text-xs px-2.5 py-2 shadow-lg text-left font-normal normal-case tracking-normal leading-snug"
+                className="pointer-events-none absolute left-0 bottom-full mb-1.5 hidden group-hover:block group-focus-within:block z-30 w-52 rounded-lg bg-gray-900 text-white text-xs px-2.5 py-2 shadow-lg text-left font-normal normal-case tracking-normal leading-snug"
               >
                 {tooltip}
               </span>
@@ -96,6 +96,43 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
   const [showAddTx, setShowAddTx] = useState(false);
   const [deletingTxId, setDeletingTxId] = useState(null);
   const [valuesHidden, setValuesHidden] = useState(false);
+  const [chartRefreshKey, setChartRefreshKey] = useState(0); // işlem ekleme/silmede grafiği yeniden çiz
+  const [valCurr, setValCurr] = useState('TRY'); // portföy değeri gösterim para birimi
+  const [rates, setRates] = useState(null);      // {usd, eur, btc, gold} — TL karşılıkları
+
+  async function loadRates() {
+    if (rates) return rates;
+    try {
+      const [fx, coins, gold] = await Promise.all([
+        getFxTcmb(), getCryptos(0, 50, 'try'), getGoldSpot(),
+      ]);
+      const findRate = sym => {
+        const x = (fx?.rates ?? []).find(r => r.symbol === sym);
+        if (!x) return null;
+        const unit = x.unit && x.unit > 1 ? x.unit : 1;
+        const p = x.sell ?? x.buy ?? null;
+        return p != null ? p / unit : null;
+      };
+      const btc = (coins ?? []).find(c => (c.symbol || '').toUpperCase() === 'BTC')?.currentPrice ?? null;
+      const gram = gold ? (gold.gramGoldTry ?? gold.gramTl ?? gold.officialPureGoldGramTry ?? null) : null;
+      const next = {
+        usd: findRate('USD'),
+        eur: findRate('EUR'),
+        btc: btc ? Number(btc) : null,
+        gold: gram ? Number(gram) : null,
+      };
+      setRates(next);
+      return next;
+    } catch {
+      return null;
+    }
+  }
+
+  async function cycleCurrency() {
+    const r = await loadRates();
+    const order = ['TRY', 'USD', 'EUR', 'BTC', 'GOLD'];
+    setValCurr(c => (r ? order[(order.indexOf(c) + 1) % order.length] : 'TRY'));
+  }
 
   useEffect(() => {
     if (!initialInstrument) return;
@@ -155,6 +192,25 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
   const pnlPct = cost > 0 ? (pnl / cost) * 100 : null;
   const isPos = pnl >= 0;
 
+  const valueText = (() => {
+    if (valuesHidden) return formatMoney(mv, currency, true);
+    if (valCurr === 'TRY' || !rates) return formatMoney(mv, currency, false);
+    const r = valCurr === 'USD' ? rates.usd
+      : valCurr === 'EUR' ? rates.eur
+      : valCurr === 'BTC' ? rates.btc
+      : rates.gold;
+    if (!r) return formatMoney(mv, currency, false);
+    if (valCurr === 'BTC') return `₿${(mv / r).toLocaleString('tr-TR', { maximumFractionDigits: 4 })}`;
+    if (valCurr === 'GOLD') return `${(mv / r).toLocaleString('tr-TR', { maximumFractionDigits: 2 })} gr`;
+    const sym = valCurr === 'USD' ? '$' : '€';
+    return `${sym}${(mv / r).toLocaleString('tr-TR', { maximumFractionDigits: 0 })}`;
+  })();
+
+  // Reel (enflasyona göre düzeltilmiş) K/Z — TL alım gücü çerçevesi (backend TÜFE).
+  const realPnl = toNumberOrNull(portfolio.totalRealProfitLoss);
+  const realPct = toNumberOrNull(portfolio.totalRealProfitLossPercent);
+  const realPos = realPnl != null ? realPnl >= 0 : undefined;
+
   const dailyPnl = useMemo(() => {
     let sum = 0;
     let any = false;
@@ -200,6 +256,7 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
     try {
       const updated = await deleteTransaction(portfolio.id, txId);
       onPortfolioUpdate(updated);
+      setChartRefreshKey(k => k + 1);
     } catch (err) {
       const msg =
         (typeof err.response?.data?.message === 'string' && err.response.data.message) ||
@@ -232,18 +289,18 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
           initialInstrument={initialInstrument}
           holdings={holdingsRows}
           onClose={() => setShowAddTx(false)}
-          onAdded={updated => { onPortfolioUpdate(updated); setShowAddTx(false); }}
+          onAdded={updated => { onPortfolioUpdate(updated); setShowAddTx(false); setChartRefreshKey(k => k + 1); }}
         />
       )}
 
       {/* Portföy Özeti */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h2 className="text-base font-bold text-gray-900">{t('Portföy Özeti')}</h2>
           <button
             type="button"
             onClick={() => setValuesHidden(v => !v)}
-            className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:text-[#093eaa] hover:border-[#093eaa]/30 hover:bg-blue-50/50 transition-colors"
+            className="p-2 rounded-lg border border-gray-200 text-gray-500 hover:text-[#093eaa] hover:border-[#093eaa]/30 hover:bg-blue-50/50 transition-colors"
             title={valuesHidden ? t('Değerleri göster') : t('Değerleri gizle')}
             aria-label={valuesHidden ? t('Değerleri göster') : t('Değerleri gizle')}
           >
@@ -255,14 +312,22 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
           {/* Sol: metrikler */}
           <div className="p-5 lg:pr-4">
             <p className="text-sm font-medium text-gray-500 mb-1">{t('Güncel Portföy Değeri')}</p>
-            <p className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-              {formatMoney(mv, currency, valuesHidden)}
+            <button
+              type="button"
+              onClick={cycleCurrency}
+              title={t('Para birimini değiştir (TL / USD / EUR / BTC / Gram Altın)')}
+              className="group mb-4 flex items-center gap-2 text-left"
+            >
+              <span className="text-2xl font-bold text-gray-900">{valueText}</span>
+              <span className="text-[10px] font-bold text-[#093eaa] bg-[#093eaa]/10 px-1.5 py-0.5 rounded group-hover:bg-[#093eaa]/20 transition-colors">
+                {valCurr === 'TRY' ? 'TL' : valCurr === 'GOLD' ? 'Altın' : valCurr}
+              </span>
               {!valuesHidden && (
                 isPos
                   ? <TrendingUp className="w-5 h-5 text-emerald-500 shrink-0" aria-hidden />
                   : <TrendingDown className="w-5 h-5 text-rose-500 shrink-0" aria-hidden />
               )}
-            </p>
+            </button>
 
             <div className="h-px bg-gray-200 mb-1" />
 
@@ -286,11 +351,20 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
             />
             <SummaryRow
               label={t('Açık K/Z')}
-              tooltip={t('Satılmamış pozisyonlardaki anlık kar/zarar.')}
+              tooltip={t('Satılmamış pozisyonlardaki anlık kar/zarar (nominal — enflasyon hariç).')}
               value={`${isPos && !valuesHidden ? '+' : ''}${formatMoney(pnl, currency, valuesHidden)}`}
               subValue={pnlPct != null ? formatPercent(pnlPct, valuesHidden, { signed: true }) : null}
               positive={isPos}
             />
+            {realPnl != null && (
+              <SummaryRow
+                label={t('Reel K/Z')}
+                tooltip={t('Enflasyondan (TÜFE) arındırılmış gerçek kâr/zarar — TL alım gücü cinsinden. Her varlık kendi ilk alış tarihinden bugüne hesaplanır ve tüm portföyü kapsar (yeni alımlarda enflasyon henüz birikmediği için nominale eşittir). Pozitifse enflasyonu yendiniz.')}
+                value={`${realPos && !valuesHidden ? '+' : ''}${formatMoney(realPnl, currency, valuesHidden)}`}
+                subValue={realPct != null ? formatPercent(realPct, valuesHidden, { signed: true }) : null}
+                positive={realPos}
+              />
+            )}
             <SummaryRow
               label={t('Gerçekleşen K/Z')}
               tooltip={t('Satılan pozisyonlardan oluşan kesinleşmiş kar/zarar.')}
@@ -307,6 +381,7 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
               portfolioId={portfolio.id}
               valuesHidden={valuesHidden}
               summaryMarketValue={mv > 0 ? mv : null}
+              refreshKey={chartRefreshKey}
             />
           </div>
         </div>
@@ -319,7 +394,7 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                 activeTab === tab.key
                   ? 'bg-[#093eaa] text-white'
                   : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
@@ -331,14 +406,14 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
         </div>
         <button
           onClick={() => setShowAddTx(true)}
-          className="flex items-center gap-2 bg-[#093eaa] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#093eaa]/90 transition-all"
+          className="flex items-center gap-2 bg-[#093eaa] text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#093eaa]/90 transition-all"
         >
           <Plus className="w-4 h-4" /> {t('Pozisyon Ekle')}
         </button>
       </div>
 
       {/* Tab içerikleri */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
         {activeTab === 'holdings' && (
           <HoldingsTable
             holdings={holdingsRows}
@@ -362,6 +437,7 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
         )}
         {activeTab === 'stats' && (
           <PortfolioStatsSummary
+            portfolioId={portfolio.id}
             holdings={holdingsRows}
             valuesHidden={valuesHidden}
             currency={currency}

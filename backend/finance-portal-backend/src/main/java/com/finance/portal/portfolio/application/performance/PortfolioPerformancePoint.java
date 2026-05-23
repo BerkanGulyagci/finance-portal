@@ -16,6 +16,12 @@ public class PortfolioPerformancePoint {
     private BigDecimal profitLossPercent;
     /** TWR-benzeri kümülatif dönem getirisi (%), seçilen aralık başına göre. */
     private BigDecimal periodGrowthPercent;
+    /**
+     * Enflasyon (TÜFE) referans çizgisi: ilk noktanın piyasa değeri, o tarihten bu güne TÜFE
+     * endeksiyle büyütülmüş hali. "Param sadece enflasyon kadar değerlenseydi" benchmark'ı.
+     * TÜFE verisi yoksa null.
+     */
+    private BigDecimal inflationValue;
 
     public PortfolioPerformancePoint() {
     }
@@ -88,5 +94,13 @@ public class PortfolioPerformancePoint {
 
     public void setPeriodGrowthPercent(BigDecimal periodGrowthPercent) {
         this.periodGrowthPercent = periodGrowthPercent;
+    }
+
+    public BigDecimal getInflationValue() {
+        return inflationValue;
+    }
+
+    public void setInflationValue(BigDecimal inflationValue) {
+        this.inflationValue = inflationValue;
     }
 }

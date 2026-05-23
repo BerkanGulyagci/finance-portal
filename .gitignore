@@ -32,6 +32,9 @@ build/
 ### VS Code ###
 .vscode/
 
+### Claude (local agent state/settings) ###
+.claude/
+
 ### Secrets ###
 .env
 .env.local

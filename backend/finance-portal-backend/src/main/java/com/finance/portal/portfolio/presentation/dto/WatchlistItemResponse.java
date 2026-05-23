@@ -40,6 +40,13 @@ public class WatchlistItemResponse {
     private String currency;
     private LocalDateTime asOf;
 
+    // ── Trend sinyalleri (holdings ile aynı çoklu-sinyal computeTrend için) ───────
+    private BigDecimal ma20;
+    private BigDecimal ma50;
+    private BigDecimal fiftyTwoWeekHigh;
+    private BigDecimal fiftyTwoWeekLow;
+    private BigDecimal priceChangePercentage7d;
+
     // ── FX (optional) ─────────────────────────────────────────────────────────
     private BigDecimal buy;
     private BigDecimal sell;

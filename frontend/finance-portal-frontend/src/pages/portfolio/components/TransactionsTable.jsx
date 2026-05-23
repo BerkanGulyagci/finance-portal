@@ -89,7 +89,7 @@ export default function TransactionsTable({ transactions = [], onDelete, deletin
                   {t.transactionDate?.split('T')[0] ?? '-'}
                 </td>
                 <td className="px-4 py-3">
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${
                     isBuy ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
                   }`}>
                     {isBuy ? tr('ALIŞ') : tr('SATIŞ')}
@@ -97,7 +97,7 @@ export default function TransactionsTable({ transactions = [], onDelete, deletin
                 </td>
                 <td className="px-4 py-3 font-bold text-[#093eaa] text-sm">{t.symbol}</td>
                 <td className="px-4 py-3">
-                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-semibold">
+                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md font-semibold">
                     {ASSET_LABELS[t.assetType] ? tr(ASSET_LABELS[t.assetType]) : t.assetType}
                   </span>
                 </td>

@@ -28,6 +28,11 @@ public class PortfolioResponse {
     private BigDecimal totalMarketValue;
     private BigDecimal totalProfitLoss;
 
+    /** Enflasyona göre düzeltilmiş toplam reel K/Z (yalnızca TL pozisyonlar üzerinden). */
+    private BigDecimal totalRealProfitLoss;
+    /** Toplam reel getiri yüzdesi (reel K/Z / toplam reel maliyet × 100). */
+    private BigDecimal totalRealProfitLossPercent;
+
     /** Sadece WATCHLIST portföyler için dolar; HOLDINGS'da null. */
     private Long watchlistItemCount;
 }

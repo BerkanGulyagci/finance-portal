@@ -217,8 +217,11 @@ public class AkbankViopClient {
             ViopContract c = new ViopContract();
             // TurkishCharFixer'ı whitespace normalize'dan ÖNCE uygula
             // Akbank HTML'de Türkçe karakterler satır sonlarıyla bölünmüş olabilir
-            String fixedName = TurkishCharFixer.fix(t0);
-            c.setName(fixedName.replaceAll("\\s+", " ").trim());            c.setChangePercent(t1);
+            String fixedName = TurkishCharFixer.fix(t0).replaceAll("\\s+", " ").trim();
+            // Akbank ham HTML'i Türkçe ay harfini (Ş/ğ) bazen U+FFFD ile (geri kazanılamaz)
+            // bozar; ay token'ını sabit ay kümesinden temiz forma onar (örn. "�ub"→"Şub").
+            c.setName(com.finance.portal.market.application.viop.ViopIndexCodeMapper.canonicalizeContractName(fixedName));
+            c.setChangePercent(t1);
             c.setLastPrice(tokens.get(i + 2));
             c.setHigh(tokens.get(i + 3));
             c.setLow(tokens.get(i + 4));

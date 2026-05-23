@@ -1,6 +1,8 @@
 package com.finance.portal.portfolio.service;
 
 import com.finance.portal.portfolio.application.performance.PortfolioPerformanceResult;
+import com.finance.portal.portfolio.application.whatif.PortfolioWhatIfResult;
+import com.finance.portal.portfolio.application.whatif.WhatIfSeriesResult;
 import com.finance.portal.portfolio.presentation.dto.AddTransactionRequest;
 import com.finance.portal.portfolio.presentation.dto.AddWatchlistItemRequest;
 import com.finance.portal.portfolio.presentation.dto.CreatePortfolioRequest;
@@ -8,6 +10,8 @@ import com.finance.portal.portfolio.presentation.dto.PortfolioResponse;
 import com.finance.portal.portfolio.presentation.dto.UpdatePortfolioRequest;
 import com.finance.portal.portfolio.presentation.dto.WatchlistItemResponse;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -22,6 +26,18 @@ public interface PortfolioService {
     PortfolioResponse getPortfolioById(String userId, UUID portfolioId);
 
     PortfolioPerformanceResult getPortfolioPerformance(String userId, UUID portfolioId, String range, String metric);
+
+    /** Portföy geneli "Ne Olurdu?" — yatırımların enflasyon/altın/dolar/mevduata gitseydi bugünkü karşılığı. */
+    PortfolioWhatIfResult getPortfolioWhatIf(String userId, UUID portfolioId);
+
+    /** "Ne Olurdu?" zaman serisi — seçilen varlık (assetType+symbol) ya da tüm portföy (null) + isteğe bağlı serbest kıyaslar. */
+    WhatIfSeriesResult getPortfolioWhatIfSeries(String userId, UUID portfolioId, String assetType,
+                                               String symbol, java.util.List<String> benchmarks);
+
+    /** "Ne Olurdu?" özel/simülasyon modu — istenen tarihte X TL ile alınan istenen varlık + isteğe bağlı serbest kıyaslar. */
+    WhatIfSeriesResult getPortfolioWhatIfSimSeries(String userId, UUID portfolioId, String assetType,
+                                                  String symbol, BigDecimal amount, LocalDate date,
+                                                  List<String> benchmarks);
 
     List<PortfolioResponse> getUserPortfolios(String userId);
 

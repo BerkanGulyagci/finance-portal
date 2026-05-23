@@ -1,10 +1,12 @@
 package com.finance.portal.market.presentation.controller;
 
 import com.finance.portal.common.presentation.dto.ApiResponse;
+import com.finance.portal.market.application.funds.model.FundPriceHistoryResponse;
 import com.finance.portal.market.application.funds.model.RasyonetFundDetailDto;
 import com.finance.portal.market.application.funds.model.RasyonetFundDto;
 import com.finance.portal.market.application.funds.model.RasyonetOsmanliFundBulletinDto;
 import com.finance.portal.market.application.funds.service.RasyonetFundService;
+import com.finance.portal.market.application.funds.service.TefasFundService;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.http.ResponseEntity;
@@ -34,9 +36,12 @@ import java.util.List;
 public class MarketFundController {
 
     private final RasyonetFundService rasyonetFundService;
+    private final TefasFundService tefasFundService;
 
-    public MarketFundController(RasyonetFundService rasyonetFundService) {
+    public MarketFundController(RasyonetFundService rasyonetFundService,
+                                TefasFundService tefasFundService) {
         this.rasyonetFundService = rasyonetFundService;
+        this.tefasFundService = tefasFundService;
     }
 
     /** GET /api/market/funds/tefas/all — TMF yatırım fonları */
@@ -85,5 +90,22 @@ public class MarketFundController {
             return ResponseEntity.ok(ApiResponse.success(null, "Fon bulunamadı: " + code));
         }
         return ResponseEntity.ok(ApiResponse.success(detail, "Fund detail retrieved via Rasyonet"));
+    }
+
+    /**
+     * GET /api/market/funds/{code}/price-history?range=1Y&type=YAT
+     * Fon birim pay fiyatı tarihsel serisi — TEFAS resmi API'den (grafik için, 5 yıla kadar).
+     * type: YAT (TEFAS yatırım fonu, default) | EMK (emeklilik). Veri yoksa points boş döner
+     * (frontend Rasyonet'e fallback eder).
+     */
+    @GetMapping("/{code:[A-Z0-9]{2,6}}/price-history")
+    public ResponseEntity<ApiResponse<FundPriceHistoryResponse>> getFundPriceHistory(
+            @PathVariable String code,
+            @RequestParam(defaultValue = "1Y") String range,
+            @RequestParam(defaultValue = "YAT") String type) {
+        FundPriceHistoryResponse resp = tefasFundService.getPriceHistory(
+                code.toUpperCase(), range.toUpperCase(), type.toUpperCase());
+        return ResponseEntity.ok(ApiResponse.success(resp,
+                "Fund price history via TEFAS (" + resp.getPoints().size() + " points)"));
     }
 }

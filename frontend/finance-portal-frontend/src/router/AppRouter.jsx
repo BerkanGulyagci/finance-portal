@@ -24,6 +24,9 @@ import FxPage from '../pages/market/fx/FxPage';
 import FxDetailPage from '../pages/market/fx/FxDetailPage';
 import BondsPage from '../pages/market/bonds/BondsPage';
 import BondDetailPage from '../pages/market/bonds/BondDetailPage';
+import EconomyPage from '../pages/market/economy/EconomyPage';
+import LoanCalculatorPage from '../pages/market/economy/LoanCalculatorPage';
+import DepositCalculatorPage from '../pages/market/economy/DepositCalculatorPage';
 import GoldPage from '../pages/market/gold/GoldPage';
 import SilverPage from '../pages/market/silver/SilverPage';
 import PlatinumPage from '../pages/market/precious/PlatinumPage';
@@ -70,6 +73,9 @@ export default function AppRouter() {
           <Route path="/market/fx/:symbol" element={<FxDetailPage />} />
           <Route path="/market/bonds"         element={<BondsPage />} />
           <Route path="/market/bonds/:symbol"  element={<BondDetailPage />} />
+          <Route path="/market/economy"       element={<EconomyPage />} />
+          <Route path="/market/kredi-hesaplama" element={<LoanCalculatorPage />} />
+          <Route path="/market/mevduat-hesaplama" element={<DepositCalculatorPage />} />
           <Route path="/market/gold"       element={<GoldPage />} />
           <Route path="/market/silver"     element={<SilverPage />} />
           <Route path="/market/platinum"   element={<PlatinumPage />} />

@@ -115,6 +115,8 @@ cache:
         list-ttl-seconds: ${CACHE_EVDS_BONDS_LIST_TTL_SECONDS:3600}
         detail-ttl-seconds: ${CACHE_EVDS_BONDS_DETAIL_TTL_SECONDS:3600}
         history-ttl-seconds: ${CACHE_EVDS_BONDS_HISTORY_TTL_SECONDS:7200}
+    economy:
+      ttl-seconds: ${CACHE_MARKET_ECONOMY_TTL_SECONDS:21600}
     currency:
       banks:
         ttl-seconds: ${CACHE_MARKET_CURRENCY_BANKS_TTL_SECONDS:120}
@@ -146,6 +148,14 @@ market:
       osmanli-bulletin-url: ${RASYONET_OSMANLI_BULLETIN_URL:https://api.rasyonet.com/service-yatirimdirekt-home/web-menu/osmanli-fund-bulletin}
       source-code: ${RASYONET_SOURCE_CODE:TMF}
       timeout-seconds: ${RASYONET_TIMEOUT_SECONDS:15}
+    tefas:
+      # TEFAS resmi fon fiyat geçmişi API'si (grafik için, 5 yıla kadar derin geçmiş).
+      # bearer-token: TEFAS public SPA'sinin anonim token'ı (kullanıcı kimliği değil); değişirse güncellenir.
+      history-url: ${TEFAS_HISTORY_URL:https://www.tefas.gov.tr/api/funds/fonGnlBlgSiraliGetir}
+      bearer-token: ${TEFAS_BEARER_TOKEN:ST-tefaswebwse3irfmSBj4iRAzGPbAlS94Se}
+      timeout-seconds: ${TEFAS_TIMEOUT_SECONDS:20}
+      chunk-days: ${TEFAS_CHUNK_DAYS:28}
+      parallelism: ${TEFAS_PARALLELISM:4}
 
 keycloak:
   admin:
@@ -165,6 +175,13 @@ ldap:
   admin-dn: ${LDAP_ADMIN_DN:uid=admin,ou=system}
   admin-password: ${LDAP_ADMIN_PASSWORD:secret}
 
+# FRED (St. Louis Fed) — küresel makro serileri (ABD TÜFE/CPI). Ücretsiz API anahtarı:
+# https://fred.stlouisfed.org/docs/api/api_key.html  → FRED_API_KEY olarak .env.local'e ekleyin.
+# Anahtar boşsa ABD CPI göstergesi sessizce "veri yok" döner (panel/grafik etkilenmez).
+fred:
+  base-url: ${FRED_BASE_URL:https://api.stlouisfed.org/fred}
+  api-key: ${FRED_API_KEY:}
+
 evds:
   base-url: ${EVDS_BASE_URL:https://evds3.tcmb.gov.tr/igmevdsms-dis}
   api-key: ${EVDS_API_KEY:}
@@ -179,6 +196,14 @@ evds:
     - TRT180237T13
     - TRT210235T10
     - TRT270934T18
+
+# TL mevduat stopaj oranları (yıllık %) — Cumhurbaşkanı kararıyla belirlenir, canlı API yok.
+# Mevzuat değiştiğinde bu değerleri güncelle. Güncel (2026): 6 aya kadar 17.5 / 1 yıla kadar 15 / 1 yıldan uzun 10.
+deposit:
+  stopaj:
+    up-to-6m: ${DEPOSIT_STOPAJ_6M:17.5}
+    up-to-1y: ${DEPOSIT_STOPAJ_1Y:15}
+    over-1y: ${DEPOSIT_STOPAJ_OVER1Y:10}
 
 coingecko:
   base-url: https://api.coingecko.com/api/v3

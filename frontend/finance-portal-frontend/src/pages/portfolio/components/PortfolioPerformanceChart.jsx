@@ -1,9 +1,36 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { init as klineInit, dispose as klineDispose } from 'klinecharts';
+import { init as klineInit, dispose as klineDispose, registerIndicator } from 'klinecharts';
 import { getPortfolioPerformance } from '../../../api/portfolioApi';
 import { formatChartValue, MASK_MONEY } from '../utils/portfolioFormatUtils';
 import { computeKlinePricePrecision } from '../../../utils/numberFormat';
 import { useTranslation } from '../../../i18n/LanguageContext';
+
+const INFLATION_LINE_COLOR = '#9333ea';
+
+/**
+ * Enflasyon (TÜFE) referans çizgisini ana panele (candle_pane) çizen özel gösterge.
+ * Değerler kline barlarına eklenen {@code inflation} alanından okunur (kapanışla aynı eksen).
+ */
+let inflationIndicatorRegistered = false;
+function ensureInflationIndicator() {
+  if (inflationIndicatorRegistered) return;
+  try {
+    registerIndicator({
+      name: 'PORTFOLIO_INFLATION',
+      shortName: 'Enflasyon (TÜFE)',
+      calcParams: [],
+      figures: [{ key: 'infl', title: 'Enflasyon: ', type: 'line' }],
+      styles: {
+        lines: [{ color: INFLATION_LINE_COLOR, size: 1, style: 'dashed', dashedValue: [4, 3] }],
+      },
+      calc: dataList =>
+        dataList.map(k => ({ infl: k && Number.isFinite(k.inflation) ? k.inflation : null })),
+    });
+    inflationIndicatorRegistered = true;
+  } catch {
+    /* sürüm uyumsuzluğunda enflasyon çizgisi atlanır, grafik yine çizilir */
+  }
+}
 
 const RANGES = [
   { key: '5D', label: '5D' },
@@ -73,6 +100,7 @@ function toKlineBars(chartData) {
       if (!Number.isFinite(v)) return null;
       const ts = new Date(p.date).getTime();
       if (Number.isNaN(ts)) return null;
+      const infl = Number(p.inflationValue);
       return {
         timestamp: ts,
         open: v,
@@ -81,6 +109,8 @@ function toKlineBars(chartData) {
         close: v,
         volume: 0,
         turnover: 0,
+        // Enflasyon referans çizgisi için ek alan (özel gösterge bunu okur).
+        inflation: Number.isFinite(infl) ? infl : null,
       };
     })
     .filter(Boolean)
@@ -109,6 +139,8 @@ function PortfolioPerformanceKlineChart({
   metric,
   lineColor,
   valuesHidden,
+  yAxisType = 'normal',
+  showInflation = false,
 }) {
   const { t } = useTranslation();
   const chartId = useRef(`kline_portfolio_perf_${Date.now()}`);
@@ -216,7 +248,7 @@ function PortfolioPerformanceKlineChart({
       },
       xAxis: { show: true, tickText: { color: '#94a3b8', size: 10 } },
       yAxis: {
-        type: 'normal',
+        type: yAxisType,
         show: true,
         tickText: {
           color: '#94a3b8',
@@ -228,9 +260,24 @@ function PortfolioPerformanceKlineChart({
         horizontal: { show: true, color: '#f1f5f9', size: 1 },
         vertical: { show: false },
       },
+      // Enflasyon göstergesinin sol üstteki ad/değer efsanesini gizle — yalnız kesikli çizgi kalsın.
+      indicator: {
+        tooltip: { showRule: 'none' },
+      },
     });
 
     chart.applyNewData(klineData);
+
+    // Enflasyon (TÜFE) referans çizgisi — yalnız Portföy Değeri metriğinde, değerler gizli değilken
+    // ve en az bir enflasyon noktası varken ana panele eklenir.
+    if (showInflation && klineData.some(k => Number.isFinite(k.inflation))) {
+      ensureInflationIndicator();
+      try {
+        chart.createIndicator('PORTFOLIO_INFLATION', true, { id: 'candle_pane' });
+      } catch {
+        /* ignore — çizgi olmadan grafik yine çalışır */
+      }
+    }
 
     const rowByTimestamp = new Map(
       chartData.map(row => [new Date(row.date).getTime(), row]),
@@ -277,15 +324,18 @@ function PortfolioPerformanceKlineChart({
       /* ignore */
     }
 
-    const focusDate = focusTimestampAfterJump(chartData, metric);
-    if (focusDate) {
-      const ts = new Date(focusDate).getTime();
-      try {
-        if (typeof chart.scrollToTimestamp === 'function') {
-          chart.scrollToTimestamp(ts, 200);
+    // Log ölçekte tüm seri okunabilir olduğu için sıçramaya odaklanıp geçmişi gizlemeye gerek yok.
+    if (yAxisType !== 'log') {
+      const focusDate = focusTimestampAfterJump(chartData, metric);
+      if (focusDate) {
+        const ts = new Date(focusDate).getTime();
+        try {
+          if (typeof chart.scrollToTimestamp === 'function') {
+            chart.scrollToTimestamp(ts, 200);
+          }
+        } catch {
+          /* ignore */
         }
-      } catch {
-        /* ignore */
       }
     }
 
@@ -298,7 +348,7 @@ function PortfolioPerformanceKlineChart({
       }
       chartRef.current = null;
     };
-  }, [chartData, metric, lineColor, valuesHidden, t]);
+  }, [chartData, metric, lineColor, valuesHidden, yAxisType, showInflation, t]);
 
   if (!chartData?.length) {
     return (
@@ -337,6 +387,7 @@ function PortfolioPerformanceKlineChart({
 export default function PortfolioPerformanceChart({
   portfolioId,
   valuesHidden = false,
+  refreshKey = 0,
 }) {
   const { t } = useTranslation();
   const [range, setRange] = useState('1M');
@@ -361,7 +412,7 @@ export default function PortfolioPerformanceChart({
     } finally {
       setLoading(false);
     }
-  }, [portfolioId, range, metric, t]);
+  }, [portfolioId, range, metric, t, refreshKey]);
 
   useEffect(() => {
     load();
@@ -377,10 +428,20 @@ export default function PortfolioPerformanceChart({
           date: p.date,
           chartValue: n != null && Number.isFinite(n) ? n : null,
           marketValue: p.marketValue,
+          inflationValue: p.inflationValue,
         };
       })
       .filter(d => d.chartValue != null);
   }, [perf, metric]);
+
+  // Enflasyon çizgisi yalnız "Portföy Değeri" metriğinde, değerler gizli değilken ve veri varsa.
+  const showInflation = useMemo(
+    () =>
+      metric === 'VALUE' &&
+      !valuesHidden &&
+      chartData.some(d => Number.isFinite(Number(d.inflationValue))),
+    [metric, valuesHidden, chartData],
+  );
 
   const lineColor = useMemo(() => {
     if (metric === 'GROWTH' && chartData.length >= 2) {
@@ -406,6 +467,15 @@ export default function PortfolioPerformanceChart({
       const b = chartData[chartData.length - 1]?.chartValue;
       return a > 0 && b / a >= 5;
     })();
+
+  // Çok geniş değer aralığında (ör. büyük bir pozisyon eklenince geçmiş çizgisi görünmez olur)
+  // logaritmik ölçek kullan: hem küçük geçmiş hem büyük güncel değer aynı anda okunur.
+  const useLogScale = useMemo(() => {
+    if (metric !== 'VALUE') return false;
+    const nums = chartData.map(d => Number(d.chartValue)).filter(v => Number.isFinite(v) && v > 0);
+    if (nums.length < 2) return false;
+    return Math.max(...nums) / Math.min(...nums) >= 8;
+  }, [chartData, metric]);
 
   return (
     <div className="flex flex-col h-full min-h-[260px]">
@@ -455,10 +525,26 @@ export default function PortfolioPerformanceChart({
         </div>
       )}
 
-      <p className="text-[10px] text-gray-400 mb-1">
-        {t('Tekerlek ile yakınlaştırın, sürükleyerek kaydırın.')}
-        {hasJump ? ` ${t('Büyük sıçrama varsa grafik son anlamlı güne odaklanır.')}` : ''}
-      </p>
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <p className="text-[10px] text-gray-400">
+          {t('Tekerlek ile yakınlaştırın, sürükleyerek kaydırın.')}
+          {useLogScale
+            ? ` ${t('Geniş değer aralığı için logaritmik ölçek kullanılıyor.')}`
+            : (hasJump ? ` ${t('Büyük sıçrama varsa grafik son anlamlı güne odaklanır.')}` : '')}
+        </p>
+        {showInflation && (
+          <span
+            className="flex items-center gap-1 text-[10px] text-gray-500 shrink-0 whitespace-nowrap"
+            title={t('Param sadece enflasyon (TÜFE) kadar değerlenseydi izleyeceği çizgi. Portföy çizgisi bunun üstündeyse enflasyonu yeniyorsunuz.')}
+          >
+            <span
+              className="inline-block w-4 border-t-2 border-dashed"
+              style={{ borderColor: INFLATION_LINE_COLOR }}
+            />
+            {t('Enflasyon (TÜFE)')}
+          </span>
+        )}
+      </div>
 
       <div className="relative flex-1 min-h-[300px]">
         {loading && (
@@ -473,11 +559,13 @@ export default function PortfolioPerformanceChart({
         )}
         {!loading && !error && chartData.length > 0 && (
           <PortfolioPerformanceKlineChart
-            key={`${range}-${metric}-${chartData.length}-${chartData[chartData.length - 1]?.chartValue}`}
+            key={`${range}-${metric}-${chartData.length}-${chartData[chartData.length - 1]?.chartValue}-${useLogScale ? 'log' : 'lin'}-${showInflation ? 'infl' : 'noinfl'}`}
             chartData={chartData}
             metric={metric}
             lineColor={lineColor}
             valuesHidden={valuesHidden}
+            yAxisType={useLogScale ? 'log' : 'normal'}
+            showInflation={showInflation}
           />
         )}
         {!loading && !error && chartData.length === 0 && (

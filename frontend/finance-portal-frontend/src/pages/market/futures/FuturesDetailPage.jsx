@@ -108,29 +108,27 @@ export default function FuturesDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Back link */}
       <Link to="/market/futures" className="inline-flex items-center gap-1.5 text-sm text-[#093eaa] font-semibold hover:underline">
-        <ArrowLeft className="w-4 h-4" /> Vadeli İşlemler
+        <ArrowLeft className="w-4 h-4" /> {t('Vadeli İşlemler')}
       </Link>
 
-      {/* Header */}
+      {/* Kompakt header (tek satır) */}
       <ViopContractHeader contract={contract} />
 
-      {/* Grafik — Header'dan hemen sonra, tam genişlik */}
-      <ViopPriceChart contractName={contract.name} />
-
-      {/* Main content grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Sol kolon - Fiyat Bilgileri (2/3 genişlik) */}
-        <div className="lg:col-span-2 space-y-6">
-          <ViopContractStats contract={contract} />
+      {/* Tek 3-kolonlu grid:
+          sol (2/3) → grafik + açık pozisyon + gün içi aralık
+          sağ (1/3) → fiyat bilgileri + sözleşme bilgileri
+          Böylece her şey tek ekranda, kaydırmadan görünür. */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+        <div className="lg:col-span-2 space-y-5">
+          <ViopPriceChart contractName={contract.name} />
+          <ViopOpenPositions contract={contract} />
           <ViopPriceRange contract={contract} />
         </div>
-
-        {/* Sağ kolon - Bilgiler (1/3 genişlik) */}
-        <div className="space-y-6">
-          <ViopOpenPositions contract={contract} />
+        <div className="space-y-5">
+          <ViopContractStats contract={contract} />
           <ViopContractInfo contract={contract} />
         </div>
       </div>

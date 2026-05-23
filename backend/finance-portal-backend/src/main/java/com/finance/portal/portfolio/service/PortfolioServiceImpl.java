@@ -10,6 +10,8 @@ import com.finance.portal.portfolio.domain.PortfolioType;
 import com.finance.portal.portfolio.domain.TransactionType;
 import com.finance.portal.portfolio.domain.WatchlistItem;
 import com.finance.portal.portfolio.application.performance.PortfolioPerformanceResult;
+import com.finance.portal.portfolio.application.whatif.PortfolioWhatIfResult;
+import com.finance.portal.portfolio.application.whatif.WhatIfSeriesResult;
 import com.finance.portal.portfolio.presentation.dto.AddTransactionRequest;
 import com.finance.portal.portfolio.presentation.dto.AddWatchlistItemRequest;
 import com.finance.portal.portfolio.presentation.dto.CreatePortfolioRequest;
@@ -56,6 +58,9 @@ public class PortfolioServiceImpl implements PortfolioService {
     private final HoldingMarketEnrichmentPort holdingMarketEnrichment;
     private final PortfolioPerformanceService portfolioPerformanceService;
     private final CentralBusinessLogService centralBusinessLogService;
+    private final PortfolioRealReturnEnricher realReturnEnricher;
+    private final PortfolioCurrencyConverter currencyConverter;
+    private final PortfolioWhatIfService whatIfService;
 
     public PortfolioServiceImpl(PortfolioPersistencePort portfolioPersistence,
                                 PortfolioCachePort portfolioCache,
@@ -64,7 +69,10 @@ public class PortfolioServiceImpl implements PortfolioService {
                                 PortfolioHoldingsBuilder holdingsBuilder,
                                 HoldingMarketEnrichmentPort holdingMarketEnrichment,
                                 PortfolioPerformanceService portfolioPerformanceService,
-                                CentralBusinessLogService centralBusinessLogService) {
+                                CentralBusinessLogService centralBusinessLogService,
+                                PortfolioRealReturnEnricher realReturnEnricher,
+                                PortfolioCurrencyConverter currencyConverter,
+                                PortfolioWhatIfService whatIfService) {
         this.portfolioPersistence           = portfolioPersistence;
         this.portfolioCache                 = portfolioCache;
         this.viopService                    = viopService;
@@ -73,6 +81,9 @@ public class PortfolioServiceImpl implements PortfolioService {
         this.holdingMarketEnrichment        = holdingMarketEnrichment;
         this.portfolioPerformanceService    = portfolioPerformanceService;
         this.centralBusinessLogService      = centralBusinessLogService;
+        this.realReturnEnricher             = realReturnEnricher;
+        this.currencyConverter              = currencyConverter;
+        this.whatIfService                  = whatIfService;
     }
 
     // ── HOLDINGS portföy işlemleri ────────────────────────────────────────────
@@ -250,6 +261,8 @@ public class PortfolioServiceImpl implements PortfolioService {
                 holdingMarketEnrichment.enrich(h);
             }
         }
+        // Canlı fiyatlar yenilendikten sonra reel getiriyi de tazele
+        realReturnEnricher.apply(response);
         // Önbelleğe yazmayı zenginleştirmeden SONRA yap — aksi halde Redis'te 52w/MA olmadan snapshot kalır
         portfolioCache.putPortfolioDetail(userId, portfolioId, response);
         return response;
@@ -260,6 +273,40 @@ public class PortfolioServiceImpl implements PortfolioService {
     public PortfolioPerformanceResult getPortfolioPerformance(
             String userId, UUID portfolioId, String range, String metric) {
         return portfolioPerformanceService.getPerformance(userId, portfolioId, range, metric);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PortfolioWhatIfResult getPortfolioWhatIf(String userId, UUID portfolioId) {
+        PortfolioResponse response = getPortfolioById(userId, portfolioId);
+        if (response.getPortfolioType() == PortfolioType.WATCHLIST) {
+            throw new IllegalArgumentException("What-if is only available for holdings portfolios.");
+        }
+        return whatIfService.compute(response);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public WhatIfSeriesResult getPortfolioWhatIfSeries(String userId, UUID portfolioId,
+                                                       String assetType, String symbol,
+                                                       List<String> benchmarks) {
+        PortfolioResponse response = getPortfolioById(userId, portfolioId);
+        if (response.getPortfolioType() == PortfolioType.WATCHLIST) {
+            throw new IllegalArgumentException("What-if is only available for holdings portfolios.");
+        }
+        return whatIfService.computeSeries(response, assetType, symbol, benchmarks);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public com.finance.portal.portfolio.application.whatif.WhatIfSeriesResult getPortfolioWhatIfSimSeries(
+            String userId, UUID portfolioId, String assetType, String symbol,
+            java.math.BigDecimal amount, java.time.LocalDate date, List<String> benchmarks) {
+        // Sahiplik doğrulaması (sim portföy verisi kullanmaz ama endpoint portföye bağlı).
+        portfolioPersistence.findByIdAndUserId(portfolioId, userId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Portfolio not found: id=" + portfolioId + " userId=" + userId));
+        return whatIfService.computeSimSeries(assetType, symbol, amount, date, benchmarks);
     }
 
     @Override
@@ -535,20 +582,23 @@ public class PortfolioServiceImpl implements PortfolioService {
 
         List<PortfolioHoldingResponse> holdings = holdingsBuilder.build(portfolio.getTransactions());
 
+        // Para birimi-duyarlı toplamlar: her varlık TL'ye çevrilip toplanır (USD hisse vb.
+        // doğrudan TL toplamına eklenmesin diye). Tümü TL ise çarpan 1 → davranış değişmez.
         BigDecimal totalCost = holdings.stream()
-                .map(h -> h.getTotalCost() != null ? h.getTotalCost() : BigDecimal.ZERO)
+                .map(h -> currencyConverter.toTry(h.getTotalCost(), h.getCurrency()))
+                .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(MONEY_SCALE, RoundingMode.HALF_UP);
 
         BigDecimal totalMarketValue = holdings.stream()
-                .filter(h -> h.getMarketValue() != null)
-                .map(PortfolioHoldingResponse::getMarketValue)
+                .map(h -> currencyConverter.toTry(h.getMarketValue(), h.getCurrency()))
+                .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(MONEY_SCALE, RoundingMode.HALF_UP);
 
         BigDecimal totalProfitLoss = holdings.stream()
-                .filter(h -> h.getProfitLoss() != null)
-                .map(PortfolioHoldingResponse::getProfitLoss)
+                .map(h -> currencyConverter.toTry(h.getProfitLoss(), h.getCurrency()))
+                .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(MONEY_SCALE, RoundingMode.HALF_UP);
 
@@ -565,6 +615,9 @@ public class PortfolioServiceImpl implements PortfolioService {
         response.setTotalCost(totalCost);
         response.setTotalMarketValue(totalMarketValue);
         response.setTotalProfitLoss(totalProfitLoss);
+
+        // Enflasyona göre düzeltilmiş reel getiri alanlarını ekle (TL pozisyonlar)
+        realReturnEnricher.apply(response);
 
         if (portfolio.getPortfolioType() == PortfolioType.WATCHLIST) {
             response.setWatchlistItemCount(portfolioPersistence.countWatchlistByPortfolioId(portfolio.getId()));

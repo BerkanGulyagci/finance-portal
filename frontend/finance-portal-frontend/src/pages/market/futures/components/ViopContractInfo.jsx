@@ -71,18 +71,18 @@ export default function ViopContractInfo({ contract }) {
 
         {/* Dayanak Varlık */}
         {companyCode && (
-          <Link 
+          <Link
             to={`/market/stocks/${companyCode}`}
-            className="flex items-start gap-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200 hover:border-blue-300 transition-all group"
+            className="flex items-start gap-3 p-3 bg-[#093eaa]/[0.06] rounded-xl border border-[#093eaa]/20 hover:border-[#093eaa]/40 transition-all group"
           >
-            <TrendingUp className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
+            <TrendingUp className="w-4 h-4 text-[#093eaa] flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
             <div className="flex-1">
-              <p className="text-xs text-blue-600 font-semibold mb-0.5">{t('Dayanak Varlık')}</p>
+              <p className="text-xs text-[#093eaa] font-semibold mb-0.5">{t('Dayanak Varlık')}</p>
               <div className="flex items-center gap-2">
-                <p className="text-sm font-bold text-blue-900">{companyCode} {t('Hisse Senedi')}</p>
-                <ExternalLink className="w-3.5 h-3.5 text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <p className="text-sm font-bold text-[#093eaa]">{companyCode} {t('Hisse Senedi')}</p>
+                <ExternalLink className="w-3.5 h-3.5 text-[#093eaa] opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
-              <p className="text-xs text-blue-600 mt-1">{t('Hisse detayına git →')}</p>
+              <p className="text-xs text-[#093eaa]/80 mt-1">{t('Hisse detayına git →')}</p>
             </div>
           </Link>
         )}
@@ -121,8 +121,8 @@ export default function ViopContractInfo({ contract }) {
         </div>
 
         {/* Bilgi notu */}
-        <div className="bg-blue-50 rounded-xl p-3 border border-blue-200">
-          <p className="text-xs text-blue-900 leading-relaxed">
+        <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+          <p className="text-xs text-gray-600 leading-relaxed">
             <span className="font-semibold">{t('VİOP:')}</span> {t('Borsa İstanbul bünyesinde işlem gören vadeli işlem sözleşmeleridir. Yatırımcılar gelecekteki fiyat hareketlerine göre pozisyon alabilirler.')}
           </p>
         </div>

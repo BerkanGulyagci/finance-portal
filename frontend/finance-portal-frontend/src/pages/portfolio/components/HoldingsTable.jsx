@@ -1,18 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Settings2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Settings2, ChevronDown, ChevronUp, TrendingUp, TrendingDown } from 'lucide-react';
 import TrendBadge from '../../../components/common/TrendBadge';
+import { computeTrend } from '../../../utils/trendUtils';
 import { getWatchlistDetailPath } from '../constants/watchlistMarketRoutes';
-import { CommodityDualPrice } from './CommodityPriceHint';
-import { isYahooCommoditySymbol } from '../../../utils/commodityPriceUtils';
 import { MASK_MONEY, MASK_PERCENT, MASK_QTY } from '../utils/portfolioFormatUtils';
 import { useTranslation } from '../../../i18n/LanguageContext';
 
 // ── Sabitler ─────────────────────────────────────────────────────────────────
 
-const MAX_COLS = 10;
+const MAX_COLS = 12;
 
-/** Varsayılan 10 kolon — tabloda bu sırayla gösterilir; Sıfırla aynı seti verir. */
+/** Varsayılan kolonlar — tabloda bu sırayla gösterilir; Sıfırla aynı seti verir. */
 const DEFAULT_DISPLAY_ORDER = [
   'name',
   'symbol',
@@ -24,7 +23,11 @@ const DEFAULT_DISPLAY_ORDER = [
   'totalCost',
   'unrealizedPnl',
   'unrealizedPct',
+  'dailyPct',
 ];
+
+/** Kullanıcının seçtiği kolonlar tarayıcıda saklanır (sonraki girişte korunur). */
+const COLS_STORAGE_KEY = 'fp.holdings.columns.v1';
 
 const ASSET_LABELS = {
   STOCK: 'Hisse', CRYPTO: 'Kripto', FX: 'Döviz',
@@ -46,12 +49,18 @@ const ALL_COLS = [
   { key: 'currentPrice',  label: 'Mevcut Fiyat',          def: true,  group: 'Fiyat'   },
   { key: 'marketValue',   label: 'Piyasa Değeri',         def: true,  group: 'Fiyat'   },
   { key: 'totalCost',     label: 'Toplam Maliyet',        def: true,  group: 'Temel'   },
-  { key: 'unrealizedPnl', label: 'Gerçekleşmemiş K/Z',   def: true,  group: 'K/Z'     },
-  { key: 'unrealizedPct', label: 'Gerçekleşmemiş K/Z %', def: true,  group: 'K/Z'     },
-  { key: 'dailyPnl',      label: 'Günlük K/Z',           def: false, group: 'K/Z'     },
-  { key: 'dailyPct',      label: 'Günlük K/Z %',         def: false, group: 'K/Z'     },
-  { key: 'realizedPnl',   label: 'Gerçekleşmiş K/Z',     def: false, group: 'K/Z'     },
-  { key: 'realizedPct',   label: 'Gerçekleşmiş K/Z %',   def: false, group: 'K/Z'     },
+  { key: 'unrealizedPnl', label: 'Gerçekleşmemiş K/Z',   def: true,  group: 'K/Z', hint: 'Nominal — enflasyon hariç' },
+  { key: 'unrealizedPct', label: 'Gerçekleşmemiş K/Z %', def: true,  group: 'K/Z', hint: 'Nominal — enflasyon hariç' },
+  { key: 'dailyPnl',      label: 'Günlük K/Z',           def: false, group: 'K/Z', hint: 'Bugün düne göre' },
+  { key: 'dailyPct',      label: 'Günlük K/Z %',         def: false, group: 'K/Z', hint: 'Bugün düne göre' },
+  { key: 'realizedPnl',   label: 'Gerçekleşmiş K/Z',     def: false, group: 'K/Z', hint: 'Satıştan kesinleşen' },
+  { key: 'realizedPct',   label: 'Gerçekleşmiş K/Z %',   def: false, group: 'K/Z', hint: 'Satıştan kesinleşen' },
+  { key: 'realPnl',       label: 'Reel K/Z',             def: false, group: 'Enflasyona Göre', hint: 'Kendi para birimi' },
+  { key: 'realPct',       label: 'Reel K/Z %',           def: false, group: 'Enflasyona Göre', hint: 'Kendi para birimi' },
+  { key: 'realPnlTry',    label: 'Reel K/Z (TL)',        def: false, group: 'Enflasyona Göre', hint: 'TL alım gücü (TÜFE)' },
+  { key: 'realPctTry',    label: 'Reel K/Z % (TL)',      def: false, group: 'Enflasyona Göre', hint: 'TL alım gücü (TÜFE)' },
+  { key: 'beatInflation', label: 'Enf. Durumu',          def: false, group: 'Enflasyona Göre', hint: 'Yendi / Yenildi' },
+  { key: 'inflationSince',label: 'Enflasyon (alıştan)',  def: false, group: 'Enflasyona Göre', hint: 'Birikimli enflasyon %' },
   { key: 'currency',      label: 'Para Birimi',           def: false, group: 'Temel'   },
   { key: 'firstBuyDate',  label: 'İlk Alış Tarihi',      def: false, group: 'Tarih'   },
   { key: 'lastTxDate',    label: 'Son İşlem Tarihi',      def: false, group: 'Tarih'   },
@@ -62,8 +71,22 @@ const ALL_COLS = [
 
 const DEFAULT_KEYS = [...DEFAULT_DISPLAY_ORDER];
 
+/** Kayıtlı kolon seçimini oku (geçersiz/eski anahtarları temizler). Yoksa null. */
+function loadSavedColumns() {
+  try {
+    const raw = localStorage.getItem(COLS_STORAGE_KEY);
+    if (!raw) return null;
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return null;
+    const valid = arr.filter(k => ALL_COLS.some(c => c.key === k));
+    return valid.length ? valid.slice(0, MAX_COLS) : null;
+  } catch {
+    return null;
+  }
+}
+
 // Grup sırası popover'da
-const GROUP_ORDER = ['Temel', 'Fiyat', 'K/Z', 'Tarih', 'Piyasa', 'Teknik'];
+const GROUP_ORDER = ['Temel', 'Fiyat', 'K/Z', 'Enflasyona Göre', 'Tarih', 'Piyasa', 'Teknik'];
 
 /** Seçili kolonları varsayılan sıra + ekstra kolonlar (ALL_COLS sırası) ile döndürür. */
 function buildVisibleCols(selectedKeys) {
@@ -74,32 +97,6 @@ function buildVisibleCols(selectedKeys) {
     .filter(Boolean);
   const extra = ALL_COLS.filter(c => set.has(c.key) && !DEFAULT_DISPLAY_ORDER.includes(c.key));
   return [...primary, ...extra];
-}
-
-/** Tabloda DİBS ve diğer türler birlikteyken sütun başlıklarını ayarlar. */
-function holdingsBondMix(holdings) {
-  if (!holdings?.length) {
-    return { hasBond: false, onlyBond: false, mixed: false };
-  }
-  const hasBond = holdings.some(h => String(h.assetType ?? '').toUpperCase() === 'BOND');
-  const onlyBond = hasBond && holdings.every(h => String(h.assetType ?? '').toUpperCase() === 'BOND');
-  const mixed = hasBond && !onlyBond;
-  return { hasBond, onlyBond, mixed };
-}
-
-function columnHeaderLabel(col, mix, t) {
-  if (!mix.hasBond) return t(col.label);
-  if (col.key === 'avgCost') {
-    if (mix.onlyBond) return t('Ort. Gösterge (maliyet)');
-    if (mix.mixed) return t('Ortalama alış / gösterge');
-    return t(col.label);
-  }
-  if (col.key === 'currentPrice') {
-    if (mix.onlyBond) return t('Güncel gösterge');
-    if (mix.mixed) return t('Mevcut fiyat / gösterge');
-    return t(col.label);
-  }
-  return t(col.label);
 }
 
 // ── Format yardımcıları ───────────────────────────────────────────────────────
@@ -214,6 +211,27 @@ function fmtVol(v) {
   return fmtNum(n, 0) ?? String(n);
 }
 
+const METAL_TR = { SILVER: 'Gümüş', PLATINUM: 'Platin', PALLADIUM: 'Paladyum', GOLD: 'Altın' };
+const UNIT_TR = { GRAM_TRY: 'Gram', KG_TRY: 'Kg', USD_ONS: 'Ons', EUR_ONS: 'Ons', GRAM: 'Gram' };
+
+/**
+ * Görünen isim — kıymetli maden (SILVER:GRAM_TRY gibi) sembollerini birim+metal olarak açar
+ * (ör. "Gram Gümüş"); diğerlerinde backend adını kullanır.
+ */
+function resolveHoldingName(h) {
+  const base = h.name ?? h.displayName ?? h.instrumentName ?? h.symbol;
+  const sym = String(h.symbol ?? '');
+  if (sym.includes(':')) {
+    const [metal, cat] = sym.toUpperCase().split(':');
+    const m = METAL_TR[metal];
+    if (m) {
+      const u = UNIT_TR[cat];
+      return u ? `${u} ${m}` : m;
+    }
+  }
+  return base;
+}
+
 function num(h, ...keys) {
   for (const k of keys) {
     const v = h[k];
@@ -256,10 +274,54 @@ function positionDailyGainLoss(h) {
   return null;
 }
 
+/**
+ * Bir kolonun belirli bir varlıkta gerçek verisi var mı?
+ * Temel kolonlar (isim, sembol, miktar vb.) her zaman dolu kabul edilir; veri kaynağına
+ * bağlı kolonlar (günlük K/Z, hacim, 52 hafta, trend, reel/gerçekleşmiş K/Z) gerçek
+ * değere göre değerlendirilir. Tüm satırlarda boşsa başlıkta "(veri yok)" ipucu gösterilir.
+ */
+function columnHasValueForHolding(key, h) {
+  switch (key) {
+    case 'marketValue':    return positionMarketValue(h) != null;
+    case 'unrealizedPnl':
+    case 'unrealizedPct':  return unrealizedGainLoss(h) != null;
+    case 'dailyPnl':       return positionDailyGainLoss(h) != null;
+    case 'dailyPct':       return (h.dailyGainLossPercent ?? h.dailyChangePercent ?? h.changePercent ?? h.returnOneDay) != null;
+    case 'realizedPnl':    return h.realizedGainLoss != null;
+    case 'realizedPct':    return h.realizedGainLossPercent != null;
+    case 'realPnl':        return h.realProfitLoss != null;
+    case 'realPct':        return h.realProfitLossPercent != null;
+    case 'realPnlTry':     return h.realProfitLossTry != null;
+    case 'realPctTry':     return h.realProfitLossPercentTry != null;
+    case 'beatInflation':  return (h.realProfitLoss ?? h.realProfitLossTry) != null;
+    case 'inflationSince': return h.inflationSincePercent != null;
+    case 'volume':         return h.volume != null;
+    case 'week52':
+      return (
+        h.fiftyTwoWeekRange != null || h.week52Range != null ||
+        ((h.fiftyTwoWeekLow ?? h.week52Low) != null && (h.fiftyTwoWeekHigh ?? h.week52High) != null)
+      );
+    case 'trend':          return !!computeTrend(h).signal;
+    default:               return true; // temel kolonlar
+  }
+}
+
 // ── Küçük UI parçaları ────────────────────────────────────────────────────────
 
 function Dash() {
   return <span className="text-gray-300">-</span>;
+}
+
+/** Reel/enflasyon kolonları boşken nedenini açıklayan tire (örn. bu ay alınmış pozisyon). */
+function ReelDash({ t }) {
+  return (
+    <span
+      className="text-gray-300 cursor-help"
+      title={t('Enflasyon faktörü hesaplanamadı: pozisyon çok yeni ya da bu dönemin enflasyonu (TÜFE) henüz açıklanmadı.')}
+    >
+      -
+    </span>
+  );
 }
 
 function PnlAmt({ value, currency, valuesHidden }) {
@@ -276,6 +338,19 @@ function PnlAmt({ value, currency, valuesHidden }) {
   return (
     <span className={`font-bold ${pos ? 'text-emerald-600' : 'text-rose-600'}`}>
       {pos ? '+' : ''}{fmtMoneyTwoDecimals(n, currency) ?? String(n)}
+    </span>
+  );
+}
+
+/** Enflasyonu yendi mi? rozeti — reel K/Z işaretine göre. */
+function BeatChip({ beat, t }) {
+  return beat ? (
+    <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md whitespace-nowrap">
+      <TrendingUp className="w-3 h-3" /> {t('Yendi')}
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1 text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md whitespace-nowrap">
+      <TrendingDown className="w-3 h-3" /> {t('Yenildi')}
     </span>
   );
 }
@@ -304,13 +379,10 @@ function PnlPct({ value, valuesHidden }) {
 function renderCell(key, h, commoditySpots, valuesHidden, t) {
   const cur = h.currency;
   const isFund = String(h.assetType ?? '').toUpperCase() === 'FUND';
-  const isYahooCommodity =
-    String(h.assetType ?? '').toUpperCase() === 'COMMODITY' && isYahooCommoditySymbol(h.symbol);
-  const commoditySpot = isYahooCommodity ? commoditySpots?.[h.symbol] : null;
 
   switch (key) {
     case 'name': {
-      const name = h.name ?? h.displayName ?? h.instrumentName ?? h.symbol;
+      const name = resolveHoldingName(h);
       const detailPath = getWatchlistDetailPath(h.assetType, h.symbol);
       if (detailPath) {
         return (
@@ -335,7 +407,7 @@ function renderCell(key, h, commoditySpots, valuesHidden, t) {
 
     case 'assetType':
       return (
-        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-semibold whitespace-nowrap">
+        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md font-semibold whitespace-nowrap">
           {ASSET_LABELS[h.assetType] ? t(ASSET_LABELS[h.assetType]) : h.assetType}
         </span>
       );
@@ -363,9 +435,6 @@ function renderCell(key, h, commoditySpots, valuesHidden, t) {
     case 'currentPrice':
       if (valuesHidden) {
         return <span className="text-sm text-gray-500 tracking-widest">{MASK_MONEY}</span>;
-      }
-      if (isYahooCommodity && commoditySpot) {
-        return <CommodityDualPrice tryAmount={h.currentPrice} spot={commoditySpot} />;
       }
       return (
         <span className="text-sm font-semibold">
@@ -420,6 +489,54 @@ function renderCell(key, h, commoditySpots, valuesHidden, t) {
 
     case 'realizedPct':
       return <PnlPct value={h.realizedGainLossPercent ?? null} valuesHidden={valuesHidden} />;
+
+    case 'realPnl':
+      if (!valuesHidden && h.realProfitLoss == null) return <ReelDash t={t} />;
+      return <PnlAmt value={h.realProfitLoss ?? null} currency={cur} valuesHidden={valuesHidden} />;
+
+    case 'realPct':
+      if (!valuesHidden && h.realProfitLossPercent == null) return <ReelDash t={t} />;
+      return <PnlPct value={h.realProfitLossPercent ?? null} valuesHidden={valuesHidden} />;
+
+    case 'realPnlTry':
+      if (!valuesHidden && h.realProfitLossTry == null) return <ReelDash t={t} />;
+      return <PnlAmt value={h.realProfitLossTry ?? null} currency={'TL'} valuesHidden={valuesHidden} />;
+
+    case 'realPctTry':
+      if (!valuesHidden && h.realProfitLossPercentTry == null) return <ReelDash t={t} />;
+      return <PnlPct value={h.realProfitLossPercentTry ?? null} valuesHidden={valuesHidden} />;
+
+    case 'beatInflation': {
+      if (valuesHidden) return <Dash />;
+      const rv = h.realProfitLoss ?? h.realProfitLossTry;
+      if (rv == null) return <ReelDash t={t} />;
+      const n = parseFloat(rv);
+      if (!Number.isFinite(n)) return <ReelDash t={t} />;
+      return <BeatChip beat={n > 0} t={t} />;
+    }
+
+    case 'inflationSince': {
+      if (valuesHidden) {
+        return <span className="text-sm text-gray-500 tracking-widest">{MASK_PERCENT}</span>;
+      }
+      const v = h.inflationSincePercent;
+      if (v == null) return <ReelDash t={t} />;
+      const n = parseFloat(v);
+      if (!Number.isFinite(n)) return <Dash />;
+      const src = h.inflationSource || t('TÜFE');
+      // Enflasyon nötr bir büyüklük (iyi/kötü değil) → amber, +/- renklendirme yok
+      return (
+        <span
+          className="text-sm font-medium text-amber-600 whitespace-nowrap"
+          title={t('İlk alış tarihinden bugüne birikimli enflasyon ({src})', { src })}
+        >
+          {formatPercentWithSuffix(n)}
+          {h.inflationSource && (
+            <span className="ml-1 text-[10px] font-semibold text-gray-400">{src}</span>
+          )}
+        </span>
+      );
+    }
 
     case 'currency':
       return <span className="text-sm text-gray-700">{h.currency ?? <Dash />}</span>;
@@ -563,8 +680,8 @@ function ColumnEditor({ open, onToggle, selected, onChange }) {
             </p>
           )}
 
-          {/* Gruplar — yatayda kaydırılabilir grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          {/* Gruplar — hepsi yan yana; dar ekranda az öğeli gruplar alt satıra kayar */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-x-4 gap-y-5 items-start">
             {GROUP_ORDER.map(group => {
               const cols = byGroup[group];
               if (!cols?.length) return null;
@@ -578,7 +695,8 @@ function ColumnEditor({ open, onToggle, selected, onChange }) {
                       return (
                         <label
                           key={col.key}
-                          className={`flex items-center gap-2 rounded-md px-2 py-1 cursor-pointer transition-colors select-none
+                          title={col.hint ? t(col.hint) : undefined}
+                          className={`flex items-start gap-2 rounded-md px-2 py-1 cursor-pointer transition-colors select-none
                             ${checked  ? 'bg-blue-50 text-blue-800' : 'hover:bg-white text-gray-700'}
                             ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
                         >
@@ -587,9 +705,16 @@ function ColumnEditor({ open, onToggle, selected, onChange }) {
                             checked={checked}
                             disabled={disabled}
                             onChange={() => toggle(col.key)}
-                            className="w-3.5 h-3.5 rounded accent-[#093eaa] shrink-0"
+                            className="w-3.5 h-3.5 rounded accent-[#093eaa] shrink-0 mt-0.5"
                           />
-                          <span className="text-xs font-medium leading-tight">{t(col.label)}</span>
+                          <span className="leading-tight">
+                            <span className="block text-xs font-medium">{t(col.label)}</span>
+                            {col.hint && (
+                              <span className="block text-[10px] font-normal text-gray-400 leading-tight">
+                                {t(col.hint)}
+                              </span>
+                            )}
+                          </span>
                         </label>
                       );
                     })}
@@ -612,11 +737,26 @@ function ColumnEditor({ open, onToggle, selected, onChange }) {
  */
 export default function HoldingsTable({ holdings = [], commoditySpots = {}, valuesHidden = false }) {
   const { t } = useTranslation();
-  const [selectedKeys, setSelectedKeys] = useState(DEFAULT_KEYS);
+  const [selectedKeys, setSelectedKeys] = useState(() => loadSavedColumns() ?? DEFAULT_KEYS);
   const [editorOpen, setEditorOpen]     = useState(false);
 
+  // Seçim değişince tarayıcıya kaydet (sonraki girişte korunur).
+  useEffect(() => {
+    try {
+      localStorage.setItem(COLS_STORAGE_KEY, JSON.stringify(selectedKeys));
+    } catch {
+      /* localStorage yoksa yoksay */
+    }
+  }, [selectedKeys]);
+
   const visibleCols = buildVisibleCols(selectedKeys);
-  const bondMix = holdingsBondMix(holdings);
+
+  // Mevcut varlıkların hiçbirinde verisi olmayan seçili kolonlar — başlıkta işaretlenir
+  const emptyColKeys = new Set(
+    visibleCols
+      .filter(c => !holdings.some(h => columnHasValueForHolding(c.key, h)))
+      .map(c => c.key),
+  );
 
   if (!holdings.length) {
     return (
@@ -640,14 +780,25 @@ export default function HoldingsTable({ holdings = [], commoditySpots = {}, valu
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
-              {visibleCols.map(col => (
-                <th
-                  key={col.key}
-                  className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap"
-                >
-                  {columnHeaderLabel(col, bondMix, t)}
-                </th>
-              ))}
+              {visibleCols.map(col => {
+                const isEmpty = emptyColKeys.has(col.key);
+                return (
+                  <th
+                    key={col.key}
+                    title={isEmpty
+                      ? t('Mevcut varlıklarda bu sütun için veri yok')
+                      : (col.hint ? t(col.hint) : undefined)}
+                    className={`text-left px-4 py-3 text-xs font-bold uppercase tracking-wider border-b border-gray-200 whitespace-nowrap ${isEmpty ? 'text-gray-300' : 'text-gray-500'}`}
+                  >
+                    {t(col.label)}
+                    {isEmpty && (
+                      <span className="ml-1 normal-case font-normal text-[10px] text-gray-300">
+                        ({t('veri yok')})
+                      </span>
+                    )}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>

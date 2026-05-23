@@ -47,7 +47,7 @@ export default function PortfolioDetailPage() {
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-6 py-4 rounded-2xl">
+      <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-6 py-4 rounded-lg">
         {error}
       </div>
     );
@@ -94,8 +94,8 @@ export default function PortfolioDetailPage() {
         />
       )}
 
-      {/* Header */}
-      <div className="flex items-start gap-3">
+      {/* Header — M3 kart */}
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5 flex items-start gap-3">
         <Link to="/portfolio" className="text-gray-400 hover:text-[#093eaa] transition-colors mt-1 shrink-0">
           <ArrowLeft className="w-5 h-5" />
         </Link>
@@ -103,7 +103,7 @@ export default function PortfolioDetailPage() {
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-2xl font-bold text-gray-900 truncate">{portfolio.name}</h1>
             <PortfolioTypeBadge type={portfolio.portfolioType} />
-            <span className="text-xs font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+            <span className="text-xs font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-md">
               {portfolio.currency}
             </span>
           </div>
@@ -115,7 +115,7 @@ export default function PortfolioDetailPage() {
           <button
             type="button"
             onClick={() => setShowEdit(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-[#093eaa]/40 hover:text-[#093eaa] transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-[#093eaa]/40 hover:text-[#093eaa] transition-colors"
           >
             <Pencil className="w-4 h-4" />
             {t('Düzenle')}
@@ -125,7 +125,7 @@ export default function PortfolioDetailPage() {
               type="button"
               onClick={handleExportCsv}
               disabled={exporting}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors disabled:opacity-50"
             >
               <Download className="w-4 h-4" />
               {exporting ? t('Dışa aktarılıyor…') : t('Dışa aktar')}

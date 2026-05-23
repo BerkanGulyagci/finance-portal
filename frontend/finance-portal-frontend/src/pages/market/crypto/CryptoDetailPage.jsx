@@ -634,6 +634,7 @@ export default function CryptoDetailPage() {
           rangeConfig.yahooRange,
           rangeConfig.yahooInterval,
           coinId,
+          coin?.currentPrice, // güncel fiyat (seçili para birimi) — yanlış Yahoo token'ını ayıklamak için
         );
         prices = raw.prices ?? [];
         volumes = raw.total_volumes ?? [];

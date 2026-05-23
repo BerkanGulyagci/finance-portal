@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { BarChart3, TrendingUp, ArrowUpDown, CalendarDays } from 'lucide-react';
 import { getFxTcmb, getEconomicIndicators } from '../../api/marketApi';
 import { getBloombergHtNews } from '../../api/newsApi';
@@ -105,6 +106,18 @@ export function Sidebar() {
             <span className="text-xs font-semibold text-gray-600">{t('Enflasyon (TÜFE)')}</span>
             <span className="text-xs font-bold text-rose-500">%{indicators.inflation}</span>
           </div>
+          {indicators.ppi != null && indicators.ppi !== '' && (
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-semibold text-gray-600">{t('Üretici Enf. (ÜFE)')}</span>
+              <span className="text-xs font-bold text-rose-500">%{indicators.ppi}</span>
+            </div>
+          )}
+          {indicators.depositRate != null && indicators.depositRate !== '' && (
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-semibold text-gray-600">{t('Mevduat Faizi')}</span>
+              <span className="text-xs font-bold text-[#093eaa]">%{indicators.depositRate}</span>
+            </div>
+          )}
           {['USD', 'EUR', 'GBP'].map(sym => {
             const r = rates.find(x => x.symbol === sym);
             return r ? (
@@ -116,6 +129,12 @@ export function Sidebar() {
               </div>
             ) : null;
           })}
+          <Link
+            to="/market/economy"
+            className="block text-center text-xs font-semibold text-[#093eaa] hover:underline pt-1 border-t border-gray-100 mt-1"
+          >
+            {t('Tüm göstergeler →')}
+          </Link>
         </div>
       </div>
 

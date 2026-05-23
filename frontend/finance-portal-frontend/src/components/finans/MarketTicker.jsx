@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useId } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, LineChart } from 'lucide-react';
 import {
   getFxTcmb,
   getCryptos,
@@ -318,18 +318,22 @@ export function MarketTicker() {
   if (!tickerOpen) {
     return (
       <div className="bg-gray-50 border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-9">
-          <span className="text-xs text-gray-500">{t('Piyasa özeti gizli')}</span>
-          <button
-            type="button"
-            onClick={() => setTickerOpen(true)}
-            className="flex items-center gap-1 text-xs font-semibold text-[#093eaa] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#093eaa]/30 rounded px-2 py-1"
-            aria-expanded="false"
-          >
-            <ChevronDown className="w-4 h-4 shrink-0" aria-hidden />
+        <button
+          type="button"
+          onClick={() => setTickerOpen(true)}
+          className="w-full px-4 sm:px-6 lg:px-8 flex items-center justify-between h-9 text-left hover:bg-gray-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#093eaa]/30 group"
+          aria-expanded="false"
+          aria-label={t('Piyasa şeridini göster')}
+        >
+          <span className="flex items-center gap-2 text-xs font-medium text-gray-500">
+            <LineChart className="w-3.5 h-3.5 text-gray-400 shrink-0" aria-hidden />
+            {t('Piyasa özeti gizli')}
+          </span>
+          <span className="flex items-center gap-1 text-xs font-semibold text-[#093eaa] group-hover:underline">
             {t('Göster')}
-          </button>
-        </div>
+            <ChevronDown className="w-4 h-4 shrink-0" aria-hidden />
+          </span>
+        </button>
       </div>
     );
   }

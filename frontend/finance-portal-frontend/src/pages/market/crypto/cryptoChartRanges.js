@@ -4,6 +4,7 @@ import {
   getCryptoOhlc,
   getCryptoYahooChart,
   getCryptoYahooOhlc,
+  getCryptoYahooTryChart,
 } from '../../../api/marketApi';
 
 /**
@@ -158,8 +159,64 @@ export function buildTryFallbackWarning(uiCurrency, quoteCurrency, rangeLabel) {
   return `Bu aralık (${label}) için TRY verisi bulunamadı; şu an ${quote} bazlı grafik görüntülüyorsunuz.`;
 }
 
+/** StockChartResponse {timestamps(saniye), closePrices} → [[ms, price], …] */
+function stockChartToLinePrices(res) {
+  const ts = res?.timestamps ?? [];
+  const closes = res?.closePrices ?? [];
+  const prices = [];
+  for (let i = 0; i < Math.min(ts.length, closes.length); i++) {
+    const t = Number(ts[i]);
+    const p = Number(closes[i]);
+    if (!Number.isFinite(t) || !Number.isFinite(p) || p <= 0) continue;
+    prices.push([t < 1e11 ? t * 1000 : t, p]);
+  }
+  return prices;
+}
+
+/**
+ * Yahoo türevli serinin son değeri coin'in gerçek güncel fiyatından çok uzaksa (ör. HYPE-USD =
+ * Hyperliquid değil, ölü bir 2021 token'ı) → yanlış token; reddet. Referans yoksa kabul eder.
+ */
+function lastPriceWithinTolerance(prices, currentPrice) {
+  const cur = Number(currentPrice);
+  if (!Number.isFinite(cur) || cur <= 0) return true;
+  if (!prices?.length) return true;
+  const last = Number(prices[prices.length - 1]?.[1]);
+  if (!Number.isFinite(last) || last <= 0) return true;
+  const ratio = last / cur;
+  return ratio >= 0.2 && ratio <= 5;
+}
+
 /** 5Y / Tüm — Yahoo çizgi grafik (+ yetersiz Yahoo'da CoinGecko) */
-export async function fetchYahooCryptoLineChart(symbol, uiCurrency, yahooRange, yahooInterval, coinId) {
+export async function fetchYahooCryptoLineChart(symbol, uiCurrency, yahooRange, yahooInterval, coinId, currentPrice) {
+  const ui = String(uiCurrency ?? '').trim().toUpperCase();
+
+  // "Tüm" + TL: tam geçmiş (2014+) için Yahoo USD × USD/TRY ile TL'ye çevrilmiş seri.
+  // Binance BTCTRY ~2019, CoinGecko TRY ~1 yıl ile sınırlı olduğundan eski TL veriyi ancak böyle gösterebiliyoruz.
+  let yahooTokenSuspect = false; // Yahoo ticker çakışması tespit edilirse Yahoo'yu tamamen atla
+  if (ui === 'TRY' && yahooRange === 'max') {
+    try {
+      const res = await getCryptoYahooTryChart(symbol, 'max');
+      const prices = stockChartToLinePrices(res);
+      if (isAdequateRemoteLinePrices(prices)) {
+        // currentPrice (TL) ile tutarlılık kontrolü — Yahoo ticker çakışmasını ayıklar.
+        if (lastPriceWithinTolerance(prices, currentPrice)) {
+          return {
+            prices,
+            total_volumes: [],
+            yahooSymbol: res?.symbol ?? null,
+            quoteCurrency: 'TRY',
+            sourceNote: "Yahoo Finance · USD fiyat × USD/TRY ile TL'ye çevrildi",
+            tryFallbackWarning: null,
+          };
+        }
+        yahooTokenSuspect = true; // yanlış token → USD/EUR Yahoo'yu da atla, CoinGecko'ya git
+      }
+    } catch {
+      /* aşağıdaki mevcut akışa düş */
+    }
+  }
+
   const binance = await fetchBinanceTryCryptoChart(symbol, uiCurrency, yahooRange);
   if (binance?.prices?.length && isAdequateRemoteLinePrices(binance.prices)) {
     return {
@@ -176,6 +233,7 @@ export async function fetchYahooCryptoLineChart(symbol, uiCurrency, yahooRange, 
   const rangeLabel = yahooRange === '5y' ? '5Y' : yahooRange === 'max' ? 'Tüm' : yahooRange;
   let sparseYahoo = null;
   for (const cur of resolveYahooQuoteCurrencies(uiCurrency)) {
+    if (yahooTokenSuspect) break; // yanlış Yahoo token'ı (çakışma) → Yahoo'yu atla, CoinGecko'ya düş
     const yahooSym = toYahooCryptoSymbol(symbol, cur);
     if (!yahooSym) continue;
     try {

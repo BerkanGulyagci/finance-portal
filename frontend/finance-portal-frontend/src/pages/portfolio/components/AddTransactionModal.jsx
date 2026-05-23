@@ -1,8 +1,10 @@
 import { useEffect, useState, useMemo } from 'react';
-import { X } from 'lucide-react';
-import { addTransaction } from '../../../api/portfolioApi';
+import { X, ArrowLeftRight, TrendingUp, TrendingDown } from 'lucide-react';
+import { addTransaction, getPriceAtDate } from '../../../api/portfolioApi';
+import { getViopChart } from '../../../api/marketApi';
 import InstrumentSearchModal from './InstrumentSearchModal';
 import CommodityPriceHint from './CommodityPriceHint';
+import DateTimeField from './DateTimeField';
 import { isYahooCommoditySymbol } from '../../../utils/commodityPriceUtils';
 import {
   isGoldAssetType,
@@ -14,129 +16,25 @@ import {
   goldQuantitySuffix,
 } from '../utils/goldTransactionMeta';
 import { useTranslation } from '../../../i18n/LanguageContext';
-
-// ── helpers ────────────────────────────────────────────────────────────────────
-
-function extractApiErrorMessage(err) {
-  const body = err?.response?.data;
-  if (!body) return err?.message || '';
-  if (typeof body.message === 'string' && body.message.trim()) return body.message.trim();
-  if (body.data && typeof body.data === 'object') {
-    const parts = Object.values(body.data).filter(v => typeof v === 'string' && v.trim());
-    if (parts.length) return parts.join(' ');
-  }
-  return '';
-}
-
-function fmtNum(n, dec = 2) {
-  if (n == null || !Number.isFinite(n)) return '-';
-  return n.toLocaleString('tr-TR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
-}
-
-function fmtWithCcy(n, ccy, dec = 2) {
-  const s = fmtNum(n, dec);
-  return ccy ? `${s} ${ccy}` : s;
-}
-
-function guessCurrency(assetType, symbol) {
-  switch (assetType) {
-    case 'STOCK':
-      return (symbol ?? '').toUpperCase().endsWith('.IS') ? 'TRY' : 'USD';
-    case 'CRYPTO':
-    case 'FX':
-    case 'FUND':
-    case 'BOND':
-    case 'GOLD':
-    case 'COMMODITY':
-      return 'TRY';
-    case 'FUTURE':
-      return /^[A-Z0-9.=]{1,15}$/i.test(symbol ?? '') ? 'USD' : 'TRY';
-    default:
-      return '';
-  }
-}
-
-function getShortSymbol(sym) {
-  if (!sym) return '';
-  const s = sym.toUpperCase();
-  const paren = s.indexOf(' (');
-  return paren > 0 ? s.slice(0, paren) : s;
-}
-
-/**
- * BUY: supports = tutar ile gösterilsin mi, floor = tam adede indir
- * SELL: aynı kural geçerli
- */
-function assetConfig(assetType) {
-  const t = String(assetType ?? '').toUpperCase();
-  switch (t) {
-    case 'STOCK':
-      return { supports: true, floor: true };
-    case 'CRYPTO':
-    case 'FX':
-    case 'FUND':
-    case 'GOLD':
-    case 'COMMODITY':
-      return { supports: true, floor: false };
-    case 'BOND':
-    case 'FUTURE':
-    default:
-      return { supports: false, floor: false };
-  }
-}
-
-function safePositivePrice(p) {
-  const n = Number(p);
-  return Number.isFinite(n) && n > 0 ? n : null;
-}
-
-function initPrice(p) {
-  if (p == null || p === '') return '';
-  const n = Number(p);
-  return Number.isFinite(n) && n > 0 ? String(p) : '';
-}
-
-/** holdings listesinden sembol + assetType eşleşen açık pozisyon miktarını döndürür */
-function findAvailableQty(holdings, symbol, assetType) {
-  if (!holdings?.length || !symbol || !assetType) return null;
-  const sym = symbol.toUpperCase();
-  const match = holdings.find(
-    h =>
-      (h.symbol ?? '').toUpperCase() === sym &&
-      (h.assetType ?? '') === assetType,
-  );
-  if (!match) return null;
-  const n = parseFloat(match.totalQuantity);
-  return Number.isFinite(n) && n > 0 ? n : 0;
-}
-
-/** Fon: kullanıcı genelde tutar ile işlem yapar → varsayılan "Tutar ile". Diğerleri miktar. */
-function defaultInputMode(assetType) {
-  return String(assetType ?? '').toUpperCase() === 'FUND' ? 'amount' : 'quantity';
-}
-
-function isFundAssetType(assetType) {
-  return String(assetType ?? '').toUpperCase() === 'FUND';
-}
-
-function isBondAssetType(assetType) {
-  return String(assetType ?? '').toUpperCase() === 'BOND';
-}
-
-function isFutureAssetType(assetType) {
-  return String(assetType ?? '').toUpperCase() === 'FUTURE';
-}
-
-/** Vadeli: sadece pozitif tam sayı (küsurat yok). */
-function sanitizeFutureContractQtyInput(raw) {
-  const s = String(raw ?? '');
-  if (!s) return '';
-  const head = s.split(/[.,]/)[0].replace(/\D/g, '');
-  if (head === '') return '';
-  const n = parseInt(head, 10);
-  if (!Number.isFinite(n) || n < 0) return '';
-  return String(n);
-}
+import TransactionSummary from './TransactionSummary';
+import {
+  extractApiErrorMessage,
+  fmtNum,
+  guessCurrency,
+  getShortSymbol,
+  assetConfig,
+  safePositivePrice,
+  initPrice,
+  findAvailableQty,
+  defaultInputMode,
+  isFundAssetType,
+  isBondAssetType,
+  isFutureAssetType,
+  sanitizeFutureContractQtyInput,
+  currencySymbol,
+  formatGroupedInput,
+  parseGroupedInput,
+} from '../utils/transactionFormUtils';
 
 // ── component ──────────────────────────────────────────────────────────────────
 
@@ -178,9 +76,17 @@ export default function AddTransactionModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Fiyat otomatik doldurma durumları (işlem tarihine göre)
+  const [priceLoading, setPriceLoading] = useState(false);   // tarihsel fiyat çekiliyor
+  const [priceNotFound, setPriceNotFound] = useState(false); // seçilen tarih için veri yok
+  const [priceAuto, setPriceAuto] = useState(initialInstrument?.price != null); // fiyat otomatik mi
+  const [futureMinDate, setFutureMinDate] = useState(null); // VİOP kontratının ilk işlem günü (YYYY-MM-DD)
+
   function set(key, val) {
     setForm(f => ({ ...f, [key]: val }));
   }
+
+  const todayStr = localNow.slice(0, 10);
 
   useEffect(() => {
     if (!initialInstrument) return;
@@ -216,23 +122,93 @@ export default function AddTransactionModal({
         inputMode: defaultInputMode(inst.assetType),
       };
     });
+    setPriceAuto(true);
+    setPriceNotFound(false);
     setStep('form');
   }
 
-  function handleTransactionTypeChange(t) {
+  function handleTransactionTypeChange(txType) {
     setForm(f => {
-      // Döviz: işlem tipi değişince TCMB kuru kurum perspektifine göre tersine güncellenir
+      // Geçmiş tarih seçiliyse fiyat tarihsel kapanıştır (alış/satış ayrımı yok) → korunur.
+      const dateOnly = (f.transactionDate || '').slice(0, 10);
+      const isPast = dateOnly && dateOnly < todayStr;
       let updatedPrice = f.price;
-      if (instrument?.assetType === 'FX') {
-        updatedPrice = t === 'BUY'
-          ? initPrice(instrument.fxSell)   // BUY → satış kuru
-          : initPrice(instrument.fxBuy);   // SELL → alış kuru
-      } else if (isGoldAssetType(instrument?.assetType)) {
-        updatedPrice = initPrice(resolveInstrumentTransactionPrice(instrument, t === 'BUY'));
+      if (!isPast) {
+        // Bugün/ileri: Döviz/Altın için kurum perspektifli alış/satış spot fiyatı
+        if (instrument?.assetType === 'FX') {
+          updatedPrice = txType === 'BUY'
+            ? initPrice(instrument.fxSell)   // BUY → satış kuru
+            : initPrice(instrument.fxBuy);   // SELL → alış kuru
+        } else if (isGoldAssetType(instrument?.assetType)) {
+          updatedPrice = initPrice(resolveInstrumentTransactionPrice(instrument, txType === 'BUY'));
+        }
       }
-      return { ...f, transactionType: t, tradeAmount: '', quantity: '', price: updatedPrice };
+      return { ...f, transactionType: txType, tradeAmount: '', quantity: '', price: updatedPrice };
     });
   }
+
+  // İşlem tarihine göre fiyatı otomatik doldur (geçmiş tarihte tarihsel kapanış).
+  // Bugün/ileri tarihte güncel spot fiyat (instrument-based) korunur.
+  useEffect(() => {
+    if (step !== 'form' || !instrument) return undefined;
+    const dateOnly = (form.transactionDate || '').slice(0, 10);
+    if (!dateOnly) return undefined;
+    if (dateOnly >= todayStr) {
+      // Bugün/ileri: spot fiyat geçerli; tarihsel çekim yok
+      setPriceNotFound(false);
+      setPriceLoading(false);
+      return undefined;
+    }
+    let cancelled = false;
+    setPriceLoading(true);
+    setPriceNotFound(false);
+    const handle = setTimeout(() => {
+      getPriceAtDate(instrument.assetType, instrument.symbol, dateOnly)
+        .then(res => {
+          if (cancelled) return;
+          if (res?.found && res.price != null) {
+            set('price', String(res.price));
+            setPriceAuto(true);
+            setPriceNotFound(false);
+          } else {
+            // Bu tarih için veri yok → çelişki olmasın diye eski (spot) fiyatı temizle
+            set('price', '');
+            setPriceAuto(false);
+            setPriceNotFound(true);
+          }
+        })
+        .catch(() => { if (!cancelled) setPriceNotFound(true); })
+        .finally(() => { if (!cancelled) setPriceLoading(false); });
+    }, 450);
+    return () => { cancelled = true; clearTimeout(handle); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [instrument, form.transactionDate, step]);
+
+  // VİOP: kontratın ilk işlem gününü bul → o tarihten öncesi seçilemesin (kontrat o gün açıldı).
+  useEffect(() => {
+    if (step !== 'form' || !instrument || !isFutureAssetType(instrument.assetType)) {
+      setFutureMinDate(null);
+      return undefined;
+    }
+    let cancelled = false;
+    getViopChart(instrument.symbol, 'ONE_YEAR')
+      .then(resp => {
+        if (cancelled) return;
+        const arr = Array.isArray(resp?.data) ? resp.data : [];
+        let earliest = null;
+        for (const p of arr) {
+          const d = p?.timestamp ? new Date(p.timestamp)
+            : (p?.dateTime ? new Date(p.dateTime) : null);
+          if (d && !Number.isNaN(d.getTime())) {
+            const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+            if (earliest == null || iso < earliest) earliest = iso;
+          }
+        }
+        setFutureMinDate(earliest);
+      })
+      .catch(() => { if (!cancelled) setFutureMinDate(null); });
+    return () => { cancelled = true; };
+  }, [instrument, step]);
 
   // ── hesaplamalar ────────────────────────────────────────────────────────────
 
@@ -420,6 +396,17 @@ export default function AddTransactionModal({
     e.preventDefault();
     setError('');
 
+    // VİOP: kontratın ilk işlem gününden öncesine işlem girilemez.
+    if (isFuture && futureMinDate) {
+      const dOnly = (form.transactionDate || '').slice(0, 10);
+      if (dOnly && dOnly < futureMinDate) {
+        setError(t('Bu kontrat {date} tarihinde işlem görmeye başladı; daha önceki bir tarih seçilemez.', {
+          date: futureMinDate.split('-').reverse().join('.'),
+        }));
+        return;
+      }
+    }
+
     if (!price) {
       setError(
         isFund ? t("Birim pay değeri 0'dan büyük olmalıdır.")
@@ -532,8 +519,6 @@ export default function AddTransactionModal({
 
   // ── adım 2: form ─────────────────────────────────────────────────────────────
 
-  const hasPriceAutoFill = instrument?.price != null;
-
   const submitDisabled =
     loading ||
     quantitySellExceedsFund ||
@@ -566,25 +551,36 @@ export default function AddTransactionModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-      <div className="bg-[#1a1f2e] rounded-2xl shadow-2xl w-full max-w-md text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1a1b22]/30 backdrop-blur-sm">
+      <div className="bg-white rounded-xl shadow-2xl border border-[#e2e1eb] w-full max-w-md text-[#1a1b22] flex flex-col overflow-hidden">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#3a4155]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#e2e1eb]">
           <div>
             <h2 className="font-bold text-lg">{t('İşlem Ekle')}</h2>
-            <p className="text-sm text-gray-400">
-              <span className="font-bold text-white">{instrument?.symbol}</span>
+            <p className="text-sm text-[#434653]">
+              <span className="font-bold text-[#1a1b22]">{instrument?.symbol}</span>
               {instrument?.name && instrument.name !== instrument.symbol && (
-                <span className="ml-1 text-gray-500">· {instrument.name}</span>
+                <span className="ml-1 text-[#747684]">· {instrument.name}</span>
               )}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={() => setStep('search')} className="text-xs text-[#4a6cf7] hover:underline">
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setStep('search')}
+              title={t('Enstrümanı değiştir')}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold text-[#093eaa] bg-[#093eaa]/[0.08] hover:bg-[#093eaa]/[0.15] transition-colors"
+            >
+              <ArrowLeftRight className="w-3.5 h-3.5" />
               {t('Değiştir')}
             </button>
-            <button type="button" onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={t('Kapat')}
+              className="text-[#747684] hover:text-[#1a1b22] rounded-full p-1 hover:bg-[#f3f3fc] transition-colors"
+            >
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -592,27 +588,29 @@ export default function AddTransactionModal({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
 
-          {/* BUY / SELL */}
-          <div className="grid grid-cols-2 gap-2">
+          {/* BUY / SELL — M3 segmented */}
+          <div className="flex bg-[#eeedf7] rounded-lg p-1">
             {['BUY', 'SELL'].map(txType => (
               <button
                 key={txType}
                 type="button"
                 onClick={() => handleTransactionTypeChange(txType)}
-                className={`py-2.5 rounded-xl text-sm font-bold transition-all ${
+                className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-md text-sm font-bold transition-all ${
                   form.transactionType === txType
-                    ? txType === 'BUY' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
-                    : 'bg-[#252b3b] text-gray-400 hover:bg-[#2f3650]'
+                    ? txType === 'BUY' ? 'bg-[#10b981] text-white shadow-sm' : 'bg-rose-500 text-white shadow-sm'
+                    : 'text-[#434653] hover:bg-[#e2e1eb]'
                 }`}
               >
-                {txType === 'BUY' ? `📈 ${t('Alış')}` : `📉 ${t('Satış')}`}
+                {txType === 'BUY'
+                  ? <><TrendingUp className="w-4 h-4" /> {t('Alış')}</>
+                  : <><TrendingDown className="w-4 h-4" /> {t('Satış')}</>}
               </button>
             ))}
           </div>
 
           {/* Giriş tipi — desteklenen asset tipleri için BUY ve SELL'de göster */}
           {cfg.supports && (
-            <div className="flex rounded-xl overflow-hidden border border-[#3a4155]">
+            <div className="flex rounded-xl overflow-hidden border border-[#e2e1eb]">
               {[
                 {
                   value: 'quantity',
@@ -631,8 +629,8 @@ export default function AddTransactionModal({
                   onClick={() => set('inputMode', opt.value)}
                   className={`flex-1 py-2 text-xs font-bold transition-all ${
                     form.inputMode === opt.value
-                      ? 'bg-[#4a6cf7] text-white'
-                      : 'bg-[#252b3b] text-gray-400 hover:bg-[#2f3650]'
+                      ? 'bg-[#093eaa] text-white'
+                      : 'bg-[#f3f3fc] text-[#434653] hover:bg-[#e2e1eb]'
                   }`}
                 >
                   {opt.label}
@@ -647,22 +645,22 @@ export default function AddTransactionModal({
             <div>
               {isAmountMode ? (
                 <>
-                  <label className="block text-xs font-semibold text-gray-400 mb-1.5">
+                  <label className="block text-xs font-semibold text-[#434653] mb-1.5">
                     {isBuy
                       ? `${t('Yatırım Tutarı')}${currency ? ` (${currency})` : ''} *`
                       : `${t('Satış Tutarı')}${currency ? ` (${currency})` : ''} *`}
                   </label>
                   <input
-                    type="number" step="any" min="0"
-                    value={form.tradeAmount}
-                    onChange={e => set('tradeAmount', e.target.value)}
-                    placeholder="0.00"
-                    className="w-full bg-[#252b3b] border border-[#3a4155] rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#4a6cf7]"
+                    type="text" inputMode="decimal"
+                    value={formatGroupedInput(form.tradeAmount)}
+                    onChange={e => set('tradeAmount', parseGroupedInput(e.target.value))}
+                    placeholder="0,00"
+                    className="w-full bg-[#f3f3fc] border border-[#e2e1eb] rounded-xl px-4 py-2.5 text-sm text-[#1a1b22] placeholder-[#747684] focus:outline-none focus:border-[#002a7d] focus:ring-1 focus:ring-[#002a7d]"
                   />
                 </>
               ) : (
                 <>
-                  <label className="block text-xs font-semibold text-gray-400 mb-1.5">
+                  <label className="block text-xs font-semibold text-[#434653] mb-1.5">
                     {isFund
                       ? `${t('Pay Miktarı')} *`
                       : isFuture
@@ -672,21 +670,20 @@ export default function AddTransactionModal({
                           : `${t('Miktar')} *`}
                   </label>
                   <input
-                    type="number"
-                    step={isFuture || (isGold && goldMeta?.floorQty) ? 1 : 'any'}
-                    min={0}
-                    value={form.quantity}
+                    type="text" inputMode="decimal"
+                    value={formatGroupedInput(form.quantity)}
                     onChange={e => {
+                      const raw = parseGroupedInput(e.target.value);
                       if (isFuture) {
-                        set('quantity', sanitizeFutureContractQtyInput(e.target.value));
+                        set('quantity', sanitizeFutureContractQtyInput(raw));
                       } else if (isGold && goldMeta) {
-                        set('quantity', sanitizeGoldQuantityInput(e.target.value, goldMeta.floorQty));
+                        set('quantity', sanitizeGoldQuantityInput(raw, goldMeta.floorQty));
                       } else {
-                        set('quantity', e.target.value);
+                        set('quantity', raw);
                       }
                     }}
-                    placeholder={isFuture || (isGold && goldMeta?.floorQty) ? '1' : '0.00'}
-                    className="w-full bg-[#252b3b] border border-[#3a4155] rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#4a6cf7]"
+                    placeholder={isFuture || (isGold && goldMeta?.floorQty) ? '1' : '0,00'}
+                    className="w-full bg-[#f3f3fc] border border-[#e2e1eb] rounded-xl px-4 py-2.5 text-sm text-[#1a1b22] placeholder-[#747684] focus:outline-none focus:border-[#002a7d] focus:ring-1 focus:ring-[#002a7d]"
                   />
                 </>
               )}
@@ -694,7 +691,7 @@ export default function AddTransactionModal({
 
             {/* Sağ: fiyat */}
             <div>
-              <label className="block text-xs font-semibold text-gray-400 mb-1.5">
+              <label className="block text-xs font-semibold text-[#434653] mb-1.5">
                 {isFund
                   ? `${t('Birim Pay Değeri')} *`
                   : isBond
@@ -702,17 +699,31 @@ export default function AddTransactionModal({
                     : isGold && goldMeta
                       ? `${t(goldMeta.priceLabel)} *`
                       : `${t('Fiyat')} *`}
-                {hasPriceAutoFill && <span className="ml-1 text-emerald-400 font-normal">{t('otomatik')}</span>}
+                {priceLoading
+                  ? <span className="ml-1 text-[#747684] font-normal">{t('yükleniyor...')}</span>
+                  : priceAuto && <span className="ml-1 text-[#10b981] font-normal">{t('otomatik')}</span>}
               </label>
-              <input
-                type="number" step="any" min="0"
-                value={form.price}
-                onChange={e => set('price', e.target.value)}
-                placeholder="0.00"
-                className={`w-full bg-[#252b3b] border rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#4a6cf7] ${
-                  hasPriceAutoFill ? 'border-emerald-500/50' : 'border-[#3a4155]'
-                }`}
-              />
+              <div className="relative">
+                <input
+                  type="text" inputMode="decimal"
+                  value={formatGroupedInput(form.price)}
+                  onChange={e => { set('price', parseGroupedInput(e.target.value)); setPriceAuto(false); setPriceNotFound(false); }}
+                  placeholder="0,00"
+                  className={`w-full bg-[#f3f3fc] border rounded-xl pl-4 pr-9 py-2.5 text-sm text-[#1a1b22] placeholder-[#747684] focus:outline-none focus:border-[#002a7d] focus:ring-1 focus:ring-[#002a7d] ${
+                    priceNotFound ? 'border-amber-300' : priceAuto ? 'border-[#10b981]/60' : 'border-[#e2e1eb]'
+                  }`}
+                />
+                {currencySymbol(currency) && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#747684] pointer-events-none">
+                    {currencySymbol(currency)}
+                  </span>
+                )}
+              </div>
+              {priceNotFound && (
+                <p className="mt-1 text-[11px] text-amber-600 leading-snug">
+                  {t('Bu tarih için fiyat bulunamadı, lütfen elle girin.')}
+                </p>
+              )}
               {instrument?.assetType === 'COMMODITY'
                 && isYahooCommoditySymbol(instrument?.symbol)
                 && instrument?.commoditySpot && (
@@ -726,12 +737,12 @@ export default function AddTransactionModal({
           </div>
 
           {isGold && goldMeta?.infoNote && (
-            <p className="text-[11px] text-gray-500 -mt-2 leading-snug">{t(goldMeta.infoNote)}</p>
+            <p className="text-[11px] text-[#747684] -mt-2 leading-snug">{t(goldMeta.infoNote)}</p>
           )}
 
           {/* FX için kur açıklaması — kurum perspektifi nedeniyle çapraz kullanım */}
           {instrument?.assetType === 'FX' && (
-            <p className="text-[11px] text-gray-500 -mt-2 leading-snug">
+            <p className="text-[11px] text-[#747684] -mt-2 leading-snug">
               {isBuy
                 ? t('Döviz alış işleminde TCMB satış kuru kullanılır (kurum dövizi size satar).')
                 : t('Döviz satış işleminde TCMB alış kuru kullanılır (kurum dövizinizi alır).')}
@@ -740,205 +751,62 @@ export default function AddTransactionModal({
 
           {/* Komisyon */}
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-1.5">
+            <label className="block text-xs font-semibold text-[#434653] mb-1.5">
               {isGold || isBond ? t('Komisyon / Masraf') : t('Komisyon')}
             </label>
             <input
-              type="number" step="any" min="0"
-              value={form.commission}
-              onChange={e => set('commission', e.target.value)}
-              placeholder={t('0.00 (isteğe bağlı)')}
-              className="w-full bg-[#252b3b] border border-[#3a4155] rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#4a6cf7]"
+              type="text" inputMode="decimal"
+              value={formatGroupedInput(form.commission)}
+              onChange={e => set('commission', parseGroupedInput(e.target.value))}
+              placeholder={t('0,00 (isteğe bağlı)')}
+              className="w-full bg-[#f3f3fc] border border-[#e2e1eb] rounded-xl px-4 py-2.5 text-sm text-[#1a1b22] placeholder-[#747684] focus:outline-none focus:border-[#002a7d] focus:ring-1 focus:ring-[#002a7d]"
             />
           </div>
 
           {/* Tarih */}
           <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-1.5">{t('İşlem Tarihi *')}</label>
-            <input
-              type="datetime-local"
+            <label className="block text-xs font-semibold text-[#434653] mb-1.5">{t('İşlem Tarihi *')}</label>
+            <DateTimeField
               value={form.transactionDate}
-              onChange={e => set('transactionDate', e.target.value)}
-              className="w-full bg-[#252b3b] border border-[#3a4155] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#4a6cf7]"
+              onChange={v => set('transactionDate', v)}
+              min={isFuture && futureMinDate ? futureMinDate : undefined}
             />
+            {isFuture && futureMinDate && (
+              <p className="mt-1 text-[11px] text-[#747684] leading-snug">
+                {t('Bu kontrat {date} tarihinde işlem görmeye başladı; öncesi seçilemez.', {
+                  date: futureMinDate.split('-').reverse().join('.'),
+                })}
+              </p>
+            )}
           </div>
 
           {/* ── Özet kutusu ── */}
-          {isAmountMode && amountCalc ? (
-            <div className={`rounded-xl p-3 text-xs space-y-1.5 ${
-              summaryHasError
-                ? 'bg-rose-500/10 border border-rose-500/30'
-                : 'bg-[#252b3b]'
-            }`}>
-              {amountCalc.commissionOverflow ? (
-                <p className="text-rose-400 font-semibold">
-                  {t('Komisyon tutar değerinden büyük veya eşit olamaz.')}
-                </p>
-              ) : amountCalc.exceedsAvailable ? (
-                <p className="text-rose-400 font-semibold">
-                  {t('Satış miktarı eldeki miktarı aşıyor.')}
-                  {availableQty != null && ` (${t('Eldeki:')} ${formatSummaryQty(availableQty)})`}
-                </p>
-              ) : amountCalc.isZero ? (
-                <p className="text-rose-400 font-semibold">
-                  {isBuy
-                    ? (isGold && goldMeta?.floorQty
-                      ? t('Bu tutar ile en az 1 adet alınamıyor.')
-                      : t('Bu tutar ile işlem yapılamıyor.'))
-                    : (isGold && goldMeta?.floorQty
-                      ? t('Bu tutar ile en az 1 adet satılamıyor.')
-                      : t('Bu tutar ile işlem yapılamıyor.'))}
-                </p>
-              ) : isBuy ? (
-                /* BUY özeti */
-                <>
-                  {isGold ? (
-                    <>
-                      <SummaryRow label={t('Kullanılan tutar')} value={fmtWithCcy(amountCalc.used, currency)} />
-                      <SummaryRow label={t('Hesaplanan miktar')} value={formatSummaryQty(amountCalc.qty)} highlight />
-                      {commission > 0 && (
-                        <SummaryRow label={t('Komisyon / Masraf')} value={fmtWithCcy(commission, currency)} />
-                      )}
-                      <SummaryRow
-                        label={t('Toplam ödeme')}
-                        value={fmtWithCcy(
-                          amountCalc.totalPayment != null ? amountCalc.totalPayment : parseFloat(form.tradeAmount),
-                          currency,
-                        )}
-                        highlight
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <SummaryRow label={t('Hesaplanan miktar')} value={formatSummaryQty(amountCalc.qty)} highlight />
-                      <SummaryRow label={t('Kullanılan tutar')} value={fmtWithCcy(amountCalc.used, currency)} />
-                      {commission > 0 && <SummaryRow label={t('Komisyon')} value={fmtWithCcy(commission, currency)} />}
-                      {useQtyFloor && (
-                        <SummaryRow
-                          label={t('Kalan nakit')}
-                          value={fmtWithCcy(amountCalc.remaining, currency)}
-                          dim={amountCalc.remaining <= 0}
-                        />
-                      )}
-                      <SummaryRow
-                        label={t('Toplam ödeme')}
-                        value={fmtWithCcy(
-                          amountCalc.totalPayment != null ? amountCalc.totalPayment : parseFloat(form.tradeAmount),
-                          currency,
-                        )}
-                        highlight
-                      />
-                    </>
-                  )}
-                </>
-              ) : (
-                /* SELL özeti */
-                <>
-                  <SummaryRow label={t('Satış tutarı')} value={fmtWithCcy(amountCalc.grossSell, currency)} />
-                  <SummaryRow label={t('Hesaplanan miktar')} value={formatSummaryQty(amountCalc.qty)} highlight />
-                  {commission > 0 && (
-                    <SummaryRow
-                      label={isGold ? t('Komisyon / Masraf') : t('Komisyon')}
-                      value={fmtWithCcy(commission, currency)}
-                    />
-                  )}
-                  <SummaryRow label={t('Tahmini net gelir')} value={fmtWithCcy(amountCalc.netIncome, currency)} highlight />
-                  {availableQty != null && (
-                    <SummaryRow label={t('Eldeki miktar')} value={formatSummaryQty(availableQty)} dim />
-                  )}
-                </>
-              )}
-            </div>
-          ) : !isAmountMode && (quantityModeTotal != null || quantitySellExceedsFund || quantitySellExceedsGold || quantitySellExceedsBond || goldPieceQtyInvalid) ? (
-            <div className={`rounded-xl p-3 text-xs space-y-1.5 ${
-              summaryHasError && !quantityModeTotal
-                ? 'bg-rose-500/10 border border-rose-500/30'
-                : 'bg-[#252b3b]'
-            }`}>
-              {goldPieceQtyInvalid && (
-                <p className="text-rose-400 font-semibold">{t('Bu altın türünde miktar tam adet olmalıdır.')}</p>
-              )}
-              {quantitySellExceedsFund && (
-                <p className="text-rose-400 font-semibold">
-                  {t('Satış miktarı eldeki pay miktarını aşamaz.')}
-                  {availableQty != null && ` (${t('Eldeki:')} ${fmtNum(availableQty, 8).replace(/\.?0+$/, '')} ${t('pay')})`}
-                </p>
-              )}
-              {quantitySellExceedsGold && (
-                <p className="text-rose-400 font-semibold">
-                  {t('Satış miktarı eldeki miktarı aşamaz.')}
-                  {availableQty != null && ` (${t('Eldeki:')} ${formatSummaryQty(availableQty)})`}
-                </p>
-              )}
-              {quantitySellExceedsBond && (
-                <p className="text-rose-400 font-semibold">
-                  {t('Satış miktarı eldeki miktarı aşamaz.')}
-                  {availableQty != null && ` (${t('Eldeki:')} ${fmtNum(availableQty, 8).replace(/\.?0+$/, '')})`}
-                </p>
-              )}
-              {quantityModeTotal != null && !quantitySellExceedsFund && !quantitySellExceedsGold && !quantitySellExceedsBond && !goldPieceQtyInvalid && (
-                <>
-                  {isBuy ? (
-                    <>
-                      <SummaryRow
-                        label={isGold && goldMeta ? t(goldMeta.quantityLabel.replace(' *', '')) : t('Miktar')}
-                        value={formatSummaryQty(parseFloat(form.quantity))}
-                      />
-                      <SummaryRow
-                        label={
-                          isBond
-                            ? t('Gösterge Değeri')
-                            : isGold && goldMeta
-                              ? t(goldMeta.priceLabel.replace(' *', ''))
-                              : t('Fiyat')
-                        }
-                        value={fmtWithCcy(price, currency)}
-                      />
-                      {(commission > 0 || isBond) && (
-                        <SummaryRow
-                          label={isGold || isBond ? t('Komisyon / Masraf') : t('Komisyon')}
-                          value={fmtWithCcy(commission, currency)}
-                        />
-                      )}
-                      <SummaryRow label={t('Toplam ödeme')} value={fmtWithCcy(quantityModeTotal.total, currency)} highlight />
-                    </>
-                  ) : (
-                    <>
-                      <SummaryRow
-                        label={isGold && goldMeta ? t(goldMeta.quantityLabel.replace(' *', '')) : t('Miktar')}
-                        value={formatSummaryQty(parseFloat(form.quantity))}
-                      />
-                      <SummaryRow
-                        label={
-                          isBond
-                            ? t('Gösterge Değeri')
-                            : isGold && goldMeta
-                              ? t(goldMeta.priceLabel.replace(' *', ''))
-                              : t('Fiyat')
-                        }
-                        value={fmtWithCcy(price, currency)}
-                      />
-                      {(commission > 0 || isBond) && (
-                        <SummaryRow
-                          label={isGold || isBond ? t('Komisyon / Masraf') : t('Komisyon')}
-                          value={fmtWithCcy(commission, currency)}
-                        />
-                      )}
-                      <SummaryRow
-                        label={isBond ? t('Net Tahsilat') : t('Tahmini net gelir')}
-                        value={fmtWithCcy(quantityModeTotal.netIncome, currency)}
-                        highlight
-                      />
-                    </>
-                  )}
-                </>
-              )}
-            </div>
-          ) : null}
+          <TransactionSummary
+            isAmountMode={isAmountMode}
+            amountCalc={amountCalc}
+            summaryHasError={summaryHasError}
+            isBuy={isBuy}
+            isGold={isGold}
+            goldMeta={goldMeta}
+            isBond={isBond}
+            commission={commission}
+            currency={currency}
+            useQtyFloor={useQtyFloor}
+            availableQty={availableQty}
+            price={price}
+            form={form}
+            quantityModeTotal={quantityModeTotal}
+            quantitySellExceedsFund={quantitySellExceedsFund}
+            quantitySellExceedsGold={quantitySellExceedsGold}
+            quantitySellExceedsBond={quantitySellExceedsBond}
+            goldPieceQtyInvalid={goldPieceQtyInvalid}
+            formatSummaryQty={formatSummaryQty}
+            t={t}
+          />
 
           {/* Hata */}
           {error && (
-            <p className="text-rose-400 text-sm bg-rose-500/10 px-3 py-2 rounded-lg">{error}</p>
+            <p className="text-rose-700 text-sm bg-rose-50 px-3 py-2 rounded-lg">{error}</p>
           )}
 
           {/* Butonlar */}
@@ -946,7 +814,7 @@ export default function AddTransactionModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 border border-[#3a4155] rounded-xl text-sm font-semibold text-gray-400 hover:bg-[#252b3b] transition-colors"
+              className="flex-1 px-4 py-2.5 border border-[#e2e1eb] rounded-xl text-sm font-semibold text-[#434653] hover:bg-[#f3f3fc] transition-colors"
             >
               {t('İptal')}
             </button>
@@ -954,7 +822,7 @@ export default function AddTransactionModal({
               type="submit"
               disabled={submitDisabled}
               className={`flex-1 text-white px-4 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50 transition-colors ${
-                isBuy ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-rose-500 hover:bg-rose-600'
+                isBuy ? 'bg-[#10b981] hover:bg-[#059669]' : 'bg-rose-500 hover:bg-rose-600'
               }`}
             >
               {loading ? t('Ekleniyor…') : isBuy ? t('Alış Ekle') : t('Satış Ekle')}
@@ -966,17 +834,3 @@ export default function AddTransactionModal({
   );
 }
 
-// ── yardımcı bileşen ───────────────────────────────────────────────────────────
-
-function SummaryRow({ label, value, highlight = false, dim = false }) {
-  return (
-    <div className="flex justify-between items-center">
-      <span className="text-gray-400">{label}</span>
-      <span className={`font-bold ${
-        highlight ? 'text-white text-sm' : dim ? 'text-gray-600' : 'text-gray-200'
-      }`}>
-        {value}
-      </span>
-    </div>
-  );
-}

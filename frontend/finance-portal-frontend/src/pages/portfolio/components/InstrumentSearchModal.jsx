@@ -1,5 +1,5 @@
-﻿import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Search, X, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Search, X, Plus } from 'lucide-react';
 import client from '../../../api/client';
 import { parseTrNumber } from '../../../utils/numberFormat';
 import {
@@ -175,17 +175,17 @@ function pickGoldSpotPrice(symbol, g) {
 async function fetchAll(type) {
   try {
     if (type === 'STOCK') {
-      // Tüm hisseleri sayfalı çek (getAllStocks mantığı)
+      // Tüm hisseleri çek — büyük sayfa boyutu (backend max'ı kabul eder) + TÜM sayfalar (kapama yok)
       try {
-        const firstRes = await client.get('/api/market/stocks', { params: { page: 0, size: 20 } });
-        const totalPages = firstRes.data?.data?.totalPages ?? 1;
-        const results = [...(firstRes.data?.data?.content ?? [])];
-        // Paralel çek (max 10 sayfa)
-        const pages = Math.min(totalPages, 10);
-        if (pages > 1) {
+        const firstRes = await client.get('/api/market/stocks', { params: { page: 0, size: 200 } });
+        const data0 = firstRes.data?.data;
+        const size = data0?.size || 200;
+        const totalPages = data0?.totalPages ?? 1;
+        const results = [...(data0?.content ?? [])];
+        if (totalPages > 1) {
           const rest = await Promise.all(
-            Array.from({ length: pages - 1 }, (_, i) =>
-              client.get('/api/market/stocks', { params: { page: i + 1, size: 20 } })
+            Array.from({ length: totalPages - 1 }, (_, i) =>
+              client.get('/api/market/stocks', { params: { page: i + 1, size } })
             )
           );
           rest.forEach(r => results.push(...(r.data?.data?.content ?? [])));
@@ -197,10 +197,12 @@ async function fetchAll(type) {
     }
 
     if (type === 'CRYPTO') {
-      const { data } = await client.get('/api/market/crypto', { params: { page: 0, size: 250 } });
+      // Top ~1000 coin (cache'li) — top-250 dışındaki coinler de aranabilsin
+      const { data } = await client.get('/api/market/crypto/all');
       return (data.data ?? []).map(c => ({
         symbol: c.symbol?.toUpperCase() ?? '',
         name: c.name ?? c.symbol ?? '',
+        id: c.id,
       }));
     }
 
@@ -313,10 +315,23 @@ async function fetchAll(type) {
     }
 
     if (type === 'BOND') {
-      // EVDS'den gerçek tahvil listesi çekmeyi dene
+      // EVDS'den TÜM DİBS listesini çek — backend size'ı 100'le sınırlar, bu yüzden
+      // tüm sayfalar çekilir (aksi halde sadece ilk sayfa gelir, arama eksik kalır).
       try {
-        const { data } = await client.get('/api/market/bonds/evds', { params: { page: 0, size: 50, sortBy: 'maturityDate', sortDir: 'asc' } });
-        const items = data.data?.items ?? [];
+        const bondParams = (p, s) => ({ page: p, size: s, sortBy: 'maturityDate', sortDir: 'asc' });
+        const firstRes = await client.get('/api/market/bonds/evds', { params: bondParams(0, 100) });
+        const d0 = firstRes.data?.data;
+        const size = d0?.size || 100;
+        const totalPages = d0?.totalPages ?? 1;
+        const items = [...(d0?.items ?? [])];
+        if (totalPages > 1) {
+          const rest = await Promise.all(
+            Array.from({ length: totalPages - 1 }, (_, i) =>
+              client.get('/api/market/bonds/evds', { params: bondParams(i + 1, size) }),
+            ),
+          );
+          rest.forEach(r => items.push(...(r.data?.data?.items ?? [])));
+        }
         if (items.length > 0) {
           return items.map(b => ({
             symbol: b.instrumentCode ?? '',
@@ -335,15 +350,9 @@ async function fetchAll(type) {
 }
 
 function normalize(str) {
-  return str
-    .toLowerCase()
-    .replace(/İ/g, 'i')
-    .replace(/I/g, 'ı')
-    .replace(/Ğ/g, 'ğ')
-    .replace(/Ü/g, 'ü')
-    .replace(/Ş/g, 'ş')
-    .replace(/Ö/g, 'ö')
-    .replace(/Ç/g, 'ç');
+  // Turkce locale ile kucult: "YIGIT.IS" -> "yigit.is" noktasiz. Once toLowerCase()
+  // cagirmak buyuk I'yi noktali i yapip aramayi bozuyordu.
+  return String(str ?? '').toLocaleLowerCase('tr');
 }
 
 function filterItems(items, query) {
@@ -549,8 +558,10 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
           const { data } = await client.get(`/api/market/stocks/${encodeURIComponent(item.symbol)}`);
           price = data.data?.summary?.price ?? null;
         } else if (activeType === 'CRYPTO') {
-          const { data } = await client.get('/api/market/crypto', { params: { page: 0, size: 250 } });
-          const coin = (data.data ?? []).find(c => c.symbol?.toLowerCase() === item.symbol.toLowerCase());
+          const { data } = await client.get('/api/market/crypto/all');
+          const list = data.data ?? [];
+          const coin = (item.id && list.find(c => c.id === item.id))
+            || list.find(c => c.symbol?.toLowerCase() === item.symbol.toLowerCase());
           price = coin?.currentPrice ?? null;
         } else if (activeType === 'FX') {
           const { data } = await client.get('/api/market/fx/tcmb/latest');
@@ -706,55 +717,49 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
   );
 
   function renderInstrumentRow(item, i, keyPrefix = '') {
+    const isStockOrFund = activeType === 'STOCK' || activeType === 'FUND';
+    const primary = isStockOrFund ? item.symbol : (item.name ?? item.symbol);
+    const secondary = isStockOrFund
+      ? (item.name && item.name !== item.symbol ? item.name : null)
+      : (!String(item.symbol ?? '').includes(':') && item.symbol !== item.name ? item.symbol : null);
+    const typeLabel = activeType === 'BOND' ? t('dibs') : (currentType?.label ? t(currentType.label).toLowerCase() : '');
     return (
       <button
         key={`${keyPrefix}-${item.symbol}-${i}`}
         onClick={() => handleSelect(item)}
         disabled={priceLoading}
-        className="w-full flex items-center justify-between px-4 py-3 text-left transition-colors border-b border-[#3a4155] last:border-b-0 hover:bg-[#252b3b] disabled:opacity-50"
+        className="group w-full flex items-center justify-between p-4 text-left border-b border-[#e2e1eb] last:border-b-0 hover:bg-[#f3f3fc] cursor-pointer transition-colors disabled:opacity-50"
       >
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            {(activeType === 'STOCK' || activeType === 'FUND') ? (
-              <>
-                <span className="font-bold text-sm text-white shrink-0">{item.symbol}</span>
-                {item.name && item.name !== item.symbol && (
-                  <span className="text-xs text-gray-400 truncate">{item.name}</span>
-                )}
-              </>
-            ) : (
-              <>
-                <span className="font-bold text-sm text-white shrink-0">{item.name ?? item.symbol}</span>
-                {!item.symbol.includes(':') && item.symbol !== item.name && (
-                  <span className="text-xs text-gray-500 shrink-0">{item.symbol}</span>
-                )}
-              </>
-            )}
-          </div>
-          <p className="text-xs text-gray-500 mt-0.5">
-            {activeType === 'BOND' && item.type ? t(item.type) : (currentType?.label ? t(currentType.label) : '')}
-            {item.category && (
-              <span className={`ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                item.category === 'BES'     ? 'bg-emerald-500/20 text-emerald-400' :
-                item.category === 'OKS'     ? 'bg-purple-500/20 text-purple-400' :
-                item.category === 'Osmanlı' ? 'bg-orange-500/20 text-orange-400' :
-                                              'bg-blue-500/20 text-blue-400'
-              }`}>
-                {item.category}
-              </span>
-            )}
-            {item.metal && (
-              <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400">
-                {t('BİST')}
-              </span>
-            )}
-          </p>
+        <div className="flex flex-col min-w-0 flex-1">
+          <span className="font-bold text-[#1a1b22] truncate">{primary}</span>
+          {secondary && <span className="text-[#434653] text-sm mt-0.5 truncate">{secondary}</span>}
+          {(item.category || item.metal) && (
+            <span className="flex items-center gap-1.5 mt-1">
+              {item.category && (
+                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                  item.category === 'BES'     ? 'bg-emerald-50 text-emerald-700' :
+                  item.category === 'OKS'     ? 'bg-purple-50 text-purple-700' :
+                  item.category === 'Osmanlı' ? 'bg-orange-50 text-orange-700' :
+                                                'bg-blue-50 text-blue-700'
+                }`}>
+                  {item.category}
+                </span>
+              )}
+              {item.metal && (
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700">
+                  {t('BİST')}
+                </span>
+              )}
+            </span>
+          )}
         </div>
-        <div className="flex items-center gap-2 ml-2 shrink-0">
-          <span className="text-xs text-gray-500 bg-[#2f3650] px-2 py-0.5 rounded">
-            {activeType === 'BOND' ? t('dibs') : (currentType?.label ? t(currentType.label).toLowerCase() : '')}
+        <div className="flex items-center gap-3 ml-3 shrink-0">
+          <span className="text-[10px] font-bold tracking-wider uppercase bg-[#e8e7f1] text-[#434653] px-2 py-1 rounded">
+            {typeLabel}
           </span>
-          <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
+          <span className="text-[#c4c5d5] group-hover:text-[#093eaa] transition-colors p-1 rounded-full group-hover:bg-[#d0e1fb]">
+            <Plus className="w-4 h-4" />
+          </span>
         </div>
       </button>
     );
@@ -767,33 +772,45 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
     commodityView.sections.every(s => !s.items.length);
 
   return (
-    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-      <div className="bg-[#1a1f2e] rounded-2xl shadow-2xl w-full max-w-lg text-white flex flex-col" style={{ maxHeight: '85vh' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1a1b22]/30">
+      <div
+        className="bg-white rounded-2xl shadow-2xl border border-[#e2e1eb] w-full max-w-2xl overflow-hidden flex flex-col"
+        style={{ maxHeight: '85vh' }}
+        role="dialog"
+        aria-modal="true"
+      >
 
         {/* Header */}
-        <div className="px-6 pt-6 pb-4 shrink-0">
-          <div className="flex items-start justify-between mb-1">
-            <h2 className="text-xl font-bold">{t('Enstrüman Seç')}</h2>
-            <button type="button" onClick={onClose} className="text-gray-400 hover:text-white transition-colors mt-0.5">
-              <X className="w-5 h-5" />
-            </button>
+        <div className="px-6 pt-6 pb-4 border-b border-[#e2e1eb] flex justify-between items-start shrink-0">
+          <div>
+            <h2 className="text-2xl font-bold text-[#1a1b22] mb-1">{t('Enstrüman Seç')}</h2>
+            <p className="text-sm text-[#434653]">
+              {portfolioName
+                ? t('{name} portföyüne ekle', { name: portfolioName })
+                : t('Portföyünüze yeni bir varlık ekleyin')}
+            </p>
           </div>
-          {portfolioName && (
-            <p className="text-sm text-gray-400">{t('{name} portföyüne ekle', { name: portfolioName })}</p>
-          )}
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t('Kapat')}
+            className="text-[#434653] hover:text-[#1a1b22] transition-colors rounded-full p-1 hover:bg-[#f3f3fc]"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
-        {/* Tip filtreleri */}
-        <div className="px-6 pb-3 shrink-0 flex gap-2 flex-wrap">
+        {/* Tip sekmeleri — alt çizgili (M3) */}
+        <div className="px-6 pt-2 bg-[#f3f3fc]/60 border-b border-[#e2e1eb] flex gap-1 overflow-x-auto shrink-0 [&::-webkit-scrollbar]:hidden">
           {ASSET_TYPES.map(at => (
             <button
               key={at.value}
               type="button"
               onClick={() => handleTypeChange(at.value)}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+              className={`px-4 py-2 border-b-2 text-sm whitespace-nowrap transition-colors ${
                 activeType === at.value
-                  ? 'bg-[#4a6cf7] text-white'
-                  : 'bg-[#252b3b] text-gray-400 hover:bg-[#2f3650]'
+                  ? 'border-[#093eaa] text-[#093eaa] font-bold'
+                  : 'border-transparent text-[#434653] hover:text-[#1a1b22]'
               }`}
             >
               {t(at.label)}
@@ -802,9 +819,9 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
         </div>
 
         {/* Arama */}
-        <div className="px-6 pb-3 shrink-0">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <div className="p-6 pb-4 border-b border-[#e2e1eb] shrink-0">
+          <div className="relative flex items-center w-full h-12 rounded-lg bg-[#f3f3fc] border border-[#c4c5d5] overflow-hidden focus-within:border-[#093eaa] focus-within:ring-1 focus-within:ring-[#093eaa] transition-all">
+            <Search className="w-5 h-5 text-[#747684] ml-4 mr-2 shrink-0" />
             <input
               ref={searchRef}
               type="text"
@@ -812,15 +829,12 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
               onChange={e => setQuery(e.target.value)}
               placeholder={currentType?.placeholder ? t(currentType.placeholder) : t('Sembol veya enstrüman ara...')}
               autoFocus
-              className="w-full bg-[#252b3b] border border-[#3a4155] rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#4a6cf7]"
+              className="w-full h-full bg-transparent border-none focus:ring-0 text-[#1a1b22] text-sm placeholder-[#747684] outline-none"
             />
           </div>
-        </div>
-
-        {/* Sonuç sayısı */}
-        {!loading && allItems.length > 0 && (
-          <div className="px-6 pb-1 shrink-0">
-            <span className="text-xs text-gray-500">
+          {/* Sonuç sayısı */}
+          {!loading && allItems.length > 0 && (
+            <span className="block mt-2 text-xs text-[#747684]">
               {activeType === 'COMMODITY' && commodityView ? (
                 query.trim()
                   ? t('{count} sonuç · "{query}" için', { count: commodityView.totalCount, query })
@@ -831,48 +845,38 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
                 ? t('{count} sonuç · "{query}" için', { count: filtered.length, query })
                 : t('{count} enstrüman', { count: allItems.length })}
             </span>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Sonuçlar — kaydırılabilir */}
         <div
           ref={listRef}
           onScroll={handleScroll}
-          className="mx-6 mb-2 rounded-xl border border-[#3a4155] overflow-y-auto flex-1"
+          className="overflow-y-auto flex-1 bg-white"
           style={{ minHeight: 120 }}
         >
           {loading && (
-            <div className="flex items-center justify-center py-8 gap-1.5">
-              <div className="w-1.5 h-1.5 bg-[#4a6cf7] rounded-full animate-bounce" />
-              <div className="w-1.5 h-1.5 bg-[#4a6cf7]/60 rounded-full animate-bounce [animation-delay:100ms]" />
-              <div className="w-1.5 h-1.5 bg-[#4a6cf7]/30 rounded-full animate-bounce [animation-delay:200ms]" />
+            <div className="flex items-center justify-center py-10 gap-1.5">
+              <div className="w-2 h-2 bg-[#093eaa] rounded-full animate-bounce" />
+              <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
+              <div className="w-2 h-2 bg-[#093eaa]/30 rounded-full animate-bounce [animation-delay:200ms]" />
             </div>
           )}
 
-          {!loading && activeType === 'COMMODITY' && commodityView && commodityEmptyQuery && (
-            <div className="px-4 py-8 text-center">
-              <p className="text-gray-400 text-sm">
+          {!loading && ((activeType === 'COMMODITY' && commodityView && commodityEmptyQuery)
+            || (activeType !== 'COMMODITY' && displayed.length === 0 && allItems.length > 0)) && (
+            <div className="px-4 py-10 text-center">
+              <p className="text-[#434653] text-sm">
                 <span className="font-semibold">&quot;{query}&quot;</span> {t('için sonuç bulunamadı.')}
               </p>
-              <p className="text-xs text-gray-600 mt-1">
-                {t('Farklı bir sembol veya tür deneyin.')}
-              </p>
-            </div>
-          )}
-
-          {!loading && activeType !== 'COMMODITY' && displayed.length === 0 && allItems.length > 0 && (
-            <div className="px-4 py-8 text-center">
-              <p className="text-gray-400 text-sm">
-                <span className="font-semibold">&quot;{query}&quot;</span> {t('için sonuç bulunamadı.')}
-              </p>
-              <p className="text-xs text-gray-600 mt-1">
+              <p className="text-xs text-[#747684] mt-1">
                 {t('Farklı bir sembol veya tür deneyin.')}
               </p>
             </div>
           )}
 
           {!loading && allItems.length === 0 && (
-            <div className="px-4 py-8 text-center text-gray-500 text-sm">
+            <div className="px-4 py-10 text-center text-[#747684] text-sm">
               {t('Veri yüklenemedi. Lütfen tekrar deneyin.')}
             </div>
           )}
@@ -882,7 +886,7 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
               {commodityView.sections.map(section => (
                 <div key={section.key}>
                   {section.title && (
-                    <div className="px-4 py-2 text-[11px] font-bold text-gray-500 uppercase tracking-wide bg-[#151925] border-b border-[#3a4155] sticky top-0 z-[1]">
+                    <div className="px-4 py-2 text-[11px] font-bold text-[#434653] uppercase tracking-wide bg-[#f3f3fc] border-b border-[#e2e1eb] sticky top-0 z-[1]">
                       {t(section.title)}
                     </div>
                   )}
@@ -893,7 +897,7 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
                 <button
                   type="button"
                   onClick={() => setCommodityExpanded(true)}
-                  className="w-full py-3 text-xs text-[#4a6cf7] hover:text-[#6b8cf7] transition-colors text-center border-t border-[#3a4155]"
+                  className="w-full py-3 text-xs font-medium text-[#093eaa] hover:underline transition-colors text-center border-t border-[#e2e1eb]"
                 >
                   {t('Diğer emtiaları göster ({count} gizli)', { count: commodityView.totalCount - commodityView.visibleCount })}
                 </button>
@@ -902,7 +906,7 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
                 <button
                   type="button"
                   onClick={() => setCommodityExpanded(false)}
-                  className="w-full py-2.5 text-xs text-gray-500 hover:text-gray-300 transition-colors text-center border-t border-[#3a4155]"
+                  className="w-full py-2.5 text-xs text-[#747684] hover:text-[#434653] transition-colors text-center border-t border-[#e2e1eb]"
                 >
                   {t('Daha az göster')}
                 </button>
@@ -917,7 +921,7 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
             <button
               type="button"
               onClick={loadMore}
-              className="w-full py-3 text-xs text-[#4a6cf7] hover:text-[#6b8cf7] transition-colors text-center border-t border-[#3a4155]"
+              className="w-full py-3 text-xs font-medium text-[#093eaa] hover:underline transition-colors text-center border-t border-[#e2e1eb]"
             >
               {t('Daha fazla göster ({count} kaldı)', { count: filtered.length - displayed.length })}
             </button>
@@ -926,12 +930,12 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
 
         {/* Alt link */}
         {seeAll && (
-          <div className="px-6 pb-4 pt-1 shrink-0">
+          <div className="p-4 bg-white border-t border-[#e2e1eb] flex justify-center shrink-0">
             <a
               href={seeAll.path}
               target="_blank"
               rel="noreferrer"
-              className="text-xs text-[#4a6cf7] hover:underline flex items-center gap-1"
+              className="text-sm font-medium text-[#093eaa] hover:underline flex items-center gap-1"
             >
               {t(seeAll.label)} →
             </a>

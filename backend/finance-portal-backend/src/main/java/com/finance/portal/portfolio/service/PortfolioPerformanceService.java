@@ -5,6 +5,8 @@ import com.finance.portal.portfolio.application.performance.PortfolioPerformance
 import com.finance.portal.portfolio.application.performance.PortfolioPerformancePoint;
 import com.finance.portal.portfolio.application.performance.PortfolioPerformanceRange;
 import com.finance.portal.portfolio.application.performance.PortfolioPerformanceResult;
+import com.finance.portal.market.application.economy.InflationDeflatorService;
+import com.finance.portal.market.application.economy.model.EconomySeriesPoint;
 import com.finance.portal.portfolio.application.port.PortfolioHistoricalPricePort;
 import com.finance.portal.portfolio.application.port.PortfolioPersistencePort;
 import com.finance.portal.portfolio.infrastructure.market.PortfolioHistoricalPriceAdapter;
@@ -41,15 +43,21 @@ public class PortfolioPerformanceService {
     private final PortfolioHistoricalPricePort historicalPricePort;
     private final PortfolioPerformanceCalculator calculator;
     private final PortfolioHoldingsBuilder holdingsBuilder;
+    private final PortfolioCurrencyConverter currencyConverter;
+    private final InflationDeflatorService deflator;
 
     public PortfolioPerformanceService(PortfolioPersistencePort portfolioPersistence,
                                        PortfolioHistoricalPricePort historicalPricePort,
                                        PortfolioPerformanceCalculator calculator,
-                                       PortfolioHoldingsBuilder holdingsBuilder) {
+                                       PortfolioHoldingsBuilder holdingsBuilder,
+                                       PortfolioCurrencyConverter currencyConverter,
+                                       InflationDeflatorService deflator) {
         this.portfolioPersistence = portfolioPersistence;
         this.historicalPricePort = historicalPricePort;
         this.calculator = calculator;
         this.holdingsBuilder = holdingsBuilder;
+        this.currencyConverter = currencyConverter;
+        this.deflator = deflator;
     }
 
     @Transactional(readOnly = true)
@@ -115,8 +123,14 @@ public class PortfolioPerformanceService {
                 excludedKeys,
                 excluded);
 
+        // Baştaki "değer = 0" günleri (henüz değerlenecek varlık/veri yok) çizilmesin — yoksa düz bir
+        // 0 çizgisi + bugüne dik sıçrama oluşuyor. Hiç değerli gün yoksa (ör. tüm varlıklar VİOP olup
+        // tarihsel verisi gelmiyorsa) seri boş kalır; frontend "veri yok" + hariç-tutulan açıklamasını gösterir.
+        points = trimLeadingZeroValuePoints(points);
+
         alignLastPointWithLiveHoldings(points, endDate, transactions);
         PortfolioPeriodGrowthCalculator.applyPeriodGrowth(points, transactions, excludedKeys);
+        applyInflationBaseline(points);
 
         PortfolioPerformanceResult result = new PortfolioPerformanceResult();
         result.setPortfolioId(portfolioId);
@@ -148,7 +162,7 @@ public class PortfolioPerformanceService {
 
         List<PortfolioHoldingResponse> holdings = holdingsBuilder.build(transactions);
         BigDecimal liveMv = holdings.stream()
-                .map(PortfolioHoldingResponse::getMarketValue)
+                .map(h -> currencyConverter.toTry(h.getMarketValue(), h.getCurrency()))
                 .filter(v -> v != null)
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(MONEY_SCALE, RoundingMode.HALF_UP);
@@ -157,7 +171,8 @@ public class PortfolioPerformanceService {
         }
 
         BigDecimal liveCost = holdings.stream()
-                .map(h -> h.getTotalCost() != null ? h.getTotalCost() : BigDecimal.ZERO)
+                .map(h -> currencyConverter.toTry(h.getTotalCost(), h.getCurrency()))
+                .filter(v -> v != null)
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(MONEY_SCALE, RoundingMode.HALF_UP);
 
@@ -174,6 +189,73 @@ public class PortfolioPerformanceService {
         last.setTotalCost(liveCost);
         last.setProfitLoss(profitLoss);
         last.setProfitLossPercent(profitLossPercent);
+    }
+
+    /**
+     * Enflasyon (TÜFE) referans çizgisini her noktaya yazar: ilk noktanın piyasa değeri, ilk gün
+     * TÜFE'sine göre o günkü TÜFE'yle ölçeklenir → {@code infValue(t) = baseMv × TÜFE(t)/TÜFE(t0)}.
+     * "Param sadece enflasyon kadar değerlenseydi" benchmark'ı. TÜFE verisi yoksa alan null kalır.
+     */
+    private void applyInflationBaseline(List<PortfolioPerformancePoint> points) {
+        if (points == null || points.isEmpty()) {
+            return;
+        }
+        final List<EconomySeriesPoint> tufe;
+        try {
+            tufe = deflator.tufeSeries();
+        } catch (Exception e) {
+            return;
+        }
+        if (tufe == null || tufe.isEmpty()) {
+            return;
+        }
+        PortfolioPerformancePoint first = points.get(0);
+        if (first.getDate() == null || first.getMarketValue() == null
+                || first.getMarketValue().signum() <= 0) {
+            return;
+        }
+        var baseIdxOpt = deflator.indexValueAt(tufe, first.getDate());
+        if (baseIdxOpt.isEmpty()) {
+            return;
+        }
+        BigDecimal baseMv = first.getMarketValue();
+        BigDecimal baseIdx = baseIdxOpt.get();
+        for (PortfolioPerformancePoint p : points) {
+            if (p.getDate() == null) {
+                continue;
+            }
+            deflator.indexValueAt(tufe, p.getDate()).ifPresent(idx -> {
+                BigDecimal v = baseMv.multiply(idx)
+                        .divide(baseIdx, MONEY_SCALE, RoundingMode.HALF_UP);
+                p.setInflationValue(v);
+            });
+        }
+    }
+
+    /**
+     * Serinin başındaki sıfır/negatif değerli (henüz değerlenecek varlık ya da tarihsel veri olmayan)
+     * günleri atar; ilk gerçek değerli günden başlatır. Hiç değerli gün yoksa boş liste döner.
+     */
+    private static List<PortfolioPerformancePoint> trimLeadingZeroValuePoints(
+            List<PortfolioPerformancePoint> points) {
+        if (points == null || points.isEmpty()) {
+            return points;
+        }
+        int firstValued = -1;
+        for (int i = 0; i < points.size(); i++) {
+            BigDecimal mv = points.get(i).getMarketValue();
+            if (mv != null && mv.compareTo(BigDecimal.ZERO) > 0) {
+                firstValued = i;
+                break;
+            }
+        }
+        if (firstValued < 0) {
+            return new ArrayList<>(); // hiç değerli gün yok → grafik boş
+        }
+        if (firstValued == 0) {
+            return points;
+        }
+        return new ArrayList<>(points.subList(firstValued, points.size()));
     }
 
     private static LocalDate earliestRelevantDate(

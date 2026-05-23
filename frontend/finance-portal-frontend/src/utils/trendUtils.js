@@ -35,6 +35,7 @@ export const TREND_METHOD_LABEL = {
   'fund-nav-ma':   'Fon NAV üzerinden MA20 / MA50',
   'crypto-7d':     '7 günlük kripto fiyat değişimi (±%2 eşiği)',
   'daily-change':  'Günlük fiyat değişimi (±%2 eşiği — zayıf sinyal)',
+  'multi-signal':  'Çoklu sinyal: MA (ağırlık 2) + 52 hafta konumu + momentum birlikte oylanır',
   'no-data':       'Trend hesaplamak için yeterli veri yok',
 };
 
@@ -139,66 +140,61 @@ export function computeTrend(item) {
     return trendFromMovingAverages(item);
   }
 
-  // Anlık fiyat — birden fazla olası alan adı
+  // ── Genel (hisse, vadeli, kripto, döviz, Yahoo emtia): çok-sinyalli oy ─────
+  // Tek bir eşiğe takılıp ilk eşleşeni döndürmek yerine, mevcut TÜM sinyalleri
+  // ağırlıklı toplar → daha kararlı ve tutarlı. MA en güçlü sinyal (ağırlık 2);
+  // 52 hafta konumu ve momentum (kripto 7g veya günlük %) destekleyici (ağırlık 1).
   const price = f(
     item.currentPrice ?? item.price ?? item.displayPrice ??
     item.lastPrice    ?? item.indicatorValue
   );
-
-  // ── 2. MA20 + MA50 çift crossover ────────────────────────────────────────
   const ma20 = f(item.ma20 ?? item.movingAverage20);
   const ma50 = f(item.ma50 ?? item.movingAverage50);
-
-  if (price != null && ma20 != null && ma50 != null) {
-    if (price > ma20 && ma20 > ma50) return { signal: TREND_SIGNAL.UP,       method: 'ma-crossover' };
-    if (price < ma20 && ma20 < ma50) return { signal: TREND_SIGNAL.DOWN,     method: 'ma-crossover' };
-    return                                  { signal: TREND_SIGNAL.SIDEWAYS, method: 'ma-crossover' };
-  }
-
-  // ── 3. Sadece MA20 ──────────────────────────────────────────────────────
-  if (price != null && ma20 != null) {
-    if (price > ma20 * 1.005) return { signal: TREND_SIGNAL.UP,       method: 'ma20' };
-    if (price < ma20 * 0.995) return { signal: TREND_SIGNAL.DOWN,     method: 'ma20' };
-    return                           { signal: TREND_SIGNAL.SIDEWAYS, method: 'ma20' };
-  }
-
-  // ── 4. 52 hafta pozisyon yüzdesi (STOCK / FUTURE / Yahoo emtia) ─────────
   const hi52 = f(item.fiftyTwoWeekHigh ?? item.weekHigh52 ?? item.week52High);
   const lo52 = f(item.fiftyTwoWeekLow  ?? item.weekLow52  ?? item.week52Low);
-
-  if (price != null && hi52 != null && lo52 != null && hi52 > lo52) {
-    const pos = (price - lo52) / (hi52 - lo52) * 100;
-    if (pos >= 65) return { signal: TREND_SIGNAL.UP,       method: '52w-position' };
-    if (pos <= 35) return { signal: TREND_SIGNAL.DOWN,     method: '52w-position' };
-    return                { signal: TREND_SIGNAL.SIDEWAYS, method: '52w-position' };
-  }
-
-  // ── 5. Kripto 7 günlük değişim ───────────────────────────────────────────
   const pct7d = f(
-    item.priceChangePercentage7d ??
-    item.changePercent7d         ??
-    item.sevenDayChangePercent   ??
-    item.periodReturn7d          ??
-    item.return7d
+    item.priceChangePercentage7d ?? item.changePercent7d ??
+    item.sevenDayChangePercent   ?? item.periodReturn7d  ?? item.return7d
   );
-  if (pct7d != null) {
-    if (pct7d >  2) return { signal: TREND_SIGNAL.UP,       method: 'crypto-7d' };
-    if (pct7d < -2) return { signal: TREND_SIGNAL.DOWN,     method: 'crypto-7d' };
-    return                 { signal: TREND_SIGNAL.SIDEWAYS, method: 'crypto-7d' };
-  }
-
-  // ── 6. Günlük değişim % fallback ────────────────────────────────────────
   const changePct = f(
-    item.changePercent         ??
-    item.dailyChangePercent    ??
-    item.priceChangePercentage24h
+    item.changePercent ?? item.dailyChangePercent ?? item.priceChangePercentage24h
   );
-  if (changePct != null) {
-    if (changePct >  2) return { signal: TREND_SIGNAL.UP,       method: 'daily-change' };
-    if (changePct < -2) return { signal: TREND_SIGNAL.DOWN,     method: 'daily-change' };
-    return                     { signal: TREND_SIGNAL.SIDEWAYS, method: 'daily-change' };
+
+  let score = 0;
+  let signals = 0;
+
+  // 1) Hareketli ortalama — en güçlü sinyal (ağırlık 2)
+  if (price != null && ma20 != null && ma50 != null) {
+    if (price > ma20 && ma20 > ma50) score += 2;
+    else if (price < ma20 && ma20 < ma50) score -= 2;
+    signals += 1;
+  } else if (price != null && ma20 != null) {
+    if (price > ma20 * 1.005) score += 1;
+    else if (price < ma20 * 0.995) score -= 1;
+    signals += 1;
   }
 
-  // ── 7. Yeterli veri yok ─────────────────────────────────────────────────
-  return { signal: null, method: 'no-data' };
+  // 2) 52 hafta fiyat aralığındaki konum (ağırlık 1)
+  if (price != null && hi52 != null && lo52 != null && hi52 > lo52) {
+    const pos = ((price - lo52) / (hi52 - lo52)) * 100;
+    if (pos >= 65) score += 1;
+    else if (pos <= 35) score -= 1;
+    signals += 1;
+  }
+
+  // 3) Momentum — kripto 7 günlük (±%2) ya da günlük % (zayıf, ±%3 daha yüksek eşik)
+  if (pct7d != null) {
+    if (pct7d > 2) score += 1;
+    else if (pct7d < -2) score -= 1;
+    signals += 1;
+  } else if (changePct != null) {
+    if (changePct > 3) score += 1;
+    else if (changePct < -3) score -= 1;
+    signals += 1;
+  }
+
+  if (signals === 0) return { signal: null, method: 'no-data' };
+  if (score > 0) return { signal: TREND_SIGNAL.UP,       method: 'multi-signal' };
+  if (score < 0) return { signal: TREND_SIGNAL.DOWN,     method: 'multi-signal' };
+  return                { signal: TREND_SIGNAL.SIDEWAYS, method: 'multi-signal' };
 }

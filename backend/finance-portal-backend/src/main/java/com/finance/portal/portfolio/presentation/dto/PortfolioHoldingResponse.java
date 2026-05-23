@@ -75,4 +75,29 @@ public class PortfolioHoldingResponse {
      * (sum of realized $) / (sum of sold cost basis) × 100. Null if no SELL or zero basis.
      */
     private BigDecimal realizedGainLossPercent;
+
+    // ── Enflasyona göre düzeltilmiş (reel) getiri — KENDİ para birimi çerçevesi ──
+    /**
+     * Reel K/Z (kendi para birimi cinsinden): güncel değer − (maliyet × ilk alıştan bugüne enflasyon faktörü).
+     * TL pozisyon → TÜFE; USD pozisyon → ABD CPI. Faktör/veri eksikse null.
+     */
+    private BigDecimal realProfitLoss;
+    /** Reel getiri yüzdesi (kendi para birimi enflasyonundan arındırılmış). */
+    private BigDecimal realProfitLossPercent;
+    /** İlk alış tarihinden bugüne birikimli enflasyon (%) — kendi para biriminin enflasyonu. */
+    private BigDecimal inflationSincePercent;
+    /** Yukarıdaki "kendi para birimi" reel hesabında kullanılan enflasyon kaynağı: "TÜFE" veya "ABD TÜFE". */
+    private String inflationSource;
+
+    // ── Enflasyona göre düzeltilmiş (reel) getiri — TL ALIM GÜCÜ çerçevesi ──────
+    /**
+     * Reel K/Z (TL alım gücü cinsinden): tutarlar güncel kurla TL'ye çevrilip TÜFE ile arındırılır.
+     * TL pozisyonlarda "kendi para birimi" reel ile aynıdır; USD pozisyonlarda Türk yatırımcının
+     * TL alım gücü açısından gerçek getiriyi verir. Veri eksikse null.
+     */
+    private BigDecimal realProfitLossTry;
+    /** TL alım gücü cinsinden reel getiri yüzdesi (TÜFE'den arındırılmış). */
+    private BigDecimal realProfitLossPercentTry;
+    /** İlk alıştan bugüne birikimli TÜFE enflasyonu (%) — TL çerçevesi. */
+    private BigDecimal inflationSinceTryPercent;
 }

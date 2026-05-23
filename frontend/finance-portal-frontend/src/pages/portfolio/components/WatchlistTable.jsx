@@ -3,13 +3,10 @@ import { Trash2 } from 'lucide-react';
 import { useTranslation } from '../../../i18n/LanguageContext';
 
 const COMMODITY_NAMES = {
-  // Enerji
   'CL=F': 'WTI Ham Petrol',
   'BZ=F': 'Brent Ham Petrol',
   'NG=F': 'Doğal Gaz',
-  // Sanayi
   'HG=F': 'Bakır',
-  // Tarım
   'ZW=F': 'Buğday',
   'ZC=F': 'Mısır',
   'KC=F': 'Kahve',
@@ -51,11 +48,31 @@ function fmt(v, dec = 2) {
   return n.toLocaleString('tr-TR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 }
 
+function signed(v, dec = 2) {
+  if (v === null || v === undefined) return '-';
+  const n = typeof v === 'string' ? parseFloat(v) : v;
+  if (Number.isNaN(n)) return '-';
+  return `${n >= 0 ? '+' : ''}${fmt(n, dec)}`;
+}
+
 function fmtPct(v) {
   if (v === null || v === undefined) return '-';
   const n = typeof v === 'string' ? parseFloat(v) : v;
   if (Number.isNaN(n)) return '-';
   return `${n >= 0 ? '+' : ''}${fmt(n, 2)}%`;
+}
+
+function fmtVolume(v) {
+  if (v === null || v === undefined) return '-';
+  const n = typeof v === 'string' ? parseFloat(v) : v;
+  if (Number.isNaN(n)) return '-';
+  return Math.round(n).toLocaleString('tr-TR');
+}
+
+function formatAsOf(v) {
+  if (!v) return '-';
+  if (typeof v === 'string') return v.replace('T', ' ').slice(0, 16);
+  try { return new Date(v).toISOString().slice(0, 16).replace('T', ' '); } catch { return '-'; }
 }
 
 function deltaClass(v) {
@@ -66,11 +83,14 @@ function deltaClass(v) {
   return 'text-gray-500';
 }
 
-function formatAsOf(v) {
-  if (!v) return '-';
-  // backend LocalDateTime → "2026-05-10T12:34:56"
-  if (typeof v === 'string') return v.replace('T', ' ').slice(0, 16);
-  try { return new Date(v).toISOString().slice(0, 16).replace('T', ' '); } catch { return '-'; }
+/** Fark % hücresi: pozitif/negatif renk + hafif zemin (mockup gibi). */
+function pctChip(v) {
+  const n = parseFloat(v ?? NaN);
+  const base = 'inline-block px-2 py-0.5 rounded-md tabular-nums font-bold';
+  if (Number.isNaN(n)) return <span className="text-gray-400 tabular-nums">-</span>;
+  if (n > 0) return <span className={`${base} text-emerald-700 bg-emerald-50`}>{fmtPct(n)}</span>;
+  if (n < 0) return <span className={`${base} text-rose-700 bg-rose-50`}>{fmtPct(n)}</span>;
+  return <span className="text-gray-500 tabular-nums">{fmtPct(n)}</span>;
 }
 
 function getDisplayName(item) {
@@ -83,28 +103,23 @@ function getDisplayName(item) {
     if (name) return { title: name, subtitle: symbol.includes(':') ? symbol.replace(':', ' · ') : symbol };
     return { title: symbol, subtitle: '' };
   }
-
   if (type === 'GOLD') {
     const name = GOLD_NAMES[symbol];
     if (name) return { title: name, subtitle: symbol };
     return { title: symbol, subtitle: '' };
   }
-
   if (type === 'FUND') {
     const fn = item.fundName?.trim();
     if (fn) return { title: fn, subtitle: symbol };
     return { title: symbol, subtitle: '' };
   }
-
   if (type === 'CRYPTO') {
     const s = symbol.trim();
     return { title: s ? s.toUpperCase() : '-', subtitle: '' };
   }
-
   return { title: symbol, subtitle: '' };
 }
 
-/** Varlık adı / sembol → detay sayfası linki (resolveDetailPath ile) */
 function DetailLink({ item, resolveDetailPath, className, children }) {
   const to = typeof resolveDetailPath === 'function' ? resolveDetailPath(item) : null;
   if (!to) {
@@ -117,13 +132,21 @@ function DetailLink({ item, resolveDetailPath, className, children }) {
   );
 }
 
+/** thead başlık hücresi (büyük harf, sağa/sola/ortaya hizalı). */
+function Th({ children, align = 'right' }) {
+  const a = align === 'left' ? 'text-left' : align === 'center' ? 'text-center' : 'text-right';
+  return (
+    <th className={`px-5 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap ${a}`}>
+      {children}
+    </th>
+  );
+}
+
+const TD = 'px-5 py-3.5 text-sm whitespace-nowrap';
+
 /**
- * İzleme listesi tablosu.
- * Props:
- *   items: WatchlistItemResponse[]
- *   onDelete(itemId): void
- *   deletingId: string | null
- *   resolveDetailPath(item): string | null — verilirse sembolden detaya gidilir
+ * İzleme listesi tablosu (mockup tarzı: sağa hizalı sayılar, birleşik Yüksek/Düşük,
+ * renkli Fark/Fark %, gruplu hacim, dış-çizgili "Varlıklarıma Ekle" butonu).
  */
 export default function WatchlistTable({
   variant = 'default',
@@ -136,133 +159,187 @@ export default function WatchlistTable({
   const { t } = useTranslation();
   if (!items.length) {
     return (
-      <div className="p-12 text-center text-gray-400 text-sm">
+      <div className="p-10 text-center text-gray-400 text-sm">
         {t('İzleme listesi boş. "Sembol Ekle" butonuna basarak başlayın.')}
       </div>
     );
   }
 
-  const headerKeys =
-    variant === 'bond'
-      ? ['Sembol', 'Değer', 'Eklendiği Fiyat', 'Günlük Fark', 'Günlük Fark %', 'Kalan Gün', 'Kupon %', 'Not', 'Eklenme Tarihi', 'İşlem']
-      : variant === 'fx'
-        ? ['Sembol', 'Alış', 'Satış', 'Eklendiği Fiyat', 'Not', 'Eklenme Tarihi', 'İşlem']
-        : variant === 'fund'
-          ? ['Fon Kodu', 'Fon Adı', 'Son Fiyat', 'Günlük Getiri', '1 Ay', '3 Ay', 'YBG', '1 Yıl', 'Risk', 'Eklenme Tarihi', 'İşlem']
-          : ['Sembol', 'Son Fiyat', 'Eklendiği Fiyat', 'Açılış', 'Yüksek', 'Düşük', 'Fark', 'Fark %', 'Hacim', 'Not', 'Eklenme Tarihi', 'İşlem'];
+  function actionCell(item) {
+    return (
+      <td className={`${TD} text-center`}>
+        <div className="inline-flex items-center justify-center gap-1.5">
+          {onAddToPortfolio && (
+            <button
+              onClick={() => onAddToPortfolio(item, getDisplayName(item).title)}
+              className="text-[11px] font-semibold border border-[#093eaa]/40 text-[#093eaa] hover:bg-[#093eaa] hover:text-white px-3 py-1 rounded-md transition-colors"
+            >
+              {t('Varlıklarıma Ekle')}
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={() => onDelete(item.id)}
+              disabled={deletingId === item.id}
+              className="h-7 w-7 inline-flex items-center justify-center rounded-md text-gray-400 hover:text-rose-500 hover:bg-rose-50 transition-colors disabled:opacity-40"
+              title={t('Listeden çıkar')}
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </td>
+    );
+  }
+
+  function symbolCell(item) {
+    const { title, subtitle } = getDisplayName(item);
+    return (
+      <td className={`${TD} text-left`}>
+        <DetailLink item={item} resolveDetailPath={resolveDetailPath} className="font-bold text-[#093eaa]">
+          {title}
+        </DetailLink>
+        {subtitle && <div className="text-xs text-gray-400 font-normal">{subtitle}</div>}
+      </td>
+    );
+  }
+
+  function noteCell(item) {
+    return (
+      <td className="px-5 py-3.5 text-sm text-gray-600 text-left max-w-[200px] truncate" title={item.notes || ''}>
+        {item.notes?.trim() || '-'}
+      </td>
+    );
+  }
+
+  function dateCell(item) {
+    return <td className={`${TD} text-right text-gray-400`}>{formatAsOf(item.addedAt)}</td>;
+  }
 
   return (
-    <div className="px-3 pb-2 overflow-x-auto">
-      <table className={`w-full ${variant === 'fund' ? 'min-w-[1000px]' : 'table-fixed'}`}>
-        <thead className="bg-gray-50">
+    <div className="overflow-x-auto">
+      <table className={`w-full ${variant === 'fund' ? 'min-w-[900px]' : ''}`}>
+        <thead className="bg-gray-50 border-b border-gray-200">
           <tr>
-            {headerKeys.map(h => (
-              <th
-                key={h}
-                className={`text-left px-2 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 ${
-                  h === 'Eklenme Tarihi' ? 'w-[110px]' : ''
-                } ${h === 'İşlem' ? 'w-[150px]' : ''} ${variant === 'fund' && h === 'Fon Adı' ? 'min-w-[140px]' : ''}`}
-              >
-                {t(h)}
-              </th>
-            ))}
+            {variant === 'fund' ? (
+              <>
+                <Th align="left">{t('Fon Kodu')}</Th>
+                <Th align="left">{t('Fon Adı')}</Th>
+                <Th>{t('Son Fiyat')}</Th>
+                <Th>{t('Eklendiği Fiyat')}</Th>
+                <Th>{t('Günlük')}</Th>
+                <Th>{t('1 Ay')}</Th>
+                <Th>{t('3 Ay')}</Th>
+                <Th>{t('YBG')}</Th>
+                <Th>{t('1 Yıl')}</Th>
+                <Th align="center">{t('Risk')}</Th>
+                <Th>{t('Eklenme Tarihi')}</Th>
+                <Th align="center">{t('İşlem')}</Th>
+              </>
+            ) : variant === 'fx' ? (
+              <>
+                <Th align="left">{t('Sembol')}</Th>
+                <Th>{t('Alış')}</Th>
+                <Th>{t('Satış')}</Th>
+                <Th>{t('Eklendiği Fiyat')}</Th>
+                <Th align="left">{t('Not')}</Th>
+                <Th>{t('Eklenme Tarihi')}</Th>
+                <Th align="center">{t('İşlem')}</Th>
+              </>
+            ) : variant === 'bond' ? (
+              <>
+                <Th align="left">{t('Sembol')}</Th>
+                <Th>{t('Değer')}</Th>
+                <Th>{t('Eklendiği Fiyat')}</Th>
+                <Th>{t('Günlük Fark')}</Th>
+                <Th>{t('Günlük Fark %')}</Th>
+                <Th>{t('Kalan Gün')}</Th>
+                <Th>{t('Kupon %')}</Th>
+                <Th align="left">{t('Not')}</Th>
+                <Th>{t('Eklenme Tarihi')}</Th>
+                <Th align="center">{t('İşlem')}</Th>
+              </>
+            ) : (
+              <>
+                <Th align="left">{t('Sembol')}</Th>
+                <Th>{t('Son Fiyat')}</Th>
+                <Th>{t('Eklendiği Fiyat')}</Th>
+                <Th>{t('Açılış')}</Th>
+                <Th>{t('Yüksek / Düşük')}</Th>
+                <Th>{t('Fark')}</Th>
+                <Th>{t('Fark %')}</Th>
+                <Th>{t('Hacim')}</Th>
+                <Th align="left">{t('Not')}</Th>
+                <Th>{t('Eklenme Tarihi')}</Th>
+                <Th align="center">{t('İşlem')}</Th>
+              </>
+            )}
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-gray-100">
           {items.map((item, i) => (
-            <tr key={item.id ?? i} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
+            <tr key={item.id ?? i} className="hover:bg-gray-50 transition-colors">
               {variant === 'fund' ? (
                 <>
-                  <td className="px-2 py-2.5 font-bold text-[#093eaa] text-xs whitespace-nowrap">
-                    <DetailLink item={item} resolveDetailPath={resolveDetailPath} className="font-bold text-[#093eaa] text-xs">
+                  <td className={`${TD} text-left`}>
+                    <DetailLink item={item} resolveDetailPath={resolveDetailPath} className="font-bold text-[#093eaa]">
                       {item.symbol}
                     </DetailLink>
                   </td>
-                  <td
-                    className="px-2 py-2.5 text-xs text-gray-800 max-w-[200px] truncate"
-                    title={item.fundName || ''}
-                  >
-                    <DetailLink item={item} resolveDetailPath={resolveDetailPath} className="text-xs text-gray-800">
+                  <td className="px-5 py-3.5 text-sm text-gray-800 max-w-[220px] truncate" title={item.fundName || ''}>
+                    <DetailLink item={item} resolveDetailPath={resolveDetailPath} className="text-gray-800">
                       {item.fundName?.trim() || '-'}
                     </DetailLink>
                   </td>
-                  <td className="px-2 py-2.5 text-xs font-semibold whitespace-nowrap tabular-nums">{fmt(item.lastPrice)}</td>
-                  <td className={`px-2 py-2.5 text-xs whitespace-nowrap ${deltaClass(item.changePercent)}`}>{fmtPct(item.changePercent)}</td>
-                  <td className={`px-2 py-2.5 text-xs whitespace-nowrap ${deltaClass(item.fundReturnOneMonth)}`}>{fmtPct(item.fundReturnOneMonth)}</td>
-                  <td className={`px-2 py-2.5 text-xs whitespace-nowrap ${deltaClass(item.fundReturnThreeMonths)}`}>{fmtPct(item.fundReturnThreeMonths)}</td>
-                  <td className={`px-2 py-2.5 text-xs whitespace-nowrap ${deltaClass(item.fundReturnYtd)}`}>{fmtPct(item.fundReturnYtd)}</td>
-                  <td className={`px-2 py-2.5 text-xs whitespace-nowrap ${deltaClass(item.fundReturnOneYear)}`}>{fmtPct(item.fundReturnOneYear)}</td>
-                  <td className="px-2 py-2.5 text-xs text-gray-600 text-center">{item.fundRiskLevel != null ? item.fundRiskLevel : '-'}</td>
-                  <td className="px-2 py-2.5 text-xs text-gray-400 whitespace-nowrap">{formatAsOf(item.addedAt)}</td>
+                  <td className={`${TD} text-right font-semibold tabular-nums`}>{fmt(item.lastPrice)}</td>
+                  <td className={`${TD} text-right text-gray-500 tabular-nums`}>{fmt(item.startPrice)}</td>
+                  <td className={`${TD} text-right tabular-nums ${deltaClass(item.changePercent)}`}>{fmtPct(item.changePercent)}</td>
+                  <td className={`${TD} text-right tabular-nums ${deltaClass(item.fundReturnOneMonth)}`}>{fmtPct(item.fundReturnOneMonth)}</td>
+                  <td className={`${TD} text-right tabular-nums ${deltaClass(item.fundReturnThreeMonths)}`}>{fmtPct(item.fundReturnThreeMonths)}</td>
+                  <td className={`${TD} text-right tabular-nums ${deltaClass(item.fundReturnYtd)}`}>{fmtPct(item.fundReturnYtd)}</td>
+                  <td className={`${TD} text-right tabular-nums ${deltaClass(item.fundReturnOneYear)}`}>{fmtPct(item.fundReturnOneYear)}</td>
+                  <td className={`${TD} text-center text-gray-600`}>{item.fundRiskLevel != null ? item.fundRiskLevel : '-'}</td>
+                  {dateCell(item)}
+                  {actionCell(item)}
                 </>
-              ) : (
-                <td className="px-2 py-2.5">
-                  <div className="flex flex-col">
-                    <DetailLink item={item} resolveDetailPath={resolveDetailPath} className="font-bold text-[#093eaa] text-xs">
-                      {getDisplayName(item).title}
-                    </DetailLink>
-                    {getDisplayName(item).subtitle && (
-                      <span className="text-xs text-gray-400">{getDisplayName(item).subtitle}</span>
-                    )}
-                  </div>
-              </td>
-              )}
-
-              {variant === 'fund' ? null : variant === 'fx' ? (
+              ) : variant === 'fx' ? (
                 <>
-                  <td className="px-2 py-2.5 text-xs font-semibold text-emerald-700">{fmt(item.buy)}</td>
-                  <td className="px-2 py-2.5 text-xs font-semibold text-rose-700">{fmt(item.sell)}</td>
-                  <td className="px-2 py-2.5 text-xs text-gray-600">{fmt(item.startPrice)}</td>
-                  <td className="px-2 py-2.5 text-xs text-gray-600 whitespace-nowrap max-w-[220px] overflow-hidden text-ellipsis" title={item.notes || ''}>{item.notes?.trim() || '-'}</td>
-                  <td className="px-2 py-2.5 text-xs text-gray-400 whitespace-nowrap">{formatAsOf(item.addedAt)}</td>
+                  {symbolCell(item)}
+                  <td className={`${TD} text-right font-semibold text-emerald-700 tabular-nums`}>{fmt(item.buy)}</td>
+                  <td className={`${TD} text-right font-semibold text-rose-700 tabular-nums`}>{fmt(item.sell)}</td>
+                  <td className={`${TD} text-right text-gray-500 tabular-nums`}>{fmt(item.startPrice)}</td>
+                  {noteCell(item)}
+                  {dateCell(item)}
+                  {actionCell(item)}
                 </>
               ) : variant === 'bond' ? (
                 <>
-                  <td className="px-2 py-2.5 text-xs font-semibold">{fmt(item.lastPrice)}</td>
-                  <td className="px-2 py-2.5 text-xs text-gray-600">{fmt(item.startPrice)}</td>
-                  <td className={`px-2 py-2.5 text-xs ${deltaClass(item.change)}`}>{fmt(item.change)}</td>
-                  <td className={`px-2 py-2.5 text-xs ${deltaClass(item.changePercent)}`}>{fmtPct(item.changePercent)}</td>
-                  <td className="px-2 py-2.5 text-xs text-gray-500">{item.remainingDays ?? '-'}</td>
-                  <td className="px-2 py-2.5 text-xs text-gray-500">{fmt(item.couponRate)}</td>
-                  <td className="px-2 py-2.5 text-xs text-gray-600 whitespace-nowrap max-w-[220px] overflow-hidden text-ellipsis" title={item.notes || ''}>{item.notes?.trim() || '-'}</td>
-                  <td className="px-2 py-2.5 text-xs text-gray-400 whitespace-nowrap">{formatAsOf(item.addedAt)}</td>
+                  {symbolCell(item)}
+                  <td className={`${TD} text-right font-semibold tabular-nums`}>{fmt(item.lastPrice)}</td>
+                  <td className={`${TD} text-right text-gray-500 tabular-nums`}>{fmt(item.startPrice)}</td>
+                  <td className={`${TD} text-right tabular-nums ${deltaClass(item.change)}`}>{signed(item.change)}</td>
+                  <td className={`${TD} text-right`}>{pctChip(item.changePercent)}</td>
+                  <td className={`${TD} text-right text-gray-500 tabular-nums`}>{item.remainingDays ?? '-'}</td>
+                  <td className={`${TD} text-right text-gray-500 tabular-nums`}>{fmt(item.couponRate)}</td>
+                  {noteCell(item)}
+                  {dateCell(item)}
+                  {actionCell(item)}
                 </>
               ) : (
                 <>
-                  <td className="px-2 py-2.5 text-xs font-semibold">{fmt(item.lastPrice)}</td>
-                  <td className="px-2 py-2.5 text-xs text-gray-600">{fmt(item.startPrice)}</td>
-                  <td className="px-2 py-2.5 text-xs text-gray-500">{fmt(item.open)}</td>
-                  <td className="px-2 py-2.5 text-xs text-gray-500">{fmt(item.high)}</td>
-                  <td className="px-2 py-2.5 text-xs text-gray-500">{fmt(item.low)}</td>
-                  <td className={`px-2 py-2.5 text-xs ${deltaClass(item.change)}`}>{fmt(item.change)}</td>
-                  <td className={`px-2 py-2.5 text-xs ${deltaClass(item.changePercent)}`}>{fmtPct(item.changePercent)}</td>
-                  <td className="px-2 py-2.5 text-xs text-gray-500">{item.volume ?? '-'}</td>
-                  <td className="px-2 py-2.5 text-xs text-gray-600 whitespace-nowrap max-w-[220px] overflow-hidden text-ellipsis" title={item.notes || ''}>{item.notes?.trim() || '-'}</td>
-                  <td className="px-2 py-2.5 text-xs text-gray-400 whitespace-nowrap">{formatAsOf(item.addedAt)}</td>
+                  {symbolCell(item)}
+                  <td className={`${TD} text-right font-semibold tabular-nums`}>{fmt(item.lastPrice)}</td>
+                  <td className={`${TD} text-right text-gray-500 tabular-nums`}>{fmt(item.startPrice)}</td>
+                  <td className={`${TD} text-right text-gray-500 tabular-nums`}>{fmt(item.open)}</td>
+                  <td className={`${TD} text-right text-gray-500 tabular-nums`}>{fmt(item.high)} / {fmt(item.low)}</td>
+                  <td className={`${TD} text-right tabular-nums ${deltaClass(item.change)}`}>{signed(item.change)}</td>
+                  <td className={`${TD} text-right`}>{pctChip(item.changePercent)}</td>
+                  <td className={`${TD} text-right text-gray-500 tabular-nums`}>{fmtVolume(item.volume)}</td>
+                  {noteCell(item)}
+                  {dateCell(item)}
+                  {actionCell(item)}
                 </>
               )}
-              <td className="px-2 py-2.5 border-l border-gray-100">
-                <div className="flex items-center gap-1 whitespace-nowrap">
-                  {onAddToPortfolio && (
-                    <button
-                      onClick={() => onAddToPortfolio(item, getDisplayName(item).title)}
-                      className="h-7 px-2 rounded-md border border-gray-200 bg-white text-[#093eaa] hover:bg-gray-50 transition-colors text-[11px] font-semibold whitespace-nowrap"
-                    >
-                      {t('Varlıklarıma Ekle')}
-                    </button>
-                  )}
-                {onDelete && (
-                  <button
-                    onClick={() => onDelete(item.id)}
-                    disabled={deletingId === item.id}
-                      className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-gray-200 text-gray-400 hover:text-rose-500 hover:border-rose-200 hover:bg-rose-50 transition-colors disabled:opacity-40"
-                    title={t('Listeden çıkar')}
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                )}
-                </div>
-              </td>
             </tr>
           ))}
         </tbody>

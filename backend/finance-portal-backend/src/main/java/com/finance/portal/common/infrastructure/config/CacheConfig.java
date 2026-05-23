@@ -67,6 +67,9 @@ public class CacheConfig {
     @Value("${cache.market.evds.bonds.history-ttl-seconds:7200}")
     private long evdsBondsHistoryTtlSeconds;
 
+    @Value("${cache.market.economy.ttl-seconds:21600}")
+    private long marketEconomyTtlSeconds;
+
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
         return new LettuceConnectionFactory(redisHost, redisPort);
@@ -236,6 +239,11 @@ public class CacheConfig {
                 .withCacheConfiguration("market.evds.bonds.history",
                         RedisCacheConfiguration.defaultCacheConfig()
                                 .entryTtl(Duration.ofSeconds(evdsBondsHistoryTtlSeconds))
+                                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(
+                                        new GenericJackson2JsonRedisSerializer())))
+                .withCacheConfiguration("market.economy",
+                        RedisCacheConfiguration.defaultCacheConfig()
+                                .entryTtl(Duration.ofSeconds(marketEconomyTtlSeconds))
                                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(
                                         new GenericJackson2JsonRedisSerializer())))
                 .build();

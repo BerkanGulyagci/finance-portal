@@ -357,9 +357,7 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
                     .setScale(MONEY_SCALE, RoundingMode.HALF_UP));
         }
 
-        if (d.getOpenPositionCount() != null) {
-            holding.setVolume(d.getOpenPositionCount());
-        }
+        // VİOP'ta gerçek işlem hacmi verisi yok (yalnız açık pozisyon var) → "Hacim" doldurulmaz.
 
         String canonical = d.getName() != null ? d.getName() : contractName;
         if (!canonical.trim().equals(contractName)) {
@@ -471,6 +469,41 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
         holding.setDayHigh(item.getHigh24h());
         holding.setDayLow(item.getLow24h());
         holding.setMarketCap(item.getMarketCap());
+
+        // 52 hafta aralığı + MA20/MA50 — trend hesabının diğer türlerle aynı (çoklu-sinyal) çalışması için.
+        // CoinGecko market_chart (~1y TRY, @Cacheable) kapanışlarından hesaplanır.
+        applyCryptoHistoryMetrics(holding, item.getId());
+    }
+
+    /** Kripto ~1 yıl TRY kapanışlarından 52 hafta min/max ve MA20/MA50 (trend için). */
+    private void applyCryptoHistoryMetrics(PortfolioHoldingResponse holding, String coinId) {
+        if (coinId == null || coinId.isBlank()) {
+            return;
+        }
+        try {
+            Map<String, Object> chart = cryptoMarketService.getMarketChart(coinId, "365", "try", null, null);
+            if (chart == null) {
+                return;
+            }
+            Object raw = chart.get("prices");
+            if (!(raw instanceof List<?> rows) || rows.isEmpty()) {
+                return;
+            }
+            List<BigDecimal> closes = new ArrayList<>(rows.size());
+            for (Object rowObj : rows) {
+                if (rowObj instanceof List<?> row && row.size() >= 2 && row.get(1) instanceof Number n) {
+                    closes.add(BigDecimal.valueOf(n.doubleValue()));
+                }
+            }
+            if (closes.isEmpty()) {
+                return;
+            }
+            holding.setFiftyTwoWeekHigh(closes.stream().max(BigDecimal::compareTo).orElse(null));
+            holding.setFiftyTwoWeekLow(closes.stream().min(BigDecimal::compareTo).orElse(null));
+            applyMasFromCloses(holding, closes);
+        } catch (Exception e) {
+            log.debug("Crypto 52w/MA unavailable for {}: {}", coinId, e.getMessage());
+        }
     }
 
     /**
@@ -789,6 +822,17 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
         BigDecimal mv = price.multiply(holding.getTotalQuantity()).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
         BigDecimal pl = mv.subtract(holding.getTotalCost()).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
 
+        // Sikke/ziynet (Çeyrek/Yarım/Tam/Ata) için günlük değişim spot'ta ayrı gelmiyor;
+        // gram altınla aynı oranda hareket ettiklerinden gram günlük %'sinden türetilir
+        // (değişim tutarı = fiyat × %/100). GRAM/ONS/14-22 ayar zaten kendi değerini taşır.
+        if (changePercent == null && spot.getChangePercent() != null) {
+            changePercent = spot.getChangePercent();
+        }
+        if (change == null && changePercent != null) {
+            change = price.multiply(changePercent)
+                    .divide(BigDecimal.valueOf(100), MONEY_SCALE, RoundingMode.HALF_UP);
+        }
+
         holding.setCurrentPrice(price);
         holding.setMarketValue(mv);
         holding.setProfitLoss(pl);
@@ -844,7 +888,7 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
         if (displayName != null) holding.setName(displayName);
         holding.setChange(spot.getChange());
         holding.setChangePercent(spot.getChangePercent());
-        holding.setVolume(spot.getVolume());
+        // Emtia için güvenilir işlem hacmi gelmiyor → "Hacim" doldurulmaz.
         holding.setDayHigh(spot.getDayHigh());
         holding.setDayLow(spot.getDayLow());
         holding.setFiftyTwoWeekHigh(spot.getWeekHigh52());
@@ -949,12 +993,7 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
             log.debug("52w range unavailable for SILVER {}: {}", cat, e.getMessage());
         }
 
-        // Volume — BIST silver işlem hacmi
-        if (spot.getQuantityKg() != null) {
-            holding.setVolume(spot.getQuantityKg().longValue());
-        } else if (spot.getVolumeTry() != null && price != null && price.compareTo(BigDecimal.ZERO) != 0) {
-            holding.setVolume(spot.getVolumeTry().divide(price, 0, RoundingMode.HALF_UP).longValue());
-        }
+        // Emtia (gümüş) için "Hacim" gösterilmez (güvenilir işlem hacmi değil).
     }
 
     /**

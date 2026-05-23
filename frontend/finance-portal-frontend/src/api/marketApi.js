@@ -20,6 +20,12 @@ export async function getCryptos(page = 0, size = 100, currency = 'try') {
   return data.data ?? [];
 }
 
+/** Backend'in (cache'li) top ~1000 coin listesi — arama/modal "herhangi bir coin" için. */
+export async function getAllCryptoCoins(currency = 'try') {
+  const { data } = await client.get('/api/market/crypto/all', { params: { currency } });
+  return data.data ?? [];
+}
+
 export async function getAllCryptos(currency = 'try') {
   // Sayfaları sırayla çek — paralel çekince CoinGecko rate-limit verir
   const results = [];
@@ -77,6 +83,15 @@ export async function getCryptoYahooChart(symbol, range, currency) {
   const { data } = await client.get(
     `/api/market/crypto/${encodeURIComponent(symbol)}/yahoo/chart`,
     { params: { range, currency: (currency ?? 'usd').toLowerCase() } },
+  );
+  return data.data ?? null;
+}
+
+/** TL 5Y / Tüm — Yahoo USD kapanışı × USD/TRY (TRY=X) ile TL'ye çevrilmiş çizgi grafik */
+export async function getCryptoYahooTryChart(symbol, range) {
+  const { data } = await client.get(
+    `/api/market/crypto/${encodeURIComponent(symbol)}/yahoo/chart-try`,
+    { params: { range } },
   );
   return data.data ?? null;
 }
@@ -208,6 +223,18 @@ export async function getTefasFundDetail(code) {
   return getRasyonetFundDetail(code);
 }
 
+/**
+ * Fon birim pay fiyatı tarihsel serisi — TEFAS resmi API (grafik için, 5 yıla kadar).
+ * type: YAT (TEFAS yatırım fonu) | EMK (emeklilik). points boşsa frontend Rasyonet'e fallback eder.
+ */
+export async function getFundPriceHistory(code, range = '1Y', type = 'YAT') {
+  const { data } = await client.get(
+    `/api/market/funds/${encodeURIComponent(code)}/price-history`,
+    { params: { range, type } },
+  );
+  return data.data ?? { code, range, points: [] };
+}
+
 /** TefasComparePage'de kullanılıyor — şimdilik boş dizi döndür (HangiKredi history kaldırıldı) */
 export async function getTefasFundHistory(code, range = '1M') {
   // HangiKredi history endpoint'i kaldırıldı. Rasyonet'te günlük fiyat geçmişi
@@ -310,6 +337,52 @@ export async function getEvdsBondHistory(instrumentCode, period = 'ONE_MONTH') {
 export async function getEconomicIndicators() {
   const { data } = await client.get('/api/market/indicators');
   return data.data ?? {};
+}
+
+/**
+ * Türkiye ekonomisi özet göstergeleri — TÜFE/ÜFE enflasyon, faizler, GSYİH,
+ * cari denge, rezerv, kur, işsizlik, bütçe vb. kategoriye göre gruplanmış.
+ * GET /api/market/economy
+ */
+export async function getEconomy() {
+  const { data } = await client.get('/api/market/economy');
+  return data.data ?? { source: '', groups: [] };
+}
+
+/**
+ * Tek bir ekonomi göstergesinin grafik zaman serisi.
+ * GET /api/market/economy/series?key=tufe
+ */
+export async function getEconomySeries(key) {
+  const { data } = await client.get('/api/market/economy/series', { params: { key } });
+  return data.data ?? { key, label: '', unit: '', frequency: '', transform: 'raw', source: '', points: [] };
+}
+
+/**
+ * Tüm ekonomi göstergelerinin grafik zaman serileri (tek çağrı).
+ * GET /api/market/economy/charts
+ */
+export async function getEconomyCharts() {
+  const { data } = await client.get('/api/market/economy/charts');
+  return data.data ?? [];
+}
+
+/**
+ * Güncel kredi faiz oranları (ihtiyaç/taşıt/konut/ticari) — kredi taksit hesaplayıcısı için.
+ * GET /api/market/economy/loan-rates
+ */
+export async function getLoanRates() {
+  const { data } = await client.get('/api/market/economy/loan-rates');
+  return data.data ?? { personal: null, vehicle: null, housing: null, commercial: null, period: null, source: '' };
+}
+
+/**
+ * Güncel TL mevduat faiz oranları (vadeye göre) + yıllık enflasyon — mevduat getiri hesaplayıcısı için.
+ * GET /api/market/economy/deposit-rates
+ */
+export async function getDepositRates() {
+  const { data } = await client.get('/api/market/economy/deposit-rates');
+  return data.data ?? { upTo1Month: null, upTo3Months: null, upTo6Months: null, upTo1Year: null, inflationYoy: null, period: null, source: '' };
 }
 
 export async function getGoldSpot() {

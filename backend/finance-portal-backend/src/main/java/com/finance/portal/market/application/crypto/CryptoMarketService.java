@@ -107,17 +107,14 @@ public class CryptoMarketService {
     public CryptoMarketItem findBySymbol(@SpanAttribute("crypto.symbol") String symbol) {
         if (symbol == null || symbol.isBlank()) throw new IllegalArgumentException("symbol must not be blank");
         String normalized = symbol.trim().toLowerCase();
-        for (int page = 0; page < SYMBOL_SEARCH_MAX_PAGES; page++) {
-            List<CryptoMarketItem> items = getCryptos(page, SYMBOL_SEARCH_PAGE_SIZE);
-            Optional<CryptoMarketItem> match = items.stream()
-                    .filter(item -> normalized.equals(item.getSymbol()))
-                    .findFirst();
-            if (match.isPresent()) return match.get();
-            if (items.isEmpty()) break;
-        }
-        throw new ResourceNotFoundException(
-                "Crypto not found in top " + (SYMBOL_SEARCH_MAX_PAGES * SYMBOL_SEARCH_PAGE_SIZE)
-                        + " coins for symbol: " + symbol);
+        // Top ~1000 coin'lik (cache'li) tam listede ara — modal/arama 1000 coin gösterdiği için
+        // ilk 500'ün ötesindeki coinler de portföyde fiyatlandırılabilsin. Piyasa değeri
+        // sırasında ilk eşleşen (en yüksek hacimli) döner.
+        return getAllCoins("try").stream()
+                .filter(item -> normalized.equals(item.getSymbol()))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Crypto not found in top 1000 coins for symbol: " + symbol));
     }
 
     @WithSpan("CryptoMarketService.getCoinDetail")

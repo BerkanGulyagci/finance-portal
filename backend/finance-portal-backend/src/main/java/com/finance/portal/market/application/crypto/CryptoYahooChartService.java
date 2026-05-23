@@ -10,11 +10,17 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.NavigableMap;
+import java.util.TreeMap;
 
 /**
  * Kripto 5Y / Tüm grafikleri — USD ve EUR için Yahoo Finance OHLC (BTC-USD, BTC-EUR).
@@ -133,6 +139,88 @@ public class CryptoYahooChartService {
             }
         }
         return null;
+    }
+
+    private static final ZoneId ISTANBUL = ZoneId.of("Europe/Istanbul");
+
+    /**
+     * Kripto TL çizgi serisi (yalnız 5Y/Tüm): Yahoo USD kapanışları × aynı aralıktaki Yahoo
+     * USD/TRY ({@code TRY=X}). CoinGecko TRY ~1 yıl, Binance {@code BTCTRY} ~2019 ile sınırlı
+     * olduğundan "Tüm" TL çizgi grafiğinde eski (2014+) veriyi USD×kur ile türetir. Mum grafiğini
+     * etkilemez. Kur o güne kadar forward-fill (floorEntry) edilir.
+     */
+    public StockChartResponse getTryLineViaUsd(String baseSymbol, String range) {
+        if (!shouldUseYahoo("usd", range)) {
+            return null; // sadece 5y / max
+        }
+        StockChartResponse usd = getLineChart(baseSymbol, range, "USD");
+        if (usd == null || usd.getTimestamps() == null || usd.getTimestamps().isEmpty()
+                || usd.getClosePrices() == null) {
+            return null;
+        }
+        NavigableMap<LocalDate, BigDecimal> usdTryByDay = fetchUsdTryByDay(range);
+        if (usdTryByDay.isEmpty()) {
+            return null;
+        }
+
+        List<Long> ts = usd.getTimestamps();
+        List<BigDecimal> usdCloses = usd.getClosePrices();
+        int n = Math.min(ts.size(), usdCloses.size());
+        List<Long> outTs = new ArrayList<>(n);
+        List<BigDecimal> outCloses = new ArrayList<>(n);
+        for (int i = 0; i < n; i++) {
+            Long epoch = ts.get(i);
+            BigDecimal usdClose = usdCloses.get(i);
+            if (epoch == null || usdClose == null || usdClose.compareTo(BigDecimal.ZERO) <= 0) {
+                continue;
+            }
+            LocalDate day = Instant.ofEpochSecond(epoch).atZone(ISTANBUL).toLocalDate();
+            var rateEntry = usdTryByDay.floorEntry(day);
+            BigDecimal rate = rateEntry != null ? rateEntry.getValue() : usdTryByDay.firstEntry().getValue();
+            if (rate == null || rate.compareTo(BigDecimal.ZERO) <= 0) {
+                continue;
+            }
+            outTs.add(epoch);
+            outCloses.add(usdClose.multiply(rate).setScale(6, RoundingMode.HALF_UP));
+        }
+        if (outTs.isEmpty()) {
+            return null;
+        }
+        StockChartResponse out = new StockChartResponse();
+        out.setSymbol(usd.getSymbol() != null ? usd.getSymbol() + "·TRY" : baseSymbol + "·TRY");
+        out.setTimestamps(outTs);
+        out.setClosePrices(outCloses);
+        return out;
+    }
+
+    /** Yahoo USD/TRY ({@code TRY=X}) kapanışlarını gün→kur haritasına çevirir (aynı aralık/interval). */
+    private NavigableMap<LocalDate, BigDecimal> fetchUsdTryByDay(String range) {
+        NavigableMap<LocalDate, BigDecimal> map = new TreeMap<>();
+        String[] params = resolveYahooRangeInterval(range);
+        if (params == null) {
+            return map;
+        }
+        StockChartResponse fx;
+        try {
+            fx = fetchLineFromYahoo("TRY=X", params[0], params[1]);
+        } catch (Exception e) {
+            log.warn("Yahoo USD/TRY (TRY=X) fetch failed range={}: {}", range, e.getMessage());
+            return map;
+        }
+        if (fx == null || fx.getTimestamps() == null || fx.getClosePrices() == null) {
+            return map;
+        }
+        List<Long> ts = fx.getTimestamps();
+        List<BigDecimal> cl = fx.getClosePrices();
+        int n = Math.min(ts.size(), cl.size());
+        for (int i = 0; i < n; i++) {
+            if (ts.get(i) == null || cl.get(i) == null || cl.get(i).compareTo(BigDecimal.ZERO) <= 0) {
+                continue;
+            }
+            LocalDate day = Instant.ofEpochSecond(ts.get(i)).atZone(ISTANBUL).toLocalDate();
+            map.put(day, cl.get(i));
+        }
+        return map;
     }
 
     private List<Map<String, Object>> fetchOhlcFromYahoo(String yahooSymbol, String yahooRange, String yahooInterval) {

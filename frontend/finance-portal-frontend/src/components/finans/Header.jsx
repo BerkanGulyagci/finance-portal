@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
-import { Search, ChevronDown, Menu, X, User, Settings, Shield, LogOut, Globe } from 'lucide-react';
+import { useState, useRef, useEffect, useId } from 'react';
+import { ChevronDown, Menu, X, User, Settings, Shield, LogOut, Briefcase } from 'lucide-react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../i18n/LanguageContext';
+import SearchBox from './SearchBox';
 
 // ── Generic Dropdown ──────────────────────────────────────────────────────────
 function NavDropdown({ menu, onClose, t }) {
@@ -65,6 +66,11 @@ function ProfileMenu({ onClose, t }) {
 
   return (
     <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50">
+      <Link to="/portfolio" onClick={onClose} className={itemClass}>
+        <Briefcase className="w-4 h-4 shrink-0" />
+        {t('Portföyüm')}
+      </Link>
+      <div className="my-1 border-t border-gray-100" />
       <Link to="/profile" onClick={onClose} className={itemClass}>
         <User className="w-4 h-4 shrink-0" />
         {t('Profilim')}
@@ -85,34 +91,52 @@ function ProfileMenu({ onClose, t }) {
   );
 }
 
-// ── Language toggle ──────────────────────────────────────────────────────────
+// ── Bayrak ikonları (inline SVG — Windows emoji bayrak desteklemediği için) ────
+function FlagTR({ className = '' }) {
+  return (
+    <svg viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" className={className} aria-hidden="true">
+      <rect width="1200" height="800" fill="#E30A17" />
+      <circle cx="425" cy="400" r="200" fill="#fff" />
+      <circle cx="475" cy="400" r="160" fill="#E30A17" />
+      <path fill="#fff" d="M583.334 400l180.901 58.779-111.804-153.885v190.212l111.804-153.885z" />
+    </svg>
+  );
+}
+
+function FlagGB({ className = '' }) {
+  const id = useId();
+  return (
+    <svg viewBox="0 0 60 30" preserveAspectRatio="xMidYMid slice" className={className} aria-hidden="true">
+      <clipPath id={`${id}-s`}><path d="M0,0 v30 h60 v-30 z" /></clipPath>
+      <clipPath id={`${id}-t`}><path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z" /></clipPath>
+      <g clipPath={`url(#${id}-s)`}>
+        <path d="M0,0 v30 h60 v-30 z" fill="#012169" />
+        <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" strokeWidth="6" />
+        <path d="M0,0 L60,30 M60,0 L0,30" clipPath={`url(#${id}-t)`} stroke="#C8102E" strokeWidth="4" />
+        <path d="M30,0 v30 M0,15 h60" stroke="#fff" strokeWidth="10" />
+        <path d="M30,0 v30 M0,15 h60" stroke="#C8102E" strokeWidth="6" />
+      </g>
+    </svg>
+  );
+}
+
+// ── Language toggle — bayraklı tek tıkla geçiş ────────────────────────────────
 function LanguageToggle({ className = '' }) {
   const { language, setLanguage } = useTranslation();
   const isEn = language === 'en';
   return (
-    <div className={`inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 p-0.5 ${className}`}>
-      <Globe className="w-3.5 h-3.5 text-gray-400 ml-1.5" />
-      <button
-        type="button"
-        onClick={() => setLanguage('tr')}
-        aria-pressed={!isEn}
-        className={`px-2 py-1 rounded-md text-xs font-bold transition-colors ${
-          !isEn ? 'bg-white text-[#093eaa] shadow-sm' : 'text-gray-500 hover:text-gray-700'
-        }`}
-      >
-        TR
-      </button>
-      <button
-        type="button"
-        onClick={() => setLanguage('en')}
-        aria-pressed={isEn}
-        className={`px-2 py-1 rounded-md text-xs font-bold transition-colors ${
-          isEn ? 'bg-white text-[#093eaa] shadow-sm' : 'text-gray-500 hover:text-gray-700'
-        }`}
-      >
-        EN
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={() => setLanguage(isEn ? 'tr' : 'en')}
+      title={isEn ? 'Türkçe’ye geç' : 'Switch to English'}
+      aria-label={isEn ? 'Türkçe’ye geç' : 'Switch to English'}
+      className={`inline-flex items-center gap-1.5 rounded-full pl-1 pr-2.5 py-1 hover:bg-gray-100 transition-colors ${className}`}
+    >
+      <span className="w-6 h-6 rounded-full overflow-hidden ring-1 ring-gray-200 shrink-0">
+        {isEn ? <FlagGB className="w-full h-full" /> : <FlagTR className="w-full h-full" />}
+      </span>
+      <span className="text-xs font-bold text-gray-600">{isEn ? 'EN' : 'TR'}</span>
+    </button>
   );
 }
 
@@ -136,6 +160,24 @@ export function Header() {
 
   // ── Dropdown menus (Bloomberg style) ────────────────────────────────────────
   const dropdownMenus = [
+    {
+      label: 'Ekonomi',
+      groups: [
+        {
+          title: 'Genel',
+          items: [
+            { label: 'Türkiye Ekonomisi', path: '/market/economy', desc: 'Makro göstergeler: enflasyon, faiz, büyüme' },
+          ],
+        },
+        {
+          title: 'Hesaplama Araçları',
+          items: [
+            { label: 'Kredi Hesaplama', path: '/market/kredi-hesaplama', desc: 'Taksit, toplam geri ödeme, faiz hesabı' },
+            { label: 'Mevduat Hesaplama', path: '/market/mevduat-hesaplama', desc: 'Vade sonu net + enflasyona göre reel getiri' },
+          ],
+        },
+      ],
+    },
     {
       label: 'Piyasalar',
       items: [
@@ -176,7 +218,7 @@ export function Header() {
       ],
     },
     {
-      label: 'Yatırım Fonları',
+      label: 'Fonlar',
       items: [
         { label: 'Tüm Fonlar',      path: '/market/tefas',         desc: 'TEFAS · BES · OKS · Osmanlı Portföy' },
         { label: 'Fon Karşılaştır', path: '/market/tefas/compare', desc: 'Fonları karşılaştır' },
@@ -202,8 +244,8 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14">
+      <div className="px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center h-14 gap-3">
 
           {/* Logo + marka adı */}
           <Link
@@ -226,8 +268,8 @@ export function Header() {
             </span>
           </Link>
 
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-0.5" ref={navRef}>
+          {/* Desktop Nav — logo ile sağ grup arasında ortalı */}
+          <nav className="hidden lg:flex items-center gap-1 flex-1 justify-center" ref={navRef}>
             {/* Static nav items */}
             {navItems.filter(item => !item.auth || isAuthenticated).map(item => (
               <NavLink key={item.path} to={item.path}
@@ -261,15 +303,11 @@ export function Header() {
             ))}
           </nav>
 
-          {/* Right side */}
-          <div className="flex items-center gap-2">
-            <div className="relative hidden lg:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input type="text" placeholder={t('Ara...')}
-                className="pl-9 pr-4 py-1.5 bg-gray-100 border-none rounded-full text-sm w-40 focus:outline-none focus:ring-2 focus:ring-[#093eaa] focus:w-56 transition-all" />
-            </div>
+          {/* Right side — en sağa yaslı */}
+          <div className="flex items-center gap-1.5 ml-auto">
+            <SearchBox />
 
-            {/* Language toggle — TR / EN */}
+            {/* Language toggle — bayraklı geçiş */}
             <LanguageToggle className="hidden sm:inline-flex" />
 
             {isAuthenticated ? (
@@ -277,11 +315,13 @@ export function Header() {
                 <button
                   type="button"
                   onClick={() => setProfileOpen((open) => !open)}
-                  className={`flex items-center gap-1.5 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-gray-200 transition-all ${profileOpen ? 'ring-2 ring-[#093eaa]/30' : ''}`}
+                  className={`flex items-center gap-2 rounded-full pl-1 pr-2.5 py-1 hover:bg-gray-100 transition-all ${profileOpen ? 'bg-gray-100 ring-2 ring-[#093eaa]/20' : ''}`}
                 >
-                  <User className="w-4 h-4" />
-                  <span className="max-w-[120px] truncate">{username || t('Hesabım')}</span>
-                  <ChevronDown className={`w-3 h-3 transition-transform ${profileOpen ? 'rotate-180' : ''}`} />
+                  <span className="w-7 h-7 rounded-full bg-[#093eaa] text-white flex items-center justify-center text-xs font-bold shrink-0">
+                    {(username?.[0] || 'U').toUpperCase()}
+                  </span>
+                  <span className="max-w-[120px] truncate text-sm font-semibold text-gray-700">{username || t('Hesabım')}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${profileOpen ? 'rotate-180' : ''}`} />
                 </button>
                 {profileOpen && <ProfileMenu onClose={() => setProfileOpen(false)} t={t} />}
               </div>
@@ -298,7 +338,7 @@ export function Header() {
               </div>
             )}
 
-            <button className="md:hidden p-2" onClick={() => setMobileOpen(o => !o)}>
+            <button className="lg:hidden p-2" onClick={() => setMobileOpen(o => !o)}>
               {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
@@ -306,7 +346,7 @@ export function Header() {
 
         {/* Mobile Menu */}
         {mobileOpen && (
-          <div className="md:hidden py-3 border-t border-gray-200 space-y-1">
+          <div className="lg:hidden py-3 border-t border-gray-200 space-y-1">
             {/* Mobile language toggle */}
             <div className="px-4 py-2 flex items-center justify-between border-b border-gray-100 mb-2">
               <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('Dil')}</span>

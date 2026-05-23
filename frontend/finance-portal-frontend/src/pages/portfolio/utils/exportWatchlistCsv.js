@@ -163,6 +163,7 @@ export function watchlistItemToCsvValues(item) {
       break;
     case 'FUND':
       row[4] = fmtNum(item.lastPrice, 6);
+      row[7] = fmtNum(item.startPrice, 4);
       row[14] = fmtNum(item.changePercent, 2);
       row[15] = fmtNum(item.fundReturnOneMonth, 2);
       row[16] = fmtNum(item.fundReturnThreeMonths, 2);

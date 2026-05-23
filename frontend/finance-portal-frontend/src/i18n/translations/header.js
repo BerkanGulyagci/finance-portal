@@ -60,6 +60,7 @@ const en = {
   'ETF ve yatırım fonları': 'ETFs and investment funds',
 
   // Profile / auth
+  'Portföyüm': 'My Portfolio',
   'Profilim': 'My Profile',
   'Hesap Ayarları': 'Account Settings',
   'Şifre Değiştir': 'Change Password',

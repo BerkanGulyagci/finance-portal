@@ -1,4 +1,282 @@
 const en = {
+  // ── Türkiye Ekonomisi (Economy panel) ────────────────────────────────────
+  'Türkiye Ekonomisi': 'Turkish Economy',
+  'TCMB EVDS verileriyle güncel makroekonomik göstergeler — enflasyon, faiz, büyüme, dış denge ve daha fazlası.':
+    'Up-to-date macroeconomic indicators from CBRT EVDS — inflation, rates, growth, external balance and more.',
+  'Makro göstergeler: enflasyon, faiz, büyüme': 'Macro indicators: inflation, rates, growth',
+  'yıllık': 'YoY',
+  'önceki döneme göre': 'vs previous',
+  'Dönem': 'Period',
+  'Veri yok': 'No data',
+  'Kaynak': 'Source',
+  // Frekanslar
+  'Günlük': 'Daily',
+  'Haftalık': 'Weekly',
+  'Aylık': 'Monthly',
+  'Çeyreklik': 'Quarterly',
+  'Yıllık': 'Yearly',
+  // Kategoriler
+  'Enflasyon': 'Inflation',
+  'Faizler': 'Rates',
+  'Büyüme & Gelir': 'Growth & Income',
+  'Dış Denge & Rezerv': 'External Balance & Reserves',
+  'İşgücü': 'Labor',
+  'Bütçe': 'Budget',
+  'Aktivite & Güven': 'Activity & Confidence',
+  // Gösterge adları
+  'TÜFE — Tüketici Enflasyonu': 'CPI — Consumer Inflation',
+  'Yİ-ÜFE — Üretici Enflasyonu': 'D-PPI — Producer Inflation',
+  'Çekirdek Enflasyon (C)': 'Core Inflation (C)',
+  'Politika Faizi (1 Hafta Repo)': 'Policy Rate (1-Week Repo)',
+  'TL Mevduat Faizi': 'TRY Deposit Rate',
+  'İhtiyaç Kredisi Faizi': 'Consumer Loan Rate',
+  'GSYİH (Reel, Zincirlenmiş Hacim)': 'GDP (Real, Chained Volume)',
+  'Kişi Başı Milli Gelir': 'GDP per Capita',
+  'Cari İşlemler Dengesi': 'Current Account Balance',
+  'TCMB Toplam Rezervler': 'CBRT Total Reserves',
+  'Reel Efektif Döviz Kuru': 'Real Effective Exchange Rate',
+  'Dolar / TL': 'USD / TRY',
+  'Euro / TL': 'EUR / TRY',
+  'İşsizlik Oranı': 'Unemployment Rate',
+  'Genel Bütçe Dengesi': 'General Budget Balance',
+  'Kapasite Kullanım Oranı': 'Capacity Utilization Rate',
+  'Tüketici Güven Endeksi': 'Consumer Confidence Index',
+  // Header — Ekonomi menüsü
+  'Ekonomi': 'Economy',
+  'Genel': 'General',
+  'Hesaplama Araçları': 'Calculators',
+  'Fonlar': 'Funds',
+  'Taksit, toplam geri ödeme, faiz hesabı': 'Installment, total repayment, interest',
+  'Vade sonu net + enflasyona göre reel getiri': 'Net at maturity + real return vs inflation',
+  // ── Hesaplayıcılar (kredi & mevduat) ──
+  'Kredi Hesaplama': 'Loan Calculator',
+  'Mevduat Hesaplama': 'Deposit Calculator',
+  'Aylık taksit, faiz ve toplam ödeme tutarınızı görmek için kredi hesaplama aracını kullanın.':
+    'Use the loan calculator to see your monthly installment, interest and total repayment.',
+  'Vade sonu net getirinizi ve enflasyona göre reel getirinizi görmek için mevduat hesaplama aracını kullanın.':
+    'Use the deposit calculator to see your net return at maturity and your real return against inflation.',
+  'İhtiyaç': 'Personal',
+  'Konut': 'Housing',
+  'Taşıt': 'Vehicle',
+  'Ticari': 'Commercial',
+  'Kredi Tutarı': 'Loan Amount',
+  'Faiz Oranı': 'Interest Rate',
+  'Yıllık Brüt Faiz': 'Annual Gross Rate',
+  'Stopaj': 'Withholding Tax',
+  'Hesapla': 'Calculate',
+  'Ay': 'Months',
+  'ay': 'mo',
+  'g': 'd',
+  'gün': 'days',
+  'aya kadar': 'months',
+  'Güncel ortalama': 'Current average',
+  '(yıllık)': '(annual)',
+  'TCMB EVDS — tüm bankaların ortalaması; kendi oranınızı girebilirsiniz.':
+    'CBRT EVDS — average of all banks; you can enter your own rate.',
+  'Güncel oran yükleniyor...': 'Loading current rate...',
+  'Vergiler dahil (KKDF/BSMV)': 'Taxes included (KKDF/BSMV)',
+  'Aylık Taksit': 'Monthly Installment',
+  'Toplam Geri Ödeme': 'Total Repayment',
+  'Toplam Faiz': 'Total Interest',
+  'Faiz Payı': 'Interest Share',
+  'Anapara': 'Principal',
+  'Net Faiz': 'Net Interest',
+  'Net Getiri': 'Net Return',
+  'Brüt Faiz': 'Gross Interest',
+  'Aylık maliyet (vergi dahil)': 'Monthly cost (incl. tax)',
+  'Aylık faiz': 'Monthly interest',
+  'Ödeme Planını Göster': 'Show Payment Schedule',
+  'Ödeme planını gizle': 'Hide payment schedule',
+  'Eşit taksitli (anüite); ihtiyaç/taşıt KKDF+BSMV, ticari BSMV dahil (konut muaf). Banka masrafları hariç.':
+    'Equal installments (annuity); KKDF+BSMV for personal/vehicle, BSMV for commercial (housing exempt). Bank fees excluded.',
+  'Eşit taksitli (anüite); vergiler (KKDF/BSMV) ve banka masrafları hariç. Bilgilendirme amaçlıdır.':
+    'Equal installments (annuity); excludes taxes (KKDF/BSMV) and bank fees. For information only.',
+  'Geçerli değerler girin.': 'Enter valid values.',
+  'Kalan Borç (Ay Ay)': 'Remaining Balance (Monthly)',
+  'Taksit': 'Installment',
+  'Faiz': 'Interest',
+  'Kalan': 'Remaining',
+  'Vade Sonu (Net)': 'Maturity Total (Net)',
+  'Stopaj canlı değildir; güncel mevzuata göre ayarlıdır': 'Withholding tax is not live; set per current regulation',
+  'Kendi oranlarınızı girebilirsiniz.': 'You can enter your own rates.',
+  'Enflasyona Göre Reel Getiri': 'Real Return vs Inflation',
+  'Paranız enflasyonu yendi.': 'Your money beat inflation.',
+  'Paranız enflasyona yenildi.': 'Your money lost to inflation.',
+  'Dönem enflasyonu': 'Period inflation',
+  'Faiz basit yöntemle: anapara × yıllık faiz × (gün/365). Reel getiri, dönem enflasyonu (yıllık TÜFE\'nin vadeye oranlanmışı) ile yaklaşık hesaplanır. Bilgilendirme amaçlıdır.':
+    'Interest is simple: principal × annual rate × (days/365). Real return is approximated using period inflation (annual CPI prorated to the term). For information only.',
+  // ── Türkiye Ekonomisi sayfası (bülten) ──
+  // Sol menü kısaltmaları
+  'Enflasyon (TÜFE)': 'Inflation (CPI)',
+  'ÜFE': 'PPI',
+  'Çekirdek': 'Core',
+  'Kredi Faizi': 'Loan Rate',
+  'Büyüme': 'Growth',
+  'Kişi Başı Gelir': 'GDP per Capita',
+  'İşsizlik': 'Unemployment',
+  'Dolar/TL': 'USD/TRY',
+  'Euro/TL': 'EUR/TRY',
+  'Cari Denge': 'Current Account',
+  'Rezervler': 'Reserves',
+  'Reel Kur': 'Real Rate',
+  'Kapasite': 'Capacity',
+  'Güven': 'Confidence',
+  // Bölüm başlıkları
+  'Üretici Fiyatları (Yİ-ÜFE)': 'Producer Prices (D-PPI)',
+  'Çekirdek Enflasyon': 'Core Inflation',
+  'İhtiyaç Kredisi Faizi': 'Personal Loan Rate',
+  'Ekonomik Büyüme (GSYİH)': 'Economic Growth (GDP)',
+  'Kişi Başına Milli Gelir': 'GDP per Capita',
+  'İşsizlik Oranı': 'Unemployment Rate',
+  'Döviz Kuru (Dolar/TL)': 'Exchange Rate (USD/TRY)',
+  'Döviz Kuru (Euro/TL)': 'Exchange Rate (EUR/TRY)',
+  'Cari İşlemler Dengesi': 'Current Account Balance',
+  'TCMB Rezervleri': 'CBRT Reserves',
+  'Bütçe Dengesi': 'Budget Balance',
+  // Grafik başlıkları
+  "Türkiye'de Yıllık Yİ-ÜFE (%)": 'Annual D-PPI in Türkiye (%)',
+  'Çekirdek Enflasyon — Yıllık (%)': 'Core Inflation — Annual (%)',
+  'TL Mevduat Faizi (%)': 'TRY Deposit Rate (%)',
+  'İhtiyaç Kredisi Faizi (%)': 'Personal Loan Rate (%)',
+  'GSYİH Değişimi — Çeyreklik (Yıllık %)': 'GDP Change — Quarterly (YoY %)',
+  'Kişi Başına GSYH (ABD Doları, Yıllık)': 'GDP per Capita (USD, Annual)',
+  'Euro / Türk Lirası': 'Euro / Turkish Lira',
+  'Cari İşlemler Dengesi (Aylık, Milyon $)': 'Current Account Balance (Monthly, Million $)',
+  'TCMB Toplam Uluslararası Rezervler (Milyon $)': 'CBRT Total International Reserves (Million $)',
+  'Reel Efektif Döviz Kuru (TÜFE Bazlı)': 'Real Effective Exchange Rate (CPI-based)',
+  'Genel Bütçe Dengesi (Aylık, Bin TL)': 'General Budget Balance (Monthly, Thousand TRY)',
+  'İmalat Sanayi Kapasite Kullanım Oranı (%)': 'Manufacturing Capacity Utilization (%)',
+  // Açıklama paragrafları
+  'Enflasyon, mal ve hizmet fiyatlarının genel düzeyindeki artışı; yani paranın alım gücündeki aşınmayı ölçer. Tüketici Fiyat Endeksi (TÜFE), hanehalkının satın aldığı mal ve hizmet sepetinin fiyat değişimini izleyerek hayat pahalılığının en temel göstergesini oluşturur.':
+    'Inflation measures the general rise in prices of goods and services — the erosion of money\'s purchasing power. The Consumer Price Index (CPI) tracks the price change of the basket households buy, forming the most basic gauge of the cost of living.',
+  'Aşağıdaki grafik TÜFE\'nin yıllık değişimini (bir önceki yılın aynı ayına göre) gösterir. TÜİK her ayın ilk haftasında açıklar.':
+    'The chart below shows the annual change in CPI (vs the same month last year). TurkStat releases it in the first week of each month.',
+  'Yurt İçi Üretici Fiyat Endeksi (Yİ-ÜFE), üreticilerin yurt içinde satışa konu olan ürünlerinin fiyatlarındaki değişimi ölçer; yani maliyet tarafını gösterir.':
+    'The Domestic Producer Price Index (D-PPI) measures the price change of producers\' domestically sold goods — i.e. the cost side.',
+  'ÜFE\'deki yükseliş genellikle bir süre sonra tüketici fiyatlarına (TÜFE) yansıdığı için enflasyonun öncü göstergesi kabul edilir.':
+    'A rise in PPI usually passes through to consumer prices (CPI) later, so it is regarded as a leading indicator of inflation.',
+  'Çekirdek enflasyon; fiyatı mevsim, hava koşulları veya küresel piyasalara göre çok oynayan gıda, enerji, alkol-tütün ve altın gibi kalemler dışarıda bırakılarak hesaplanır.':
+    'Core inflation is calculated by excluding volatile items such as food, energy, alcohol-tobacco and gold, whose prices swing with seasons, weather or global markets.',
+  'Böylece enflasyonun geçici dalgalanmalardan arındırılmış "ana eğilimi" görülür; Merkez Bankası kararlarında yakından izlenir.':
+    'This reveals the "underlying trend" of inflation, stripped of temporary swings; it is closely watched in central bank decisions.',
+  'Politika faizi, Merkez Bankası\'nın para politikasını yönlendirmek için kullandığı temel orandır; Türkiye\'de bir hafta vadeli repo ihale faizi üzerinden tanımlanır.':
+    'The policy rate is the main rate the central bank uses to steer monetary policy; in Türkiye it is defined via the one-week repo auction rate.',
+  'Faiz artışları kredi maliyetlerini yükselterek talebi ve enflasyonu sınırlamayı; indirimler ise ekonomik aktiviteyi canlandırmayı hedefler. Piyasadaki diğer tüm faizlere yön verir.':
+    'Rate hikes raise borrowing costs to curb demand and inflation; cuts aim to stimulate activity. It guides all other rates in the market.',
+  'Bankaların Türk Lirası mevduata uyguladığı ağırlıklı ortalama faiz oranıdır. Tasarruf sahibinin parasını bankada tutarak elde edeceği getiriyi gösterir.':
+    'The weighted-average rate banks apply to Turkish Lira deposits. It shows the return a saver earns by keeping money at the bank.',
+  'Mevduat faizinin enflasyonun üzerinde olması "reel pozitif getiri" anlamına gelir; altında kaldığında tasarruf enflasyona yenilir.':
+    'A deposit rate above inflation means a "real positive return"; below it, savings lose to inflation.',
+  'Bankaların bireysel ihtiyaç kredilerine uyguladığı ağırlıklı ortalama faiz oranıdır ve hanehalkının borçlanma maliyetini doğrudan etkiler.':
+    'The weighted-average rate banks apply to personal loans, directly affecting households\' borrowing cost.',
+  'Politika faizindeki değişimler genellikle kısa sürede kredi faizlerine yansır.':
+    'Changes in the policy rate usually pass through to loan rates quickly.',
+  'Ekonomik büyüme, bir ülkede üretilen mal ve hizmetlerin toplam değerindeki (Gayrisafi Yurt İçi Hasıla) artışı ifade eder. Reel büyüme, fiyat artışlarının etkisinden arındırıldığı için ekonomideki gerçek genişlemeyi yansıtır.':
+    'Economic growth is the increase in the total value of goods and services produced (Gross Domestic Product). Real growth, stripped of price effects, reflects the true expansion of the economy.',
+  'Grafik, GSYİH\'nin bir önceki yılın aynı çeyreğine göre reel değişim oranını (%) gösterir.':
+    'The chart shows GDP\'s real change (%) vs the same quarter last year.',
+  'Kişi başına milli gelir, toplam gelirin nüfusa bölünmesiyle elde edilir ve ülkenin uluslararası refah sıralamasındaki yerini gösterir (genellikle ABD doları cinsinden ifade edilir).':
+    'GDP per capita is total income divided by population, showing the country\'s place in the international welfare ranking (usually expressed in US dollars).',
+  'Dolar bazlı olduğu için hem ekonomik büyümeden hem de döviz kurundaki değişimden etkilenir.':
+    'Being dollar-based, it is affected by both economic growth and exchange-rate changes.',
+  'İşsizlik oranı, çalışma çağındaki işgücü içinde iş arayan ve çalışmaya hazır olanların oranını gösterir; büyümenin topluma nasıl yansıdığını ölçen kritik bir sosyal göstergedir.':
+    'The unemployment rate shows the share of the labor force seeking and ready for work; a critical social indicator of how growth reaches society.',
+  'Grafik, mevsim etkisinden arındırılmış işsizlik oranını aylar itibarıyla gösterir.':
+    'The chart shows the seasonally adjusted unemployment rate by month.',
+  'Döviz kuru, yerli paranın yabancı paralar karşısındaki değerini gösterir. Türkiye\'de en çok izlenen kur, ABD doları karşısındaki TL değeridir.':
+    'The exchange rate shows the value of the local currency against foreign ones. In Türkiye the most watched is the Lira\'s value against the US dollar.',
+  'İthalat, dış borç ve enerji maliyetleri büyük ölçüde dövize bağlı olduğundan kur, maliyet kanalıyla enflasyonu doğrudan etkiler; aynı zamanda yabancı yatırımcı algısının barometresidir.':
+    'Since imports, external debt and energy costs depend heavily on FX, the rate directly affects inflation through the cost channel; it is also a barometer of foreign-investor sentiment.',
+  'Euro/TL kuru, Avro Bölgesi ile yoğun ticaret yapan Türkiye için doların yanı sıra en önemli ikinci kur referansıdır.':
+    'The EUR/TRY rate is the second most important rate reference after the dollar for Türkiye, which trades heavily with the Euro Area.',
+  'Cari denge, bir ülkenin dış dünyayla yaptığı mal-hizmet ticareti, gelir ve transferlerin toplam sonucudur. Dünyadan kazanılan döviz harcanandan azsa cari açık oluşur.':
+    'The current account balance sums a country\'s goods-services trade, income and transfers with the world. If FX earned is less than spent, a current account deficit arises.',
+  'Sürekli cari açık veren ülkeler, açığı finanse etmek için borçlanmaya veya sermaye girişlerine bağımlı hale gelir; bu da küresel koşullar değiştiğinde kırılganlık yaratır. Grafikte eksi değerler açığı ifade eder.':
+    'Countries with persistent deficits depend on borrowing or capital inflows to finance them, creating fragility when global conditions change. Negative values on the chart denote a deficit.',
+  'Merkez Bankası rezervleri, TCMB\'nin kasasındaki döviz ve altın varlıklarıdır. Ülkenin dış borç ödemeleri ve olası dış şoklar karşısındaki kalkanı olarak görülür.':
+    'Central bank reserves are the CBRT\'s FX and gold holdings, seen as the country\'s shield against external debt payments and possible shocks.',
+  'Rezervlerin güçlü olması, kur istikrarı ve dışa karşı dayanıklılık açısından piyasalarca yakından izlenir.':
+    'Strong reserves are closely watched by markets for exchange-rate stability and external resilience.',
+  'Reel efektif döviz kuru, TL\'nin ticaret ortaklarının para birimleri karşısındaki değerini enflasyon farklarından arındırarak ölçer.':
+    'The real effective exchange rate measures the Lira\'s value against trading partners\' currencies, adjusted for inflation differentials.',
+  'Endeksin yükselmesi TL\'nin reel olarak değerlendiğini (ihracatın görece pahalılaştığını), düşmesi ise değer kaybettiğini gösterir.':
+    'A rising index means the Lira appreciates in real terms (exports relatively pricier); a falling index means it depreciates.',
+  'Bütçe dengesi, devletin vergi ve diğer gelirleri ile harcamaları arasındaki farktır. Giderler gelirleri aşarsa bütçe açığı oluşur.':
+    'The budget balance is the difference between the government\'s revenues and expenditures. If spending exceeds revenue, a budget deficit arises.',
+  'Bütçe açığının kontrol altında tutulması, mali disiplinin korunduğunun en temel göstergelerinden biridir. Grafikte eksi değerler açığı ifade eder.':
+    'Keeping the deficit under control is a basic sign of fiscal discipline. Negative values on the chart denote a deficit.',
+  'Kapasite kullanım oranı, imalat sanayinde mevcut üretim kapasitesinin ne kadarının fiilen kullanıldığını gösterir.':
+    'The capacity utilization rate shows how much of existing manufacturing capacity is actually used.',
+  'Oranın yükselmesi talebin ve üretimin canlandığına, düşmesi ise ekonomik aktivitenin yavaşladığına işaret eder; büyümenin öncü göstergelerindendir.':
+    'A rising rate signals reviving demand and output; a falling one signals slowing activity. It is a leading indicator of growth.',
+  'Tüketici güven endeksi, hanehalkının mevcut ve gelecekteki ekonomik duruma ilişkin algısını ve harcama eğilimini ölçer.':
+    'The consumer confidence index measures households\' perception of the current and future economy and their spending tendency.',
+  '100\'ün altındaki değerler kötümser, üzerindeki değerler iyimser bir görünümü ifade eder; iç talebin yönü hakkında ipucu verir.':
+    'Values below 100 indicate a pessimistic outlook, above 100 optimistic; it hints at the direction of domestic demand.',
+
+  // ── BIST 100, Gram Altın, ABD CPI ──
+  // Kategori etiketleri (özet paneli grupları)
+  'Borsa & Altın': 'Stocks & Gold',
+  'Küresel': 'Global',
+  // Gösterge adları + bölüm başlıkları
+  'BIST 100 Endeksi': 'BIST 100 Index',
+  'Gram Altın (TL)': 'Gram Gold (TL)',
+  'ABD Enflasyonu (CPI)': 'US Inflation (CPI)',
+  // Sol menü kısaltmaları
+  'ABD Enflasyonu': 'US Inflation',
+  'Gram Altın': 'Gram Gold',
+  // Grafik başlıkları
+  'ABD Yıllık Enflasyonu — CPI (%)': 'US Annual Inflation — CPI (%)',
+  'BIST 100 Endeksi (Aylık Kapanış)': 'BIST 100 Index (Monthly Close)',
+  'Gram Altın — TL (Aylık)': 'Gram Gold — TL (Monthly)',
+  // Açıklama paragrafları
+  'ABD Tüketici Fiyat Endeksi (CPI), dünyanın en büyük ekonomisindeki enflasyonu ölçer ve küresel faiz beklentilerinin temel belirleyicisidir. ABD enflasyonu yükseldiğinde Fed faizleri yükseltme eğilimine girer; bu da dolar ve gelişen ülke piyasalarını doğrudan etkiler.':
+    'The US Consumer Price Index (CPI) measures inflation in the world\'s largest economy and is the key driver of global rate expectations. When US inflation rises, the Fed tends to hike rates, which directly affects the dollar and emerging-market assets.',
+  'Grafik, ABD CPI\'ın yıllık değişimini (bir önceki yılın aynı ayına göre) gösterir. Yatırımınızın "dolar bazında" reel getirisini değerlendirirken TL enflasyonu kadar dolar enflasyonu da önemlidir — çünkü dolar da zamanla alım gücü kaybeder. Kaynak: FRED (St. Louis Fed).':
+    'The chart shows the annual change in US CPI (vs the same month last year). When assessing your investment\'s "dollar-based" real return, dollar inflation matters as much as Lira inflation — because the dollar, too, loses purchasing power over time. Source: FRED (St. Louis Fed).',
+  'BIST 100, Borsa İstanbul\'da işlem gören en yüksek piyasa değerine ve işlem hacmine sahip 100 şirketin performansını yansıtan ana endekstir; Türkiye hisse senedi piyasasının genel gidişatının göstergesidir.':
+    'The BIST 100 is the main index reflecting the performance of the 100 companies with the highest market value and trading volume on Borsa İstanbul; it gauges the overall direction of Türkiye\'s stock market.',
+  'Endeks; şirket kârlılıkları, faiz oranları ve yatırımcı risk iştahıyla birlikte hareket eder ve uzun vadede enflasyona karşı bir korunma aracı olarak da izlenir. Grafik aylık kapanış seviyelerini gösterir.':
+    'The index moves with company earnings, interest rates and investor risk appetite, and over the long run is also watched as a hedge against inflation. The chart shows monthly closing levels.',
+  'Gram altın, Türkiye\'de en yaygın tasarruf ve enflasyondan korunma araçlarından biridir. Fiyatı hem ons altının küresel seyrine hem de dolar/TL kuruna bağlıdır.':
+    'Gram gold is one of the most common savings and inflation-hedging instruments in Türkiye. Its price depends both on the global path of ounce gold and on the USD/TRY rate.',
+  'Grafik, TCMB\'nin Kapalıçarşı verilerine dayanan gram altın (TL) fiyatını aylık olarak gösterir. Anlık fiyat için Piyasalar bölümündeki Altın sayfasını kullanabilirsiniz.':
+    'The chart shows the gram gold (TL) price based on the CBRT\'s Grand Bazaar data, monthly. For the live price, use the Gold page under Markets.',
+
+  // Piyasa Özeti widget
+  'Üretici Enf. (ÜFE)': 'Producer Inf. (PPI)',
+  'Mevduat Faizi': 'Deposit Rate',
+  'Tüm göstergeler →': 'All indicators →',
+  'Bölümler': 'Sections',
+  // Header arama kutusu
+  'Sitede ara...': 'Search the site...',
+  'Son Aramalarım': 'Recent Searches',
+  'Popüler Aramalar': 'Popular Searches',
+  'Hisse': 'Stock',
+  'Kripto': 'Crypto',
+  'Emtia': 'Commodity',
+  'Altın': 'Gold',
+  // Bülten konu başlıkları + grafik başlıkları
+  'Diğer Göstergeler': 'Other Indicators',
+  'Grafik verisi yok': 'No chart data',
+  'Tüketici Fiyat Endeksi ve Enflasyon': 'Consumer Price Index and Inflation',
+  'Ekonomik Büyüme': 'Economic Growth',
+  'Politika Faizi': 'Policy Rate',
+  'Döviz Kuru': 'Exchange Rate',
+  'Cari Denge': 'Current Account Balance',
+  "Türkiye'de Yıllık TÜFE Enflasyonu (%)": 'Annual CPI Inflation in Türkiye (%)',
+  "Türkiye'de GSYİH Değişimi — Çeyreklik (Yıllık %)": 'GDP Change in Türkiye — Quarterly (YoY %)',
+  "Türkiye'de İşsizlik Oranı (%)": 'Unemployment Rate in Türkiye (%)',
+  'Politika / Fonlama Faizi (%)': 'Policy / Funding Rate (%)',
+  'ABD Doları / Türk Lirası': 'US Dollar / Turkish Lira',
+  "Türkiye'nin Cari İşlemler Dengesi (Milyon $)": "Türkiye's Current Account Balance (Million $)",
+  // Portföy reel getiri kolonları
+  'Reel K/Z': 'Real P/L',
+  'Reel K/Z %': 'Real P/L %',
+  'Enflasyon (alıştan)': 'Inflation (since buy)',
+  'İlk alış tarihinden bugüne birikimli TÜFE enflasyonu':
+    'Cumulative CPI inflation since first purchase',
+
   // ── Generic / Common ─────────────────────────────────────────────────────
   'Yükleniyor...': 'Loading...',
   'Veri yok.': 'No data.',

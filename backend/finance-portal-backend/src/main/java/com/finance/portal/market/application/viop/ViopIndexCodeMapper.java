@@ -57,6 +57,63 @@ public class ViopIndexCodeMapper {
             Map.entry("Ara", "12")
     );
 
+    /** Ay kodu → temiz Türkçe kısaltma (bozuk görünüm adını onarmak için). */
+    private static final Map<String, String> CODE_TO_ABBREV = Map.ofEntries(
+            Map.entry("01", "Oca"), Map.entry("02", "Şub"), Map.entry("03", "Mar"),
+            Map.entry("04", "Nis"), Map.entry("05", "May"), Map.entry("06", "Haz"),
+            Map.entry("07", "Tem"), Map.entry("08", "Ağu"), Map.entry("09", "Eyl"),
+            Map.entry("10", "Eki"), Map.entry("11", "Kas"), Map.entry("12", "Ara")
+    );
+
+    /**
+     * Yalnızca ASCII harflerine indirgenmiş ay iskeleti → ay kodu. Türkçe harf (Ş, ğ)
+     * çıkarıldığında ay kısaltmalarının ASCII iskeletleri tekildir (örn. Şub→"ub",
+     * Ağu→"au"), bu yüzden harf nasıl bozulursa bozulsun (U+FFFD, Â, Å, …) doğru ayı verir.
+     */
+    private static final Map<String, String> SKELETON_MONTH_MAP = Map.ofEntries(
+            Map.entry("oca", "01"), Map.entry("ub", "02"), Map.entry("mar", "03"),
+            Map.entry("nis", "04"), Map.entry("may", "05"), Map.entry("haz", "06"),
+            Map.entry("tem", "07"), Map.entry("au", "08"), Map.entry("eyl", "09"),
+            Map.entry("eki", "10"), Map.entry("kas", "11"), Map.entry("ara", "12")
+    );
+
+    /** Sözleşme adındaki "(GG Ay YY)" tarih parantezi. */
+    private static final Pattern DATE_PAREN_PATTERN =
+            Pattern.compile("\\(\\s*\\d{1,2}\\s+(\\S+?)\\s+\\d{2}\\s*\\)");
+
+    /**
+     * Ay token'ını yalnızca ASCII harflerine indirgeyerek ay koduna çözer.
+     * Akbank ham HTML'i Türkçe harfi (Ş/ğ) bazen U+FFFD dahil çeşitli şekillerde
+     * (geri kazanılamaz) bozar; ay kümesi sabit ve iskeletleri tekil olduğu için bu
+     * yöntem bilinmeyen bozulmalarda bile doğru sonucu verir. Bulunamazsa null.
+     */
+    static String monthCodeFromSkeleton(String raw) {
+        if (raw == null) return null;
+        String sk = raw.replaceAll("[^A-Za-z]", "").toLowerCase(java.util.Locale.ENGLISH);
+        if (sk.isEmpty()) return null;
+        String code = SKELETON_MONTH_MAP.get(sk);
+        if (code != null) return code;
+        if (sk.contains("ub")) return "02";                                            // Şubat
+        if (sk.contains("au") || (sk.startsWith("a") && sk.endsWith("u"))) return "08"; // Ağustos
+        return null;
+    }
+
+    /**
+     * Sözleşme adındaki bozuk ay token'ını temiz Türkçe kısaltmayla değiştirir
+     * (örn. {@code "USDTRY (26 �ub 27) Vadeli"} → {@code "USDTRY (26 Şub 27) Vadeli"}).
+     * Akbank kaynağı Türkçe harfi kayıpla gönderdiği için görünüm adı buradan onarılır.
+     */
+    public static String canonicalizeContractName(String name) {
+        if (name == null || name.isBlank()) return name;
+        Matcher m = DATE_PAREN_PATTERN.matcher(name);
+        if (!m.find()) return name;
+        String code = monthCodeFromSkeleton(m.group(1));
+        if (code == null) return name;
+        String abbrev = CODE_TO_ABBREV.get(code);
+        if (abbrev == null) return name;
+        return name.substring(0, m.start(1)) + abbrev + name.substring(m.end(1));
+    }
+
     /**
      * Akbank HTML encoding bozukluklarından kaynaklanan bozuk ay token'ları → ay kodu.
      * Her bozuk varyant buraya statik olarak eklenir.
@@ -210,6 +267,13 @@ public class ViopIndexCodeMapper {
         String upper = normalized.toUpperCase();
         for (Map.Entry<String, String> e : MONTH_MAP.entrySet()) {
             if (e.getKey().toUpperCase().equals(upper)) return e.getValue();
+        }
+
+        // 6. Sağlam yedek: ASCII iskeleti (U+FFFD dahil her türlü bozulmayı çözer)
+        String skeletonCode = monthCodeFromSkeleton(raw);
+        if (skeletonCode != null) {
+            log.debug("Resolved month via ASCII skeleton: raw='{}' -> {}", raw, skeletonCode);
+            return skeletonCode;
         }
 
         log.warn("Could not resolve month from raw='{}', normalized='{}'", raw, normalized);

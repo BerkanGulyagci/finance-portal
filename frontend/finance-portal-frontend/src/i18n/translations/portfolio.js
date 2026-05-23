@@ -48,6 +48,9 @@ const en = {
   'Portföy adı zorunludur.': 'Portfolio name is required.',
   'Portföy oluşturulamadı.': 'Failed to create portfolio.',
 
+  // InstrumentSearchModal
+  'Portföyünüze yeni bir varlık ekleyin': 'Add a new asset to your portfolio',
+
   // EditPortfolioModal
   'Portföyü Düzenle': 'Edit Portfolio',
   'Kapat': 'Close',
@@ -72,6 +75,9 @@ const en = {
   // AddWatchlistItemModal
   'İzleme Listesine Ekle': 'Add to Watchlist',
   'Değiştir': 'Change',
+  'Enstrümanı değiştir': 'Change instrument',
+  'yükleniyor...': 'loading...',
+  'Bu tarih için fiyat bulunamadı, lütfen elle girin.': 'No price found for this date, please enter manually.',
   'Not': 'Note',
   'Kısa bir not...': 'A short note...',
   'Ekleniyor...': 'Adding...',
@@ -121,6 +127,7 @@ const en = {
   'İşlemler': 'Transactions',
   'Grafikler': 'Charts',
   'İstatistikler': 'Statistics',
+  'Fırsat Maliyeti': 'Opportunity Cost',
   'Pozisyon Ekle': 'Add Position',
   'Bu satırda işlem kimliği yok; sayfayı yenileyip tekrar deneyin.': 'No transaction id in this row; refresh the page and try again.',
   'Bu işlemi silmek istediğinizden emin misiniz?': 'Are you sure you want to delete this transaction?',
@@ -212,6 +219,8 @@ const en = {
   'Dönem Getirisi': 'Period Return',
   'Gümüş': 'Silver',
   'Grafik verisi yok.': 'No chart data.',
+  'Mevcut varlıklarda bu sütun için veri yok': 'No data for this column in current holdings',
+  'veri yok': 'no data',
   'Dönem getirisi': 'Period return',
   'Portföy değeri': 'Portfolio value',
   'Portföy:': 'Portfolio:',

@@ -15,7 +15,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -46,6 +48,12 @@ public class PortfolioPerformanceCalculator {
         Map<String, HoldingAccumulator> openPositions = new LinkedHashMap<>();
         List<PortfolioPerformancePoint> points = new ArrayList<>();
 
+        // Bir varlığı, fiyatı bulunan ilk günden itibaren hesaba katmak için: tutulan günleri ve
+        // gerçekten fiyatla katkı veren günleri ayrı izleriz. Hiç katkı vermeyen varlık sonda hariç tutulur.
+        Set<String> heldKeys = new LinkedHashSet<>();
+        Set<String> contributedKeys = new HashSet<>();
+        Map<String, HoldingAccumulator> seenAccumulators = new LinkedHashMap<>();
+
         int txIndex = 0;
         for (LocalDate day = startDate; !day.isAfter(endDate); day = day.plusDays(1)) {
             while (txIndex < sorted.size()) {
@@ -68,7 +76,6 @@ public class PortfolioPerformanceCalculator {
 
             BigDecimal totalMarketValue = BigDecimal.ZERO;
             BigDecimal totalCost = BigDecimal.ZERO;
-            List<String> keysToRemoveAfterDay = new ArrayList<>();
 
             for (Map.Entry<String, HoldingAccumulator> e : openPositions.entrySet()) {
                 String key = e.getKey();
@@ -79,21 +86,19 @@ public class PortfolioPerformanceCalculator {
                 if (acc.openQuantity.compareTo(BigDecimal.ZERO) <= 0) {
                     continue;
                 }
+                heldKeys.add(key);
+                seenAccumulators.putIfAbsent(key, acc);
                 NavigableMap<LocalDate, BigDecimal> series = priceSeriesByPositionKey.get(key);
                 BigDecimal unitPrice = priceOnDay(series, day);
                 if (unitPrice == null) {
-                    if (excludedAssetsOut != null && markExcluded(excludedAssetsOut, excludedPositionKeys, acc)) {
-                        keysToRemoveAfterDay.add(key);
-                    }
+                    // O gün fiyat yok (ör. VİOP kontratının ilk işlem gününden önce) → bu günü atla
+                    // ama pozisyonu DÜŞÜRME; veri başladığı gün hesaba katılsın.
                     continue;
                 }
+                contributedKeys.add(key);
                 BigDecimal mv = unitPrice.multiply(acc.openQuantity).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
                 totalMarketValue = totalMarketValue.add(mv);
                 totalCost = totalCost.add(acc.openCostBasis.setScale(MONEY_SCALE, RoundingMode.HALF_UP));
-            }
-
-            for (String key : keysToRemoveAfterDay) {
-                openPositions.remove(key);
             }
 
             BigDecimal profitLoss = totalMarketValue.subtract(totalCost).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
@@ -106,6 +111,18 @@ public class PortfolioPerformanceCalculator {
             }
 
             points.add(new PortfolioPerformancePoint(day, totalMarketValue, totalCost, profitLoss, profitLossPercent));
+        }
+
+        // Tüm dönem boyunca tutulduğu halde hiç fiyatı bulunamayan varlıkları "hariç tutuldu" işaretle.
+        if (excludedAssetsOut != null) {
+            for (String key : heldKeys) {
+                if (!contributedKeys.contains(key) && !excludedPositionKeys.contains(key)) {
+                    HoldingAccumulator acc = seenAccumulators.get(key);
+                    if (acc != null) {
+                        markExcluded(excludedAssetsOut, excludedPositionKeys, acc);
+                    }
+                }
+            }
         }
 
         return points;

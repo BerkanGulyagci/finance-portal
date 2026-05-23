@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { useParams, useLocation, Link } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown } from 'lucide-react';
 import { init as klineInit, dispose as klineDispose } from 'klinecharts';
-import { getRasyonetFundDetail } from '../../../api/marketApi';
+import { getRasyonetFundDetail, getFundPriceHistory } from '../../../api/marketApi';
 import { FUND_CHART_RANGES, buildFundChartSeries } from './fundChartSeries';
 import { useTranslation } from '../../../i18n/LanguageContext';
 
@@ -163,7 +163,7 @@ const FUND_MA_DEFS = [
   { period: 90, color: '#8b5cf6', label: 'MA90' },
 ];
 
-function FundPriceChart({ priceHistory, monthlyReturns }) {
+function FundPriceChart({ code, fonTipi, priceHistory, monthlyReturns }) {
   const { t } = useTranslation();
   const [range, setRange]           = useState('1Y');
   const [activeMAs, setActiveMAs]   = useState([]);
@@ -173,10 +173,61 @@ function FundPriceChart({ priceHistory, monthlyReturns }) {
   const chartRef       = useRef(null);
   const trendOverlayId = useRef(null);
 
-  const { points: filtered, usesMonthlyExtension } = useMemo(
-    () => buildFundChartSeries(priceHistory, monthlyReturns, range),
-    [priceHistory, monthlyReturns, range],
-  );
+  // Fiyat geçmişi: önce TEFAS (5 yıla kadar gerçek günlük seri), boşsa Rasyonet
+  // (~1 yıl + 5Y için aylık tahmin) fallback. Künye verisi yine Rasyonet'ten geliyor.
+  const [filtered, setFiltered]         = useState([]);
+  const [chartLoading, setChartLoading] = useState(true);
+  const [chartSource, setChartSource]   = useState('Rasyonet');
+
+  useEffect(() => {
+    let cancelled = false;
+
+    // 1 yıla kadar (1Y dahil): Rasyonet — hızlı ve güvenilir, ağ isteği yok.
+    if (range !== '5Y') {
+      const fb = buildFundChartSeries(priceHistory, monthlyReturns, range);
+      setFiltered(fb.points);
+      setChartSource('Rasyonet');
+      setChartLoading(false);
+      return () => { cancelled = true; };
+    }
+
+    // 5Y: derin geçmiş TEFAS'tan çekilir (yavaş → loading animasyonu); son ~1 yıl Rasyonet ile
+    // doldurulur (TEFAS burst-throttle ettiği için son dönemde boşluk kalabilir).
+    setChartLoading(true);
+    setFiltered([]); // loading animasyonu görünsün
+    (async () => {
+      let tefas = [];
+      if (code) {
+        try {
+          const resp = await getFundPriceHistory(code, '5Y', fonTipi);
+          tefas = (resp?.points ?? [])
+            .map(p => ({ date: String(p.date).slice(0, 10), price: toFloat(p.price) }))
+            .filter(p => p.date && p.price != null && p.price > 0);
+        } catch { tefas = []; }
+      }
+      const rasyonetDaily = (priceHistory ?? [])
+        .map(p => ({ date: String(p.date).slice(0, 10), price: toFloat(p.price) }))
+        .filter(p => p.date && p.price != null && p.price > 0);
+
+      const byDate = new Map();
+      tefas.forEach(p => byDate.set(p.date, p));
+      rasyonetDaily.forEach(p => byDate.set(p.date, p)); // çakışmada güncel Rasyonet kazanır
+
+      const cutoff = new Date();
+      cutoff.setHours(0, 0, 0, 0);
+      cutoff.setDate(cutoff.getDate() - 1825);
+      const points = [...byDate.values()]
+        .filter(p => new Date(p.date).getTime() >= cutoff.getTime())
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      if (!cancelled) {
+        setFiltered(points);
+        setChartSource(tefas.length ? 'TEFAS + Rasyonet' : 'Rasyonet');
+        setChartLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [code, fonTipi, range, priceHistory, monthlyReturns]);
 
   // Trend hesabı — filtrelenmiş veri üzerinden
   const trendInfo = useMemo(() => {
@@ -390,7 +441,18 @@ function FundPriceChart({ priceHistory, monthlyReturns }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtered]);
 
-  if (!priceHistory || priceHistory.length === 0) {
+  if (chartLoading && filtered.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-48">
+        <div className="flex gap-1.5">
+          <div className="w-2 h-2 bg-[#093eaa] rounded-full animate-bounce" />
+          <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
+          <div className="w-2 h-2 bg-[#093eaa]/30 rounded-full animate-bounce [animation-delay:200ms]" />
+        </div>
+      </div>
+    );
+  }
+  if (!chartLoading && filtered.length === 0) {
     return <div className="flex items-center justify-center h-48 text-gray-400 text-sm">{t('Fiyat geçmişi bulunamadı.')}</div>;
   }
 
@@ -412,7 +474,9 @@ function FundPriceChart({ priceHistory, monthlyReturns }) {
           )}
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
-          <span className="text-xs text-gray-400">{filtered.length} {t('veri noktası')}</span>
+          <span className="text-xs text-gray-400">
+            {chartLoading ? `${t('yükleniyor')}…` : `${filtered.length} ${t('veri noktası')} · ${chartSource}`}
+          </span>
           <div className="flex gap-1">
             {FUND_CHART_RANGES.map(r => (
               <button key={r.key} onClick={() => setRange(r.key)}
@@ -477,9 +541,9 @@ function FundPriceChart({ priceHistory, monthlyReturns }) {
         <div id={chartId.current} style={{ width: '100%', height: '320px' }} />
       </div>
 
-      {range === '5Y' && usesMonthlyExtension && (
-        <p className="text-xs text-amber-700/90 mt-2">
-          {t('5Y görünüm: son ~1 yıl günlük fiyat; daha eski dönem aylık getirilerden tahmini seri (Rasyonet).')}
+      {range === '5Y' && chartSource === 'TEFAS + Rasyonet' && (
+        <p className="text-xs text-gray-500 mt-2">
+          {t('5Y görünüm: derin geçmiş TEFAS, son ~1 yıl Rasyonet günlük fiyatlarıyla tamamlanır.')}
         </p>
       )}
     </div>
@@ -847,8 +911,13 @@ export default function TefasFundDetailPage() {
             <div className="space-y-5">
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
                 <h2 className="font-bold text-gray-900 mb-2">{t('Fiyat Grafiği')}</h2>
-                <FundPriceChart priceHistory={d.priceHistory} monthlyReturns={d.monthlyReturns} />
-                <p className="text-xs text-gray-400 mt-3">{t('Kaynak: Rasyonet · YatırımDirekt')}</p>
+                <FundPriceChart
+                  code={code}
+                  fonTipi={sourceCode === 'TMF' ? 'YAT' : 'EMK'}
+                  priceHistory={d.priceHistory}
+                  monthlyReturns={d.monthlyReturns}
+                />
+                <p className="text-xs text-gray-400 mt-3">{t('Kaynak: Rasyonet (≤1 Yıl) · TEFAS (5 Yıl derin geçmiş)')}</p>
               </div>
 
               {d.assetAllocation && d.assetAllocation.length > 0 && (

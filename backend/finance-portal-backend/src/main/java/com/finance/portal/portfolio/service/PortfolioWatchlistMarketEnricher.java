@@ -1,8 +1,12 @@
 package com.finance.portal.portfolio.service;
 
 import com.finance.portal.common.domain.AssetType;
+import com.finance.portal.market.application.bond.evds.BondPeriod;
+import com.finance.portal.market.application.bond.evds.EvdsBondHistoryPoint;
 import com.finance.portal.market.application.bond.evds.EvdsBondInstrument;
 import com.finance.portal.market.application.bond.evds.EvdsBondService;
+import com.finance.portal.market.application.commodity.CommodityHistoryPointDto;
+import com.finance.portal.market.application.commodity.CommodityHistoryResponse;
 import com.finance.portal.market.application.commodity.CommoditySpotDto;
 import com.finance.portal.market.application.commodity.YahooCommodityService;
 import com.finance.portal.market.application.funds.model.RasyonetFundDetailDto;
@@ -15,9 +19,11 @@ import com.finance.portal.market.application.gold.GoldSpotResponse;
 import com.finance.portal.market.application.precious.PreciousMetalHistoryResponse;
 import com.finance.portal.market.application.precious.PreciousMetalService;
 import com.finance.portal.market.application.precious.PreciousMetalSpotResponse;
+import com.finance.portal.market.application.silver.SilverHistoryPoint;
 import com.finance.portal.market.application.silver.SilverHistoryResponse;
 import com.finance.portal.market.application.silver.SilverMarketService;
 import com.finance.portal.market.application.silver.SilverSpotResponse;
+import com.finance.portal.market.application.stock.StockChartResponse;
 import com.finance.portal.market.application.stock.StockQueryService;
 import com.finance.portal.market.application.stock.StockSummary;
 import com.finance.portal.market.application.viop.ViopContract;
@@ -27,12 +33,15 @@ import com.finance.portal.market.application.service.MarketFxService;
 import com.finance.portal.market.application.crypto.CryptoMarketService;
 import com.finance.portal.market.application.crypto.model.CryptoMarketItem;
 import com.finance.portal.market.application.precious.model.PreciousMetalType;
+import com.finance.portal.market.application.fx.model.FxHistory;
+import com.finance.portal.market.application.fx.model.FxHistoryPoint;
 import com.finance.portal.market.application.fx.model.FxLatestRates;
 import com.finance.portal.market.application.fx.model.FxRateItem;
 import com.finance.portal.portfolio.application.port.WatchlistMarketEnrichmentPort;
 import com.finance.portal.portfolio.presentation.dto.WatchlistItemResponse;
 import com.finance.portal.portfolio.service.support.PortfolioDateTimeParse;
 import com.finance.portal.portfolio.service.support.PortfolioHistoryPoints;
+import com.finance.portal.portfolio.service.support.PortfolioMovingAverage;
 import com.finance.portal.portfolio.service.support.RasyonetFundLookup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +53,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * İzleme listesi satırları için canlı piyasa alanlarını doldurur (portfolio holding mantığından ayrı).
@@ -106,6 +118,9 @@ public class PortfolioWatchlistMarketEnricher implements WatchlistMarketEnrichme
                 case COMMODITY -> enrichCommodity(r, symbol);
                 case BOND -> enrichBond(r, symbol);
             }
+
+            // Trend sinyalleri (MA20/MA50 + 52 hafta) — holdings ile aynı çoklu-sinyal computeTrend için.
+            applyTrendSignals(r);
         } catch (UnsupportedOperationException ex) {
             log.debug("Watchlist live price not supported for assetType={} symbol={}",
                     r.getAssetType(), r.getSymbol());
@@ -156,6 +171,10 @@ public class PortfolioWatchlistMarketEnricher implements WatchlistMarketEnrichme
         if (item.getCurrentPrice() != null && item.getPriceChange24h() != null) {
             r.setOpen(item.getCurrentPrice().subtract(item.getPriceChange24h()));
         }
+
+        // Trend için 7 günlük momentum + ~1y kapanışlardan MA/52w (CRYPTO applyTrendSignals'ta atlanır).
+        r.setPriceChangePercentage7d(item.getPriceChangePercentage7d());
+        applyMaAnd52w(r, cryptoCloses1y(item.getId()));
     }
 
     private void enrichStockLike(WatchlistItemResponse r, String symbol) {
@@ -200,9 +219,8 @@ public class PortfolioWatchlistMarketEnricher implements WatchlistMarketEnrichme
             r.setOpen(prevSet);
         }
 
-        if (d.getOpenPositionCount() != null) {
-            r.setVolume(d.getOpenPositionCount());
-        }
+        // VİOP'ta gerçek işlem hacmi verisi yok (yalnız açık pozisyon/open interest var) →
+        // "Hacim" sütununu yanıltıcı şekilde doldurma; boş bırak.
 
         LocalDateTime asOf = PortfolioDateTimeParse.parseLenient(d.getTime());
         r.setAsOf(asOf != null ? asOf : LocalDateTime.now());
@@ -476,7 +494,7 @@ public class PortfolioWatchlistMarketEnricher implements WatchlistMarketEnrichme
                 r.setLow(low);
                 r.setChange(change);
                 r.setChangePercent(changePct);
-                r.setVolume(volume);
+                // Emtia (gümüş) için "Hacim" gösterilmez (güvenilir değil).
                 r.setAsOf(asOf);
                 return;
             }
@@ -552,7 +570,7 @@ public class PortfolioWatchlistMarketEnricher implements WatchlistMarketEnrichme
         r.setLow(spot.getDayLow());
         r.setChange(spot.getChange());
         r.setChangePercent(spot.getChangePercent());
-        r.setVolume(spot.getVolume());
+        // Emtia için güvenilir işlem hacmi gelmiyor → "Hacim" doldurulmaz.
         r.setAsOf(PortfolioDateTimeParse.parseLenient(spot.getLastUpdated()));
     }
 
@@ -738,5 +756,197 @@ public class PortfolioWatchlistMarketEnricher implements WatchlistMarketEnrichme
 
         LocalDate lu = bond.getLastUpdated();
         r.setAsOf(lu != null ? lu.atStartOfDay() : LocalDateTime.now());
+    }
+
+    // ── Trend sinyalleri (holdings ile aynı çoklu-sinyal computeTrend için) ──────────
+    // Her tür için ~1 yıl kapanış serisinden 52 hafta min/max + MA20/MA50 doldurulur
+    // (kaynaklar @Cacheable). CRYPTO enrichCrypto'da, FUND fon getirileriyle hesaplanır.
+
+    private void applyTrendSignals(WatchlistItemResponse r) {
+        try {
+            AssetType type = r.getAssetType();
+            String symbol = r.getSymbol();
+            if (type == null || symbol == null || symbol.isBlank()) {
+                return;
+            }
+            List<BigDecimal> closes = null;
+            switch (type) {
+                case STOCK, FUTURE -> closes = stockCloses1y(symbol);
+                case COMMODITY -> closes = symbol.toUpperCase().startsWith("SILVER:")
+                        ? silverCloses1y(symbol) : commodityCloses1y(symbol);
+                case BOND -> closes = bondCloses1y(symbol);
+                case GOLD -> closes = goldCloses1y(symbol);
+                case FX -> closes = fxCloses1y(symbol);
+                default -> { /* CRYPTO: enrichCrypto; FUND: getiriler */ }
+            }
+            applyMaAnd52w(r, closes);
+        } catch (Exception e) {
+            log.debug("Watchlist trend signals skipped for {}: {}", r.getSymbol(), e.getMessage());
+        }
+    }
+
+    private void applyMaAnd52w(WatchlistItemResponse r, List<BigDecimal> closes) {
+        if (closes == null || closes.size() < 2) {
+            return;
+        }
+        r.setFiftyTwoWeekHigh(closes.stream().max(BigDecimal::compareTo).orElse(null));
+        r.setFiftyTwoWeekLow(closes.stream().min(BigDecimal::compareTo).orElse(null));
+        r.setMa20(PortfolioMovingAverage.simpleMa(closes, 20));
+        r.setMa50(PortfolioMovingAverage.simpleMa(closes, 50));
+    }
+
+    private List<BigDecimal> stockCloses1y(String symbol) {
+        try {
+            StockChartResponse chart = stockQueryService.getStockChartWithParams(symbol.toUpperCase(), "1y", "1d");
+            return chart != null ? chart.getClosePrices() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private List<BigDecimal> cryptoCloses1y(String coinId) {
+        if (coinId == null || coinId.isBlank()) {
+            return null;
+        }
+        try {
+            Map<String, Object> chart = cryptoMarketService.getMarketChart(coinId, "365", "try", null, null);
+            if (chart == null || !(chart.get("prices") instanceof List<?> rows)) {
+                return null;
+            }
+            List<BigDecimal> closes = new ArrayList<>(rows.size());
+            for (Object o : rows) {
+                if (o instanceof List<?> row && row.size() >= 2 && row.get(1) instanceof Number n) {
+                    closes.add(BigDecimal.valueOf(n.doubleValue()));
+                }
+            }
+            return closes;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private List<BigDecimal> commodityCloses1y(String symbol) {
+        try {
+            CommodityHistoryResponse hist = yahooCommodityService.getHistory(symbol, "1Y", "1d");
+            if (hist == null || hist.getPoints() == null) {
+                return null;
+            }
+            return hist.getPoints().stream()
+                    .map(CommodityHistoryPointDto::getDisplayClose)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private List<BigDecimal> silverCloses1y(String symbol) {
+        try {
+            String cat = symbol.contains(":") ? symbol.split(":", 2)[1].toUpperCase() : "GRAM_TRY";
+            String cur = cat.contains("USD") ? "USD" : "TRY";
+            SilverHistoryResponse hist = silverMarketService.getSilverHistory("1Y", cur);
+            if (hist == null || hist.getPoints() == null) {
+                return null;
+            }
+            return hist.getPoints().stream()
+                    .map(SilverHistoryPoint::getClose)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private List<BigDecimal> bondCloses1y(String code) {
+        try {
+            List<EvdsBondHistoryPoint> hist = evdsBondService.getEvdsBondHistory(code.trim(), BondPeriod.ONE_YEAR);
+            if (hist == null) {
+                return null;
+            }
+            return hist.stream()
+                    .map(EvdsBondHistoryPoint::getIndicatorValue)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private List<BigDecimal> goldCloses1y(String symbol) {
+        try {
+            String upper = symbol.toUpperCase();
+            if ("GOLD".equals(upper)) {
+                BigDecimal usdTry = goldMarketService.getSpotGold().getUsdTry();
+                if (usdTry == null) {
+                    return null;
+                }
+                GoldHistoryResponse hist = goldMarketService.getGoldHistory("1Y", "USD");
+                if (hist == null || hist.getPoints() == null) {
+                    return null;
+                }
+                return hist.getPoints().stream()
+                        .map(GoldHistoryPoint::getClose)
+                        .filter(Objects::nonNull)
+                        .map(c -> c.multiply(usdTry).setScale(2, RoundingMode.HALF_UP))
+                        .collect(Collectors.toList());
+            }
+            GoldHistoryResponse hist = goldMarketService.getGoldHistory("1Y", "TRY");
+            if (hist == null || hist.getPoints() == null) {
+                return null;
+            }
+            BigDecimal factor = watchlistGoldFactor(upper);
+            return hist.getPoints().stream()
+                    .map(GoldHistoryPoint::getClose)
+                    .filter(Objects::nonNull)
+                    .map(g -> factor == null ? g : g.multiply(factor).setScale(2, RoundingMode.HALF_UP))
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** Gram altın serisini sikke/ayar fiyatına çeviren teorik çarpan (holdings ile aynı). */
+    private static BigDecimal watchlistGoldFactor(String upper) {
+        BigDecimal k22 = new BigDecimal("0.9166");
+        return switch (upper) {
+            case "GRAM" -> null;
+            case "14AYAR", "AYAR14" -> new BigDecimal("0.5850");
+            case "22AYAR", "AYAR22" -> k22;
+            case "CEYREK" -> new BigDecimal("1.754").multiply(k22);
+            case "YARIM" -> new BigDecimal("3.508").multiply(k22);
+            case "TAM", "ZIYNET" -> new BigDecimal("7.016").multiply(k22);
+            case "CUMHUR", "ATA" -> new BigDecimal("7.216").multiply(k22);
+            default -> null;
+        };
+    }
+
+    private List<BigDecimal> fxCloses1y(String symbol) {
+        try {
+            String sym = symbol.toUpperCase();
+            int unit = 1;
+            try {
+                FxLatestRates latest = marketFxService.getTcmbLatestRates(sym);
+                FxRateItem rate = latest.getRates().stream()
+                        .filter(x -> sym.equalsIgnoreCase(x.getSymbol()))
+                        .findFirst().orElse(null);
+                if (rate != null && rate.getUnit() > 1) {
+                    unit = rate.getUnit();
+                }
+            } catch (Exception ignored) {
+                // birim bilgisi alınamadı → 1 varsay
+            }
+            FxHistory hist = marketFxService.getFxHistory(sym, "1Y");
+            if (hist == null || hist.getPoints() == null) {
+                return null;
+            }
+            final int u = unit;
+            return hist.getPoints().stream()
+                    .map(FxHistoryPoint::getClose)
+                    .filter(Objects::nonNull)
+                    .map(c -> u > 1 ? c.divide(BigDecimal.valueOf(u), 6, RoundingMode.HALF_UP) : c)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

@@ -104,6 +104,23 @@ public class CryptoController {
     }
 
     /**
+     * TL çizgi grafiği (5Y / Tüm) — Yahoo USD kapanışı × Yahoo USD/TRY ({@code TRY=X}).
+     * CoinGecko TRY ~1 yıl, Binance {@code BTCTRY} ~2019 ile sınırlı; bu uç eski (2014+) veriyi
+     * TL'ye çevirip döndürür. Yalnız çizgi grafikte kullanılır (mum grafiğini etkilemez).
+     */
+    @GetMapping("/{symbol}/yahoo/chart-try")
+    public ResponseEntity<ApiResponse<StockChartResponse>> getYahooTryChart(
+            @PathVariable String symbol,
+            @RequestParam String range
+    ) {
+        StockChartResponse chart = cryptoYahooChartService.getTryLineViaUsd(symbol, range);
+        if (chart == null) {
+            return ResponseEntity.ok(ApiResponse.success(null, "No Yahoo TRY-converted chart data"));
+        }
+        return ResponseEntity.ok(ApiResponse.success(chart, "Yahoo crypto TRY-converted chart retrieved"));
+    }
+
+    /**
      * TRY 5Y / Tüm için Binance Spot klines (BTCTRY vb.). Diğer para birimi veya aralıkta boş liste döner.
      */
     @GetMapping("/{symbol}/candles")
