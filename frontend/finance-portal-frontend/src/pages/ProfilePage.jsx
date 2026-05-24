@@ -9,6 +9,9 @@ import {
   ProfileNameModal,
   ProfilePasswordModal,
 } from './profile/ProfileAccountModals';
+import TickerCustomizer from '../components/finans/TickerCustomizer';
+import NewsletterModal from '../components/finans/NewsletterModal';
+import { getNewsletter } from '../api/newsletterApi';
 
 function Field({ label, value }) {
   return (
@@ -31,6 +34,12 @@ export default function ProfilePage() {
   const [nameModalOpen, setNameModalOpen] = useState(false);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [newsletterOpen, setNewsletterOpen] = useState(false);
+  const [newsletter, setNewsletter] = useState({ subscribed: false, frequency: 'WEEKLY' });
+
+  const loadNewsletter = useCallback(() => {
+    getNewsletter().then(setNewsletter).catch(() => {});
+  }, []);
 
   const loadProfile = useCallback(async () => {
     setLoading(true);
@@ -56,7 +65,8 @@ export default function ProfilePage() {
       return;
     }
     loadProfile();
-  }, [isAuthenticated, loadProfile, navigate]);
+    loadNewsletter();
+  }, [isAuthenticated, loadProfile, loadNewsletter, navigate]);
 
   useEffect(() => {
     const modal = searchParams.get('modal');
@@ -86,7 +96,7 @@ export default function ProfilePage() {
   );
 
   return (
-    <div className="max-w-2xl mx-auto py-8 px-4">
+    <div className="max-w-6xl mx-auto py-8 px-4">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center">
           <User className="w-6 h-6 text-[#093eaa]" />
@@ -124,69 +134,98 @@ export default function ProfilePage() {
       )}
 
       {!loading && !error && profile && (
-        <>
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
-            <Field label={t('Kullanıcı adı')} value={profile.username} />
-            <Field label={t('Email')} value={profile.email} />
-            <Field label={t('Ad')} value={profile.firstName} />
-            <Field label={t('Soyad')} value={profile.lastName} />
-            <Field
-              label={t('Email doğrulama')}
-              value={profile.emailVerified ? t('Doğrulandı') : t('Doğrulanmadı')}
-            />
-            <Field
-              label={t('Hesap durumu')}
-              value={profile.enabled ? t('Aktif') : t('Pasif')}
-            />
-            <Field
-              label={t('Roller')}
-              value={displayRoles.length > 0 ? displayRoles.join(', ') : '—'}
-            />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          {/* Sol — profil bilgileri + işlemler */}
+          <div className="lg:col-span-2 space-y-6 min-w-0">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+              <Field label={t('Kullanıcı adı')} value={profile.username} />
+              <Field label={t('Email')} value={profile.email} />
+              <Field label={t('Ad')} value={profile.firstName} />
+              <Field label={t('Soyad')} value={profile.lastName} />
+              <Field
+                label={t('Email doğrulama')}
+                value={profile.emailVerified ? t('Doğrulandı') : t('Doğrulanmadı')}
+              />
+              <Field
+                label={t('Hesap durumu')}
+                value={profile.enabled ? t('Aktif') : t('Pasif')}
+              />
+              <Field
+                label={t('Roller')}
+                value={displayRoles.length > 0 ? displayRoles.join(', ') : '—'}
+              />
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => setNameModalOpen(true)}
+                className="flex items-center justify-center gap-2 bg-[#093eaa] text-white py-3 px-4 rounded-xl text-sm font-bold hover:bg-[#093eaa]/90"
+              >
+                <Pencil className="w-4 h-4" />
+                {t('Bilgilerimi Düzenle')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPasswordModalOpen(true)}
+                className="flex items-center justify-center gap-2 border border-gray-200 text-gray-800 py-3 px-4 rounded-xl text-sm font-bold hover:bg-gray-50"
+              >
+                <Shield className="w-4 h-4" />
+                {t('Şifremi Değiştir')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setEmailModalOpen(true)}
+                className="flex items-center justify-center gap-2 border border-gray-200 text-gray-800 py-3 px-4 rounded-xl text-sm font-bold hover:bg-gray-50"
+              >
+                <Mail className="w-4 h-4" />
+                {t('Email Değiştir')}
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-4 text-sm">
+              <button
+                type="button"
+                onClick={loadProfile}
+                className="inline-flex items-center gap-1.5 font-semibold text-[#093eaa] hover:underline"
+              >
+                <RefreshCw className="w-4 h-4" />
+                {t('Bilgileri yenile')}
+              </button>
+              {!profile.emailVerified && (
+                <Link to="/verify-email" className="font-semibold text-amber-700 hover:underline">
+                  {t('Email doğrulama sayfası')}
+                </Link>
+              )}
+            </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 mb-6">
-            <button
-              type="button"
-              onClick={() => setNameModalOpen(true)}
-              className="flex items-center justify-center gap-2 bg-[#093eaa] text-white py-3 px-4 rounded-xl text-sm font-bold hover:bg-[#093eaa]/90"
-            >
-              <Pencil className="w-4 h-4" />
-              {t('Bilgilerimi Düzenle')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setPasswordModalOpen(true)}
-              className="flex items-center justify-center gap-2 border border-gray-200 text-gray-800 py-3 px-4 rounded-xl text-sm font-bold hover:bg-gray-50"
-            >
-              <Shield className="w-4 h-4" />
-              {t('Şifremi Değiştir')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setEmailModalOpen(true)}
-              className="flex items-center justify-center gap-2 border border-gray-200 text-gray-800 py-3 px-4 rounded-xl text-sm font-bold hover:bg-gray-50"
-            >
-              <Mail className="w-4 h-4" />
-              {t('Email Değiştir')}
-            </button>
-          </div>
+          {/* Sağ — piyasa şeridi özelleştirme + bülten */}
+          <div className="lg:col-span-1 min-w-0 space-y-6">
+            <TickerCustomizer />
 
-          <div className="flex flex-wrap gap-4 text-sm">
-            <button
-              type="button"
-              onClick={loadProfile}
-              className="inline-flex items-center gap-1.5 font-semibold text-[#093eaa] hover:underline"
-            >
-              <RefreshCw className="w-4 h-4" />
-              {t('Bilgileri yenile')}
-            </button>
-            {!profile.emailVerified && (
-              <Link to="/verify-email" className="font-semibold text-amber-700 hover:underline">
-                {t('Email doğrulama sayfası')}
-              </Link>
-            )}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+              <div className="flex items-center gap-2 mb-1">
+                <Mail className="w-5 h-5 text-[#093eaa]" />
+                <h3 className="font-bold text-gray-900">{t('Bülten Aboneliği')}</h3>
+              </div>
+              <p className="text-xs text-gray-500 mb-3">{t('Panonuzun özetini e-posta ile alın')}</p>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-semibold text-gray-700">
+                  {newsletter.subscribed
+                    ? t(newsletter.frequency === 'DAILY' ? 'Günlük' : newsletter.frequency === 'MONTHLY' ? 'Aylık' : 'Haftalık')
+                    : t('Bülten aboneliği değil')}
+                </span>
+                <button
+                  onClick={() => setNewsletterOpen(true)}
+                  className="text-sm font-bold text-[#093eaa] hover:underline"
+                >
+                  {t('Düzenle')}
+                </button>
+              </div>
+            </div>
           </div>
-        </>
+        </div>
       )}
 
       <ProfileNameModal
@@ -209,6 +248,14 @@ export default function ProfilePage() {
         onClose={() => setPasswordModalOpen(false)}
         onRequiresReLogin={(message) => handleRequiresReLogin(message, '/login')}
       />
+
+      {newsletterOpen && (
+        <NewsletterModal
+          email={profile?.email}
+          onClose={() => setNewsletterOpen(false)}
+          onSaved={loadNewsletter}
+        />
+      )}
     </div>
   );
 }
