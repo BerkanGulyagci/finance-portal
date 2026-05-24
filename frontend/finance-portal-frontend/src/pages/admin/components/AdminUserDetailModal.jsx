@@ -140,6 +140,9 @@ export default function AdminUserDetailModal({
               {isTemporaryBan(user) && (
                 <DetailField label={t('Ban bitiş')} value={formatBanUntil(user.banUntil) || '—'} />
               )}
+              {!isActiveUser(user) && user.banReason && (
+                <DetailField label={t('Ban sebebi')} value={user.banReason} />
+              )}
               <div className="py-2.5 border-b border-gray-100">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{t('Roller')}</p>
                 <UserRolesCell roles={user.roles} />

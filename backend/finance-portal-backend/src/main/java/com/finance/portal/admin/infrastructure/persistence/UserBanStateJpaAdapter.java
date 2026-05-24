@@ -26,6 +26,7 @@ public class UserBanStateJpaAdapter implements UserBanStatePort {
         entity.setKeycloakUserId(state.getKeycloakUserId());
         entity.setPermanent(state.isPermanent());
         entity.setBanUntil(state.getBanUntil());
+        entity.setBanReason(state.getBanReason());
         if (entity.getCreatedAt() == null) {
             entity.setCreatedAt(state.getCreatedAt() != null ? state.getCreatedAt() : Instant.now());
         }
@@ -66,7 +67,8 @@ public class UserBanStateJpaAdapter implements UserBanStatePort {
                 entity.getKeycloakUserId(),
                 entity.isPermanent(),
                 entity.getBanUntil(),
-                entity.getCreatedAt()
+                entity.getCreatedAt(),
+                entity.getBanReason()
         );
     }
 }

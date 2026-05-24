@@ -21,4 +21,5 @@ public class AdminUserView {
     private final Instant banUntil;
     private final boolean permanentBan;
     private final BanStatus banStatus;
+    private final String banReason;
 }

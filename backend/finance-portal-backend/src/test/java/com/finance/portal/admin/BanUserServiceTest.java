@@ -7,6 +7,9 @@ import com.finance.portal.admin.application.model.UserBanState;
 import com.finance.portal.admin.application.port.KeycloakUserAdminPort;
 import com.finance.portal.admin.application.port.UserBanStatePort;
 import com.finance.portal.admin.application.service.BanUserService;
+import com.finance.portal.alarm.application.service.AlarmService;
+import com.finance.portal.newsletter.application.service.NewsletterService;
+import com.finance.portal.notification.application.service.NotificationService;
 import com.finance.portal.admin.presentation.dto.BanType;
 import com.finance.portal.admin.presentation.dto.BanUserRequest;
 import com.finance.portal.admin.presentation.dto.DurationUnit;
@@ -46,6 +49,15 @@ class BanUserServiceTest {
 
     @Mock
     CentralBusinessLogService centralBusinessLogService;
+
+    @Mock
+    AlarmService alarmService;
+
+    @Mock
+    NewsletterService newsletterService;
+
+    @Mock
+    NotificationService notificationService;
 
     @InjectMocks
     BanUserService banUserService;
@@ -112,7 +124,7 @@ class BanUserServiceTest {
     private static AdminUserView user(String id, boolean enabled, List<String> roles) {
         return new AdminUserView(
                 id, "user", "a@b.com", "A", "B", true, enabled, roles,
-                null, false, enabled ? BanStatus.ACTIVE : BanStatus.PERMANENT_BANNED
+                null, false, enabled ? BanStatus.ACTIVE : BanStatus.PERMANENT_BANNED, null
         );
     }
 }

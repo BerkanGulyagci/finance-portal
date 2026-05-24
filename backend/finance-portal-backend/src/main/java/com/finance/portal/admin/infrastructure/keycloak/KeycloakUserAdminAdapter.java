@@ -108,7 +108,8 @@ public class KeycloakUserAdminAdapter implements KeycloakUserAdminPort {
                 roles,
                 null,
                 false,
-                enabled ? BanStatus.ACTIVE : BanStatus.PERMANENT_BANNED
+                enabled ? BanStatus.ACTIVE : BanStatus.PERMANENT_BANNED,
+                null
         );
     }
 }

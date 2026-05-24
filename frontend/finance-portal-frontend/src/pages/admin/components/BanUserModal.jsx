@@ -35,6 +35,7 @@ export default function BanUserModal({ user, open, busy, onClose, onConfirm }) {
   const [banType, setBanType] = useState(BAN_TYPE.TEMPORARY);
   const [durationValue, setDurationValue] = useState('8');
   const [durationUnit, setDurationUnit] = useState(DURATION_UNIT.HOURS);
+  const [reason, setReason] = useState('');
   const [formError, setFormError] = useState('');
 
   const UNIT_OPTIONS = [
@@ -48,6 +49,7 @@ export default function BanUserModal({ user, open, busy, onClose, onConfirm }) {
       setBanType(BAN_TYPE.TEMPORARY);
       setDurationValue('8');
       setDurationUnit(DURATION_UNIT.HOURS);
+      setReason('');
       setFormError('');
     }
   }, [open, user?.id]);
@@ -58,8 +60,10 @@ export default function BanUserModal({ user, open, busy, onClose, onConfirm }) {
     e.preventDefault();
     setFormError('');
 
+    const trimmedReason = reason.trim() || undefined;
+
     if (banType === BAN_TYPE.PERMANENT) {
-      onConfirm({ banType: BAN_TYPE.PERMANENT });
+      onConfirm({ banType: BAN_TYPE.PERMANENT, reason: trimmedReason });
       return;
     }
 
@@ -73,6 +77,7 @@ export default function BanUserModal({ user, open, busy, onClose, onConfirm }) {
       banType: BAN_TYPE.TEMPORARY,
       durationValue: value,
       durationUnit,
+      reason: trimmedReason,
     });
   }
 
@@ -207,6 +212,22 @@ export default function BanUserModal({ user, open, busy, onClose, onConfirm }) {
               </div>
             </section>
           )}
+
+          <section className="space-y-2">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t('Ban sebebi')}</p>
+            <textarea
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              disabled={busy}
+              rows={3}
+              maxLength={512}
+              placeholder={t('Kullanıcıya iletilecek ban sebebi (opsiyonel)')}
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#093eaa] resize-none disabled:opacity-50"
+            />
+            <p className="text-[11px] text-gray-400">
+              {t('Bu sebep kullanıcıya e-posta ile bildirilir ve admin panelinde saklanır.')}
+            </p>
+          </section>
 
           <section className={`rounded-xl border px-4 py-3 text-sm ${summaryStyles[summary.tone]}`}>
             <p className="font-bold">{summary.title}</p>

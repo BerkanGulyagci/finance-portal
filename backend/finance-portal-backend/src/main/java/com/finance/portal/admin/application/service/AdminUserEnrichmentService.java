@@ -48,7 +48,8 @@ public class AdminUserEnrichmentService {
                 keycloakUser.getRoles(),
                 banUntil,
                 permanentBan,
-                banStatus
+                banStatus,
+                banState != null ? banState.getBanReason() : null
         );
     }
 }

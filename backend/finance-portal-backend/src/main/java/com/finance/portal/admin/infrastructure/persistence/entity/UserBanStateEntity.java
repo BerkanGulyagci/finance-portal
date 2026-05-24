@@ -31,6 +31,9 @@ public class UserBanStateEntity {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(name = "ban_reason", length = 512)
+    private String banReason;
+
     @PrePersist
     void onCreate() {
         if (createdAt == null) {

@@ -4,6 +4,9 @@ import com.finance.portal.admin.application.model.AdminUserView;
 import com.finance.portal.admin.application.model.BanStatus;
 import com.finance.portal.admin.application.port.KeycloakUserAdminPort;
 import com.finance.portal.admin.application.port.UserBanStatePort;
+import com.finance.portal.alarm.application.service.AlarmService;
+import com.finance.portal.newsletter.application.service.NewsletterService;
+import com.finance.portal.notification.application.service.NotificationService;
 import com.finance.portal.common.application.port.UserAccountStatusPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,6 +50,15 @@ class AdminSecurityIntegrationTests {
     @MockBean
     UserAccountStatusPort userAccountStatusPort;
 
+    @MockBean
+    AlarmService alarmService;
+
+    @MockBean
+    NewsletterService newsletterService;
+
+    @MockBean
+    NotificationService notificationService;
+
     @BeforeEach
     void setUpAccountStatus() {
         when(userAccountStatusPort.isAccountEnabled(anyString())).thenReturn(true);
@@ -89,7 +101,7 @@ class AdminSecurityIntegrationTests {
                 .thenReturn(Collections.singletonList(
                         new AdminUserView(
                                 "u1", "test", "t@t.com", "T", "U", true, true, List.of("USER"),
-                                null, false, BanStatus.ACTIVE
+                                null, false, BanStatus.ACTIVE, null
                         )
                 ));
         when(userBanStatePort.findByUserIds(any())).thenReturn(Map.of());
@@ -103,7 +115,7 @@ class AdminSecurityIntegrationTests {
         when(keycloakUserAdminPort.getUser(anyString())).thenReturn(
                 new AdminUserView(
                         "target", "user", "u@u.com", "U", "S", true, true, List.of("USER"),
-                        null, false, BanStatus.ACTIVE
+                        null, false, BanStatus.ACTIVE, null
                 )
         );
 

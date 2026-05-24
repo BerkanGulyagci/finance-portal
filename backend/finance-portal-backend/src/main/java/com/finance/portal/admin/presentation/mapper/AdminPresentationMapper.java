@@ -24,6 +24,7 @@ public class AdminPresentationMapper {
         response.setBanUntil(view.getBanUntil());
         response.setPermanentBan(view.isPermanentBan());
         response.setBanStatus(view.getBanStatus());
+        response.setBanReason(view.getBanReason());
         return response;
     }
 

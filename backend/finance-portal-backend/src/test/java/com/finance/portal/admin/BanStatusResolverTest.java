@@ -27,14 +27,15 @@ class BanStatusResolverTest {
                 "id",
                 false,
                 Instant.now().plusSeconds(3600),
-                Instant.now()
+                Instant.now(),
+                null
         );
         assertEquals(BanStatus.TEMPORARY_BANNED, BanStatusResolver.resolve(false, state));
     }
 
     @Test
     void shouldResolvePermanentBanFromState() {
-        UserBanState state = new UserBanState("id", true, null, Instant.now());
+        UserBanState state = new UserBanState("id", true, null, Instant.now(), null);
         assertEquals(BanStatus.PERMANENT_BANNED, BanStatusResolver.resolve(false, state));
     }
 }

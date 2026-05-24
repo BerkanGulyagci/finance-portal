@@ -10,4 +10,6 @@ public class BanUserRequest {
     private BanType banType;
     private Integer durationValue;
     private DurationUnit durationUnit;
+    /** Admin'in yazdığı ban sebebi (opsiyonel; kullanıcıya e-postada gösterilir, admin listesinde saklanır). */
+    private String reason;
 }

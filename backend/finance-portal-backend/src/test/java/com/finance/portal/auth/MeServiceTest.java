@@ -43,7 +43,7 @@ class MeServiceTest {
                 new AdminUserView(
                         "kc-id", "alice", "alice@example.com", "Ali", "Veli",
                         true, true, List.of("USER"),
-                        null, false, BanStatus.ACTIVE
+                        null, false, BanStatus.ACTIVE, null
                 )
         );
 
@@ -59,12 +59,12 @@ class MeServiceTest {
         AdminUserView withoutUserRole = new AdminUserView(
                 "kc-id", "memoa", "m@example.com", "Me", "Moa",
                 false, true, List.of("default-roles-finance-portal"),
-                null, false, BanStatus.ACTIVE
+                null, false, BanStatus.ACTIVE, null
         );
         AdminUserView withUserRole = new AdminUserView(
                 "kc-id", "memoa", "m@example.com", "Me", "Moa",
                 false, true, List.of("USER", "default-roles-finance-portal"),
-                null, false, BanStatus.ACTIVE
+                null, false, BanStatus.ACTIVE, null
         );
 
         when(keycloakRealmRoleService.hasExactRealmRole("kc-id", "USER")).thenReturn(false);

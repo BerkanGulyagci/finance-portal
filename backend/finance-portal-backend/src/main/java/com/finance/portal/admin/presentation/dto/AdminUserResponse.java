@@ -22,4 +22,5 @@ public class AdminUserResponse {
     private Instant banUntil;
     private boolean permanentBan;
     private BanStatus banStatus;
+    private String banReason;
 }

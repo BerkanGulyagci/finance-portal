@@ -13,4 +13,5 @@ public class UserBanState {
     private final boolean permanent;
     private final Instant banUntil;
     private final Instant createdAt;
+    private final String banReason;
 }
