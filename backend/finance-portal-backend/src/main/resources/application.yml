@@ -53,6 +53,20 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/finance-portal/protocol/openid-connect/certs}
+  mail:
+    host: ${SMTP_HOST:smtp.gmail.com}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USER:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${SMTP_AUTH:true}
+          starttls:
+            enable: ${SMTP_STARTTLS:true}
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
 management:
   endpoints:
@@ -72,6 +86,26 @@ app:
   logging:
     kafka:
       topic: finance-portal-logs
+
+# Fiyat/değişim/hacim alarmları: periyodik değerlendirme + e-posta bildirimi
+alarm:
+  evaluation:
+    enabled: ${ALARM_EVALUATION_ENABLED:true}
+    fixed-rate-ms: ${ALARM_EVALUATION_FIXED_RATE_MS:60000}
+    initial-delay-ms: ${ALARM_EVALUATION_INITIAL_DELAY_MS:20000}
+  # Tekrarlı (RECURRING) alarmlarda art arda tetiklenmeyi önlemek için bekleme (dakika)
+  recurring-cooldown-minutes: ${ALARM_RECURRING_COOLDOWN_MINUTES:60}
+  mail:
+    from: ${SMTP_FROM:${SMTP_USER:noreply@finansportali.local}}
+    from-display-name: ${SMTP_FROM_DISPLAY_NAME:FinansPortalı}
+
+# Bülten: dashboard özetini seçilen sıklıkta (DAILY/WEEKLY/MONTHLY) e-posta ile gönderir
+newsletter:
+  base-url: ${NEWSLETTER_BASE_URL:${APP_BASE_URL:http://localhost:8080}}
+  digest:
+    enabled: ${NEWSLETTER_DIGEST_ENABLED:true}
+    # Her gün 08:00'de (Europe/Istanbul) — o gün gönderilmesi gereken abonelikler bulunur
+    cron: ${NEWSLETTER_DIGEST_CRON:0 0 8 * * *}
 
 news:
   api:
