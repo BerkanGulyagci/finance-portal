@@ -27,8 +27,8 @@ class ErrorLogSupportTest {
     }
 
     @Test
-    void categoryIsError() {
-        assertEquals("ERROR", ErrorLogSupport.CATEGORY);
+    void categoryIsException() {
+        assertEquals("EXCEPTION", ErrorLogSupport.CATEGORY);
     }
 
     @Test

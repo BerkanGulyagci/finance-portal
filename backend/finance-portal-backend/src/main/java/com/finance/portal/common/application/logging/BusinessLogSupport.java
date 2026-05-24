@@ -27,7 +27,22 @@ public final class BusinessLogSupport {
     public static final String EVENT_WATCHLIST_ITEM_ADDED = "WATCHLIST_ITEM_ADDED";
     public static final String EVENT_WATCHLIST_ITEM_REMOVED = "WATCHLIST_ITEM_REMOVED";
 
+    // Alarm / bildirim / bülten
+    public static final String EVENT_ALARM_CREATED = "ALARM_CREATED";
+    public static final String EVENT_ALARM_UPDATED = "ALARM_UPDATED";
+    public static final String EVENT_ALARM_DELETED = "ALARM_DELETED";
+    public static final String EVENT_ALARM_TRIGGERED = "ALARM_TRIGGERED";
+    public static final String EVENT_NOTIFICATION_CREATED = "NOTIFICATION_CREATED";
+    public static final String EVENT_NEWSLETTER_SUBSCRIBED = "NEWSLETTER_SUBSCRIBED";
+    public static final String EVENT_NEWSLETTER_UNSUBSCRIBED = "NEWSLETTER_UNSUBSCRIBED";
+    public static final String EVENT_NEWSLETTER_DIGEST_SENT = "NEWSLETTER_DIGEST_SENT";
+
+    public static final String ENTITY_ALARM = "ALARM";
+    public static final String ENTITY_NOTIFICATION = "NOTIFICATION";
+    public static final String ENTITY_NEWSLETTER = "NEWSLETTER";
+
     public static final String RESULT_SUCCESS = "SUCCESS";
+    public static final String RESULT_FAILURE = "FAILURE";
     public static final String ACTION_CREATE = "CREATE";
     public static final String ACTION_UPDATE = "UPDATE";
     public static final String ACTION_DELETE = "DELETE";
@@ -36,6 +51,10 @@ public final class BusinessLogSupport {
     public static final String ACTION_REGISTER = "REGISTER";
     public static final String ACTION_ASSIGN = "ASSIGN";
     public static final String ACTION_REVOKE = "REVOKE";
+    public static final String ACTION_TRIGGER = "TRIGGER";
+    public static final String ACTION_SUBSCRIBE = "SUBSCRIBE";
+    public static final String ACTION_UNSUBSCRIBE = "UNSUBSCRIBE";
+    public static final String ACTION_SEND = "SEND";
 
     public static final String TRIGGER_PASSWORD_CHANGE = "password_change";
 

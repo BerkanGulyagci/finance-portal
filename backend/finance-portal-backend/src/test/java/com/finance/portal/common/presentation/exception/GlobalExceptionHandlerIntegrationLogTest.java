@@ -35,7 +35,7 @@ class GlobalExceptionHandlerIntegrationLogTest {
     void setUp() {
         handler = new GlobalExceptionHandler(
                 centralErrorLogService,
-                new CentralIntegrationLogService(integrationLogPublisher));
+                new CentralIntegrationLogService(integrationLogPublisher, null));
     }
 
     @Test

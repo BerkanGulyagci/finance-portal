@@ -51,6 +51,23 @@ public final class BusinessLogMetadataSanitizer {
         return email.substring(at + 1).trim().toLowerCase(Locale.ROOT);
     }
 
+    /** E-postayı maskeler: "bagginsbilbo695@gmail.com" → "b***5@gmail.com" (loglarda PII sızmasın). */
+    public static String maskEmail(String email) {
+        if (email == null || email.isBlank()) {
+            return null;
+        }
+        int at = email.lastIndexOf('@');
+        if (at <= 0) {
+            return "***";
+        }
+        String local = email.substring(0, at);
+        String domain = email.substring(at);
+        String maskedLocal = local.length() <= 2
+                ? local.charAt(0) + "***"
+                : local.charAt(0) + "***" + local.charAt(local.length() - 1);
+        return maskedLocal + domain;
+    }
+
     public static String hashEmail(String email) {
         if (email == null || email.isBlank()) {
             return null;

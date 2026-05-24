@@ -43,7 +43,7 @@ class IntegrationLoggingScenarioTest {
 
     @BeforeEach
     void setUp() {
-        integrationLogService = new CentralIntegrationLogService(integrationLogPublisher);
+        integrationLogService = new CentralIntegrationLogService(integrationLogPublisher, null);
     }
 
     @Test

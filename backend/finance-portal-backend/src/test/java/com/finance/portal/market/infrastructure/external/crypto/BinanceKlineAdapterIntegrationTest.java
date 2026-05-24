@@ -19,7 +19,7 @@ class BinanceKlineAdapterIntegrationTest {
     void fetchBtcTryDaily_returnsCandles() {
         BinanceKlinePort port = new BinanceKlineAdapter(
                 new BinanceKlineClient("https://api.binance.com", new ObjectMapper(),
-                        new CentralIntegrationLogService(null)));
+                        new CentralIntegrationLogService(null, null)));
 
         long fiveYearsAgo = System.currentTimeMillis() - 5L * 365L * 86_400_000L;
         List<CryptoChartCandle> batch = port.fetchKlinesPage("BTCTRY", "1d", 1000, fiveYearsAgo);

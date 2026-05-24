@@ -17,21 +17,35 @@ datasources:
     editable: false
     jsonData:
       httpMethod: GET
-      tracesToLogs:
-        enabled: false
+      # Bir span'den o trace'e ait OpenSearch loglarına geç ("Logs for this span")
+      # customQuery: bizim traceId alanımıza göre süz (varsayılan service_name filtresi bizde yok)
+      tracesToLogsV2:
+        datasourceUid: opensearch-logs
+        spanStartTimeShift: '-1h'
+        spanEndTimeShift: '1h'
+        customQuery: true
+        query: 'traceId:"$${__trace.traceId}"'
 
   - name: OpenSearch Logs
-    type: elasticsearch
+    type: grafana-opensearch-datasource
     uid: opensearch-logs
     access: proxy
     url: http://opensearch:9200
-    database: finance-portal-logs-*
+    database: "[finance-portal-logs-]YYYY.MM.DD"
     editable: false
     jsonData:
+      database: "[finance-portal-logs-]YYYY.MM.DD"
+      flavor: opensearch
+      version: "2.11.0"
       interval: Daily
       timeField: timestamp
       logMessageField: message
-      logLevelField: level
+      # level 'text' map'li; log-volume terms-agg için keyword alt-alanı kullan (yoksa "Failed to load log volume")
+      logLevelField: level.keyword
       maxConcurrentShardRequests: 5
-      flavor: opensearch
-      version: "2.11.0"
+      pplEnabled: true
+      # Logdaki traceId'ye tıklayınca ilgili trace'i Tempo'da aç (Explore log görünümü)
+      dataLinks:
+        - field: traceId
+          url: '$${__value.raw}'
+          datasourceUid: tempo

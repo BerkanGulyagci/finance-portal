@@ -13,6 +13,8 @@ public final class IntegrationLogSupport {
     public static final String EVENT_MARKET_DATA_FETCH_FAILED = "MARKET_DATA_FETCH_FAILED";
     public static final String EVENT_NEWS_FETCH_FAILED = "NEWS_FETCH_FAILED";
     public static final String EVENT_SCHEDULER_JOB_FAILED = "SCHEDULER_JOB_FAILED";
+    public static final String EVENT_EMAIL_SENT = "EMAIL_SENT";
+    public static final String EVENT_EMAIL_FAILED = "EMAIL_FAILED";
 
     public static final String PROVIDER_YAHOO = "yahoo";
     public static final String PROVIDER_COINGECKO = "coingecko";
@@ -32,6 +34,9 @@ public final class IntegrationLogSupport {
     public static final String PROVIDER_EVDS = "evds";
     public static final String PROVIDER_TUIK = "tuik";
     public static final String PROVIDER_EXTERNAL = "external";
+    public static final String PROVIDER_SMTP = "smtp";
+
+    public static final String OPERATION_EMAIL = "email";
 
     public static final String TRIGGER_SCHEDULER = "scheduler";
     public static final String TRIGGER_API_REQUEST = "api_request";

@@ -2,6 +2,7 @@ package com.finance.portal.common.application.logging;
 
 import com.finance.portal.common.application.logging.model.BusinessLogEvent;
 import com.finance.portal.common.application.logging.port.BusinessLogPublisherPort;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,9 +21,16 @@ public class CentralBusinessLogService {
             DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").withZone(ZoneOffset.UTC);
 
     private final BusinessLogPublisherPort businessLogPublisher;
+    private final MeterRegistry meterRegistry;
 
-    public CentralBusinessLogService(@Autowired(required = false) BusinessLogPublisherPort businessLogPublisher) {
+    public CentralBusinessLogService(@Autowired(required = false) BusinessLogPublisherPort businessLogPublisher,
+                                     @Autowired(required = false) MeterRegistry meterRegistry) {
         this.businessLogPublisher = businessLogPublisher;
+        this.meterRegistry = meterRegistry;
+    }
+
+    private static String nv(String s) {
+        return s == null || s.isBlank() ? "unknown" : s;
     }
 
     public void publish(String category,
@@ -37,6 +45,10 @@ public class CentralBusinessLogService {
                         String actorUserId,
                         String loggerName) {
         logToConsole(level, message);
+        if (meterRegistry != null) {
+            meterRegistry.counter("fp.business.events",
+                    "category", nv(category), "event", nv(eventType), "result", nv(result)).increment();
+        }
         if (businessLogPublisher == null) {
             return;
         }

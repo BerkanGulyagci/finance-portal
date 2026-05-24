@@ -7,7 +7,10 @@ import java.util.stream.Collectors;
 
 public final class ErrorLogSupport {
 
-    public static final String CATEGORY = "ERROR";
+    // Bu kategori GlobalExceptionHandler'ın ele aldığı tüm istisnaları kapsar
+    // (404/403 gibi WARN seviyeli olanlar dahil). "ERROR" adı level:ERROR ile
+    // karışıyordu; ele alınan istisnaları ifade ettiği için "EXCEPTION" kullanıyoruz.
+    public static final String CATEGORY = "EXCEPTION";
     public static final String SERVICE_NAME = "finance-portal-backend";
 
     public static final String EVENT_GLOBAL_EXCEPTION_HANDLED = "GLOBAL_EXCEPTION_HANDLED";

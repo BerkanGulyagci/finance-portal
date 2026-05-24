@@ -31,7 +31,7 @@ class CentralBusinessLogServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new CentralBusinessLogService(businessLogPublisher);
+        service = new CentralBusinessLogService(businessLogPublisher, null);
         RequestContextHolder.resetRequestAttributes();
     }
 

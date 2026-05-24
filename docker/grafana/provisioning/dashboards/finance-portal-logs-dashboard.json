@@ -25,7 +25,7 @@
   "panels": [
     {
       "datasource": {
-        "type": "elasticsearch",
+        "type": "grafana-opensearch-datasource",
         "uid": "opensearch-logs"
       },
       "fieldConfig": {
@@ -37,7 +37,10 @@
             },
             "inspect": false
           },
-          "mappings": [],
+          "mappings": [
+            { "type": "special", "options": { "match": "null", "result": { "text": "—", "index": 0 } } },
+            { "type": "value", "options": { "Not Found": { "text": "—", "index": 1 } } }
+          ],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -70,6 +73,47 @@
               {
                 "id": "custom.width",
                 "value": 320
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "traceId"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 150
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Trace'i Tempo'da aç",
+                    "url": "",
+                    "internal": {
+                      "datasourceUid": "tempo",
+                      "datasourceName": "Tempo",
+                      "query": {
+                        "queryType": "traceql",
+                        "query": "${__value.raw}"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "spanId"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 130
               }
             ]
           }
@@ -106,7 +150,7 @@
           "alias": "",
           "bucketAggs": [],
           "datasource": {
-            "type": "elasticsearch",
+            "type": "grafana-opensearch-datasource",
             "uid": "opensearch-logs"
           },
           "metrics": [
@@ -120,12 +164,12 @@
               "type": "raw_document"
             }
           ],
-          "query": "*",
+          "query": "${logFilter:raw}",
           "refId": "A",
           "timeField": "timestamp"
         }
       ],
-      "title": "Latest Backend Logs",
+      "title": "Latest Backend Logs (üstteki 'Filtre' ile / karta tıklayarak süzülür)",
       "transformations": [
         {
           "id": "extractFields",
@@ -205,7 +249,7 @@
     },
     {
       "datasource": {
-        "type": "elasticsearch",
+        "type": "grafana-opensearch-datasource",
         "uid": "opensearch-logs"
       },
       "fieldConfig": {
@@ -213,16 +257,37 @@
           "color": {
             "mode": "palette-classic"
           },
-          "custom": {
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            }
-          },
+          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "inspect": false },
           "mappings": []
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "level.keyword" },
+            "properties": [
+              { "id": "displayName", "value": "Seviye" },
+              { "id": "custom.width", "value": 150 },
+              { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "basic" } },
+              { "id": "mappings", "value": [ { "type": "value", "options": {
+                "INFO": { "color": "green", "index": 0 },
+                "WARN": { "color": "orange", "index": 1 },
+                "ERROR": { "color": "red", "index": 2 },
+                "DEBUG": { "color": "blue", "index": 3 }
+              } } ] },
+              { "id": "links", "value": [
+                { "title": "Bu seviyedeki logları filtrele", "url": "/d/finance-portal-logs?var-logFilter=level.keyword:${__value.raw}&${__url_time_range}", "targetBlank": false }
+              ] }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Count" },
+            "properties": [
+              { "id": "displayName", "value": "Adet" },
+              { "id": "custom.cellOptions", "value": { "type": "gauge", "mode": "gradient" } },
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "semi-dark-blue" } },
+              { "id": "min", "value": 0 }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
@@ -232,27 +297,10 @@
       },
       "id": 2,
       "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true,
-          "values": [
-            "value",
-            "percent"
-          ]
-        },
-        "pieType": "donut",
-        "reduceOptions": {
-          "calcs": [
-            "sum"
-          ],
-          "fields": "",
-          "values": true
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
+        "cellHeight": "md",
+        "footer": { "show": false },
+        "showHeader": true,
+        "sortBy": [ { "desc": true, "displayName": "Adet" } ]
       },
       "pluginVersion": "10.4.0",
       "targets": [
@@ -272,7 +320,7 @@
             }
           ],
           "datasource": {
-            "type": "elasticsearch",
+            "type": "grafana-opensearch-datasource",
             "uid": "opensearch-logs"
           },
           "metrics": [
@@ -287,11 +335,11 @@
         }
       ],
       "title": "Log Level Breakdown",
-      "type": "piechart"
+      "type": "table"
     },
     {
       "datasource": {
-        "type": "elasticsearch",
+        "type": "grafana-opensearch-datasource",
         "uid": "opensearch-logs"
       },
       "fieldConfig": {
@@ -317,7 +365,16 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "status" },
+            "properties": [
+              { "id": "links", "value": [
+                { "title": "Bu durum kodlu logları yukarıdaki tabloda göster", "url": "/d/finance-portal-logs?var-logFilter=status:${__value.raw}&${__url_time_range}", "targetBlank": false }
+              ] }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
@@ -356,7 +413,7 @@
             }
           ],
           "datasource": {
-            "type": "elasticsearch",
+            "type": "grafana-opensearch-datasource",
             "uid": "opensearch-logs"
           },
           "metrics": [
@@ -375,7 +432,7 @@
     },
     {
       "datasource": {
-        "type": "elasticsearch",
+        "type": "grafana-opensearch-datasource",
         "uid": "opensearch-logs"
       },
       "fieldConfig": {
@@ -383,16 +440,38 @@
           "color": {
             "mode": "palette-classic"
           },
-          "custom": {
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            }
-          },
+          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "inspect": false },
           "mappings": []
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "category.keyword" },
+            "properties": [
+              { "id": "displayName", "value": "Kategori" },
+              { "id": "custom.width", "value": 170 },
+              { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "basic" } },
+              { "id": "mappings", "value": [ { "type": "value", "options": {
+                "REQUEST": { "color": "blue", "index": 0 },
+                "INTEGRATION": { "color": "orange", "index": 1 },
+                "EXCEPTION": { "color": "red", "index": 2 },
+                "BUSINESS": { "color": "purple", "index": 3 },
+                "AUDIT": { "color": "green", "index": 4 }
+              } } ] },
+              { "id": "links", "value": [
+                { "title": "Bu kategorideki logları filtrele", "url": "/d/finance-portal-logs?var-logFilter=category.keyword:${__value.raw}&${__url_time_range}", "targetBlank": false }
+              ] }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Count" },
+            "properties": [
+              { "id": "displayName", "value": "Adet" },
+              { "id": "custom.cellOptions", "value": { "type": "gauge", "mode": "gradient" } },
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "semi-dark-blue" } },
+              { "id": "min", "value": 0 }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
@@ -402,27 +481,10 @@
       },
       "id": 3,
       "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true,
-          "values": [
-            "value",
-            "percent"
-          ]
-        },
-        "pieType": "donut",
-        "reduceOptions": {
-          "calcs": [
-            "sum"
-          ],
-          "fields": "",
-          "values": true
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
+        "cellHeight": "md",
+        "footer": { "show": false },
+        "showHeader": true,
+        "sortBy": [ { "desc": true, "displayName": "Adet" } ]
       },
       "pluginVersion": "10.4.0",
       "targets": [
@@ -442,7 +504,7 @@
             }
           ],
           "datasource": {
-            "type": "elasticsearch",
+            "type": "grafana-opensearch-datasource",
             "uid": "opensearch-logs"
           },
           "metrics": [
@@ -457,11 +519,11 @@
         }
       ],
       "title": "Category Breakdown",
-      "type": "piechart"
+      "type": "table"
     },
     {
       "datasource": {
-        "type": "elasticsearch",
+        "type": "grafana-opensearch-datasource",
         "uid": "opensearch-logs"
       },
       "fieldConfig": {
@@ -551,7 +613,7 @@
             }
           ],
           "datasource": {
-            "type": "elasticsearch",
+            "type": "grafana-opensearch-datasource",
             "uid": "opensearch-logs"
           },
           "metrics": [
@@ -570,7 +632,7 @@
     },
     {
       "datasource": {
-        "type": "elasticsearch",
+        "type": "grafana-opensearch-datasource",
         "uid": "opensearch-logs"
       },
       "fieldConfig": {
@@ -660,7 +722,7 @@
             }
           ],
           "datasource": {
-            "type": "elasticsearch",
+            "type": "grafana-opensearch-datasource",
             "uid": "opensearch-logs"
           },
           "metrics": [
@@ -680,7 +742,7 @@
     },
     {
       "datasource": {
-        "type": "elasticsearch",
+        "type": "grafana-opensearch-datasource",
         "uid": "opensearch-logs"
       },
       "fieldConfig": {
@@ -745,7 +807,7 @@
             }
           ],
           "datasource": {
-            "type": "elasticsearch",
+            "type": "grafana-opensearch-datasource",
             "uid": "opensearch-logs"
           },
           "metrics": [
@@ -764,7 +826,7 @@
     },
     {
       "datasource": {
-        "type": "elasticsearch",
+        "type": "grafana-opensearch-datasource",
         "uid": "opensearch-logs"
       },
       "fieldConfig": {
@@ -826,7 +888,7 @@
             }
           ],
           "datasource": {
-            "type": "elasticsearch",
+            "type": "grafana-opensearch-datasource",
             "uid": "opensearch-logs"
           },
           "metrics": [
@@ -845,7 +907,7 @@
     },
     {
       "datasource": {
-        "type": "elasticsearch",
+        "type": "grafana-opensearch-datasource",
         "uid": "opensearch-logs"
       },
       "fieldConfig": {
@@ -933,7 +995,7 @@
             }
           ],
           "datasource": {
-            "type": "elasticsearch",
+            "type": "grafana-opensearch-datasource",
             "uid": "opensearch-logs"
           },
           "metrics": [
@@ -952,7 +1014,7 @@
     },
     {
       "datasource": {
-        "type": "elasticsearch",
+        "type": "grafana-opensearch-datasource",
         "uid": "opensearch-logs"
       },
       "fieldConfig": {
@@ -1022,7 +1084,7 @@
             }
           ],
           "datasource": {
-            "type": "elasticsearch",
+            "type": "grafana-opensearch-datasource",
             "uid": "opensearch-logs"
           },
           "hide": true,
@@ -1050,7 +1112,7 @@
             }
           ],
           "datasource": {
-            "type": "elasticsearch",
+            "type": "grafana-opensearch-datasource",
             "uid": "opensearch-logs"
           },
           "hide": true,
@@ -1101,7 +1163,7 @@
     },
     {
       "datasource": {
-        "type": "elasticsearch",
+        "type": "grafana-opensearch-datasource",
         "uid": "opensearch-logs"
       },
       "fieldConfig": {
@@ -1190,7 +1252,7 @@
             }
           ],
           "datasource": {
-            "type": "elasticsearch",
+            "type": "grafana-opensearch-datasource",
             "uid": "opensearch-logs"
           },
           "metrics": [
@@ -1209,10 +1271,15 @@
       "type": "barchart"
     },
     {
-      "datasource": { "type": "elasticsearch", "uid": "opensearch-logs" },
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "opensearch-logs"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
             "axisBorderShow": false,
             "axisCenteredZero": false,
@@ -1223,47 +1290,95 @@
             "drawStyle": "bars",
             "fillOpacity": 60,
             "gradientMode": "none",
-            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
-            "scaleDistribution": { "type": "linear" },
+            "scaleDistribution": {
+              "type": "linear"
+            },
             "showPoints": "never",
             "spanNulls": false,
-            "stacking": { "group": "A", "mode": "normal" },
-            "thresholdsStyle": { "mode": "off" }
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "mappings": [],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
           "unit": "short"
         },
         "overrides": []
       },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 42 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 42
+      },
       "id": 20,
       "options": {
-        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
-        "tooltip": { "mode": "multi", "sort": "desc" }
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
       "pluginVersion": "10.4.0",
       "targets": [
         {
-          "datasource": { "type": "elasticsearch", "uid": "opensearch-logs" },
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "opensearch-logs"
+          },
           "bucketAggs": [
             {
               "field": "category.keyword",
               "id": "3",
-              "settings": { "min_doc_count": "1", "order": "desc", "orderBy": "_count", "size": "10" },
+              "settings": {
+                "min_doc_count": "1",
+                "order": "desc",
+                "orderBy": "_count",
+                "size": "10"
+              },
               "type": "terms"
             },
             {
               "field": "timestamp",
               "id": "2",
-              "settings": { "interval": "auto", "min_doc_count": "0" },
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0"
+              },
               "type": "date_histogram"
             }
           ],
-          "metrics": [{ "id": "1", "type": "count" }],
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
           "query": "*",
           "refId": "A",
           "timeField": "timestamp"
@@ -1273,10 +1388,15 @@
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "elasticsearch", "uid": "opensearch-logs" },
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "opensearch-logs"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
             "axisBorderShow": false,
             "axisCenteredZero": false,
@@ -1287,58 +1407,169 @@
             "drawStyle": "bars",
             "fillOpacity": 70,
             "gradientMode": "none",
-            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
-            "scaleDistribution": { "type": "linear" },
+            "scaleDistribution": {
+              "type": "linear"
+            },
             "showPoints": "never",
             "spanNulls": false,
-            "stacking": { "group": "A", "mode": "normal" },
-            "thresholdsStyle": { "mode": "off" }
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "mappings": [],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
           "unit": "short"
         },
         "overrides": [
-          { "matcher": { "id": "byName", "options": "2xx Success" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
-          { "matcher": { "id": "byName", "options": "3xx Redirect" }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] },
-          { "matcher": { "id": "byName", "options": "4xx Client Error" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
-          { "matcher": { "id": "byName", "options": "5xx Server Error" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "2xx Success"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "3xx Redirect"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "4xx Client Error"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "5xx Server Error"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
         ]
       },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 42 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 42
+      },
       "id": 21,
       "options": {
-        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
-        "tooltip": { "mode": "multi", "sort": "desc" }
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
       "pluginVersion": "10.4.0",
       "targets": [
         {
-          "datasource": { "type": "elasticsearch", "uid": "opensearch-logs" },
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "opensearch-logs"
+          },
           "bucketAggs": [
             {
               "id": "3",
               "type": "filters",
               "settings": {
                 "filters": [
-                  { "label": "2xx Success", "query": "status:[200 TO 299]" },
-                  { "label": "3xx Redirect", "query": "status:[300 TO 399]" },
-                  { "label": "4xx Client Error", "query": "status:[400 TO 499]" },
-                  { "label": "5xx Server Error", "query": "status:[500 TO 599]" }
+                  {
+                    "label": "2xx Success",
+                    "query": "status:[200 TO 299]"
+                  },
+                  {
+                    "label": "3xx Redirect",
+                    "query": "status:[300 TO 399]"
+                  },
+                  {
+                    "label": "4xx Client Error",
+                    "query": "status:[400 TO 499]"
+                  },
+                  {
+                    "label": "5xx Server Error",
+                    "query": "status:[500 TO 599]"
+                  }
                 ]
               }
             },
             {
               "field": "timestamp",
               "id": "2",
-              "settings": { "interval": "auto", "min_doc_count": "0" },
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0"
+              },
               "type": "date_histogram"
             }
           ],
-          "metrics": [{ "id": "1", "type": "count" }],
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
           "query": "category:REQUEST",
           "refId": "A",
           "timeField": "timestamp"
@@ -1348,34 +1579,166 @@
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "elasticsearch", "uid": "opensearch-logs" },
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "opensearch-logs"
+      },
       "fieldConfig": {
         "defaults": {
-          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "inspect": false },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
           "mappings": [],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
         },
         "overrides": [
-          { "matcher": { "id": "byName", "options": "timestamp" }, "properties": [{ "id": "custom.width", "value": 180 }] },
-          { "matcher": { "id": "byName", "options": "result" }, "properties": [{ "id": "custom.width", "value": 90 }, { "id": "mappings", "value": [
-            { "type": "value", "options": { "SUCCESS": { "color": "green", "index": 0 }, "FAILURE": { "color": "red", "index": 1 } } }
-          ] }, { "id": "custom.cellOptions", "value": { "type": "color-text" } }] }
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "timestamp"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 180
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "result"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 90
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "SUCCESS": {
+                        "color": "green",
+                        "index": 0
+                      },
+                      "FAILURE": {
+                        "color": "red",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "traceId"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 150
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Trace'i Tempo'da aç",
+                    "url": "",
+                    "internal": {
+                      "datasourceUid": "tempo",
+                      "datasourceName": "Tempo",
+                      "query": {
+                        "queryType": "traceql",
+                        "query": "${__value.raw}"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "spanId"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 130
+              }
+            ]
+          }
         ]
       },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 50 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 50
+      },
       "id": 22,
       "options": {
         "cellHeight": "sm",
-        "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false },
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
         "showHeader": true,
-        "sortBy": [{ "desc": true, "displayName": "timestamp" }]
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "timestamp"
+          }
+        ]
       },
       "pluginVersion": "10.4.0",
       "targets": [
         {
-          "datasource": { "type": "elasticsearch", "uid": "opensearch-logs" },
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "opensearch-logs"
+          },
           "bucketAggs": [],
-          "metrics": [{ "id": "1", "settings": { "order": "desc", "orderBy": "timestamp", "size": "50" }, "type": "raw_document" }],
+          "metrics": [
+            {
+              "id": "1",
+              "settings": {
+                "order": "desc",
+                "orderBy": "timestamp",
+                "size": "50"
+              },
+              "type": "raw_document"
+            }
+          ],
           "query": "category:AUDIT",
           "refId": "A",
           "timeField": "timestamp"
@@ -1388,17 +1751,50 @@
           "options": {
             "format": "json",
             "jsonPaths": [
-              { "path": "timestamp" }, { "path": "eventType" }, { "path": "entityType" },
-              { "path": "action" }, { "path": "result" }, { "path": "message" }
+              {
+                "path": "timestamp"
+              },
+              {
+                "path": "eventType"
+              },
+              {
+                "path": "entityType"
+              },
+              {
+                "path": "action"
+              },
+              {
+                "path": "result"
+              },
+              {
+                "path": "message"
+              },
+              {
+                "path": "traceId"
+              },
+              {
+                "path": "spanId"
+              }
             ],
-            "keepTime": false, "replace": true, "source": "A"
+            "keepTime": false,
+            "replace": true,
+            "source": "A"
           }
         },
         {
           "id": "organize",
           "options": {
             "excludeByName": {},
-            "indexByName": { "timestamp": 0, "eventType": 1, "entityType": 2, "action": 3, "result": 4, "message": 5 },
+            "indexByName": {
+              "timestamp": 0,
+              "eventType": 1,
+              "entityType": 2,
+              "action": 3,
+              "result": 4,
+              "message": 5,
+              "traceId": 6,
+              "spanId": 7
+            },
             "renameByName": {}
           }
         }
@@ -1406,36 +1802,82 @@
       "type": "table"
     },
     {
-      "datasource": { "type": "elasticsearch", "uid": "opensearch-logs" },
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "opensearch-logs"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
           "mappings": []
         },
         "overrides": []
       },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 50 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 50
+      },
       "id": 23,
       "options": {
-        "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value", "percent"] },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
         "pieType": "donut",
-        "reduceOptions": { "calcs": ["sum"], "fields": "", "values": true },
-        "tooltip": { "mode": "single", "sort": "none" }
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "pluginVersion": "10.4.0",
       "targets": [
         {
-          "datasource": { "type": "elasticsearch", "uid": "opensearch-logs" },
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "opensearch-logs"
+          },
           "bucketAggs": [
             {
               "field": "provider.keyword",
               "id": "2",
-              "settings": { "min_doc_count": "1", "order": "desc", "orderBy": "_count", "size": "15" },
+              "settings": {
+                "min_doc_count": "1",
+                "order": "desc",
+                "orderBy": "_count",
+                "size": "15"
+              },
               "type": "terms"
             }
           ],
-          "metrics": [{ "id": "1", "type": "count" }],
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
           "query": "category:INTEGRATION",
           "refId": "A",
           "timeField": "timestamp"
@@ -1445,34 +1887,155 @@
       "type": "piechart"
     },
     {
-      "datasource": { "type": "elasticsearch", "uid": "opensearch-logs" },
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "opensearch-logs"
+      },
       "fieldConfig": {
         "defaults": {
-          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "inspect": true },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true
+          },
           "mappings": [],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
         },
         "overrides": [
-          { "matcher": { "id": "byName", "options": "timestamp" }, "properties": [{ "id": "custom.width", "value": 180 }] },
-          { "matcher": { "id": "byName", "options": "exception" }, "properties": [{ "id": "custom.width", "value": 480 }] },
-          { "matcher": { "id": "byName", "options": "status" }, "properties": [{ "id": "custom.width", "value": 70 }] }
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "timestamp"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 180
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "exception"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 480
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "status"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 70
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "traceId"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 150
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Trace'i Tempo'da aç",
+                    "url": "",
+                    "internal": {
+                      "datasourceUid": "tempo",
+                      "datasourceName": "Tempo",
+                      "query": {
+                        "queryType": "traceql",
+                        "query": "${__value.raw}"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "spanId"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 130
+              }
+            ]
+          }
         ]
       },
-      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 58 },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 58
+      },
       "id": 24,
       "options": {
         "cellHeight": "sm",
-        "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false },
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
         "showHeader": true,
-        "sortBy": [{ "desc": true, "displayName": "timestamp" }]
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "timestamp"
+          }
+        ]
       },
       "pluginVersion": "10.4.0",
       "targets": [
         {
-          "datasource": { "type": "elasticsearch", "uid": "opensearch-logs" },
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "opensearch-logs"
+          },
           "bucketAggs": [],
-          "metrics": [{ "id": "1", "settings": { "order": "desc", "orderBy": "timestamp", "size": "50" }, "type": "raw_document" }],
-          "query": "category:ERROR OR level:ERROR",
+          "metrics": [
+            {
+              "id": "1",
+              "settings": {
+                "order": "desc",
+                "orderBy": "timestamp",
+                "size": "50"
+              },
+              "type": "raw_document"
+            }
+          ],
+          "query": "level:ERROR",
           "refId": "A",
           "timeField": "timestamp"
         }
@@ -1484,17 +2047,50 @@
           "options": {
             "format": "json",
             "jsonPaths": [
-              { "path": "timestamp" }, { "path": "path" }, { "path": "status" },
-              { "path": "message" }, { "path": "exception" }
+              {
+                "path": "timestamp"
+              },
+              {
+                "path": "category"
+              },
+              {
+                "path": "path"
+              },
+              {
+                "path": "status"
+              },
+              {
+                "path": "message"
+              },
+              {
+                "path": "exception"
+              },
+              {
+                "path": "traceId"
+              },
+              {
+                "path": "spanId"
+              }
             ],
-            "keepTime": false, "replace": true, "source": "A"
+            "keepTime": false,
+            "replace": true,
+            "source": "A"
           }
         },
         {
           "id": "organize",
           "options": {
             "excludeByName": {},
-            "indexByName": { "timestamp": 0, "path": 1, "status": 2, "message": 3, "exception": 4 },
+            "indexByName": {
+              "timestamp": 0,
+              "category": 1,
+              "path": 2,
+              "status": 3,
+              "message": 4,
+              "exception": 5,
+              "traceId": 6,
+              "spanId": 7
+            },
             "renameByName": {}
           }
         }
@@ -1502,10 +2098,15 @@
       "type": "table"
     },
     {
-      "datasource": { "type": "elasticsearch", "uid": "opensearch-logs" },
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "opensearch-logs"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
             "axisBorderShow": false,
             "axisCenteredZero": false,
@@ -1516,47 +2117,95 @@
             "drawStyle": "bars",
             "fillOpacity": 70,
             "gradientMode": "none",
-            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
-            "scaleDistribution": { "type": "linear" },
+            "scaleDistribution": {
+              "type": "linear"
+            },
             "showPoints": "never",
             "spanNulls": false,
-            "stacking": { "group": "A", "mode": "normal" },
-            "thresholdsStyle": { "mode": "off" }
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "mappings": [],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
           "unit": "short"
         },
         "overrides": []
       },
-      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 58 },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 58
+      },
       "id": 25,
       "options": {
-        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
-        "tooltip": { "mode": "multi", "sort": "desc" }
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
       "pluginVersion": "10.4.0",
       "targets": [
         {
-          "datasource": { "type": "elasticsearch", "uid": "opensearch-logs" },
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "opensearch-logs"
+          },
           "bucketAggs": [
             {
               "field": "eventType.keyword",
               "id": "3",
-              "settings": { "min_doc_count": "1", "order": "desc", "orderBy": "_count", "size": "10" },
+              "settings": {
+                "min_doc_count": "1",
+                "order": "desc",
+                "orderBy": "_count",
+                "size": "10"
+              },
               "type": "terms"
             },
             {
               "field": "timestamp",
               "id": "2",
-              "settings": { "interval": "auto", "min_doc_count": "0" },
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0"
+              },
               "type": "date_histogram"
             }
           ],
-          "metrics": [{ "id": "1", "type": "count" }],
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
           "query": "category:BUSINESS OR category:AUDIT",
           "refId": "A",
           "timeField": "timestamp"
@@ -1566,32 +2215,142 @@
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "elasticsearch", "uid": "opensearch-logs" },
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "opensearch-logs"
+      },
       "fieldConfig": {
         "defaults": {
-          "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "inspect": false },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
           "mappings": [],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
         },
         "overrides": [
-          { "matcher": { "id": "byName", "options": "timestamp" }, "properties": [{ "id": "custom.width", "value": 180 }] },
-          { "matcher": { "id": "byName", "options": "category" }, "properties": [{ "id": "custom.width", "value": 120 }] }
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "timestamp"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 180
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "category"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "traceId"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 150
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Trace'i Tempo'da aç",
+                    "url": "",
+                    "internal": {
+                      "datasourceUid": "tempo",
+                      "datasourceName": "Tempo",
+                      "query": {
+                        "queryType": "traceql",
+                        "query": "${__value.raw}"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "spanId"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 130
+              }
+            ]
+          }
         ]
       },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 67 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 67
+      },
       "id": 26,
       "options": {
         "cellHeight": "sm",
-        "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false },
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
         "showHeader": true,
-        "sortBy": [{ "desc": true, "displayName": "timestamp" }]
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "timestamp"
+          }
+        ]
       },
       "pluginVersion": "10.4.0",
       "targets": [
         {
-          "datasource": { "type": "elasticsearch", "uid": "opensearch-logs" },
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "opensearch-logs"
+          },
           "bucketAggs": [],
-          "metrics": [{ "id": "1", "settings": { "order": "desc", "orderBy": "timestamp", "size": "50" }, "type": "raw_document" }],
+          "metrics": [
+            {
+              "id": "1",
+              "settings": {
+                "order": "desc",
+                "orderBy": "timestamp",
+                "size": "50"
+              },
+              "type": "raw_document"
+            }
+          ],
           "query": "level:WARN",
           "refId": "A",
           "timeField": "timestamp"
@@ -1604,16 +2363,42 @@
           "options": {
             "format": "json",
             "jsonPaths": [
-              { "path": "timestamp" }, { "path": "category" }, { "path": "path" }, { "path": "message" }
+              {
+                "path": "timestamp"
+              },
+              {
+                "path": "category"
+              },
+              {
+                "path": "path"
+              },
+              {
+                "path": "message"
+              },
+              {
+                "path": "traceId"
+              },
+              {
+                "path": "spanId"
+              }
             ],
-            "keepTime": false, "replace": true, "source": "A"
+            "keepTime": false,
+            "replace": true,
+            "source": "A"
           }
         },
         {
           "id": "organize",
           "options": {
             "excludeByName": {},
-            "indexByName": { "timestamp": 0, "category": 1, "path": 2, "message": 3 },
+            "indexByName": {
+              "timestamp": 0,
+              "category": 1,
+              "path": 2,
+              "message": 3,
+              "traceId": 4,
+              "spanId": 5
+            },
             "renameByName": {}
           }
         }
@@ -1621,10 +2406,15 @@
       "type": "table"
     },
     {
-      "datasource": { "type": "elasticsearch", "uid": "opensearch-logs" },
+      "datasource": {
+        "type": "grafana-opensearch-datasource",
+        "uid": "opensearch-logs"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "continuous-RdYlGr" },
+          "color": {
+            "mode": "continuous-RdYlGr"
+          },
           "custom": {
             "axisBorderShow": false,
             "axisCenteredZero": false,
@@ -1633,44 +2423,86 @@
             "axisPlacement": "auto",
             "fillOpacity": 80,
             "gradientMode": "none",
-            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
             "lineWidth": 1,
-            "scaleDistribution": { "type": "linear" },
-            "thresholdsStyle": { "mode": "off" }
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "mappings": [],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }] }
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              }
+            ]
+          }
         },
         "overrides": []
       },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 67 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 67
+      },
       "id": 27,
       "options": {
         "barRadius": 0,
         "barWidth": 0.8,
         "fullHighlight": false,
         "groupWidth": 0.7,
-        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false },
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
         "orientation": "horizontal",
         "showValue": "auto",
         "stacking": "none",
-        "tooltip": { "mode": "single", "sort": "none" },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
         "xTickLabelRotation": 0,
         "xTickLabelSpacing": 0
       },
       "pluginVersion": "10.4.0",
       "targets": [
         {
-          "datasource": { "type": "elasticsearch", "uid": "opensearch-logs" },
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "opensearch-logs"
+          },
           "bucketAggs": [
             {
               "field": "path.keyword",
               "id": "2",
-              "settings": { "min_doc_count": "1", "order": "desc", "orderBy": "_count", "size": "10" },
+              "settings": {
+                "min_doc_count": "1",
+                "order": "desc",
+                "orderBy": "_count",
+                "size": "10"
+              },
               "type": "terms"
             }
           ],
-          "metrics": [{ "id": "1", "type": "count" }],
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
           "query": "category:REQUEST AND status:[400 TO 599]",
           "refId": "A",
           "timeField": "timestamp"
@@ -1688,7 +2520,40 @@
     "opensearch"
   ],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "name": "logFilter",
+        "label": "Filtre",
+        "description": "Latest Backend Logs tablosunu süzer. Aşağıdaki grafiklerde bir dilime/koda tıklayınca otomatik ayarlanır ve önceki filtrenin YERİNE geçer (birikmez). All = filtre yok.",
+        "type": "custom",
+        "query": "INFO (Seviye) : level.keyword:INFO,WARN (Seviye) : level.keyword:WARN,ERROR (Seviye) : level.keyword:ERROR,DEBUG (Seviye) : level.keyword:DEBUG,REQUEST (Kategori) : category.keyword:REQUEST,INTEGRATION (Kategori) : category.keyword:INTEGRATION,EXCEPTION (Kategori) : category.keyword:EXCEPTION,BUSINESS (Kategori) : category.keyword:BUSINESS,AUDIT (Kategori) : category.keyword:AUDIT,200 (Durum) : status:200,201 (Durum) : status:201,400 (Durum) : status:400,403 (Durum) : status:403,404 (Durum) : status:404,422 (Durum) : status:422,500 (Durum) : status:500,503 (Durum) : status:503",
+        "includeAll": true,
+        "allValue": "*",
+        "current": { "text": "All", "value": "$__all", "selected": true },
+        "options": [
+          { "text": "All", "value": "$__all", "selected": true },
+          { "text": "INFO (Seviye)", "value": "level.keyword:INFO", "selected": false },
+          { "text": "WARN (Seviye)", "value": "level.keyword:WARN", "selected": false },
+          { "text": "ERROR (Seviye)", "value": "level.keyword:ERROR", "selected": false },
+          { "text": "DEBUG (Seviye)", "value": "level.keyword:DEBUG", "selected": false },
+          { "text": "REQUEST (Kategori)", "value": "category.keyword:REQUEST", "selected": false },
+          { "text": "INTEGRATION (Kategori)", "value": "category.keyword:INTEGRATION", "selected": false },
+          { "text": "EXCEPTION (Kategori)", "value": "category.keyword:EXCEPTION", "selected": false },
+          { "text": "BUSINESS (Kategori)", "value": "category.keyword:BUSINESS", "selected": false },
+          { "text": "AUDIT (Kategori)", "value": "category.keyword:AUDIT", "selected": false },
+          { "text": "200 (Durum)", "value": "status:200", "selected": false },
+          { "text": "201 (Durum)", "value": "status:201", "selected": false },
+          { "text": "400 (Durum)", "value": "status:400", "selected": false },
+          { "text": "403 (Durum)", "value": "status:403", "selected": false },
+          { "text": "404 (Durum)", "value": "status:404", "selected": false },
+          { "text": "422 (Durum)", "value": "status:422", "selected": false },
+          { "text": "500 (Durum)", "value": "status:500", "selected": false },
+          { "text": "503 (Durum)", "value": "status:503", "selected": false }
+        ],
+        "multi": false,
+        "hide": 0
+      }
+    ]
   },
   "time": {
     "from": "now-2d",
@@ -1698,6 +2563,6 @@
   "timezone": "browser",
   "title": "Finance Portal Logs Dashboard",
   "uid": "finance-portal-logs",
-  "version": 3,
+  "version": 15,
   "weekStart": ""
 }

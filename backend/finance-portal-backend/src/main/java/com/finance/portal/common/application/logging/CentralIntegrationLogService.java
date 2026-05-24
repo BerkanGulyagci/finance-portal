@@ -2,6 +2,7 @@ package com.finance.portal.common.application.logging;
 
 import com.finance.portal.common.application.logging.model.IntegrationLogEvent;
 import com.finance.portal.common.application.logging.port.IntegrationLogPublisherPort;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +12,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class CentralIntegrationLogService {
@@ -20,9 +22,16 @@ public class CentralIntegrationLogService {
             DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").withZone(ZoneOffset.UTC);
 
     private final IntegrationLogPublisherPort integrationLogPublisher;
+    private final MeterRegistry meterRegistry;
 
-    public CentralIntegrationLogService(@Autowired(required = false) IntegrationLogPublisherPort integrationLogPublisher) {
+    public CentralIntegrationLogService(@Autowired(required = false) IntegrationLogPublisherPort integrationLogPublisher,
+                                        @Autowired(required = false) MeterRegistry meterRegistry) {
         this.integrationLogPublisher = integrationLogPublisher;
+        this.meterRegistry = meterRegistry;
+    }
+
+    private static String nv(String s) {
+        return s == null || s.isBlank() ? "unknown" : s;
     }
 
     public void publish(String eventType,
@@ -37,6 +46,13 @@ public class CentralIntegrationLogService {
                         Map<String, Object> metadata,
                         String loggerName) {
         logToConsole(level, message);
+        if (meterRegistry != null) {
+            meterRegistry.counter("fp.integration.events", "provider", nv(provider), "event", nv(eventType)).increment();
+            if (durationMs != null) {
+                meterRegistry.timer("fp.integration.duration", "provider", nv(provider), "event", nv(eventType))
+                        .record(durationMs, TimeUnit.MILLISECONDS);
+            }
+        }
         if (integrationLogPublisher == null) {
             return;
         }

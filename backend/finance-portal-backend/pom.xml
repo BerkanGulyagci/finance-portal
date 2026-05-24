@@ -210,6 +210,18 @@
             <version>1.17.2</version>
         </dependency>
 
+        <!-- Mail (alarm tetiklenince kullanıcının onaylı e-postasına bildirim gönderir) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
     </dependencies>
 
     <build>

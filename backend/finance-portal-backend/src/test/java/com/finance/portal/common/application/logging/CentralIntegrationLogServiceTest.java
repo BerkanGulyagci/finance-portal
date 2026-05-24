@@ -32,7 +32,7 @@ class CentralIntegrationLogServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new CentralIntegrationLogService(integrationLogPublisher);
+        service = new CentralIntegrationLogService(integrationLogPublisher, null);
         RequestContextHolder.resetRequestAttributes();
     }
 
