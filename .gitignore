@@ -49,3 +49,6 @@ frontend/**/dist/
 
 ### Temp / scratch test payloads ###
 tmp-*.json
+
+### ApacheDS runtime logs (container rewrites these on every run) ###
+docker/apacheds/data/default/log/
