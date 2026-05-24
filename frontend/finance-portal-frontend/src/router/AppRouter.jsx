@@ -41,6 +41,8 @@ import NotFoundPage from '../pages/NotFoundPage';
 import UnauthorizedPage from '../pages/admin/UnauthorizedPage';
 import AdminUsersPage from '../pages/admin/AdminUsersPage';
 import ProfilePage from '../pages/ProfilePage';
+import AlarmsPage from '../pages/alarms/AlarmsPage';
+import NotificationsPage from '../pages/notifications/NotificationsPage';
 
 export default function AppRouter() {
   return (
@@ -95,6 +97,8 @@ export default function AppRouter() {
         <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
           <Route path="/portfolio"         element={<PortfolioPage />} />
           <Route path="/portfolio/:id"     element={<PortfolioDetailPage />} />
+          <Route path="/alarms"            element={<AlarmsPage />} />
+          <Route path="/notifications"     element={<NotificationsPage />} />
         </Route>
 
         {/* Admin routes */}

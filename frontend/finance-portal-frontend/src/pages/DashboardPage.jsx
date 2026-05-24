@@ -1,161 +1,382 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { TrendingUp, TrendingDown, Newspaper, BarChart3, Wallet } from 'lucide-react';
-import { getMyPortfolios } from '../api/portfolioApi';
-import { getCryptos, getFxTcmb } from '../api/marketApi';
-import { getBloombergHtNews, proxyImageUrl } from '../api/newsApi';
+import { Plus, X, Bitcoin, LineChart, Layers, ArrowLeftRight, BellPlus } from 'lucide-react';
+import {
+  getMyPortfolios, getWatchlistItems, addWatchlistItem, deleteWatchlistItem, createPortfolio,
+} from '../api/portfolioApi';
+import {
+  getCryptos, getStocks, getAllTefasFunds, getFxTcmb, getEconomy, getEconomicIndicators,
+} from '../api/marketApi';
+import { calculateAllocationByType } from './portfolio/utils/portfolioAnalyticsHelpers';
+import { ANALYTICS_BY_KEY } from './portfolio/components/analytics/analyticsRegistry';
+import { readPfCharts, removePfChart, DASH_PF_EVENT } from '../utils/dashboardCharts';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { useTranslation } from '../i18n/LanguageContext';
+import GridBoard from '../components/common/GridBoard';
+import InstrumentSearchModal from './portfolio/components/InstrumentSearchModal';
+import AlarmCreateModal from '../components/instrument/AlarmCreateModal';
+import MiniAssetChart from './dashboard/MiniAssetChart';
+import StatTiles from './dashboard/StatTiles';
+import PortfolioDistributionCard from './dashboard/PortfolioDistributionCard';
+import PortfoliosCard from './dashboard/PortfoliosCard';
+import RecentTransactionsCard from './dashboard/RecentTransactionsCard';
+import MarketListCard from './dashboard/MarketListCard';
+import EconomyCard from './dashboard/EconomyCard';
+import FavoritesCard from './dashboard/FavoritesCard';
+import { num } from './dashboard/dashUtils';
 
-function StatCard({ icon: Icon, label, value, sub, color = 'text-[#093eaa]' }) {
-  return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-      <div className="flex items-center gap-3 mb-3">
-        <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
-          <Icon className={`w-5 h-5 ${color}`} />
-        </div>
-        <span className="text-sm font-semibold text-gray-500">{label}</span>
-      </div>
-      <p className="text-2xl font-bold text-gray-900">{value}</p>
-      {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
-    </div>
-  );
+const CHARTS_KEY = 'fp-dashboard-charts';
+const HIDDEN_PF_KEY = 'fp-dashboard-hidden-portfolios';
+
+function readJson(key) {
+  try { const v = JSON.parse(localStorage.getItem(key) || 'null'); return Array.isArray(v) ? v : []; }
+  catch { return []; }
+}
+function saveJson(key, list) { try { localStorage.setItem(key, JSON.stringify(list)); } catch { /* yoksay */ } }
+
+function findEco(economy, key) {
+  for (const g of economy?.groups ?? []) {
+    const f = (g.indicators ?? []).find(i => i.key === key);
+    if (f) return f;
+  }
+  return null;
+}
+
+// Pozisyon piyasa değerini TL'ye çevir (USD/EUR vb. karışık portföylerde dağılım doğru olsun).
+function rateFor(currency, fx) {
+  if (!currency || currency === 'TRY' || currency === 'TL') return 1;
+  const r = fx?.rates?.find(x => x.symbol === currency)?.sell;
+  return r ? Number(r) : 1;
+}
+function toTryHoldings(holdings, fx) {
+  return (holdings ?? []).map(h => {
+    const rate = rateFor(h.currency, fx);
+    return rate === 1 ? h : { ...h, marketValue: num(h.marketValue) * rate, currency: 'TRY' };
+  });
 }
 
 export default function DashboardPage() {
   const { t } = useTranslation();
-  const { isAuthenticated } = useAuth();
-  const [portfolios, setPortfolios] = useState([]);
+  const { isAuthenticated, username } = useAuth();
+  const toast = useToast();
+
+  const [assetPortfolios, setAssetPortfolios] = useState([]);
+  const [watchlists, setWatchlists] = useState([]);
+  const [favorites, setFavorites] = useState([]);
   const [cryptos, setCryptos] = useState([]);
+  const [stocks, setStocks] = useState([]);
+  const [funds, setFunds] = useState([]);
+  const [cryptoLoading, setCryptoLoading] = useState(true);
+  const [stockLoading, setStockLoading] = useState(true);
+  const [fundLoading, setFundLoading] = useState(true);
   const [fx, setFx] = useState(null);
-  const [news, setNews] = useState([]);
+  const [economy, setEconomy] = useState(null);
+  const [indicators, setIndicators] = useState(null);
+
+  const [charts, setCharts] = useState(() => readJson(CHARTS_KEY));
+  const [pfCharts, setPfCharts] = useState(readPfCharts);
+  const [hiddenPids, setHiddenPids] = useState(() => new Set(readJson(HIDDEN_PF_KEY)));
+  const [searchMode, setSearchMode] = useState(null); // 'chart' | 'favorite' | 'alarm'
+  const [distFocusId, setDistFocusId] = useState(null); // pie'ye sürüklenen portföy
+  const [alarmInst, setAlarmInst] = useState(null);     // Alarm Kur akışı
+
+  async function loadPortfolios() {
+    const list = await getMyPortfolios().catch(() => []);
+    const assets = (list ?? []).filter(p => p.portfolioType !== 'WATCHLIST');
+    const wls = (list ?? []).filter(p => p.portfolioType === 'WATCHLIST');
+    setAssetPortfolios(assets);
+    setWatchlists(wls.map(w => ({ id: w.id, name: w.name })));
+    const arrs = await Promise.all(
+      wls.map(w => getWatchlistItems(w.id)
+        .then(items => (items ?? []).map(it => ({ ...it, portfolioId: w.id })))
+        .catch(() => [])),
+    );
+    setFavorites(arrs.flat());
+  }
 
   useEffect(() => {
-    if (isAuthenticated) {
-      getMyPortfolios().then(setPortfolios).catch(() => {});
-    }
-    getCryptos(0, 5).then(setCryptos).catch(() => {});
+    if (isAuthenticated) loadPortfolios().catch(() => {});
+    getCryptos(0, 6).then(setCryptos).catch(() => {}).finally(() => setCryptoLoading(false));
+    getStocks(0, 6, 'BIST30').then(p => setStocks(p?.content ?? [])).catch(() => {}).finally(() => setStockLoading(false));
+    getAllTefasFunds().then(list => setFunds(list ?? [])).catch(() => {}).finally(() => setFundLoading(false));
     getFxTcmb().then(setFx).catch(() => {});
-    getBloombergHtNews().then(n => setNews(n.slice(0, 4))).catch(() => {});
+    getEconomy().then(setEconomy).catch(() => {});
+    getEconomicIndicators().then(setIndicators).catch(() => {});
   }, [isAuthenticated]);
 
-  const usd = fx?.rates?.find(r => r.symbol === 'USD');
-  const eur = fx?.rates?.find(r => r.symbol === 'EUR');
+  useEffect(() => {
+    const onPf = () => setPfCharts(readPfCharts());
+    window.addEventListener(DASH_PF_EVENT, onPf);
+    window.addEventListener('storage', onPf);
+    return () => {
+      window.removeEventListener(DASH_PF_EVENT, onPf);
+      window.removeEventListener('storage', onPf);
+    };
+  }, []);
 
-  const totalValue = portfolios.reduce((s, p) => s + (p.totalMarketValue ?? 0), 0);
-  const totalPnl = portfolios.reduce((s, p) => s + (p.totalProfitLoss ?? 0), 0);
+  // ── Hesaplamalar ──────────────────────────────────────────────────────────────
+  const combinedHoldings = useMemo(
+    () => assetPortfolios.flatMap(p => p.holdings ?? []),
+    [assetPortfolios],
+  );
+  // Dağılım/istatistik için TL'ye normalize edilmiş pozisyonlar (daha hassas)
+  const combinedHoldingsTry = useMemo(() => toTryHoldings(combinedHoldings, fx), [combinedHoldings, fx]);
+
+  const distFocusPf = distFocusId ? assetPortfolios.find(p => p.id === distFocusId) : null;
+  const distHoldings = useMemo(
+    () => (distFocusPf ? toTryHoldings(distFocusPf.holdings, fx) : combinedHoldingsTry),
+    [distFocusPf, combinedHoldingsTry, fx],
+  );
+
+  const stats = useMemo(() => {
+    const totalValue = assetPortfolios.reduce((s, p) => s + num(p.totalMarketValue), 0);
+    const totalCost = assetPortfolios.reduce((s, p) => s + num(p.totalCost), 0);
+    const totalPnl = assetPortfolios.reduce((s, p) => s + num(p.totalProfitLoss), 0);
+    const totalPct = totalCost > 0 ? (totalPnl / totalCost) * 100 : 0;
+    let mvSum = 0, weighted = 0;
+    for (const h of combinedHoldingsTry) {
+      const mv = num(h.marketValue);
+      if (mv > 0) { mvSum += mv; weighted += mv * num(h.changePercent); }
+    }
+    const dailyPct = mvSum > 0 ? weighted / mvSum : 0;
+    const dailyPnl = totalValue * (dailyPct / 100) / (1 + dailyPct / 100);
+    const { rows } = calculateAllocationByType(combinedHoldingsTry);
+    return {
+      totalValue, totalPnl, totalPct, dailyPnl, dailyPct,
+      topType: rows[0]?.type ?? null,
+      topPct: rows[0] ? rows[0].sharePct.toFixed(1) : null,
+      typeCount: rows.length,
+    };
+  }, [assetPortfolios, combinedHoldingsTry]);
+
+  const recentTx = useMemo(() => {
+    const all = assetPortfolios.flatMap(p =>
+      (p.transactions ?? []).map(tx => ({ ...tx, portfolioName: p.name })));
+    all.sort((a, b) =>
+      new Date(b.transactionDate || b.createdAt || 0) - new Date(a.transactionDate || a.createdAt || 0));
+    return all.slice(0, 6);
+  }, [assetPortfolios]);
+
+  const eco = useMemo(() => {
+    const usd = findEco(economy, 'usdTry');
+    const bist = findEco(economy, 'bist100');
+    const fxUsd = fx?.rates?.find(r => r.symbol === 'USD');
+    return {
+      inflation: indicators?.inflation ?? findEco(economy, 'tufe')?.yoyChangePercent ?? null,
+      policyRate: indicators?.policyRate ?? findEco(economy, 'politikaFaizi')?.value ?? null,
+      usdTry: usd?.value ?? fxUsd?.sell ?? null,
+      usdChange: usd?.changePercent ?? fxUsd?.changePercent ?? null,
+      bist100: bist?.value ?? null,
+      bistChange: bist?.changePercent ?? null,
+    };
+  }, [economy, indicators, fx]);
+
+  const visiblePortfolios = useMemo(
+    () => assetPortfolios.filter(p => !hiddenPids.has(p.id)),
+    [assetPortfolios, hiddenPids],
+  );
+
+  // Varsayılan piyasa satırları
+  const cryptoRows = cryptos.map(c => ({
+    symbol: c.symbol?.toUpperCase(), name: c.name, price: c.currentPrice,
+    changePct: c.priceChangePercentage24h, image: c.image, assetType: 'CRYPTO',
+  }));
+  const stockRows = stocks.slice(0, 6).map(s => ({
+    symbol: s.symbol, name: s.name, price: s.price, changePct: s.changePercent, assetType: 'STOCK',
+  }));
+  // En popüler fonlar — fon büyüklüğüne (marketCapUsd) göre ilk 6
+  const fundRows = [...funds]
+    .sort((a, b) => num(b.marketCapUsd) - num(a.marketCapUsd))
+    .slice(0, 6)
+    .map(f => ({
+      symbol: f.code ?? f.uniqueCode, name: f.name, price: f.price,
+      changePct: f.returnOneDay ?? null, assetType: 'FUND',
+    }));
+
+  // ── Eylemler ────────────────────────────────────────────────────────────────
+  function addChart(inst) {
+    setSearchMode(null);
+    setCharts(prev => {
+      if (prev.some(c => c.assetType === inst.assetType && c.symbol === inst.symbol)) return prev;
+      const next = [...prev, { assetType: inst.assetType, symbol: inst.symbol, name: inst.name || inst.symbol }];
+      saveJson(CHARTS_KEY, next);
+      return next;
+    });
+  }
+  function removeChart(assetType, symbol) {
+    setCharts(prev => {
+      const next = prev.filter(c => !(c.assetType === assetType && c.symbol === symbol));
+      saveJson(CHARTS_KEY, next);
+      return next;
+    });
+  }
+  function hidePortfolio(id) {
+    setHiddenPids(prev => { const n = new Set(prev); n.add(id); saveJson(HIDDEN_PF_KEY, [...n]); return n; });
+  }
+  function resetHiddenPortfolios() { setHiddenPids(new Set()); saveJson(HIDDEN_PF_KEY, []); }
+
+  async function addFavorite(inst) {
+    setSearchMode(null);
+    try {
+      let pid = watchlists[0]?.id;
+      if (!pid) {
+        const created = await createPortfolio({ name: 'İzleme Listem', description: '', currency: 'TRY', portfolioType: 'WATCHLIST' });
+        pid = created.id;
+      }
+      await addWatchlistItem(pid, { symbol: inst.symbol, assetType: inst.assetType, notes: '' });
+      toast.success(t('Favorilere eklendi.'));
+      await loadPortfolios();
+    } catch (e) {
+      const msg = e?.response?.data?.message;
+      toast.error(msg && /already/i.test(msg) ? t('Bu varlık zaten favorilerinizde.') : t('Favori eklenemedi.'));
+    }
+  }
+  async function removeFavorite(it) {
+    try {
+      await deleteWatchlistItem(it.portfolioId, it.id);
+      setFavorites(prev => prev.filter(f => !(f.portfolioId === it.portfolioId && f.id === it.id)));
+    } catch { toast.error(t('Favoriden çıkarılamadı.')); }
+  }
+
+  // ── GridBoard kartları ──────────────────────────────────────────────────────
+  const items = [];
+  // Varsayılan sıra: Portföylerim · Portföy Dağılımı · Favoriler · Son İşlemler · Ekonomi · Hisse · Kripto · Fon
+  if (isAuthenticated) {
+    items.push({
+      key: 'portfolios', w: 4, h: 7,
+      node: <PortfoliosCard portfolios={visiblePortfolios} onHide={hidePortfolio}
+        hiddenCount={assetPortfolios.length - visiblePortfolios.length} onReset={resetHiddenPortfolios} />,
+    });
+    items.push({
+      key: 'distribution', w: 4, h: 8,
+      node: <PortfolioDistributionCard holdings={distHoldings} focusName={distFocusPf?.name ?? null}
+        onDropPortfolio={setDistFocusId} onClear={() => setDistFocusId(null)} />,
+    });
+    items.push({
+      key: 'favorites', w: 4, h: 7,
+      node: <FavoritesCard items={favorites} onAdd={() => setSearchMode('favorite')} onRemove={removeFavorite} />,
+    });
+    items.push({ key: 'recentTx', w: 4, h: 8, node: <RecentTransactionsCard transactions={recentTx} /> });
+  }
+  items.push({ key: 'economy', w: 4, h: 7, node: <EconomyCard eco={eco} /> });
+  items.push({
+    key: 'stock', w: 4, h: 8,
+    node: <MarketListCard title={t('Hisse Senetleri')} icon={LineChart} accent="#0ea5e9"
+      type="STOCK" logoKind="stock" defaultRows={stockRows} loading={stockLoading} storageKey="fp-dash-stock-extra" />,
+  });
+  items.push({
+    key: 'crypto', w: 4, h: 8,
+    node: <MarketListCard title={t('Kripto Piyasası')} icon={Bitcoin} accent="#f59e0b"
+      type="CRYPTO" logoKind="crypto" defaultRows={cryptoRows} loading={cryptoLoading} storageKey="fp-dash-crypto-extra" />,
+  });
+  items.push({
+    key: 'fund', w: 4, h: 8,
+    node: <MarketListCard title={t('Fonlar (TEFAS)')} icon={Layers} accent="#10b981"
+      type="FUND" logoKind="letter" defaultRows={fundRows} loading={fundLoading} storageKey="fp-dash-fund-extra" />,
+  });
+
+  charts.forEach(c => {
+    const owner = assetPortfolios.find(p =>
+      (p.holdings ?? []).some(h => h.assetType === c.assetType
+        && String(h.symbol).toUpperCase() === String(c.symbol).toUpperCase()));
+    items.push({
+      key: `chart:${c.assetType}:${c.symbol}`, w: 4, h: 7, noHide: true,
+      node: (
+        <MiniAssetChart assetType={c.assetType} symbol={c.symbol} name={c.name}
+          owner={owner?.name} ownerId={owner?.id} onRemove={() => removeChart(c.assetType, c.symbol)} />
+      ),
+    });
+  });
+  pfCharts.forEach(pc => {
+    const entry = ANALYTICS_BY_KEY[pc.chartKey];
+    const pf = assetPortfolios.find(p => p.id === pc.portfolioId);
+    if (!entry || !pf) return;
+    const Comp = entry.Comp;
+    items.push({
+      key: `pf:${pc.portfolioId}:${pc.chartKey}`, w: 4, h: 12, noHide: true,
+      node: (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3.5 h-full flex flex-col min-w-0">
+          <div className="flex items-center justify-between mb-1.5 shrink-0">
+            <Link to={`/portfolio/${pc.portfolioId}`}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#093eaa] bg-[#093eaa]/5 px-2 py-0.5 rounded-full hover:bg-[#093eaa]/10 transition-colors">
+              {pc.portfolioName || pf.name}
+            </Link>
+            <button onClick={() => removePfChart(pc.portfolioId, pc.chartKey)} title={t('Kaldır')}
+              className="p-1 rounded-md text-gray-300 hover:text-rose-500 hover:bg-rose-50 transition-colors">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex-1 min-h-0 overflow-auto">
+            <Comp holdings={pf.holdings ?? []} valuesHidden={false} currency={pf.currency} />
+          </div>
+        </div>
+      ),
+    });
+  });
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-2xl font-bold text-gray-900 border-l-4 border-[#093eaa] pl-4">{t('Dashboard')}</h1>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Wallet} label={t('Toplam Portföy Değeri')}
-          value={isAuthenticated ? totalValue.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) : '—'}
-          sub={isAuthenticated ? t('{count} portföy', { count: portfolios.length }) : t('Giriş yapın')} />
-        <StatCard icon={TrendingUp} label={t('Toplam Kar/Zarar')}
-          value={isAuthenticated ? totalPnl.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) : '—'}
-          color={totalPnl >= 0 ? 'text-emerald-600' : 'text-rose-600'} />
-        <StatCard icon={BarChart3} label="USD/TRY"
-          value={usd ? usd.sell.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) : '—'}
-          sub={t('TCMB satış kuru')} />
-        <StatCard icon={BarChart3} label="EUR/TRY"
-          value={eur ? eur.sell.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) : '—'}
-          sub={t('TCMB satış kuru')} />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Top Cryptos */}
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-bold text-gray-900">{t('Kripto Piyasası')}</h2>
-            <Link to="/market" className="text-xs text-[#093eaa] font-semibold hover:underline">{t('Tümü →')}</Link>
-          </div>
-          <div className="space-y-3">
-            {cryptos.length === 0 && <p className="text-sm text-gray-400">{t('Yükleniyor...')}</p>}
-            {cryptos.map(c => {
-              const pct = parseFloat(c.priceChangePercentage24h ?? 0);
-              return (
-                <div key={c.id} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {c.image && <img src={c.image} alt="" className="w-6 h-6 rounded-full" />}
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">{c.name}</p>
-                      <p className="text-xs text-gray-400">{c.symbol?.toUpperCase()}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold">{c.currentPrice?.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</p>
-                    <p className={`text-xs font-semibold flex items-center justify-end gap-0.5 ${pct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                      {pct >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                      {Math.abs(pct).toFixed(2)}%
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+    <div className="space-y-4">
+      {/* Üst alan — sade başlık + aksiyonlar */}
+      <div className="flex items-end justify-between gap-3 flex-wrap m3-fade-up">
+        <div className="min-w-0">
+          <p className="text-[11px] font-bold text-[#093eaa] uppercase tracking-[0.15em] mb-1">{t('Kontrol Paneli')}</p>
+          <h1 className="text-2xl sm:text-[28px] font-bold text-gray-900 leading-tight truncate">
+            {t('Hoş geldin')}{username ? `, ${username}` : ''}
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">{t('Portföyünüzün ve piyasaların özeti')}</p>
         </div>
-
-        {/* Latest News */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-bold text-gray-900 flex items-center gap-2">
-              <Newspaper className="w-4 h-4 text-[#093eaa]" /> {t('Son Haberler')}
-            </h2>
-            <Link to="/news" className="text-xs text-[#093eaa] font-semibold hover:underline">{t('Tümü →')}</Link>
-          </div>
-          <div className="space-y-4">
-            {news.length === 0 && <p className="text-sm text-gray-400">{t('Yükleniyor...')}</p>}
-            {news.map((item, i) => (
-              <div key={i} className={`flex gap-3 ${i > 0 ? 'border-t border-gray-100 pt-4' : ''}`}>
-                {item.imageUrl && (
-                  <img src={proxyImageUrl(item.imageUrl)} alt="" className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
-                    onError={e => { e.target.style.display = 'none'; }} />
-                )}
-                <div>
-                  <p className="text-sm font-semibold text-gray-900 leading-snug hover:text-[#093eaa] transition-colors">
-                    {item.url
-                      ? <a href={item.url} target="_blank" rel="noopener noreferrer">{item.title}</a>
-                      : item.title}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">{item.source}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {isAuthenticated && (
+            <button onClick={() => setSearchMode('alarm')}
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full border border-gray-200 text-gray-700 text-sm font-bold hover:bg-gray-50 transition-colors">
+              <BellPlus className="w-4 h-4" /> {t('Alarm Kur')}
+            </button>
+          )}
+          <Link to="/market/stocks/compare"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full border border-[#093eaa]/30 text-[#093eaa] text-sm font-bold hover:bg-[#093eaa]/5 transition-colors">
+            <ArrowLeftRight className="w-4 h-4" /> {t('Karşılaştır')}
+          </Link>
+          <button onClick={() => setSearchMode('chart')}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-[#093eaa] text-white text-sm font-bold hover:bg-[#0a2966] transition-colors shadow-sm">
+            <Plus className="w-4 h-4" /> {t('Grafik Ekle')}
+          </button>
         </div>
       </div>
 
-      {/* Portfolios preview */}
-      {isAuthenticated && portfolios.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-bold text-gray-900">{t('Portföylerim')}</h2>
-            <Link to="/portfolio" className="text-xs text-[#093eaa] font-semibold hover:underline">{t('Tümü →')}</Link>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {portfolios.slice(0, 3).map(p => {
-              const pnl = p.totalProfitLoss ?? 0;
-              return (
-                <div key={p.id} className="border border-gray-100 rounded-xl p-4">
-                  <p className="font-bold text-gray-900 mb-2">{p.name}</p>
-                  <div className="flex justify-between text-xs text-gray-500">
-                    <span>{t('Değer')}</span>
-                    <span className="font-semibold text-gray-800">{(p.totalMarketValue ?? 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
-                  </div>
-                  <div className="flex justify-between text-xs mt-1">
-                    <span className="text-gray-500">{t('K/Z')}</span>
-                    <span className={`font-bold ${pnl >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                      {pnl.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+      {isAuthenticated && (
+        <StatTiles
+          totalValue={stats.totalValue}
+          dailyPnl={stats.dailyPnl} dailyPct={stats.dailyPct}
+          totalPnl={stats.totalPnl} totalPct={stats.totalPct}
+          topType={stats.topType} topPct={stats.topPct}
+          typeCount={stats.typeCount} portfolioCount={assetPortfolios.length}
+        />
+      )}
+
+      <div className="m3-fade-up">
+        <GridBoard storageKey="fp-dashboard-grid-v4" items={items} removable />
+      </div>
+
+      {searchMode && (
+        <InstrumentSearchModal
+          portfolioName={searchMode === 'favorite' ? t('favoriler') : searchMode === 'alarm' ? t('alarm') : t('dashboard')}
+          onSelect={(inst) => {
+            if (searchMode === 'favorite') return addFavorite(inst);
+            if (searchMode === 'alarm') { setAlarmInst(inst); setSearchMode(null); return; }
+            return addChart(inst);
+          }}
+          onClose={() => setSearchMode(null)}
+        />
+      )}
+
+      {alarmInst && (
+        <AlarmCreateModal
+          instrument={alarmInst}
+          onClose={() => setAlarmInst(null)}
+          onCreated={() => setAlarmInst(null)}
+          onSaved={() => setAlarmInst(null)}
+        />
       )}
     </div>
   );

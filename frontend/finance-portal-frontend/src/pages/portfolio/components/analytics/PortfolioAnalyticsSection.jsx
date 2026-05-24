@@ -1,56 +1,32 @@
-import PortfolioAllocationChart from './PortfolioAllocationChart';
-import PortfolioAssetDistributionChart from './PortfolioAssetDistributionChart';
-import PortfolioCostValueChart from './PortfolioCostValueChart';
-import PortfolioProfitLossChart from './PortfolioProfitLossChart';
-import PortfolioTypeProfitLossChart from './PortfolioTypeProfitLossChart';
-import PortfolioDailyStatusChart from './PortfolioDailyStatusChart';
-import PortfolioCategoryChangeChart from './PortfolioCategoryChangeChart';
-import PortfolioDailyContributionChart from './PortfolioDailyContributionChart';
-import PortfolioGainersLosersCard from './PortfolioGainersLosersCard';
+import GridBoard from '../../../../components/common/GridBoard';
+import { ANALYTICS_CHARTS } from './analyticsRegistry';
+import AddChartToDashboardMenu from './AddChartToDashboardMenu';
 
-export default function PortfolioAnalyticsSection({ holdings, valuesHidden, currency }) {
+/**
+ * Portföy "Grafikler" sekmesi — serbest yerleşimli + boyutlandırılabilir pano (GridBoard).
+ * "Özelleştir" ile düzenleme moduna geçilir; araç çubuğundaki "Dashboard'a Ekle" menüsüyle
+ * istenen grafik (kaynak portföy adıyla) Dashboard'a gönderilir.
+ *
+ * @param portfolioId / portfolioName  Dashboard'a ekleme için
+ */
+export default function PortfolioAnalyticsSection({ holdings, valuesHidden, currency, portfolioId, portfolioName }) {
+  const items = ANALYTICS_CHARTS.map(c => ({
+    key: c.key,
+    w: c.w,
+    h: c.h,
+    node: <c.Comp holdings={holdings} valuesHidden={valuesHidden} currency={currency} />,
+  }));
+
   return (
     <div className="p-4 sm:p-5 min-w-0 overflow-x-hidden">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
-        <PortfolioAllocationChart
-          holdings={holdings}
-          valuesHidden={valuesHidden}
-          currency={currency}
-        />
-        <PortfolioAssetDistributionChart
-          holdings={holdings}
-          valuesHidden={valuesHidden}
-          currency={currency}
-        />
-        <PortfolioCostValueChart
-          holdings={holdings}
-          valuesHidden={valuesHidden}
-          currency={currency}
-        />
-        <PortfolioProfitLossChart
-          holdings={holdings}
-          valuesHidden={valuesHidden}
-          currency={currency}
-        />
-        <PortfolioTypeProfitLossChart
-          holdings={holdings}
-          valuesHidden={valuesHidden}
-          currency={currency}
-        />
-        <PortfolioDailyStatusChart holdings={holdings} />
-        <PortfolioCategoryChangeChart holdings={holdings} valuesHidden={valuesHidden} />
-        <PortfolioDailyContributionChart
-          holdings={holdings}
-          valuesHidden={valuesHidden}
-          currency={currency}
-        />
-        <PortfolioGainersLosersCard
-          holdings={holdings}
-          valuesHidden={valuesHidden}
-          currency={currency}
-          limit={5}
-        />
-      </div>
+      <GridBoard
+        storageKey="pf-analytics-grid-v2"
+        items={items}
+        removable
+        toolbar={portfolioId
+          ? <AddChartToDashboardMenu portfolioId={portfolioId} portfolioName={portfolioName} />
+          : null}
+      />
     </div>
   );
 }

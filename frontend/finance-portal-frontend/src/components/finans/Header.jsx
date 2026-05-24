@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect, useId } from 'react';
-import { ChevronDown, Menu, X, User, Settings, Shield, LogOut, Briefcase } from 'lucide-react';
+import { ChevronDown, Menu, X, User, Settings, Shield, LogOut, Briefcase, Bell, BellRing, LayoutGrid } from 'lucide-react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../i18n/LanguageContext';
+import { getMyPortfolios } from '../../api/portfolioApi';
 import SearchBox from './SearchBox';
+import NotificationBell from './NotificationBell';
 
 // ── Generic Dropdown ──────────────────────────────────────────────────────────
 function NavDropdown({ menu, onClose, t }) {
@@ -70,6 +72,10 @@ function ProfileMenu({ onClose, t }) {
         <Briefcase className="w-4 h-4 shrink-0" />
         {t('Portföyüm')}
       </Link>
+      <Link to="/alarms" onClick={onClose} className={itemClass}>
+        <Bell className="w-4 h-4 shrink-0" />
+        {t('Alarmlarım')}
+      </Link>
       <div className="my-1 border-t border-gray-100" />
       <Link to="/profile" onClick={onClose} className={itemClass}>
         <User className="w-4 h-4 shrink-0" />
@@ -87,6 +93,60 @@ function ProfileMenu({ onClose, t }) {
         <LogOut className="w-4 h-4 shrink-0" />
         {t('Çıkış Yap')}
       </button>
+    </div>
+  );
+}
+
+// ── Portföy dropdown (en değerli portföyler + Alarmlarım/Bildirimler) ─────────
+function PortfolioNavMenu({ onClose, t }) {
+  const [portfolios, setPortfolios] = useState([]);
+
+  useEffect(() => {
+    getMyPortfolios()
+      .then(list => {
+        const holdings = (list ?? [])
+          .filter(p => p.portfolioType !== 'WATCHLIST')
+          .sort((a, b) => (parseFloat(b.totalMarketValue) || 0) - (parseFloat(a.totalMarketValue) || 0));
+        setPortfolios(holdings);
+      })
+      .catch(() => {});
+  }, []);
+
+  const top = portfolios.slice(0, 3);
+  const fmtVal = (v) => {
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? `₺${n.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}` : '-';
+  };
+  const itemClass =
+    'flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#093eaa] transition-colors w-full text-left';
+
+  return (
+    <div className="absolute top-full left-0 mt-1 w-72 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50">
+      <div className="px-4 pt-1 pb-1">
+        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('Portföylerim')}</span>
+      </div>
+      {top.length === 0 ? (
+        <p className="px-4 py-2 text-xs text-gray-400">{t('Henüz portföyünüz yok.')}</p>
+      ) : top.map(p => (
+        <Link key={p.id} to={`/portfolio/${p.id}`} onClick={onClose}
+          className="flex items-center justify-between gap-2 px-4 py-2.5 hover:bg-gray-50 group">
+          <span className="flex items-center gap-2 min-w-0">
+            <Briefcase className="w-4 h-4 text-[#093eaa] shrink-0" />
+            <span className="text-sm font-semibold text-gray-900 group-hover:text-[#093eaa] truncate">{p.name}</span>
+          </span>
+          <span className="text-xs font-bold text-gray-500 tabular-nums shrink-0">{fmtVal(p.totalMarketValue)}</span>
+        </Link>
+      ))}
+      <Link to="/portfolio" onClick={onClose} className={itemClass}>
+        <LayoutGrid className="w-4 h-4 shrink-0" /> {t('Tüm Portföyler')}
+      </Link>
+      <div className="my-1 border-t border-gray-100" />
+      <Link to="/alarms" onClick={onClose} className={itemClass}>
+        <Bell className="w-4 h-4 shrink-0" /> {t('Alarmlarım')}
+      </Link>
+      <Link to="/notifications" onClick={onClose} className={itemClass}>
+        <BellRing className="w-4 h-4 shrink-0" /> {t('Bildirimler')}
+      </Link>
     </div>
   );
 }
@@ -155,7 +215,6 @@ export function Header() {
   const navItems = [
     { name: 'Haberler', path: '/news', auth: false },
     { name: 'Dashboard', path: '/dashboard', auth: true },
-    { name: 'Portföy', path: '/portfolio', auth: true },
   ];
 
   // ── Dropdown menus (Bloomberg style) ────────────────────────────────────────
@@ -222,7 +281,6 @@ export function Header() {
       items: [
         { label: 'Tüm Fonlar',      path: '/market/tefas',         desc: 'TEFAS · BES · OKS · Osmanlı Portföy' },
         { label: 'Fon Karşılaştır', path: '/market/tefas/compare', desc: 'Fonları karşılaştır' },
-        { label: 'Global Fonlar',   path: '/market/funds',         desc: 'ETF ve yatırım fonları' },
       ],
     },
   ];
@@ -280,6 +338,19 @@ export function Header() {
               </NavLink>
             ))}
 
+            {/* Portföy dropdown (giriş yapan kullanıcı) */}
+            {isAuthenticated && (
+              <div className="relative">
+                <button
+                  onClick={() => setOpenMenu(openMenu === 'portfolio' ? null : 'portfolio')}
+                  className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${openMenu === 'portfolio' ? 'text-[#093eaa] bg-blue-50' : 'text-gray-700 hover:text-[#093eaa] hover:bg-gray-50'}`}>
+                  {t('Portföy')}
+                  <ChevronDown className={`w-3 h-3 transition-transform ${openMenu === 'portfolio' ? 'rotate-180' : ''}`} />
+                </button>
+                {openMenu === 'portfolio' && <PortfolioNavMenu onClose={() => setOpenMenu(null)} t={t} />}
+              </div>
+            )}
+
             {/* Dropdown menus */}
             {isAdmin && (
               <NavLink to="/admin/users"
@@ -309,6 +380,12 @@ export function Header() {
 
             {/* Language toggle — bayraklı geçiş */}
             <LanguageToggle className="hidden sm:inline-flex" />
+
+            {isAuthenticated && (
+              <div className="hidden sm:block">
+                <NotificationBell />
+              </div>
+            )}
 
             {isAuthenticated ? (
               <div className="relative hidden sm:block" ref={profileRef}>
@@ -368,9 +445,21 @@ export function Header() {
             {isAuthenticated && (
               <div className="px-4 py-2 border-b border-gray-100 mb-2 space-y-1">
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t('Hesap')}</p>
+                <Link to="/portfolio" onClick={() => setMobileOpen(false)}
+                  className="block py-2 text-sm font-semibold text-gray-700 hover:text-[#093eaa]">
+                  {t('Portföyüm')}
+                </Link>
                 <Link to="/profile" onClick={() => setMobileOpen(false)}
                   className="block py-2 text-sm font-semibold text-gray-700 hover:text-[#093eaa]">
                   {t('Profilim')}
+                </Link>
+                <Link to="/alarms" onClick={() => setMobileOpen(false)}
+                  className="block py-2 text-sm font-semibold text-gray-700 hover:text-[#093eaa]">
+                  {t('Alarmlarım')}
+                </Link>
+                <Link to="/notifications" onClick={() => setMobileOpen(false)}
+                  className="block py-2 text-sm font-semibold text-gray-700 hover:text-[#093eaa]">
+                  {t('Bildirimler')}
                 </Link>
                 <Link to="/profile?modal=name" onClick={() => setMobileOpen(false)}
                   className="block py-2 text-sm font-semibold text-gray-700 hover:text-[#093eaa]">

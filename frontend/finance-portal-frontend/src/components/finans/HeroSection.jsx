@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Clock, TrendingUp, Send } from 'lucide-react';
 import { getBloombergHtNews, proxyImageUrl } from '../../api/newsApi';
+import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../i18n/LanguageContext';
+import NewsletterModal from './NewsletterModal';
 
 function formatTime(raw, t) {
   if (!raw) return '';
@@ -15,8 +18,16 @@ function formatTime(raw, t) {
 
 export function HeroSection() {
   const { t } = useTranslation();
+  const { isAuthenticated, email } = useAuth();
+  const navigate = useNavigate();
+  const [newsletterOpen, setNewsletterOpen] = useState(false);
   const [featured, setFeatured] = useState(null);
   const [popular, setPopular] = useState([]);
+
+  function handleNewsletter() {
+    if (isAuthenticated) setNewsletterOpen(true);
+    else navigate('/register');
+  }
 
   useEffect(() => {
     getBloombergHtNews().then(news => {
@@ -95,20 +106,34 @@ export function HeroSection() {
         <div className="bg-blue-50 p-6 rounded-xl border border-blue-100">
           <h3 className="font-bold text-[#093eaa] mb-2">{t('Finans Bültenine Katılın')}</h3>
           <p className="text-xs text-gray-500 mb-4">
-            {t('Her sabah piyasa açılışından önce en kritik veriler e-postanızda olsun.')}
+            {isAuthenticated
+              ? t('Panonuzun özetini istediğiniz sıklıkta e-posta ile alın.')
+              : t('Her sabah piyasa açılışından önce en kritik veriler e-postanızda olsun.')}
           </p>
-          <div className="flex gap-2">
-            <input
-              type="email"
-              placeholder={t('E-posta adresiniz')}
-              className="bg-white border border-gray-200 text-sm rounded-lg flex-1 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#093eaa]"
-            />
-            <button className="bg-[#093eaa] text-white p-2 rounded-lg hover:bg-[#093eaa]/90 transition-colors">
-              <Send className="w-4 h-4" />
+          {isAuthenticated ? (
+            <button
+              onClick={handleNewsletter}
+              className="w-full inline-flex items-center justify-center gap-2 bg-[#093eaa] text-white text-sm font-bold py-2.5 rounded-lg hover:bg-[#093eaa]/90 transition-colors"
+            >
+              <Send className="w-4 h-4" /> {t('Bülten Aboneliği')}
             </button>
-          </div>
+          ) : (
+            <div className="flex gap-2">
+              <input
+                type="email"
+                placeholder={t('E-posta adresiniz')}
+                onFocus={handleNewsletter}
+                className="bg-white border border-gray-200 text-sm rounded-lg flex-1 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#093eaa]"
+              />
+              <button onClick={handleNewsletter} className="bg-[#093eaa] text-white p-2 rounded-lg hover:bg-[#093eaa]/90 transition-colors">
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
+
+      {newsletterOpen && <NewsletterModal email={email} onClose={() => setNewsletterOpen(false)} />}
     </div>
   );
 }

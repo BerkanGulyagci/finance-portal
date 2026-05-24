@@ -1,5 +1,6 @@
-import { useEffect, useState, useRef, useId } from 'react';
+import { useEffect, useState, useRef, useId, useMemo } from 'react';
 import { ChevronDown, ChevronUp, LineChart } from 'lucide-react';
+import { readTickerPrefs, readCustomTickerItems, TICKER_PREFS_EVENT } from '../../utils/tickerPrefs';
 import {
   getFxTcmb,
   getCryptos,
@@ -8,6 +9,7 @@ import {
   getFxHistory,
   getGoldHistory,
   getCryptoChart,
+  getMarketPriceHistory,
 } from '../../api/marketApi';
 import { useTranslation } from '../../i18n/LanguageContext';
 
@@ -139,7 +141,24 @@ function sparkFromGoldHist(hist, maxPoints = 36) {
 
 export function MarketTicker() {
   const { t } = useTranslation();
-  const [items, setItems] = useState([]);
+  const [allItems, setAllItems] = useState([]);
+  const [customItems, setCustomItems] = useState([]);
+  const [customDefs, setCustomDefs] = useState(readCustomTickerItems);
+  const [enabledKeys, setEnabledKeys] = useState(readTickerPrefs);
+  // Etkin varsayılan öğeler + kullanıcının eklediği özel öğeler.
+  // Özel öğe, zaten varsayılanlarda olan bir enstrümansa (ör. BTC) tekrar eklenmez.
+  const items = useMemo(() => {
+    const base = allItems.filter(it => !it.key || enabledKeys.has(it.key));
+    const tokens = new Set(base.map(it => (it.key || '').toLowerCase()));
+    const extra = [];
+    for (const it of customItems) {
+      const tok = it.tok || (it.key || '').toLowerCase();
+      if (tokens.has(tok)) continue;
+      tokens.add(tok);
+      extra.push(it);
+    }
+    return [...base, ...extra];
+  }, [allItems, customItems, enabledKeys]);
   const [tickerOpen, setTickerOpen] = useState(() => {
     try {
       return localStorage.getItem(TICKER_OPEN_STORAGE_KEY) !== '0';
@@ -147,10 +166,9 @@ export function MarketTicker() {
       return true;
     }
   });
-  const scrollRef = useRef(null);
+  const trackRef = useRef(null);
+  const offsetRef = useRef(0);
   const [isPaused, setIsPaused] = useState(false);
-  const posRef = useRef(0);
-  const animRef = useRef(null);
 
   useEffect(() => {
     try {
@@ -197,6 +215,7 @@ export function MarketTicker() {
           const sparkline = spark.length >= 2 ? spark : trendSparkline(val, 0);
           const ch = changePct != null && Number.isFinite(changePct) ? changePct : null;
           result.push({
+            key: `fx:${sym}`,
             label: `${sym}/TRY`,
             value: val.toLocaleString('tr-TR', { minimumFractionDigits: 3 }),
             change: ch != null && Math.abs(ch) > 1e-6 ? ch : null,
@@ -233,6 +252,7 @@ export function MarketTicker() {
             spark = trendSparkline(avg, avgChg);
           }
           result.push({
+            key: `bank:${sym}`,
             label: `${sym}/TRY ${t('Banka')}`,
             value: avg.toLocaleString('tr-TR', { minimumFractionDigits: 4, maximumFractionDigits: 4 }),
             change,
@@ -256,6 +276,7 @@ export function MarketTicker() {
           const ch = changePct != null && Number.isFinite(changePct) && Math.abs(changePct) > 1e-6 ? changePct : spotChg !== 0 ? spotChg : null;
           const d = dir ?? dirFromChangePct(spotChg);
           result.push({
+            key: 'gold:ons',
             label: t('ALTIN/ONS'),
             value: val.toLocaleString('tr-TR', { minimumFractionDigits: 2 }),
             change: ch,
@@ -279,6 +300,7 @@ export function MarketTicker() {
           const ch = changePct != null && Number.isFinite(changePct) && Math.abs(changePct) > 1e-6 ? changePct : chgApi !== 0 ? chgApi : null;
           const d = dir ?? dirFromChangePct(chgApi);
           result.push({
+            key: `crypto:${sym}`,
             label: c.symbol?.toUpperCase(),
             value: val.toLocaleString('tr-TR', { minimumFractionDigits: 0 }),
             change: ch,
@@ -287,30 +309,82 @@ export function MarketTicker() {
           });
         });
 
-        setItems(result);
+        setAllItems(result);
       } catch {
-        setItems([]);
+        setAllItems([]);
       }
     }
     load();
   }, []);
 
+  // Hesap Ayarları'ndan ticker tercihleri değişince güncelle (aynı sekme)
   useEffect(() => {
-    if (!tickerOpen) return;
-    const el = scrollRef.current;
-    if (!el || !items.length) return;
-    const speed = 0.5;
-    const animate = () => {
-      if (!isPaused && el) {
-        posRef.current += speed;
-        const half = el.scrollWidth / 2;
-        if (posRef.current >= half) posRef.current = 0;
-        el.scrollLeft = posRef.current;
-      }
-      animRef.current = requestAnimationFrame(animate);
+    const onPrefs = () => {
+      setEnabledKeys(readTickerPrefs());
+      setCustomDefs(readCustomTickerItems());
     };
-    animRef.current = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animRef.current);
+    window.addEventListener(TICKER_PREFS_EVENT, onPrefs);
+    window.addEventListener('storage', onPrefs);
+    return () => {
+      window.removeEventListener(TICKER_PREFS_EVENT, onPrefs);
+      window.removeEventListener('storage', onPrefs);
+    };
+  }, []);
+
+  // Kullanıcının eklediği özel varlıklar — genel price-history'den fiyat + sparkline
+  useEffect(() => {
+    let cancelled = false;
+    if (!customDefs.length) { setCustomItems([]); return undefined; }
+    Promise.all(customDefs.map(async d => {
+      try {
+        const data = await getMarketPriceHistory(d.assetType, d.symbol, '3M');
+        const closes = (data?.closePrices ?? []).map(Number).filter(v => Number.isFinite(v) && v > 0);
+        if (closes.length < 1) return null;
+        const last = closes[closes.length - 1];
+        const first = closes[0];
+        const pct = first ? ((last - first) / first) * 100 : null;
+        const spark = closes.length >= 2 ? downsample(closes, 28) : trendSparkline(last, pct ?? 0);
+        return {
+          key: `custom:${d.assetType}:${d.symbol}`,
+          tok: `${d.assetType}:${d.symbol}`.toLowerCase(),
+          custom: true,
+          label: d.name || d.symbol,
+          value: last.toLocaleString('tr-TR', { maximumFractionDigits: 4 }),
+          change: pct != null && Math.abs(pct) > 1e-6 ? pct : null,
+          dir: dirFromChangePct(pct),
+          spark,
+        };
+      } catch {
+        return null;
+      }
+    })).then(arr => { if (!cancelled) setCustomItems(arr.filter(Boolean)); });
+    return () => { cancelled = true; };
+  }, [customDefs]);
+
+  // Kesintisiz kayan şerit: track'i CSS transform ile sola taşı (scrollLeft yerine —
+  // overflow:hidden'da daha güvenilir). İçerik iki kez basılır; yarı genişliğe gelince başa sar.
+  useEffect(() => {
+    if (!tickerOpen || items.length === 0) return undefined;
+    const track = trackRef.current;
+    if (!track) return undefined;
+    const SPEED = 40; // px/sn
+    let raf;
+    let last = performance.now();
+    const step = (now) => {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      if (!isPaused) {
+        const half = track.scrollWidth / 2;
+        if (half > 0) {
+          offsetRef.current += SPEED * dt;
+          if (offsetRef.current >= half) offsetRef.current -= half;
+          track.style.transform = `translate3d(${-offsetRef.current}px,0,0)`;
+        }
+      }
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
   }, [isPaused, items, tickerOpen]);
 
   if (!items.length) return null;
@@ -376,8 +450,7 @@ export function MarketTicker() {
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
       >
-        <div ref={scrollRef} className="flex items-stretch overflow-x-hidden select-none py-2"
-          style={{ scrollBehavior: 'auto' }}>
+        <div ref={trackRef} className="flex items-stretch w-max select-none py-2 will-change-transform">
           {[...items, ...items].map((item, i) => (
             <TickerCard key={`${item.label}-${i}`} item={item} />
           ))}

@@ -9,7 +9,7 @@ export default function AppLayout() {
     <div className="min-h-screen bg-[#f5f6f8]">
       <Header />
       <MarketTicker />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Outlet />
       </main>
       <Footer />

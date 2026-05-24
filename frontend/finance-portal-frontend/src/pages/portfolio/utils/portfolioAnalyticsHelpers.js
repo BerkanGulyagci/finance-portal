@@ -118,7 +118,9 @@ export function calculateAllocationByType(holdings) {
   for (const [type, list] of Object.entries(groups)) {
     let sum = 0;
     for (const h of list) {
-      const mv = parseMarketValue(h);
+      // marketValue alanı boşsa miktar × güncel fiyat fallback'i kullan;
+      // yoksa (ör. bazı hisseler) o varlık türü pie'da hiç görünmüyordu.
+      const mv = parseMarketValueExtended(h);
       if (mv != null && mv > 0) sum += mv;
     }
     if (sum <= 0) continue;

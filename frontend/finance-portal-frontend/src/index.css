@@ -24,3 +24,91 @@ body {
   font-family: Inter, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Material 3 esinli animasyonlar (FX sayfaları başta olmak üzere ortak)
+   ───────────────────────────────────────────────────────────────────────────── */
+@keyframes m3-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes m3-fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes m3-scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes m3-slide-right {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes m3-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes m3-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+/* Material 3 standart easing eğrisi */
+.m3-fade-in   { animation: m3-fade-in 0.4s cubic-bezier(0.2, 0, 0, 1) both; }
+.m3-fade-up   { animation: m3-fade-up 0.45s cubic-bezier(0.2, 0, 0, 1) both; }
+.m3-scale-in  { animation: m3-scale-in 0.35s cubic-bezier(0.2, 0, 0, 1) both; }
+.m3-slide-right { animation: m3-slide-right 0.4s cubic-bezier(0.2, 0, 0, 1) both; }
+.m3-pop       { animation: m3-pop 0.4s cubic-bezier(0.2, 0, 0, 1); }
+
+/* Kademeli (staggered) giriş — tablo satırları / kart ızgaraları için */
+.m3-stagger > * {
+  opacity: 0;
+  animation: m3-fade-up 0.4s cubic-bezier(0.2, 0, 0, 1) both;
+}
+.m3-stagger > *:nth-child(1)  { animation-delay: 0.02s; }
+.m3-stagger > *:nth-child(2)  { animation-delay: 0.04s; }
+.m3-stagger > *:nth-child(3)  { animation-delay: 0.06s; }
+.m3-stagger > *:nth-child(4)  { animation-delay: 0.08s; }
+.m3-stagger > *:nth-child(5)  { animation-delay: 0.10s; }
+.m3-stagger > *:nth-child(6)  { animation-delay: 0.12s; }
+.m3-stagger > *:nth-child(7)  { animation-delay: 0.14s; }
+.m3-stagger > *:nth-child(8)  { animation-delay: 0.16s; }
+.m3-stagger > *:nth-child(9)  { animation-delay: 0.18s; }
+.m3-stagger > *:nth-child(10) { animation-delay: 0.20s; }
+.m3-stagger > *:nth-child(n+11) { animation-delay: 0.22s; }
+
+/* Yükleme iskeleti parıltısı */
+.m3-skeleton {
+  background: linear-gradient(90deg, #eef1f6 25%, #e2e8f0 37%, #eef1f6 63%);
+  background-size: 200% 100%;
+  animation: m3-shimmer 1.4s ease-in-out infinite;
+}
+
+/* M3 state-layer: hover/active'te yüzeye ince bir ton katmanı */
+.m3-state {
+  position: relative;
+  isolation: isolate;
+}
+.m3-state::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity 0.2s cubic-bezier(0.2, 0, 0, 1);
+  pointer-events: none;
+  z-index: -1;
+}
+.m3-state:hover::after  { opacity: 0.08; }
+.m3-state:active::after { opacity: 0.12; }
+
+@media (prefers-reduced-motion: reduce) {
+  .m3-fade-in, .m3-fade-up, .m3-scale-in, .m3-slide-right, .m3-pop,
+  .m3-stagger > *, .m3-skeleton {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

@@ -87,7 +87,7 @@ export default function AuthCallbackPage() {
     exchangeCodeForToken(code, state)
       .then(({ access_token, id_token }) => {
         login(access_token, id_token);
-        navigate('/portfolio', { replace: true });
+        navigate('/dashboard', { replace: true });
       })
       .catch(err => {
         if (err instanceof OAuthActionCompleteError) {
