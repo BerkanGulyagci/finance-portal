@@ -1,11 +1,14 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, TrendingUp, TrendingDown, Trash2, X } from 'lucide-react';
+import { ArrowLeft, TrendingUp, TrendingDown, Trash2, X, SlidersHorizontal, ChevronDown, BarChart2 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer
 } from 'recharts';
-import { getStockMidasDetail, getStockChart, getStockOhlc } from '../../../api/marketApi';
+import { getStockMidasDetail, getStockChart, getStockOhlc, getMarketPriceHistory } from '../../../api/marketApi';
+import TrendBadge from '../../../components/common/TrendBadge';
+import InstrumentActionButtons from '../../../components/instrument/InstrumentActionButtons';
+import { buildTrendItem } from '../../../utils/trendUtils';
 import { init as klineInit, dispose as klineDispose, registerOverlay } from 'klinecharts';
 import RelatedViopContracts from './components/RelatedViopContracts';
 import { STOCK_CHART_RANGES } from './stockChartRanges';
@@ -58,7 +61,20 @@ registerOverlay({
 });
 
 const RANGES = STOCK_CHART_RANGES;
-const OHLC_RANGES = STOCK_CHART_RANGES;
+// Detay grafiği: yatırım-vadeli aralıklarda (1A–Tüm) GÜNLÜK çubuk kullanılır → MA20/50/200
+// her zaman 20/50/200 GÜN demektir (tutarlı; "Tüm"de 200 ay gibi saçma olmaz). Yalnız 1G/1H
+// gün-içi kalır (orada MA gün-içi çubuk, normal). MA ısınması fitVisibleToWindow ile sağlanır.
+const OHLC_RANGES = [
+  { label: '1G', range: '1d',  interval: '5m' },
+  { label: '1H', range: '5d',  interval: '1h' },
+  { label: '1A', range: '1mo', interval: '1d' },
+  { label: '3A', range: '3mo', interval: '1d' },
+  { label: '6A', range: '6mo', interval: '1d' },
+  { label: '1Y', range: '1y',  interval: '1d' },
+  { label: '5Y', range: '5y',  interval: '1d' },
+  // 'max'+'1d' Yahoo'da ~aylığa seyrekleşiyor (MA200 yine 200 ay olur); '10y' gerçek günlük verir.
+  { label: 'Tüm', range: '10y', interval: '1d' },
+];
 
 /* ─── Custom Tooltip ─── */
 function ChartTooltip({ active, payload, label }) {
@@ -145,7 +161,7 @@ const DRAWING_TOOLS = [
 ];
 
 /* ─── Drawing Toolbar Bileşeni ─── */
-function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll }) {
+function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll, indicatorSlot }) {
   const { t } = useTranslation();
   const [openGroup, setOpenGroup] = useState(null);
 
@@ -155,13 +171,14 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
         <div key={group} className="relative">
           <button
             onClick={() => setOpenGroup(openGroup === group ? null : group)}
-            className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
-              tools.some(tool => tool.id === activeTool)
-                ? 'bg-[#093eaa] text-white border-[#093eaa]'
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+              tools.some(tool => tool.id === activeTool) || openGroup === group
+                ? 'border-[#093eaa] text-[#093eaa] bg-[#093eaa]/5'
                 : 'bg-white text-gray-600 border-gray-200 hover:border-[#093eaa] hover:text-[#093eaa]'
             }`}
           >
-            {t(group)} ▾
+            {t(group)}
+            <ChevronDown className={`w-3 h-3 transition-transform ${openGroup === group ? 'rotate-180' : ''}`} />
           </button>
           {openGroup === group && (
             <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-1 min-w-[180px]">
@@ -187,6 +204,14 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
         </div>
       ))}
 
+      {/* İndikatör menüsü (yalnız mum grafikte; çizim gruplarının yanında) */}
+      {indicatorSlot && (
+        <>
+          <div className="w-px h-6 bg-gray-200 mx-1" />
+          {indicatorSlot}
+        </>
+      )}
+
       {/* Ayırıcı */}
       <div className="w-px h-6 bg-gray-200 mx-1" />
 
@@ -194,7 +219,7 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
       <button
         onClick={onDeleteSelected}
         title={t('Seçili çizimi sil')}
-        className="p-1.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 transition-all border border-gray-200"
+        className="inline-flex items-center px-2 py-1.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all border border-gray-200"
       >
         <Trash2 className="w-3.5 h-3.5" />
       </button>
@@ -203,7 +228,7 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
       <button
         onClick={onClearAll}
         title={t('Tüm çizimleri temizle')}
-        className="p-1.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 transition-all border border-gray-200"
+        className="inline-flex items-center px-2 py-1.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all border border-gray-200"
       >
         <X className="w-3.5 h-3.5" />
       </button>
@@ -220,11 +245,48 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
 }
 
 const MA_PERIODS = [
-  { period: 5,  color: '#f59e0b', label: 'MA5'  },
-  { period: 10, color: '#8b5cf6', label: 'MA10' },
-  { period: 30, color: '#3b82f6', label: 'MA30' },
-  { period: 60, color: '#ef4444', label: 'MA60' },
+  { period: 20,  color: '#f59e0b', label: 'MA20'  },
+  { period: 50,  color: '#8b5cf6', label: 'MA50'  },
+  { period: 200, color: '#ef4444', label: 'MA200' },
 ];
+
+// MA çizgi renkleri buton renkleriyle aynı olsun (klinecharts default paleti yerine)
+function maLineStyles(periods) {
+  return { lines: periods.map(p => ({ color: MA_PERIODS.find(m => m.period === p)?.color ?? '#888', size: 1.5 })) };
+}
+
+// ── MA ısınması (finans-sitesi davranışı) ──────────────────────────────────────
+// Seçili aralık için, MA'nın pencerenin BAŞINDAN dolu çizilebilmesi adına pencereden
+// ÖNCE ekstra veri çekeriz (aynı interval, daha uzun range). MA tüm seri üzerinden
+// hesaplanır; ekranda yalnız seçili pencere gösterilir (ısınma sola kaydırılır).
+// Günlük aralıklarda MA200'ün (200 gün) pencereyi baştan doldurabilmesi için, pencere + ~200
+// işlem günü kapsayan daha uzun bir range çekilir (aynı interval). 5Y/Tüm → tüm geçmiş.
+const STOCK_WARMUP_RANGE = {
+  '1d': '5d', '5d': '1mo',
+  '1mo': '1y', '3mo': '2y', '6mo': '2y', '1y': '2y', '5y': '10y', '10y': '10y',
+};
+const RANGE_WINDOW_MS = {
+  '1d': 1 * 864e5, '5d': 5 * 864e5, '1mo': 31 * 864e5, '3mo': 93 * 864e5,
+  '6mo': 186 * 864e5, '1y': 366 * 864e5, '5y': 1827 * 864e5, '10y': Infinity,
+};
+
+/** Tüm veri (ısınma + pencere) uygulandıktan sonra görünür alanı yalnız pencereye sığdırır. */
+function fitVisibleToWindow(chart, chartId, allData, windowStartTs) {
+  if (!chart || !allData?.length) return;
+  requestAnimationFrame(() => {
+    try {
+      const el = document.getElementById(chartId);
+      const width = el?.clientWidth ?? 0;
+      if (width <= 0) return;
+      const windowCount = windowStartTs > 0
+        ? allData.filter(d => d.timestamp >= windowStartTs).length
+        : allData.length;
+      const count = Math.max(1, windowCount);
+      chart.setOffsetRightDistance(8);
+      chart.setBarSpace(Math.max(2, (width - 16) / count));
+    } catch (_) { /* yoksay */ }
+  });
+}
 
 const SUB_INDICATORS = [
   { name: 'VOL',  label: 'Hacim', color: '#6b7280' },
@@ -245,6 +307,7 @@ function CandlestickChart({ symbol }) {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(false);
   const [activeTool, setActiveTool] = useState(null);
+  const [indMenuOpen, setIndMenuOpen] = useState(false);
 
   const rangeConfig = OHLC_RANGES[ohlcRangeIdx];
   const { range, interval } = rangeConfig;
@@ -256,7 +319,7 @@ function CandlestickChart({ symbol }) {
     chart.removeIndicator('candle_pane', 'MA');
     if (periods.length > 0) {
       chart.createIndicator(
-        { name: 'MA', calcParams: periods },
+        { name: 'MA', calcParams: periods, styles: maLineStyles(periods) },
         false,
         { id: 'candle_pane' }
       );
@@ -346,7 +409,8 @@ function CandlestickChart({ symbol }) {
     setLoading(true);
     setError(false);
 
-    getStockOhlc(symbol, range, interval)
+    const fetchRange = STOCK_WARMUP_RANGE[range] ?? range;
+    getStockOhlc(symbol, fetchRange, interval)
       .then(data => {
         if (!data?.length) { setError(true); setLoading(false); return; }
         const klineData = data
@@ -363,13 +427,16 @@ function CandlestickChart({ symbol }) {
           .sort((a, b) => a.timestamp - b.timestamp);
 
         chartRef.current?.applyNewData(klineData);
-        
+        // Görünür alanı yalnız seçili pencereye sığdır (ısınma verisi sola kayar, MA dolu çizilir)
+        const winMsC = RANGE_WINDOW_MS[range];
+        fitVisibleToWindow(chartRef.current, id, klineData, (winMsC && winMsC !== Infinity) ? Date.now() - winMsC : 0);
+
         // Data yüklendikten SONRA aktif indikatörleri ekle
         if (chartRef.current) {
           // MA ekle
           if (activeMAs.length > 0) {
             chartRef.current.createIndicator(
-              { name: 'MA', calcParams: activeMAs },
+              { name: 'MA', calcParams: activeMAs, styles: maLineStyles(activeMAs) },
               false,
               { id: 'candle_pane' }
             );
@@ -404,59 +471,90 @@ function CandlestickChart({ symbol }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbol, range, interval]);
 
+  // İndikatör menüsü (çizim araç çubuğunun yanına yerleşir)
+  const indicatorDropdown = (
+    <div className="relative">
+      <button
+        onClick={() => setIndMenuOpen(v => !v)}
+        className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+          indMenuOpen || (activeMAs.length + activeSubInds.length) > 0
+            ? 'bg-[#093eaa] text-white border-[#093eaa]'
+            : 'bg-white text-gray-600 border-gray-200 hover:border-[#093eaa] hover:text-[#093eaa]'
+        }`}
+      >
+        <SlidersHorizontal className="w-3.5 h-3.5" />
+        {t('İndikatör')}
+        {(activeMAs.length + activeSubInds.length) > 0 && (
+          <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-[#093eaa] text-white text-[10px] font-bold">
+            {activeMAs.length + activeSubInds.length}
+          </span>
+        )}
+        <ChevronDown className={`w-3 h-3 transition-transform ${indMenuOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {indMenuOpen && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setIndMenuOpen(false)} />
+          <div className="absolute left-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-3 w-64">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">{t('Hareketli Ortalama')}</p>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {MA_PERIODS.map(({ period, color, label }) => {
+                const active = activeMAs.includes(period);
+                return (
+                  <button key={period} onClick={() => toggleMA(period)}
+                    className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all border ${
+                      active ? 'text-white border-transparent' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
+                    }`}
+                    style={active ? { backgroundColor: color, borderColor: color } : {}}>
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">{t('Osilatör / İndikatör')}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {SUB_INDICATORS.map(({ name, label, color }) => {
+                const active = activeSubInds.includes(name);
+                return (
+                  <button key={name} onClick={() => toggleSubIndicator(name)}
+                    className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all border ${
+                      active ? 'text-white border-transparent' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
+                    }`}
+                    style={active ? { backgroundColor: color, borderColor: color } : {}}>
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+
   return (
     <div>
-      {/* ── Üst kontrol: zaman aralığı + MA butonları ── */}
-      <div className="flex items-center gap-3 mb-2 flex-wrap">
-        <div className="flex gap-1 flex-wrap items-center">
+      {/* ── Zaman aralığı — segmented, ortalı ── */}
+      <div className="flex justify-center mb-3">
+        <div className="inline-flex items-center gap-0.5 rounded-lg border border-gray-200 bg-gray-50 p-0.5 overflow-x-auto max-w-full [&::-webkit-scrollbar]:hidden">
           {OHLC_RANGES.map((r, i) => (
             <button key={r.label} onClick={() => setOhlcRangeIdx(i)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                i === ohlcRangeIdx ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              className={`px-3 py-1 rounded-md text-xs font-semibold whitespace-nowrap transition-all ${
+                i === ohlcRangeIdx ? 'bg-white text-[#093eaa] shadow-sm' : 'text-gray-500 hover:text-gray-800'
               }`}>
               {r.label}
             </button>
           ))}
         </div>
-        <div className="flex gap-1 ml-auto flex-wrap">
-          {MA_PERIODS.map(({ period, color, label }) => {
-            const active = activeMAs.includes(period);
-            return (
-              <button key={period} onClick={() => toggleMA(period)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all border ${
-                  active ? 'text-white border-transparent' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
-                }`}
-                style={active ? { backgroundColor: color, borderColor: color } : {}}>
-                {label}
-              </button>
-            );
-          })}
-        </div>
       </div>
 
-      {/* ── Alt indikatör butonları ── */}
-      <div className="flex gap-1 mb-2 flex-wrap items-center">
-        <span className="text-xs text-gray-400 mr-1">{t('İndikatör:')}</span>
-        {SUB_INDICATORS.map(({ name, label, color }) => {
-          const active = activeSubInds.includes(name);
-          return (
-            <button key={name} onClick={() => toggleSubIndicator(name)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all border ${
-                active ? 'text-white border-transparent' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
-              }`}
-              style={active ? { backgroundColor: color, borderColor: color } : {}}>
-              {label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* ── Drawing Toolbar ── */}
+      {/* ── Drawing Toolbar (İndikatör menüsü çizim gruplarının yanında) ── */}
       <DrawingToolbar
         activeTool={activeTool}
         onSelectTool={handleSelectTool}
         onDeleteSelected={handleDeleteSelected}
         onClearAll={handleClearAll}
+        indicatorSlot={indicatorDropdown}
       />
 
       <div className="relative">
@@ -486,13 +584,50 @@ function LineChart({ symbol }) {
   const { t } = useTranslation();
   const chartId = useRef(`kline_line_${Date.now()}`);
   const chartRef = useRef(null);
+  const indicatorPaneIds = useRef({});
   const [rangeIdx, setRangeIdx] = useState(2);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(false);
   const [activeTool, setActiveTool] = useState(null);
+  const [activeMAs, setActiveMAs] = useState([]);
+  const [activeSubInds, setActiveSubInds] = useState([]);
+  const [indMenuOpen, setIndMenuOpen] = useState(false);
 
   const rangeConfig = RANGES[rangeIdx];
   const { range, interval } = rangeConfig;
+
+  // Çizgi grafikte de indikatör/MA (kapanış serisi üzerinden)
+  const applyMA = useCallback((periods) => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    chart.removeIndicator('candle_pane', 'MA');
+    if (periods.length > 0) {
+      chart.createIndicator({ name: 'MA', calcParams: periods, styles: maLineStyles(periods) }, false, { id: 'candle_pane' });
+    }
+  }, []);
+  const toggleMA = useCallback((period) => {
+    setActiveMAs(prev => {
+      const next = prev.includes(period) ? prev.filter(p => p !== period) : [...prev, period].sort((a, b) => a - b);
+      applyMA(next);
+      return next;
+    });
+  }, [applyMA]);
+  const toggleSubIndicator = useCallback((indName) => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    setActiveSubInds(prev => {
+      if (prev.includes(indName)) {
+        const paneId = indicatorPaneIds.current[indName];
+        if (paneId) { try { chart.removeIndicator(paneId, indName); delete indicatorPaneIds.current[indName]; } catch { /* yoksay */ } }
+        return prev.filter(n => n !== indName);
+      }
+      try {
+        const paneId = chart.createIndicator({ name: indName }, true, { height: 80 });
+        if (paneId) indicatorPaneIds.current[indName] = paneId;
+      } catch { /* yoksay */ }
+      return [...prev, indName];
+    });
+  }, []);
 
   const handleSelectTool = useCallback((toolId) => {
     setActiveTool(toolId);
@@ -524,11 +659,13 @@ function LineChart({ symbol }) {
     const chart = klineInit(id);
     chart.setStyles({ candle: { type: 'area' } });
     chartRef.current = chart;
+    indicatorPaneIds.current = {};
 
     setLoading(true);
     setError(false);
 
-    getStockChart(symbol, range, interval)
+    const fetchRange = STOCK_WARMUP_RANGE[range] ?? range;
+    getStockChart(symbol, fetchRange, interval)
       .then(res => {
         const ts     = res?.timestamps  ?? [];
         const prices = res?.closePrices ?? [];
@@ -576,32 +713,108 @@ function LineChart({ symbol }) {
         });
 
         chartRef.current?.applyNewData(klineData);
+        // Görünür alanı yalnız seçili pencereye sığdır (ısınma verisi sola kayar, MA dolu çizilir)
+        const winMsL = RANGE_WINDOW_MS[range];
+        fitVisibleToWindow(chartRef.current, id, klineData, (winMsL && winMsL !== Infinity) ? Date.now() - winMsL : 0);
+        // Veri yüklendikten sonra aktif indikatörleri yeniden ekle
+        if (chartRef.current) {
+          if (activeMAs.length > 0) {
+            chartRef.current.createIndicator({ name: 'MA', calcParams: activeMAs, styles: maLineStyles(activeMAs) }, false, { id: 'candle_pane' });
+          }
+          activeSubInds.forEach(indName => {
+            try {
+              const paneId = chartRef.current.createIndicator({ name: indName }, true, { height: 80 });
+              if (paneId) indicatorPaneIds.current[indName] = paneId;
+            } catch { /* yoksay */ }
+          });
+        }
         setLoading(false);
       })
       .catch(() => { setError(true); setLoading(false); });
 
-    return () => { klineDispose(id); };
+    return () => { klineDispose(id); indicatorPaneIds.current = {}; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbol, range, interval]);
+
+  // İndikatör menüsü (çizgi modu — kapanış serisi; VOL hariç, hacim yok)
+  const lineIndicatorDropdown = (
+    <div className="relative">
+      <button
+        onClick={() => setIndMenuOpen(v => !v)}
+        className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+          indMenuOpen || (activeMAs.length + activeSubInds.length) > 0
+            ? 'bg-[#093eaa] text-white border-[#093eaa]'
+            : 'bg-white text-gray-600 border-gray-200 hover:border-[#093eaa] hover:text-[#093eaa]'
+        }`}
+      >
+        <SlidersHorizontal className="w-3.5 h-3.5" />
+        {t('İndikatör')}
+        {(activeMAs.length + activeSubInds.length) > 0 && (
+          <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-[#093eaa] text-white text-[10px] font-bold">
+            {activeMAs.length + activeSubInds.length}
+          </span>
+        )}
+        <ChevronDown className={`w-3 h-3 transition-transform ${indMenuOpen ? 'rotate-180' : ''}`} />
+      </button>
+      {indMenuOpen && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setIndMenuOpen(false)} />
+          <div className="absolute left-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-3 w-64">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">{t('Hareketli Ortalama')}</p>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {MA_PERIODS.map(({ period, color, label }) => {
+                const active = activeMAs.includes(period);
+                return (
+                  <button key={period} onClick={() => toggleMA(period)}
+                    className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all border ${active ? 'text-white border-transparent' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}
+                    style={active ? { backgroundColor: color, borderColor: color } : {}}>
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">{t('Osilatör / İndikatör')}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {SUB_INDICATORS.filter(s => s.name !== 'VOL').map(({ name, label, color }) => {
+                const active = activeSubInds.includes(name);
+                return (
+                  <button key={name} onClick={() => toggleSubIndicator(name)}
+                    className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all border ${active ? 'text-white border-transparent' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}
+                    style={active ? { backgroundColor: color, borderColor: color } : {}}>
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
 
   return (
     <div>
-      <div className="flex gap-1 mb-3 justify-center flex-wrap items-center">
-        {RANGES.map((r, i) => (
-          <button key={r.label} onClick={() => setRangeIdx(i)}
-            className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-              i === rangeIdx ? 'bg-[#093eaa] text-white' : 'text-gray-400 hover:text-gray-700'
-            }`}>
-            {r.label}
-          </button>
-        ))}
+      {/* ── Zaman aralığı — segmented, ortalı ── */}
+      <div className="flex justify-center mb-3">
+        <div className="inline-flex items-center gap-0.5 rounded-lg border border-gray-200 bg-gray-50 p-0.5 overflow-x-auto max-w-full [&::-webkit-scrollbar]:hidden">
+          {RANGES.map((r, i) => (
+            <button key={r.label} onClick={() => setRangeIdx(i)}
+              className={`px-3 py-1 rounded-md text-xs font-semibold whitespace-nowrap transition-all ${
+                i === rangeIdx ? 'bg-white text-[#093eaa] shadow-sm' : 'text-gray-500 hover:text-gray-800'
+              }`}>
+              {r.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Drawing Toolbar */}
+      {/* Drawing Toolbar (İndikatör menüsü dahil) */}
       <DrawingToolbar
         activeTool={activeTool}
         onSelectTool={handleSelectTool}
         onDeleteSelected={handleDeleteSelected}
         onClearAll={handleClearAll}
+        indicatorSlot={lineIndicatorDropdown}
       />
 
       <div className="relative">
@@ -656,6 +869,7 @@ export default function StockDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [chartMode, setChartMode] = useState('tv');
+  const [trendItem, setTrendItem] = useState(null);
 
   useEffect(() => {
     setLoading(true);
@@ -664,6 +878,16 @@ export default function StockDetailPage() {
     ]).then(([m]) => { setMidas(m); })
       .catch(e => setError(!e.response ? t('Sunucuya ulaşılamıyor.') : `${t('Hata')} (${e.response.status})`))
       .finally(() => setLoading(false));
+  }, [symbol]);
+
+  // Trend rozeti — 1Y kapanış serisinden (MA20/50 + 52h konumu)
+  useEffect(() => {
+    let cancelled = false;
+    setTrendItem(null);
+    getMarketPriceHistory('STOCK', symbol, '1Y')
+      .then(res => { if (!cancelled) setTrendItem(buildTrendItem(res?.closePrices ?? [], 'STOCK')); })
+      .catch(() => { if (!cancelled) setTrendItem(null); });
+    return () => { cancelled = true; };
   }, [symbol]);
 
   const ticker = symbol?.replace('.IS', '').replace('.is', '').toUpperCase();
@@ -686,9 +910,12 @@ export default function StockDetailPage() {
             />
           )}
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {ticker} {t('Hisse')} {midas?.name ? `- ${midas.name}` : ''}
-            </h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-2xl font-bold text-gray-900">
+                {ticker} {t('Hisse')} {midas?.name ? `- ${midas.name}` : ''}
+              </h1>
+              {trendItem && <TrendBadge item={trendItem} size="sm" />}
+            </div>
             <p className="text-xs text-gray-400 mt-0.5">{t('Borsa İstanbul · Veriler 15 dk gecikmeli · Kaynak: Midas')}</p>
           </div>
         </div>
@@ -726,14 +953,31 @@ export default function StockDetailPage() {
             </div>
 
             <div className="px-4 pt-2 pb-2">
-              {/* Grafik mod seçici */}
-              <div className="flex gap-1 mb-3">
-                {[{ key: 'tv', label: 'Mum Grafik' }, { key: 'line', label: 'Çizgi' }].map(m => (
-                  <button key={m.key} onClick={() => setChartMode(m.key)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${chartMode === m.key ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                    {t(m.label)}
-                  </button>
-                ))}
+              {/* Grafik mod seçici (segmented) + Karşılaştır */}
+              <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+                <div className="inline-flex items-center gap-0.5 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
+                  {[{ key: 'tv', label: 'Mum Grafik' }, { key: 'line', label: 'Çizgi' }].map(m => (
+                    <button key={m.key} onClick={() => setChartMode(m.key)}
+                      className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${chartMode === m.key ? 'bg-white text-[#093eaa] shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>
+                      {t(m.label)}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Link
+                    to={`/market/stocks/compare?add=${encodeURIComponent(symbol)}`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-[#093eaa]/30 text-[#093eaa] bg-[#093eaa]/5 hover:bg-[#093eaa]/10 transition-colors"
+                  >
+                    <BarChart2 className="w-3.5 h-3.5" />
+                    {t('Karşılaştır')}
+                  </Link>
+                  <InstrumentActionButtons
+                    assetType="STOCK"
+                    symbol={symbol}
+                    name={midas?.name || ticker}
+                    price={midas?.currentPrice}
+                  />
+                </div>
               </div>
 
               {chartMode === 'tv' && <CandlestickChart symbol={symbol} />}

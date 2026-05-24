@@ -7,6 +7,12 @@ import GoldLoadingState  from '../gold/components/GoldLoadingState';
 import GoldErrorState    from '../gold/components/GoldErrorState';
 import GoldChart         from '../gold/components/GoldChart';
 import GoldChartToolbar  from '../gold/components/GoldChartToolbar';
+import PreciousCompareButton from '../../../components/common/PreciousCompareButton';
+import UniversalCompareButton from '../../../components/common/UniversalCompareButton';
+import InstrumentActionButtons from '../../../components/instrument/InstrumentActionButtons';
+
+// Aktif sekme → COMMODITY sembol kategorisi (portföy/alarm/kıyas için)
+const PRECIOUS_CAT = { try_gram: 'GRAM_TRY', try_kg: 'KG_TRY', usd_ons: 'USD_ONS', eur_ons: 'EUR_ONS' };
 import GoldSourceNotice  from '../gold/components/GoldSourceNotice';
 import { useTranslation } from '../../../i18n/LanguageContext';
 
@@ -320,6 +326,22 @@ export default function SilverPage() {
                 {activeTab.isUsd && (
                   <StatRow label="USD/Ons" value={spot.silverUsdOns != null ? `$${fmt(spot.silverUsdOns)}` : '-'} />
                 )}
+              </div>
+
+              {/* Karşılaştır + Portföye Ekle + Alarm */}
+              <div className="flex items-center gap-2 flex-wrap mb-4">
+                <PreciousCompareButton />
+                <UniversalCompareButton
+                  assetType="COMMODITY"
+                  symbol={`SILVER:${PRECIOUS_CAT[activeTabKey] ?? 'GRAM_TRY'}`}
+                  name={t(activeTab.label)}
+                />
+                <InstrumentActionButtons
+                  assetType="COMMODITY"
+                  symbol={`SILVER:${PRECIOUS_CAT[activeTabKey] ?? 'GRAM_TRY'}`}
+                  name={t(activeTab.label)}
+                  price={displayPrice}
+                />
               </div>
 
               {/* Toolbar */}

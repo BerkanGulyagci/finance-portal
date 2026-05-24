@@ -1,6 +1,7 @@
-import { TrendingUp, TrendingDown, Clock, Plus } from 'lucide-react';
+import { TrendingUp, TrendingDown, Clock } from 'lucide-react';
 import { parseTrNumber, formatPrice } from '../../../../utils/numberFormat';
 import { useTranslation } from '../../../../i18n/LanguageContext';
+import InstrumentActionButtons from '../../../../components/instrument/InstrumentActionButtons';
 
 export default function ViopContractHeader({ contract }) {
   const { t } = useTranslation();
@@ -23,12 +24,6 @@ export default function ViopContractHeader({ contract }) {
 
   const companyCode = extractCompanyCode(contract.name);
   const logoUrl = companyCode ? `https://s3-symbol-logo.tradingview.com/${companyCode.toLowerCase()}.svg` : null;
-
-  // TODO: Portföye ekleme fonksiyonu
-  const handleAddToPortfolio = () => {
-    console.log('TODO: Portföye ekle modal açılacak', contract);
-    // Modal açılacak: Pozisyon türü (Long/Short), işlem tarihi, fiyat, adet, komisyon, not
-  };
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm px-5 py-3">
@@ -61,7 +56,7 @@ export default function ViopContractHeader({ contract }) {
           </div>
         </div>
 
-        {/* Sağ: zaman + buton */}
+        {/* Sağ: zaman + Portföye Ekle + Alarm */}
         <div className="flex items-center gap-3 shrink-0">
           {contract.time && (
             <div className="flex items-center gap-1.5 text-xs text-gray-400">
@@ -69,14 +64,12 @@ export default function ViopContractHeader({ contract }) {
               <span>{contract.time}</span>
             </div>
           )}
-          <button
-            onClick={handleAddToPortfolio}
-            className="flex items-center gap-2 px-3.5 py-1.5 bg-[#093eaa] text-white text-sm font-semibold rounded-lg hover:bg-[#072d7a] transition-colors shadow-sm"
-            title={t('Portföye Ekle')}
-          >
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">{t('Portföye Ekle')}</span>
-          </button>
+          <InstrumentActionButtons
+            assetType="FUTURE"
+            symbol={contract.name}
+            name={contract.name}
+            price={lastPrice}
+          />
         </div>
       </div>
     </div>

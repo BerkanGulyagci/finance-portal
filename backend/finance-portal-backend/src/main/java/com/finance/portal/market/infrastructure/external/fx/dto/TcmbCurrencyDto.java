@@ -16,6 +16,12 @@ public class TcmbCurrencyDto {
     @JacksonXmlProperty(localName = "ForexSelling")
     private String forexSelling;
 
+    @JacksonXmlProperty(localName = "BanknoteBuying")
+    private String banknoteBuying;
+
+    @JacksonXmlProperty(localName = "BanknoteSelling")
+    private String banknoteSelling;
+
     public TcmbCurrencyDto() {
     }
 
@@ -49,5 +55,21 @@ public class TcmbCurrencyDto {
 
     public void setForexSelling(String forexSelling) {
         this.forexSelling = forexSelling;
+    }
+
+    public String getBanknoteBuying() {
+        return banknoteBuying;
+    }
+
+    public void setBanknoteBuying(String banknoteBuying) {
+        this.banknoteBuying = banknoteBuying;
+    }
+
+    public String getBanknoteSelling() {
+        return banknoteSelling;
+    }
+
+    public void setBanknoteSelling(String banknoteSelling) {
+        this.banknoteSelling = banknoteSelling;
     }
 }

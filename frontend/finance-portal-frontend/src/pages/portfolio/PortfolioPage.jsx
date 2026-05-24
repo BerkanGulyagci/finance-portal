@@ -8,6 +8,7 @@ import { getMyPortfolios, deletePortfolio } from '../../api/portfolioApi';
 import CreatePortfolioModal from './components/CreatePortfolioModal';
 import EditPortfolioModal from './components/EditPortfolioModal';
 import PortfolioTypeBadge from './components/PortfolioTypeBadge';
+import AlarmsManager from '../../components/instrument/AlarmsManager';
 import { useTranslation } from '../../i18n/LanguageContext';
 
 function fmt(value, dec = 2) {
@@ -388,6 +389,11 @@ export default function PortfolioPage() {
           })}
         </div>
       )}
+
+      {/* Alarmlarım */}
+      <div className="mt-8 bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        <AlarmsManager compact />
+      </div>
     </div>
   );
 }

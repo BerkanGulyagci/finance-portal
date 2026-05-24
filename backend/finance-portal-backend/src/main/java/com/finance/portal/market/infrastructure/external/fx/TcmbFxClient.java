@@ -172,6 +172,9 @@ public class TcmbFxClient {
 
             currency.setForexBuying(getChildTextContent(currencyElement, "ForexBuying"));
             currency.setForexSelling(getChildTextContent(currencyElement, "ForexSelling"));
+            // Efektif (banknot) kurları — bazı dövizlerde boş gelebilir
+            currency.setBanknoteBuying(getChildTextContent(currencyElement, "BanknoteBuying"));
+            currency.setBanknoteSelling(getChildTextContent(currencyElement, "BanknoteSelling"));
 
             currencies.add(currency);
         }

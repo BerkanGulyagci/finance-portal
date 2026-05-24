@@ -33,6 +33,8 @@ public class TcmbFxAdapter implements TcmbFxPort {
                 currency.getCurrencyCode(),
                 currency.getUnit(),
                 currency.getForexBuying(),
-                currency.getForexSelling());
+                currency.getForexSelling(),
+                currency.getBanknoteBuying(),
+                currency.getBanknoteSelling());
     }
 }

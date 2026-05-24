@@ -6,6 +6,7 @@ import BondIndicators       from './components/BondIndicators';
 import BondInfoTable        from './components/BondInfoTable';
 import BondAnalysisCard     from './components/BondAnalysisCard';
 import BondEvdsHistoryChart from './components/BondEvdsHistoryChart';
+import InstrumentActionButtons from '../../../components/instrument/InstrumentActionButtons';
 import { fmtPct } from './components/bondChartUtils';
 import { useTranslation } from '../../../i18n/LanguageContext';
 
@@ -68,6 +69,16 @@ export default function BondDetailPage() {
 
       {/* 1. Header — kıymet kodu, tür, tarihler, kaynak */}
       <BondDetailHeader bond={bond} />
+
+      {/* Portföye Ekle + Alarm (yalnız giriş yapan kullanıcı) */}
+      <div className="flex justify-end">
+        <InstrumentActionButtons
+          assetType="BOND"
+          symbol={bond.instrumentCode}
+          name={bond.instrumentCode}
+          price={bond.indicatorValue}
+        />
+      </div>
 
       {/* 2. Özet metrik satırı */}
       <MetricBar bond={bond} />

@@ -4,6 +4,10 @@ import { init as klineInit, dispose as klineDispose, registerIndicator } from 'k
 import { getEvdsBondHistory, getEvdsBondDetail } from '../../../../api/marketApi';
 import BondCompareSelector   from './BondCompareSelector';
 import BondComparisonSummary from './BondComparisonSummary';
+import UniversalCompareButton from '../../../../components/common/UniversalCompareButton';
+import TrendBadge from '../../../../components/common/TrendBadge';
+import IndicatorMenu from '../../../../components/common/IndicatorMenu';
+import { buildTrendItem } from '../../../../utils/trendUtils';
 import {
   BOND_CHART_PERIODS,
   toKlineData, normalizeSeries, mergeByDate,
@@ -18,8 +22,9 @@ const PERIODS = BOND_CHART_PERIODS;
 
 const MAIN_COLOR    = '#093eaa';
 const COMPARE_COLOR = '#f97316';
-const MA7_COLOR     = '#f59e0b';
-const MA30_COLOR    = '#a855f7';
+const MA20_COLOR    = '#f59e0b';
+const MA50_COLOR    = '#a855f7';
+const MA200_COLOR   = '#ef4444';
 
 // Karşılaştırma serisi için custom indicator register eder.
 // name = kıymet kodu → tooltip'te direkt kıymet kodu görünür, "MA(1)" değil.
@@ -41,7 +46,7 @@ function ensureIndicatorRegistered(code) {
 }
 
 // KLineCharts stil ayarları — OHLC tooltip'ini tamamen gizler
-function buildChartStyles(lineColor) {
+function buildChartStyles(lineColor, mainLabel) {
   return {
     candle: {
       type: 'area',
@@ -55,18 +60,45 @@ function buildChartStyles(lineColor) {
           { offset: 1, color: lineColor + '00' },
         ],
       },
-      tooltip: { showRule: 'none' },
+      // Hover tooltip'i aç: gösterge değeri + karşılaştırma kıymeti. Çizgilerin üstünde
+      // okunabilsin diye arka planlı kutu (rect) + üstten boşluk.
+      tooltip: {
+        showRule: 'follow_cross',
+        showType: 'rect',
+        text: { size: 12, marginTop: 4, marginBottom: 4, marginLeft: 8, marginRight: 8 },
+        rect: {
+          offsetLeft: 8, offsetTop: 8, offsetRight: 8,
+          paddingLeft: 10, paddingRight: 10, paddingTop: 8, paddingBottom: 8,
+          borderRadius: 8, borderSize: 1, borderColor: '#e5e7eb',
+          color: 'rgba(255,255,255,0.94)',
+        },
+        custom: (data) => {
+          const d = data?.current ?? {};
+          const date = d.timestamp
+            ? new Date(d.timestamp).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' })
+            : '';
+          return [
+            { title: '', value: { text: date, color: '#6b7280' } },
+            {
+              title: mainLabel ? { text: `${mainLabel}:`, color: lineColor } : '',
+              value: { text: fmtNum(d.close, 2), color: lineColor },
+            },
+          ];
+        },
+      },
       priceMark: {
         last: { show: true, upColor: lineColor, downColor: lineColor, noChangeColor: lineColor },
         high: { show: false },
         low:  { show: false },
       },
     },
-    // Indicator tooltip satırını da gizle — legend React tarafında gösteriliyor
+    // Karşılaştırma/MA değerleri hover'da yan yana — gereksiz isim/parametre tekrarını gizle
     indicator: {
-      tooltip: { showRule: 'none' },
+      tooltip: { showRule: 'follow_cross', showType: 'rect', showName: false, showParams: false, defaultValue: '—', text: { size: 12, marginTop: 4, marginBottom: 4, marginLeft: 8, marginRight: 8 } },
     },
-    yAxis: { type: 'normal' },
+    // Eksen yazıları net/koyu olsun (açık gri "bulanık" görünmesin)
+    xAxis: { tickText: { color: '#4b5563', size: 11 } },
+    yAxis: { type: 'normal', tickText: { color: '#4b5563', size: 11 } },
   };
 }
 
@@ -81,8 +113,9 @@ function BondKlineChart({
   mainCode,
   compareCode,
   chartMode,
-  showMA7,
-  showMA30,
+  showMA20,
+  showMA50,
+  showMA200,
 }) {
   const { t } = useTranslation();
   const chartId  = useRef(`kline_bond_${Date.now()}`);
@@ -119,7 +152,7 @@ function BondKlineChart({
 
       if (klineData.length === 0) { klineDispose(id); return; }
 
-      chart.setStyles(buildChartStyles(MAIN_COLOR));
+      chart.setStyles(buildChartStyles(MAIN_COLOR, mainCode));
       chart.applyNewData(klineData);
 
       // Karşılaştırma serisi — validMerged ile index eşleşmesi garantili
@@ -151,17 +184,17 @@ function BondKlineChart({
       const isUp  = klineData[klineData.length - 1].close >= klineData[0].close;
       const color = isUp ? '#10b981' : '#ef4444';
 
-      chart.setStyles(buildChartStyles(color));
+      chart.setStyles(buildChartStyles(color, mainCode));
       chart.applyNewData(klineData);
 
-      // MA'ları başlangıçta ekle — sadece aktif olanları
-      const maParams = [];
-      if (showMA7)  maParams.push(7);
-      if (showMA30) maParams.push(30);
-      if (maParams.length > 0) {
+      // MA'ları başlangıçta ekle — yeterli veri olanları; çizgi rengi buton rengiyle aynı
+      const n = mainPoints.length;
+      const maDefs = [[20, MA20_COLOR], [50, MA50_COLOR], [200, MA200_COLOR]]
+        .filter(([p]) => (p === 20 ? showMA20 : p === 50 ? showMA50 : showMA200) && n >= p);
+      if (maDefs.length > 0) {
         try {
           chart.createIndicator(
-            { name: 'MA', calcParams: maParams },
+            { name: 'MA', calcParams: maDefs.map(([p]) => p), styles: { lines: maDefs.map(([, c]) => ({ color: c, size: 1.5 })) } },
             false,
             { id: 'candle_pane' }
           );
@@ -208,14 +241,14 @@ function BondKlineChart({
 
     try { chart.removeIndicator('candle_pane', 'MA'); } catch (_) {}
 
-    const maParams = [];
-    if (showMA7)  maParams.push(7);
-    if (showMA30) maParams.push(30);
+    const n = mainPoints.length;
+    const maDefs = [[20, MA20_COLOR], [50, MA50_COLOR], [200, MA200_COLOR]]
+      .filter(([p]) => (p === 20 ? showMA20 : p === 50 ? showMA50 : showMA200) && n >= p);
 
-    if (maParams.length > 0) {
+    if (maDefs.length > 0) {
       try {
         chart.createIndicator(
-          { name: 'MA', calcParams: maParams },
+          { name: 'MA', calcParams: maDefs.map(([p]) => p), styles: { lines: maDefs.map(([, c]) => ({ color: c, size: 1.5 })) } },
           false,
           { id: 'candle_pane' }
         );
@@ -224,7 +257,7 @@ function BondKlineChart({
       }
     }
     // MA yoksa indicator eklenmez — grafik temiz kalır
-  }, [showMA7, showMA30, isComparing, chartMode]);
+  }, [showMA20, showMA50, showMA200, isComparing, chartMode]);
 
   if (!mainPoints || mainPoints.length === 0) {
     return (
@@ -239,11 +272,12 @@ function BondKlineChart({
 }
 
 // ── Toggle butonu ─────────────────────────────────────────────────────────────
-function Toggle({ label, active, color, onClick, disabled }) {
+function Toggle({ label, active, color, onClick, disabled, title }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
+      title={title}
       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
         disabled
           ? 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'
@@ -275,8 +309,9 @@ export default function BondEvdsHistoryChart({
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState(false);
 
-  const [showMA7, setShowMA7]   = useState(true);
-  const [showMA30, setShowMA30] = useState(false);
+  const [showMA20, setShowMA20]   = useState(false);
+  const [showMA50, setShowMA50]   = useState(false);
+  const [showMA200, setShowMA200] = useState(false);
   const [chartMode, setChartMode] = useState('value');
 
   const [compareCode, setCompareCode]     = useState(null);
@@ -343,8 +378,9 @@ export default function BondEvdsHistoryChart({
       // MA'lar karşılaştırma modunda devre dışı
     } else {
       setChartMode('value');
-      setShowMA7(true);
-      setShowMA30(false);
+      setShowMA20(false);
+      setShowMA50(false);
+      setShowMA200(false);
     }
   }, [compareCode]);
 
@@ -384,12 +420,25 @@ export default function BondEvdsHistoryChart({
   const currentPeriod = PERIODS.find(p => p.key === period) ?? PERIODS[1];
   const isLoading = loading || baseLoading || compareLoading;
 
+  // İndikatör için yeterli veri var mı? (kısa geçmişte MA200 dolmaz)
+  const n = filteredPoints.length;
+  const maTitle = (need) => n < need ? t('Yeterli veri yok ({n} nokta gerekir)', { n: need }) : undefined;
+
+  // Trend rozeti — gösterge serisinden (MA20/50)
+  const trendItem = useMemo(
+    () => buildTrendItem(filteredPoints.map(p => parseFloat(p.indicatorValue)), 'BOND'),
+    [filteredPoints],
+  );
+
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
       {/* ── Başlık satırı ── */}
       <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
         <div>
-          <h2 className="font-bold text-gray-900">{t('TCMB EVDS Gösterge Değeri Grafiği')}</h2>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="font-bold text-gray-900">{t('TCMB EVDS Gösterge Değeri Grafiği')}</h2>
+            {!isComparing && trendItem && <TrendBadge item={trendItem} size="xs" />}
+          </div>
           {/* Karşılaştırma yoksa sadece ana kıymet değişimi */}
           {!isComparing && mainPeriodPct != null && (
             <span className={`text-sm font-semibold flex items-center gap-1 mt-0.5 ${(mainPeriodPct ?? 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
@@ -422,11 +471,11 @@ export default function BondEvdsHistoryChart({
           )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex gap-1 flex-wrap">
+          <div className="inline-flex items-center gap-0.5 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
             {PERIODS.map(p => (
               <button key={p.key} onClick={() => setPeriod(p.key)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  period === p.key ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                className={`px-3 py-1 rounded-md text-xs font-semibold whitespace-nowrap transition-all ${
+                  period === p.key ? 'bg-white text-[#093eaa] shadow-sm' : 'text-gray-500 hover:text-gray-800'
                 }`}>
                 {t(p.label)}
               </button>
@@ -456,30 +505,26 @@ export default function BondEvdsHistoryChart({
           </div>
         )}
 
-        {/* MA toggle — karşılaştırma modunda disabled */}
-        <Toggle
-          label="MA7"
-          active={showMA7}
-          color={MA7_COLOR}
+        {/* İndikatör (MA20/50/200) — karşılaştırma modunda + yetersiz veride pasif */}
+        <IndicatorMenu
+          maDefs={[{ period: 20, color: MA20_COLOR, label: 'MA20' }, { period: 50, color: MA50_COLOR, label: 'MA50' }, { period: 200, color: MA200_COLOR, label: 'MA200' }]}
+          activeMAs={[...(showMA20 ? [20] : []), ...(showMA50 ? [50] : []), ...(showMA200 ? [200] : [])]}
+          onToggleMA={(p) => { if (p === 20) setShowMA20(v => !v); else if (p === 50) setShowMA50(v => !v); else setShowMA200(v => !v); }}
+          dataLen={n}
           disabled={isComparing}
-          onClick={() => setShowMA7(v => !v)}
-        />
-        <Toggle
-          label="MA30"
-          active={showMA30}
-          color={MA30_COLOR}
-          disabled={isComparing}
-          onClick={() => setShowMA30(v => !v)}
         />
 
         {/* Karşılaştır */}
-        <div className="ml-auto">
-          <BondCompareSelector
-            mainCode={instrumentCode}
-            compareCode={compareCode}
-            onSelect={code => setCompareCode(code)}
-            onClear={() => setCompareCode(null)}
-          />
+        <div className="ml-auto flex items-center gap-2">
+          <div title={t('Aynı grafikte başka DİBS kıymetleriyle kıyasla')}>
+            <BondCompareSelector
+              mainCode={instrumentCode}
+              compareCode={compareCode}
+              onSelect={code => setCompareCode(code)}
+              onClear={() => setCompareCode(null)}
+            />
+          </div>
+          <UniversalCompareButton assetType="BOND" symbol={instrumentCode} name={instrumentCode} />
         </div>
       </div>
 
@@ -542,8 +587,9 @@ export default function BondEvdsHistoryChart({
             mainCode={instrumentCode}
             compareCode={compareCode}
             chartMode={chartMode}
-            showMA7={showMA7}
-            showMA30={showMA30}
+            showMA20={showMA20}
+            showMA50={showMA50}
+            showMA200={showMA200}
           />
         )}
       </div>

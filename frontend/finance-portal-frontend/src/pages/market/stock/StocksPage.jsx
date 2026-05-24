@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { getStocks, getStockChart, getAllStocks } from '../../../api/marketApi';
 import { useSortable } from '../../../hooks/useSortable';
 import SortableTh from '../../../components/common/SortableTh';
+import WatchlistStar from '../../../components/instrument/WatchlistStar';
 import { STOCK_CHART_RANGES, formatStockChartTimeLabel } from './stockChartRanges';
 import { useTranslation } from '../../../i18n/LanguageContext';
 
@@ -362,11 +363,12 @@ export default function StocksPage() {
                   <SortableTh {...thProps('dayLow', t('Düşük'), 'right')} />
                   <SortableTh {...thProps('volume', t('Hacim'), 'right')} />
                   <SortableTh {...thProps('exchange', t('Borsa'))} />
+                  <th className="px-2 py-3 w-8" aria-label={t('İzle')} />
                 </tr>
               </thead>
               <tbody>
                 {sorted.length === 0
-                  ? <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400 text-sm">{t('Sonuç bulunamadı.')}</td></tr>
+                  ? <tr><td colSpan={10} className="px-4 py-8 text-center text-gray-400 text-sm">{t('Sonuç bulunamadı.')}</td></tr>
                   : sorted.map(r => (
                     <tr key={r.symbol} className="border-t border-gray-100 hover:bg-blue-50 transition-colors cursor-pointer">
                       <td className="px-4 py-3 font-bold text-sm">
@@ -386,6 +388,9 @@ export default function StocksPage() {
                         {r.volume == null ? '-' : Number(r.volume).toLocaleString('tr-TR')}
                       </td>
                       <td className="px-4 py-3 text-xs text-gray-400">{r.exchange ?? '-'}</td>
+                      <td className="px-2 py-3 text-center" onClick={e => e.stopPropagation()}>
+                        <WatchlistStar assetType="STOCK" symbol={r.symbol} name={r.name} price={r.price} />
+                      </td>
                     </tr>
                   ))
                 }

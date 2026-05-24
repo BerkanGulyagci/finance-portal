@@ -97,6 +97,30 @@ function trendFromMovingAverages(item) {
  * @param {object|null} item - Herhangi bir piyasa/varlık nesnesi
  * @returns {{ signal: 'UP'|'DOWN'|'SIDEWAYS'|null, method: string }}
  */
+/**
+ * Bir kapanış serisinden ({@code closes[]}) trend rozeti için item üretir:
+ * son fiyat + serinin kendi MA20/MA50'si (MA kesişimi = güvenilir trend). 52h "konumu"
+ * GİRİLMEZ — yüklenen aralık değişken olduğu için (1A/5Y...) sahte sinyal üretirdi; trend
+ * sadece MA + (varsa) momentum ile hesaplanır. {@link computeTrend} ile kullanılır.
+ *
+ * @param {number[]} closes - kapanış (veya gösterge/NAV) serisi
+ * @param {string} assetType - STOCK | CRYPTO | FX | GOLD | FUND | COMMODITY | BOND | FUTURE
+ * @param {object} [extra] - computeTrend'e geçecek ek alanlar (ör. returnThreeMonths)
+ */
+export function buildTrendItem(closes, assetType, extra = {}) {
+  const arr = (closes ?? []).map(Number).filter(v => Number.isFinite(v) && v > 0);
+  if (arr.length < 2) return null;
+  const last = arr[arr.length - 1];
+  const sma = (p) => (arr.length >= p ? arr.slice(-p).reduce((a, b) => a + b, 0) / p : null);
+  return {
+    assetType,
+    currentPrice: last,
+    ma20: sma(20),
+    ma50: sma(50),
+    ...extra,
+  };
+}
+
 export function computeTrend(item) {
   if (!item) return { signal: null, method: 'no-data' };
 

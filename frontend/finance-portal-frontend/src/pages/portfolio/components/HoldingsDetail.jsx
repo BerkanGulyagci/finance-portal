@@ -433,6 +433,8 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
             holdings={holdingsRows}
             valuesHidden={valuesHidden}
             currency={currency}
+            portfolioId={portfolio.id}
+            portfolioName={portfolio.name}
           />
         )}
         {activeTab === 'stats' && (

@@ -39,7 +39,8 @@ public class MarketFxPresentationMapper {
     }
 
     private FxRateItemDto toFxRateItemDto(FxRateItem item) {
-        return new FxRateItemDto(item.getSymbol(), item.getBuy(), item.getSell(), item.getUnit());
+        return new FxRateItemDto(item.getSymbol(), item.getBuy(), item.getSell(), item.getUnit(),
+                item.getEffectiveBuy(), item.getEffectiveSell());
     }
 
     private com.finance.portal.market.presentation.dto.FxHistoryPoint toFxHistoryPointDto(FxHistoryPoint point) {

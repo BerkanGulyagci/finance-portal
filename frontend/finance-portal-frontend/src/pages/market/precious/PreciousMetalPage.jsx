@@ -8,7 +8,13 @@ import GoldErrorState    from '../gold/components/GoldErrorState';
 import GoldChart         from '../gold/components/GoldChart';
 import GoldChartToolbar  from '../gold/components/GoldChartToolbar';
 import GoldSourceNotice  from '../gold/components/GoldSourceNotice';
+import PreciousCompareButton from '../../../components/common/PreciousCompareButton';
+import UniversalCompareButton from '../../../components/common/UniversalCompareButton';
+import InstrumentActionButtons from '../../../components/instrument/InstrumentActionButtons';
 import { useTranslation } from '../../../i18n/LanguageContext';
+
+// Aktif sekme → COMMODITY sembol kategorisi (portföy/alarm/kıyas için)
+const PRECIOUS_CAT = { try_gram: 'GRAM_TRY', try_kg: 'KG_TRY', usd_ons: 'USD_ONS', eur_ons: 'EUR_ONS' };
 
 // ── Yardımcı ─────────────────────────────────────────────────────────────────
 function fmt(v, dec = 2) {
@@ -236,6 +242,22 @@ export default function PreciousMetalPage({ metal, metalName }) {
                 <StatRow label="TL/Gram"  value={spot.tryGram != null ? `₺${fmt(spot.tryGram)}` : '-'} />
                 <StatRow label="TL/Kg"    value={spot.tryKg   != null ? `₺${fmt(spot.tryKg, 0)}` : '-'} />
                 <StatRow label="EUR/Ons"  value={spot.eurOns  != null ? `€${fmt(spot.eurOns)}`  : '-'} />
+              </div>
+
+              {/* Karşılaştır + Portföye Ekle + Alarm */}
+              <div className="flex items-center gap-2 flex-wrap mb-4">
+                <PreciousCompareButton />
+                <UniversalCompareButton
+                  assetType="COMMODITY"
+                  symbol={`${metal.toUpperCase()}:${PRECIOUS_CAT[activeTabKey] ?? 'GRAM_TRY'}`}
+                  name={activeTab.label}
+                />
+                <InstrumentActionButtons
+                  assetType="COMMODITY"
+                  symbol={`${metal.toUpperCase()}:${PRECIOUS_CAT[activeTabKey] ?? 'GRAM_TRY'}`}
+                  name={activeTab.label}
+                  price={currentPrice}
+                />
               </div>
 
               {/* Toolbar — canCandle:false → mum grafik butonu yok */}

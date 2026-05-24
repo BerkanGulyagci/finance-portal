@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, X, Plus } from 'lucide-react';
 import client from '../../../api/client';
 import { parseTrNumber } from '../../../utils/numberFormat';
@@ -131,6 +132,9 @@ const FX_NAMES = {
 };
 
 const PAGE_SIZE = 15;
+
+// Tür bazlı oturum önbelleği — modal her açıldığında tüm listeyi yeniden çekmesin (hız).
+const TYPE_CACHE = new Map();
 
 /** BIST altın spot — sembole göre TL referans fiyatı. */
 function pickGoldSpotPrice(symbol, g) {
@@ -457,9 +461,9 @@ function buildCommoditySections(allItems, query, expanded) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function InstrumentSearchModal({ portfolioName, onSelect, onClose }) {
+export default function InstrumentSearchModal({ portfolioName, onSelect, onClose, initialType = 'STOCK' }) {
   const { t } = useTranslation();
-  const [activeType, setActiveType] = useState('STOCK');
+  const [activeType, setActiveType] = useState(initialType);
   const [query, setQuery] = useState('');
   const [allItems, setAllItems] = useState([]);   // tüm veri
   const [displayed, setDisplayed] = useState([]); // gösterilen (sayfalı)
@@ -476,11 +480,11 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
   // Tüm veriyi yükle
   const loadAll = useCallback(async (type) => {
     setLoading(true);
-    setAllItems([]);
     setDisplayed([]);
     setPage(1);
     try {
-      const items = await fetchAll(type);
+      let items = TYPE_CACHE.get(type);
+      if (!items) { items = await fetchAll(type); TYPE_CACHE.set(type, items); }
       setAllItems(items);
       if (type === 'COMMODITY') {
         setDisplayed([]);
@@ -500,8 +504,8 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
     }
   }, []);
 
-  // İlk yükleme
-  useEffect(() => { loadAll('STOCK'); }, [loadAll]);
+  // İlk yükleme — modal hangi tür için açıldıysa o türle başla
+  useEffect(() => { loadAll(initialType); }, [loadAll, initialType]);
 
   // Tip değişince
   function handleTypeChange(type) {
@@ -771,7 +775,7 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
     query.trim() &&
     commodityView.sections.every(s => !s.items.length);
 
-  return (
+  return createPortal((
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1a1b22]/30">
       <div
         className="bg-white rounded-2xl shadow-2xl border border-[#e2e1eb] w-full max-w-2xl overflow-hidden flex flex-col"
@@ -943,5 +947,5 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
         )}
       </div>
     </div>
-  );
+  ), document.body);
 }

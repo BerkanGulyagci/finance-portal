@@ -8,10 +8,6 @@ export default function GoldChartToolbar({
   onRangeChange,
   chartMode,
   onChartModeChange,
-  showMA7, onToggleMA7,
-  showMA30, onToggleMA30,
-  showMA90, onToggleMA90,
-  showTrend, onToggleTrend,
   loading,
   onRefresh,
 }) {
@@ -46,43 +42,19 @@ export default function GoldChartToolbar({
             </div>
           )}
 
-          {/* İndikatörler */}
-          {[
-            { key: 'ma7',   label: 'MA7',   active: showMA7,   toggle: onToggleMA7,   color: '#f59e0b' },
-            { key: 'ma30',  label: 'MA30',  active: showMA30,  toggle: onToggleMA30,  color: '#a855f7' },
-            { key: 'ma90',  label: 'MA90',  active: showMA90,  toggle: onToggleMA90,  color: '#06b6d4' },
-            { key: 'trend', label: t('Trend'), active: showTrend, toggle: onToggleTrend, color: '#ef4444' },
-          ].map(ind => (
-            <button
-              key={ind.key}
-              onClick={ind.toggle}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold border transition-all ${
-                ind.active
-                  ? 'text-white border-transparent'
-                  : 'border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100'
-              }`}
-              style={ind.active ? { backgroundColor: ind.color } : {}}
-            >
-              <span
-                className="inline-block w-3 h-0.5 rounded"
-                style={{ backgroundColor: ind.active ? 'white' : ind.color }}
-              />
-              {ind.label}
-            </button>
-          ))}
         </div>
 
         {/* Sağ: range + yenile */}
         <div className="flex items-center gap-1.5">
-          <div className="flex gap-1">
+          <div className="inline-flex items-center gap-0.5 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
             {RANGES.map(r => (
               <button
                 key={r}
                 onClick={() => onRangeChange(r)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`px-3 py-1 rounded-md text-xs font-semibold whitespace-nowrap transition-all ${
                   range === r
-                    ? 'bg-[#093eaa] text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-white text-[#093eaa] shadow-sm'
+                    : 'text-gray-500 hover:text-gray-800'
                 }`}
               >
                 {t(RANGE_LABELS[r])}

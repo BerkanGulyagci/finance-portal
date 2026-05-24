@@ -1,10 +1,15 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { useParams, useLocation, Link } from 'react-router-dom';
-import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown, ChevronDown, BarChart2 } from 'lucide-react';
 import { init as klineInit, dispose as klineDispose } from 'klinecharts';
 import { getRasyonetFundDetail, getFundPriceHistory } from '../../../api/marketApi';
 import { FUND_CHART_RANGES, buildFundChartSeries } from './fundChartSeries';
 import { useTranslation } from '../../../i18n/LanguageContext';
+import TrendBadge from '../../../components/common/TrendBadge';
+import UniversalCompareButton from '../../../components/common/UniversalCompareButton';
+import InstrumentActionButtons from '../../../components/instrument/InstrumentActionButtons';
+import IndicatorMenu from '../../../components/common/IndicatorMenu';
+import { buildTrendItem } from '../../../utils/trendUtils';
 
 // ── Yardımcılar ───────────────────────────────────────────────────────────────
 
@@ -47,6 +52,17 @@ function fmtPercentField(raw) {
   const n = parseFloat(s);
   if (Number.isNaN(n)) return String(raw);
   return `%${n.toFixed(2)}`;
+}
+
+/**
+ * Varlık dağılımı yüzdesi — 2 ondalıkta "0.00"a yuvarlanacak kadar küçük ama SIFIR OLMAYAN
+ * değerleri de gerçeğiyle göster (ör. 0.0034). Gerçekten 0 ise "0". Normalde 2 ondalık.
+ */
+function fmtAllocPct(v) {
+  const n = toFloat(v);
+  if (n == null || n === 0) return '0';
+  if (Math.abs(n) >= 0.005) return n.toFixed(2);
+  return String(parseFloat(n.toPrecision(2))); // 0.0034, 0.00012 … (sondaki sıfırlar atılır)
 }
 
 // ── Risk göstergesi ───────────────────────────────────────────────────────────
@@ -102,7 +118,7 @@ const FUND_DRAWING_TOOLS = [
   ]},
 ];
 
-function FundDrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll }) {
+function FundDrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll, indicatorSlot }) {
   const { t } = useTranslation();
   const [openGroup, setOpenGroup] = useState(null);
   return (
@@ -111,12 +127,13 @@ function FundDrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClea
         <div key={group} className="relative">
           <button
             onClick={() => setOpenGroup(openGroup === group ? null : group)}
-            className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
-              tools.some(tool => tool.id === activeTool)
-                ? 'bg-[#093eaa] text-white border-[#093eaa]'
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+              tools.some(tool => tool.id === activeTool) || openGroup === group
+                ? 'border-[#093eaa] text-[#093eaa] bg-[#093eaa]/5'
                 : 'bg-white text-gray-600 border-gray-200 hover:border-[#093eaa] hover:text-[#093eaa]'
             }`}>
-            {t(group)} ▾
+            {t(group)}
+            <ChevronDown className={`w-3 h-3 transition-transform ${openGroup === group ? 'rotate-180' : ''}`} />
           </button>
           {openGroup === group && (
             <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-1 min-w-[180px]">
@@ -134,6 +151,12 @@ function FundDrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClea
           )}
         </div>
       ))}
+      {indicatorSlot && (
+        <>
+          <div className="w-px h-6 bg-gray-200 mx-1" />
+          {indicatorSlot}
+        </>
+      )}
       <div className="w-px h-6 bg-gray-200 mx-1" />
       <button onClick={onDeleteSelected} title={t('Seçili çizimi sil')}
         className="p-1.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 transition-all border border-gray-200">
@@ -158,9 +181,9 @@ function FundDrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClea
 }
 
 const FUND_MA_DEFS = [
-  { period: 7,  color: '#f59e0b', label: 'MA7'  },
-  { period: 30, color: '#3b82f6', label: 'MA30' },
-  { period: 90, color: '#8b5cf6', label: 'MA90' },
+  { period: 20,  color: '#f59e0b', label: 'MA20'  },
+  { period: 50,  color: '#a855f7', label: 'MA50'  },
+  { period: 200, color: '#ef4444', label: 'MA200' },
 ];
 
 function FundPriceChart({ code, fonTipi, priceHistory, monthlyReturns }) {
@@ -259,8 +282,10 @@ function FundPriceChart({ code, fonTipi, priceHistory, monthlyReturns }) {
     try { chart.removeIndicator('candle_pane', 'MA'); } catch (_) {}
     if (periods.length > 0) {
       try {
+        const sorted = [...periods].sort((a, b) => a - b);
+        const lines = sorted.map(p => ({ color: FUND_MA_DEFS.find(m => m.period === p)?.color ?? '#888', size: 1.5 }));
         chart.createIndicator(
-          { name: 'MA', calcParams: [...periods].sort((a, b) => a - b) },
+          { name: 'MA', calcParams: sorted, styles: { lines } },
           false,
           { id: 'candle_pane' }
         );
@@ -419,9 +444,13 @@ function FundPriceChart({ code, fonTipi, priceHistory, monthlyReturns }) {
       });
     } catch (_) {}
 
-    // Aktif MA'ları yeniden uygula
+    // Aktif MA'ları yeniden uygula (buton rengiyle aynı çizgi)
     if (activeMAs.length > 0) {
-      try { chart.createIndicator({ name: 'MA', calcParams: [...activeMAs].sort((a, b) => a - b) }, false, { id: 'candle_pane' }); } catch (_) {}
+      try {
+        const sorted = [...activeMAs].sort((a, b) => a - b);
+        const lines = sorted.map(p => ({ color: FUND_MA_DEFS.find(m => m.period === p)?.color ?? '#888', size: 1.5 }));
+        chart.createIndicator({ name: 'MA', calcParams: sorted, styles: { lines } }, false, { id: 'candle_pane' });
+      } catch (_) {}
     }
 
     // Aktif trend'i yeniden uygula
@@ -477,11 +506,11 @@ function FundPriceChart({ code, fonTipi, priceHistory, monthlyReturns }) {
           <span className="text-xs text-gray-400">
             {chartLoading ? `${t('yükleniyor')}…` : `${filtered.length} ${t('veri noktası')} · ${chartSource}`}
           </span>
-          <div className="flex gap-1">
+          <div className="inline-flex items-center gap-0.5 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
             {FUND_CHART_RANGES.map(r => (
               <button key={r.key} onClick={() => setRange(r.key)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  range === r.key ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                className={`px-3 py-1 rounded-md text-xs font-semibold whitespace-nowrap transition-all ${
+                  range === r.key ? 'bg-white text-[#093eaa] shadow-sm' : 'text-gray-500 hover:text-gray-800'
                 }`}>
                 {t(r.label)}
               </button>
@@ -490,37 +519,27 @@ function FundPriceChart({ code, fonTipi, priceHistory, monthlyReturns }) {
         </div>
       </div>
 
-      {/* ── Satır 2: MA + Trend butonları ── */}
-      <div className="flex items-center gap-2 mb-2 flex-wrap">
-        {FUND_MA_DEFS.map(({ period, color, label }) => {
-          const active = activeMAs.includes(period);
-          return (
-            <button key={period} onClick={() => toggleMA(period)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all border ${
-                active ? 'text-white border-transparent' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
-              }`}
-              style={active ? { backgroundColor: color, borderColor: color } : {}}>
-              {t(label)}
-            </button>
-          );
-        })}
-        <div className="w-px h-5 bg-gray-200" />
-        <button onClick={toggleTrend}
-          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all border ${
-            showTrend
-              ? 'bg-amber-500 text-white border-amber-500'
-              : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
-          }`}>
-          📈 {t('Trend')}
-        </button>
-      </div>
+      {/* Trend rozeti */}
+      {(() => {
+        const ti = buildTrendItem(filtered.map(p => toFloat(p.price)), 'FUND');
+        return ti ? <div className="mb-2"><TrendBadge item={ti} size="xs" /></div> : null;
+      })()}
 
-      {/* ── Drawing Toolbar (hisse sayfasıyla aynı) ── */}
+      {/* ── Drawing Toolbar (İndikatör dropdown çizim gruplarının yanında — hisse detay tarzı) ── */}
       <FundDrawingToolbar
         activeTool={activeTool}
         onSelectTool={handleSelectTool}
         onDeleteSelected={handleDeleteSelected}
         onClearAll={handleClearAll}
+        indicatorSlot={
+          <IndicatorMenu
+            maDefs={FUND_MA_DEFS}
+            activeMAs={activeMAs}
+            onToggleMA={toggleMA}
+            dataLen={filtered.length}
+            extras={[{ key: 'trend', label: 'Trend', color: '#f59e0b', active: showTrend, onToggle: toggleTrend }]}
+          />
+        }
       />
 
       {/* ── Chart ── */}
@@ -726,7 +745,7 @@ function AssetAllocationChart({ assetAllocation }) {
               <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
               <span className="text-gray-700">{s.name}</span>
             </div>
-            <span className="text-gray-900 font-semibold">%{(toFloat(s.percentage) ?? 0).toFixed(2)}</span>
+            <span className="text-gray-900 font-semibold">%{fmtAllocPct(s.percentage)}</span>
           </div>
         ))}
         <p className="text-[10px] text-gray-400 mt-2 px-1">{t('Veriler saatlik olarak güncellenmektedir.')}</p>
@@ -813,6 +832,11 @@ export default function TefasFundDetailPage() {
               </p>
             )}
           </div>
+        </div>
+
+        {/* Portföye Ekle + Alarm (yalnız giriş yapan kullanıcı) */}
+        <div className="mt-4">
+          <InstrumentActionButtons assetType="FUND" symbol={code} name={name} price={price} />
         </div>
 
         {/* Risk + KAP */}
@@ -910,7 +934,19 @@ export default function TefasFundDetailPage() {
           {activeTab === 'chart' && (
             <div className="space-y-5">
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-                <h2 className="font-bold text-gray-900 mb-2">{t('Fiyat Grafiği')}</h2>
+                <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                  <h2 className="font-bold text-gray-900">{t('Fiyat Grafiği')}</h2>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      to={`/market/tefas/compare?codes=${code}`}
+                      title={t('Fonları kendi karşılaştırma sayfasında kıyasla')}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-[#093eaa]/25 text-[#093eaa] bg-[#093eaa]/5 hover:bg-[#093eaa]/10 transition-all"
+                    >
+                      <BarChart2 className="w-3.5 h-3.5" /> {t('Karşılaştır')}
+                    </Link>
+                    <UniversalCompareButton assetType="FUND" symbol={code} name={name || code} />
+                  </div>
+                </div>
                 <FundPriceChart
                   code={code}
                   fonTipi={sourceCode === 'TMF' ? 'YAT' : 'EMK'}

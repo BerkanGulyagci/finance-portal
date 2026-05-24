@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getGoldSpot, getGoldHistory } from '../../../api/marketApi';
-import { getGoldNews } from '../../../api/newsApi';
 
 import { GOLD_TABS, calcTheoreticalPrice } from './components/goldConstants';
 import GoldTabs                   from './components/GoldTabs';
@@ -10,58 +9,28 @@ import GoldErrorState             from './components/GoldErrorState';
 import GoldHeaderCard             from './components/GoldHeaderCard';
 import GoldPriceStats             from './components/GoldPriceStats';
 import GoldChartToolbar           from './components/GoldChartToolbar';
+import TrendBadge                 from '../../../components/common/TrendBadge';
+import UniversalCompareButton      from '../../../components/common/UniversalCompareButton';
+import PreciousCompareButton       from '../../../components/common/PreciousCompareButton';
+import InstrumentActionButtons     from '../../../components/instrument/InstrumentActionButtons';
+import { buildTrendItem }         from '../../../utils/trendUtils';
 import GoldChart                  from './components/GoldChart';
 import GoldSourceNotice           from './components/GoldSourceNotice';
 import GoldTheoreticalPricesTable from './components/GoldTheoreticalPricesTable';
 import GoldCalculator             from './components/GoldCalculator';
 import { useTranslation } from '../../../i18n/LanguageContext';
 
-// ── Haber bileşeni (küçük, burada kalabilir) ──────────────────────────────────
-function GoldNews({ news, label }) {
-  const { t } = useTranslation();
-  const resolvedLabel = label ?? t('İlgili Haberler');
-  return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-      <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-        📰 {resolvedLabel}
-      </h2>
-      {news.length === 0 ? (
-        <p className="text-gray-400 text-sm">{t('Haber yükleniyor...')}</p>
-      ) : (
-        <div className="space-y-4">
-          {news.slice(0, 6).map((item, i) => (
-            <a
-              key={i}
-              href={item.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex gap-3 group hover:bg-gray-50 rounded-xl p-2 -mx-2 transition-colors"
-            >
-              {item.imageUrl && (
-                <img
-                  src={item.imageUrl}
-                  alt=""
-                  className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
-                />
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-800 group-hover:text-[#093eaa] transition-colors line-clamp-2 leading-snug">
-                  {item.title}
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  {item.source && <span className="font-semibold">{item.source} · </span>}
-                  {item.publishedAt
-                    ? new Date(item.publishedAt).toLocaleDateString('tr-TR')
-                    : ''}
-                </p>
-              </div>
-            </a>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+// Alarm/işlem ön-doldurması için: compareSymbol → spot TRY fiyat alanı (backend probe ile aynı eşleme)
+const GOLD_SPOT_FIELD_BY_SYMBOL = {
+  GOLD: 'onsTry',
+  GRAM: 'gramGoldTry',
+  CEYREK: 'quarterGoldTry',
+  YARIM: 'halfGoldTry',
+  ZIYNET: 'ziynetGoldTry',
+  CUMHUR: 'republicGoldTry',
+  '14AYAR': 'fourteenKBraceletTry',
+  '22AYAR': 'twentyTwoKBraceletTry',
+};
 
 // ── Chart noktalarını tab'a göre dönüştür ─────────────────────────────────────
 function buildDisplayPoints(historyPoints, activeTab) {
@@ -134,13 +103,11 @@ export default function GoldPage() {
   const [loadingSpot,  setLoadingSpot]  = useState(true);
   const [loadingChart, setLoadingChart] = useState(false);
   const [error,        setError]        = useState('');
-  const [news,         setNews]         = useState([]);
-  const [newsLabel,    setNewsLabel]    = useState(t('İlgili Haberler'));
 
-  // İndikatör state'leri
-  const [showMA7,   setShowMA7]   = useState(false);
-  const [showMA30,  setShowMA30]  = useState(false);
-  const [showMA90,  setShowMA90]  = useState(false);
+  // İndikatör state'leri (MA20/50/200 — tüm detay grafiklerinde ortak)
+  const [showMA20,  setShowMA20]  = useState(false);
+  const [showMA50,  setShowMA50]  = useState(false);
+  const [showMA200, setShowMA200] = useState(false);
   const [showTrend, setShowTrend] = useState(false);
 
   const activeTab = GOLD_TABS.find(tb => tb.key === activeTabKey) ?? GOLD_TABS[0];
@@ -153,20 +120,13 @@ export default function GoldPage() {
     }
   }, [searchParams]);
 
-  // ── Spot + haberler ───────────────────────────────────────────────────────
+  // ── Spot ────────────────────────────────────────────────────────────────────
   useEffect(() => {
     setLoadingSpot(true);
     getGoldSpot()
       .then(setSpot)
       .catch(() => setError(t('Altın verisi alınamadı.')))
       .finally(() => setLoadingSpot(false));
-
-    getGoldNews()
-      .then(result => {
-        setNews(result?.items ?? []);
-        setNewsLabel(result?.label ?? t('İlgili Haberler'));
-      })
-      .catch(() => {});
   }, []);
 
   // ── History ───────────────────────────────────────────────────────────────
@@ -208,6 +168,10 @@ export default function GoldPage() {
   );
 
   // Grafik yönü (son - ilk)
+  const trendItem = useMemo(
+    () => buildTrendItem(displayPoints.map(p => parseFloat(p.displayClose)), 'GOLD'),
+    [displayPoints],
+  );
   const isDown = useMemo(() => {
     if (!displayPoints.length) return false;
     const first = parseFloat(displayPoints[0].displayClose ?? 0);
@@ -238,12 +202,41 @@ export default function GoldPage() {
                 historyPoints={displayPoints}
               />
 
-              {/* İstatistikler */}
-              <GoldPriceStats
-                spot={spot}
-                activeTab={activeTab}
-                historyPoints={displayPoints}
-              />
+              {/* Bilgiler (geniş) + Çevirici (dar) */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+                <div className="lg:col-span-2 min-w-0">
+                  <GoldPriceStats
+                    spot={spot}
+                    activeTab={activeTab}
+                    historyPoints={displayPoints}
+                  />
+                </div>
+                <GoldCalculator spot={spot} />
+              </div>
+
+              {/* Trend rozeti + Karşılaştır (sola hizalı — sağdaki zaman filtresinden ayrı) */}
+              <div className="flex items-center gap-3 flex-wrap mb-4 mt-3">
+                {trendItem && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400 font-medium">{t('Trend:')}</span>
+                    <TrendBadge item={trendItem} size="sm" />
+                  </div>
+                )}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <PreciousCompareButton />
+                  <UniversalCompareButton
+                    assetType="GOLD"
+                    symbol={activeTab.compareSymbol}
+                    name={t(activeTab.label)}
+                  />
+                  <InstrumentActionButtons
+                    assetType="GOLD"
+                    symbol={activeTab.compareSymbol}
+                    name={t(activeTab.label)}
+                    price={spot?.[GOLD_SPOT_FIELD_BY_SYMBOL[activeTab.compareSymbol] ?? 'gramGoldTry']}
+                  />
+                </div>
+              </div>
 
               {/* Grafik toolbar */}
               <GoldChartToolbar
@@ -252,26 +245,24 @@ export default function GoldPage() {
                 onRangeChange={handleRangeChange}
                 chartMode={chartMode}
                 onChartModeChange={setChartMode}
-                showMA7={showMA7}   onToggleMA7={() => setShowMA7(v => !v)}
-                showMA30={showMA30} onToggleMA30={() => setShowMA30(v => !v)}
-                showMA90={showMA90} onToggleMA90={() => setShowMA90(v => !v)}
-                showTrend={showTrend} onToggleTrend={() => setShowTrend(v => !v)}
                 loading={loadingChart}
                 onRefresh={loadHistory}
               />
 
-              {/* Grafik */}
+              {/* Grafik (tam genişlik) */}
               <GoldChart
                 key={`${activeTabKey}-${range}-${chartMode}`}
                 points={displayPoints}
                 chartMode={activeTab.canCandle ? chartMode : 'line'}
                 isDown={isDown}
                 loading={loadingChart}
-                showMA7={showMA7}
-                showMA30={showMA30}
-                showMA90={showMA90}
-                showTrend={showTrend}
+                showMA20={showMA20}   onToggleMA20={() => setShowMA20(v => !v)}
+                showMA50={showMA50}   onToggleMA50={() => setShowMA50(v => !v)}
+                showMA200={showMA200} onToggleMA200={() => setShowMA200(v => !v)}
+                showTrend={showTrend} onToggleTrend={() => setShowTrend(v => !v)}
+                dataLen={displayPoints.length}
                 currency={activeTab.currency}
+                height={340}
               />
 
               {/* Kaynak uyarısı */}
@@ -283,21 +274,15 @@ export default function GoldPage() {
                   disclaimer={history?.disclaimer ?? spot?.disclaimer}
                 />
               </div>
+
+              {/* Teorik referans fiyatlar — grafiğin altında */}
+              <div className="mt-5">
+                <GoldTheoreticalPricesTable spot={spot} />
+              </div>
             </>
           ) : null}
         </div>
       </div>
-
-      {/* Teorik fiyatlar tablosu */}
-      {spot && <GoldTheoreticalPricesTable spot={spot} />}
-
-      {/* Hesaplama + Haberler */}
-      {spot && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <GoldCalculator spot={spot} />
-          <GoldNews news={news} label={newsLabel} />
-        </div>
-      )}
     </div>
   );
 }

@@ -114,7 +114,7 @@ export default function FuturesDetailPage() {
         <ArrowLeft className="w-4 h-4" /> {t('Vadeli İşlemler')}
       </Link>
 
-      {/* Kompakt header (tek satır) */}
+      {/* Kompakt header (tek satır) — Portföye Ekle + Alarm header'ın içinde */}
       <ViopContractHeader contract={contract} />
 
       {/* Tek 3-kolonlu grid:

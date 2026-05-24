@@ -1,9 +1,71 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, X, Plus, BarChart2, Search, TrendingUp, TrendingDown } from 'lucide-react';
-import { getStockChart, getStockMidasDetail, getAllStocks } from '../../../api/marketApi';
+import { getStockChart, getStockMidasDetail, getAllStocks, getMarketPriceHistory } from '../../../api/marketApi';
 import { STOCK_CHART_RANGES } from './stockChartRanges';
 import { useTranslation } from '../../../i18n/LanguageContext';
+import InstrumentSearchModal from '../../portfolio/components/InstrumentSearchModal';
+
+const ASSET_LABELS = {
+  STOCK: 'Hisse', CRYPTO: 'Kripto', FX: 'Döviz', FUND: 'Fon',
+  FUTURE: 'Vadeli', GOLD: 'Altın', COMMODITY: 'Emtia', BOND: 'DİBS',
+  INDICATOR: 'Gösterge',
+};
+
+// Faiz/enflasyon benchmark'ları — fiyat değil, kümülatif % endeks (INDICATOR türü).
+const BENCHMARK_SHORTCUTS = [
+  { key: 'INDICATOR|TUFE', assetType: 'INDICATOR', symbol: 'TUFE', label: 'Enflasyon (TÜFE)' },
+  { key: 'INDICATOR|USCPI_TRY', assetType: 'INDICATOR', symbol: 'USCPI_TRY', label: 'ABD Enflasyonu' },
+  { key: 'INDICATOR|DEPOSIT', assetType: 'INDICATOR', symbol: 'DEPOSIT', label: 'Mevduat Faizi' },
+];
+
+/**
+ * Adil kıyas için tüm serileri ORTAK başlangıç tarihinden %0'a sabitler.
+ * Farklı geçmişe sahip varlıklarda (ör. yeni halka arz hisse vs 10y enflasyon) her seri kendi
+ * ilk tarihinden başlarsa kıyas yanıltıcı olur. Ortak başlangıç = serilerin ilk-veri tarihlerinin
+ * EN GEÇ olanı; herkes o tarihteki değerine göre yeniden normalize edilir, öncesi kırpılır.
+ */
+function rebaseToCommonStart(rows, keys) {
+  if (!rows.length || !keys.length) return rows;
+  const firstIdx = {};
+  keys.forEach(k => {
+    for (let i = 0; i < rows.length; i++) {
+      if (rows[i][`__price_${k}`] != null) { firstIdx[k] = i; break; }
+    }
+  });
+  const present = keys.filter(k => firstIdx[k] != null);
+  if (!present.length) return rows;
+  const startIdx = Math.max(...present.map(k => firstIdx[k]));
+  if (startIdx <= 0) return rows; // hepsi zaten aynı tarihten başlıyor
+  const baseline = {};
+  present.forEach(k => {
+    for (let i = startIdx; i < rows.length; i++) {
+      const p = rows[i][`__price_${k}`];
+      if (p != null) { baseline[k] = p; break; }
+    }
+  });
+  return rows.slice(startIdx).map(row => {
+    const r = { ...row };
+    present.forEach(k => {
+      const p = r[`__price_${k}`];
+      r[k] = (p != null && baseline[k]) ? parseFloat(((p - baseline[k]) / baseline[k] * 100).toFixed(3)) : null;
+    });
+    return r;
+  });
+}
+
+/** Yahoo aralığını genel price-history endpoint aralığına çevir. */
+function toGenericRange(yahooRange) {
+  switch (yahooRange) {
+    case '1d': case '5d': case '1mo': return '1M';
+    case '3mo': return '3M';
+    case '6mo': return '6M';
+    case '1y': return '1Y';
+    case '5y': return '5Y';
+    case 'max': return 'ALL';
+    default: return '1Y';
+  }
+}
 
 // ── Sabitler ──────────────────────────────────────────────────────────────────
 const COLORS = ['#093eaa', '#f97316', '#8b5cf6', '#10b981'];
@@ -109,8 +171,8 @@ function calcMetrics(prices) {
 
 // ── Endeks kısayolları ────────────────────────────────────────────────────────
 const INDEX_SHORTCUTS = [
-  { symbol: 'XU100.IS', label: 'BIST 100', badge: '📊' },
-  { symbol: 'XU030.IS', label: 'BIST 30',  badge: '📈' },
+  { symbol: 'XU100.IS', label: 'BIST 100' },
+  { symbol: 'XU030.IS', label: 'BIST 30' },
 ];
 function fmtNum(val, decimals = 2) {
   if (val == null || val === '' || val === '-') return '-';
@@ -132,7 +194,7 @@ function BounceDots({ size = 'md' }) {
 }
 
 // ── ECharts Karşılaştırma Grafiği ─────────────────────────────────────────────
-function EChartsCompareChart({ chartData, selectedSymbols }) {
+function EChartsCompareChart({ chartData, seriesDefs }) {
   const chartRef = useRef(null);
   const instanceRef = useRef(null);
 
@@ -150,20 +212,24 @@ function EChartsCompareChart({ chartData, selectedSymbols }) {
 
       const labels = chartData.map(d => d.label);
 
-      const series = selectedSymbols.map((sym, idx) => ({
-        name: INDEX_SHORTCUTS.find(i => i.symbol === sym)?.label ?? sym.replace('.IS', '').replace('.is', '').toUpperCase(),
+      const series = seriesDefs.map(def => ({
+        name: def.name,
         type: 'line',
-        data: chartData.map(d => {
-          const pct = d[sym];
-          const price = d[`__price_${sym}`];
-          return { value: pct ?? null, price: price ?? null };
-        }),
+        data: chartData.map(d => ({
+          value: d[def.key] ?? null,
+          price: d[`__price_${def.key}`] ?? null,
+        })),
         smooth: false,
         symbol: 'none',
-        lineStyle: { width: 2.5, color: COLORS[idx % COLORS.length] },
-        itemStyle: { color: COLORS[idx % COLORS.length] },
+        lineStyle: { width: 2.5, color: def.color },
+        itemStyle: { color: def.color },
         connectNulls: true,
       }));
+
+      // Benchmark (enflasyon/faiz) serileri fiyat değil endekstir → tooltip'te ₺ gösterme
+      const indicatorNames = new Set(
+        (seriesDefs || []).filter(d => String(d.key).startsWith('INDICATOR|')).map(d => d.name),
+      );
 
       const option = {
         backgroundColor: '#ffffff',
@@ -217,7 +283,7 @@ function EChartsCompareChart({ chartData, selectedSymbols }) {
               html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
                 <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${p.color};flex-shrink:0"></span>
                 <span style="font-weight:700;color:#374151;min-width:60px">${p.seriesName}:</span>
-                ${price != null ? `<span style="color:#6b7280;font-family:monospace">₺${parseFloat(price).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>` : ''}
+                ${price != null && !indicatorNames.has(p.seriesName) ? `<span style="color:#6b7280;font-family:monospace">₺${parseFloat(price).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>` : ''}
                 <span style="font-weight:700;color:${pctColor};margin-left:auto">${isPos ? '+' : ''}${p.value.toFixed(2)}%</span>
               </div>`;
             });
@@ -272,7 +338,7 @@ function EChartsCompareChart({ chartData, selectedSymbols }) {
         instanceRef.current = null;
       }
     };
-  }, [chartData, selectedSymbols]);
+  }, [chartData, seriesDefs]);
 
   return <div ref={chartRef} style={{ width: '100%', height: '420px' }} />;
 }
@@ -280,10 +346,14 @@ function EChartsCompareChart({ chartData, selectedSymbols }) {
 // ── Ana Sayfa ─────────────────────────────────────────────────────────────────
 export default function StockComparePage() {
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
   const [allStocks, setAllStocks] = useState([]);
   const [stocksLoading, setStocksLoading] = useState(true);
 
   const [selectedSymbols, setSelectedSymbols] = useState([]);
+  const [extraItems, setExtraItems] = useState([]); // [{assetType, symbol, name, key}] — hisse-dışı kıyaslar
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [chartSeriesDefs, setChartSeriesDefs] = useState([]); // [{key, name, color}]
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
 
@@ -308,6 +378,26 @@ export default function StockComparePage() {
       .finally(() => setStocksLoading(false));
   }, []);
 
+  // ── Detay sayfasından gelen ?add= ile ön-seçim ────────────────────────────
+  // Biçim: "SEMBOL" (hisse, geriye uyumlu) ya da "TÜR|SEMBOL" (+ ?name=Görünen Ad).
+  useEffect(() => {
+    const add = searchParams.get('add');
+    if (!add) return;
+    const name = searchParams.get('name') || undefined;
+    if (add.includes('|')) {
+      const [type, sym] = add.split('|');
+      if (!type || !sym) return;
+      if (type.toUpperCase() === 'STOCK') {
+        setSelectedSymbols(prev => prev.includes(sym) || prev.length >= MAX_STOCKS ? prev : [...prev, sym]);
+      } else {
+        const key = `${type}|${sym}`;
+        setExtraItems(prev => prev.some(e => e.key === key) ? prev : [...prev, { assetType: type, symbol: sym, name: name || sym, key }]);
+      }
+    } else {
+      setSelectedSymbols(prev => prev.includes(add) || prev.length >= MAX_STOCKS ? prev : [...prev, add]);
+    }
+  }, [searchParams]);
+
   // ── Arama filtresi ────────────────────────────────────────────────────────
   const filteredStocks = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -322,9 +412,12 @@ export default function StockComparePage() {
   }, [allStocks, selectedSymbols, searchQuery]);
 
   // ── Hisse ekle / kaldır ───────────────────────────────────────────────────
+  const totalCount = selectedSymbols.length + extraItems.length;
+  const mixedMode = extraItems.length > 0;
+
   function addSymbol(symbol) {
     if (selectedSymbols.includes(symbol)) return;
-    if (selectedSymbols.length >= MAX_STOCKS) return;
+    if (totalCount >= MAX_STOCKS) return;
     setSelectedSymbols(prev => [...prev, symbol]);
     setSearchQuery('');
     setShowDropdown(false);
@@ -337,54 +430,120 @@ export default function StockComparePage() {
     setCompared(false);
   }
 
-  // ── Karşılaştır ───────────────────────────────────────────────────────────
-  const handleCompare = useCallback(async () => {
-    if (selectedSymbols.length < 2) return;
+  // ── Hisse-dışı enstrüman ekle/kaldır (cross-kıyas) ────────────────────────
+  function addExtra(sel) {
+    if (!sel?.assetType || !sel?.symbol) return;
+    if (sel.assetType === 'STOCK') { addSymbol(sel.symbol); setSearchOpen(false); return; }
+    const key = `${sel.assetType}|${sel.symbol}`;
+    if (extraItems.some(e => e.key === key) || totalCount >= MAX_STOCKS) return;
+    setExtraItems(prev => [...prev, { assetType: sel.assetType, symbol: sel.symbol, name: sel.name || sel.symbol, key }]);
+    setSearchOpen(false);
+    setCompared(false);
+  }
+  function removeExtra(key) {
+    setExtraItems(prev => prev.filter(e => e.key !== key));
+    setCompared(false);
+  }
+
+  /** Tüm seçili öğeler (hisse + ekstra), renk atanmış seri tanımları. */
+  function buildAllDefs() {
+    const stockDefs = selectedSymbols.map(sym => ({
+      key: sym,
+      assetType: 'STOCK',
+      symbol: sym,
+      label: INDEX_SHORTCUTS.find(x => x.symbol === sym)?.label
+        ?? sym.replace('.IS', '').replace('.is', '').toUpperCase(),
+    }));
+    const extraDefs = extraItems.map(e => ({
+      key: e.key, assetType: e.assetType, symbol: e.symbol, label: e.name || e.symbol,
+    }));
+    return [...stockDefs, ...extraDefs].map((d, i) => ({ ...d, color: COLORS[i % COLORS.length] }));
+  }
+
+  // ── Karşılaştır (birleşik: hepsi hisse → detaylı; karışık → sadece grafik) ──
+  async function runCompare(rangeObj) {
+    const defs = buildAllDefs();
+    if (defs.length < 2) return;
+    const mixed = extraItems.length > 0;
     setChartLoading(true);
-    setDetailsLoading(true);
     setCompared(false);
 
-    // Grafik verisi + Midas detayları + BIST100 paralel çek
+    if (mixed) {
+      // Tüm öğeleri genel endpoint ile (günlük TL), tarih bazında hizala
+      setDetailsLoading(false);
+      const gr = toGenericRange(rangeObj.range);
+      const results = await Promise.all(defs.map(async d => {
+        try {
+          const res = await getMarketPriceHistory(d.assetType, d.symbol, gr);
+          return { key: d.key, timestamps: res?.timestamps ?? [], prices: res?.closePrices ?? [] };
+        } catch {
+          return { key: d.key, timestamps: [], prices: [] };
+        }
+      }));
+      const seriesMap = {};
+      results.forEach(({ key, timestamps, prices }) => {
+        if (!timestamps.length || !prices.length) return;
+        const first = parseFloat(prices[0]);
+        if (!first) return;
+        timestamps.forEach((ts, i) => {
+          const price = parseFloat(prices[i]);
+          if (!Number.isFinite(price)) return;
+          const dayKey = new Date(ts * 1000).toISOString().slice(0, 10);
+          if (!seriesMap[dayKey]) seriesMap[dayKey] = { dayKey };
+          seriesMap[dayKey][key] = parseFloat(((price - first) / first * 100).toFixed(3));
+          seriesMap[dayKey][`__price_${key}`] = price;
+        });
+      });
+      const sorted = Object.values(seriesMap).sort((a, b) => a.dayKey.localeCompare(b.dayKey));
+      let formatted = sorted.map(row => ({
+        ...row,
+        label: new Date(row.dayKey + 'T00:00:00').toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: '2-digit' }),
+      }));
+      // Adil kıyas: tümünü ortak başlangıç tarihinden %0'a sabitle
+      formatted = rebaseToCommonStart(formatted, defs.map(d => d.key));
+      // Farklı granülerlikteki seriler (ör. haftalık kripto) her günde tooltip'te görünsün → ileri-doldur
+      const fillKeys = defs.map(d => d.key);
+      const carry = {};
+      formatted.forEach(row => {
+        fillKeys.forEach(k => {
+          if (row[k] != null) {
+            carry[k] = { pct: row[k], price: row[`__price_${k}`] };
+          } else if (carry[k]) {
+            row[k] = carry[k].pct;
+            row[`__price_${k}`] = carry[k].price;
+          }
+        });
+      });
+      setChartData(formatted);
+      setChartSeriesDefs(defs.map(d => ({ key: d.key, name: d.label, color: d.color })));
+      setChartLoading(false);
+      setCompared(true);
+      return;
+    }
+
+    // Hepsi hisse: mevcut zengin akış (Midas + BIST100 + ts hizalı)
+    setDetailsLoading(true);
     const [chartResults, midasResults, bist100Result] = await Promise.all([
-      Promise.all(
-        selectedSymbols.map(async sym => {
-          try {
-            const res = await getStockChart(sym, activeRange.range, activeRange.interval);
-            return { sym, timestamps: res?.timestamps ?? [], prices: res?.closePrices ?? [] };
-          } catch {
-            return { sym, timestamps: [], prices: [] };
-          }
-        })
-      ),
-      Promise.all(
-        selectedSymbols.map(async sym => {
-          try {
-            const detail = await getStockMidasDetail(sym);
-            return { sym, detail };
-          } catch {
-            return { sym, detail: null };
-          }
-        })
-      ),
-      getStockChart('XU100.IS', activeRange.range, activeRange.interval).catch(() => null),
+      Promise.all(selectedSymbols.map(async sym => {
+        try { const res = await getStockChart(sym, rangeObj.range, rangeObj.interval); return { sym, timestamps: res?.timestamps ?? [], prices: res?.closePrices ?? [] }; }
+        catch { return { sym, timestamps: [], prices: [] }; }
+      })),
+      Promise.all(selectedSymbols.map(async sym => {
+        try { const detail = await getStockMidasDetail(sym); return { sym, detail }; }
+        catch { return { sym, detail: null }; }
+      })),
+      getStockChart('XU100.IS', rangeObj.range, rangeObj.interval).catch(() => null),
     ]);
 
-    // BIST100 fiyatlarını kaydet
     setBist100Prices(bist100Result?.closePrices ?? []);
-
-    // Midas detaylarını kaydet
     const newMidas = {};
     midasResults.forEach(({ sym, detail }) => { newMidas[sym] = detail; });
     setMidasDetails(newMidas);
     setDetailsLoading(false);
-
-    // Ham fiyatları kaydet (tablo için)
     const newRaw = {};
     chartResults.forEach(({ sym, prices }) => { newRaw[sym] = prices; });
     setRawPrices(newRaw);
 
-    // Normalize edilmiş grafik verisi oluştur
-    // Her hisse için başlangıç fiyatına göre % değişim hesapla
     const seriesMap = {};
     chartResults.forEach(({ sym, timestamps, prices }) => {
       if (!timestamps.length || !prices.length) return;
@@ -393,92 +552,42 @@ export default function StockComparePage() {
       timestamps.forEach((ts, i) => {
         const price = parseFloat(prices[i]);
         if (price == null || isNaN(price)) return;
-        const key = ts;
-        if (!seriesMap[key]) seriesMap[key] = { ts };
-        seriesMap[key][sym] = parseFloat(((price - firstPrice) / firstPrice * 100).toFixed(3));
-        // Tooltip için gerçek fiyatı da sakla
-        seriesMap[key][`__price_${sym}`] = price;
+        if (!seriesMap[ts]) seriesMap[ts] = { ts };
+        seriesMap[ts][sym] = parseFloat(((price - firstPrice) / firstPrice * 100).toFixed(3));
+        seriesMap[ts][`__price_${sym}`] = price;
       });
     });
-
-    // Tarihe göre sırala ve label ekle
     const sorted = Object.values(seriesMap).sort((a, b) => a.ts - b.ts);
-    const formatted = sorted.map(row => {
+    let formatted = sorted.map(row => {
       const d = new Date(row.ts * 1000);
       let label;
-      if (activeRange.range === '1d') {
-        label = d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-      } else if (activeRange.range === '5d') {
-        label = d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-      } else {
-        label = d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: activeRange.range === '5y' ? '2-digit' : undefined });
-      }
+      if (rangeObj.range === '1d') label = d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+      else if (rangeObj.range === '5d') label = d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      else label = d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: rangeObj.range === '5y' ? '2-digit' : undefined });
       return { ...row, label };
     });
-
+    // Adil kıyas: farklı geçmişli hisselerde tümünü ortak başlangıçtan %0'a sabitle
+    formatted = rebaseToCommonStart(formatted, selectedSymbols);
     setChartData(formatted);
+    setChartSeriesDefs(selectedSymbols.map((sym, i) => ({
+      key: sym,
+      name: INDEX_SHORTCUTS.find(x => x.symbol === sym)?.label ?? sym.replace('.IS', '').toUpperCase(),
+      color: COLORS[i % COLORS.length],
+    })));
     setChartLoading(false);
     setCompared(true);
-  }, [selectedSymbols, activeRange]);
+  }
+
+  function handleCompare() {
+    if (totalCount < 2) return;
+    runCompare(activeRange);
+  }
 
   // ── Aralık değişince otomatik yeniden karşılaştır ────────────────────────
   function handleRangeChange(idx) {
     setRangeIdx(idx);
-    // Eğer zaten karşılaştırma yapılmışsa otomatik yenile
-    if (compared && selectedSymbols.length >= 2) {
-      // rangeIdx state güncellemesi async olduğu için yeni range'i direkt geçiyoruz
-      const newRange = RANGES[idx];
-      setChartLoading(true);
-      Promise.all([
-        ...selectedSymbols.map(async sym => {
-          try {
-            const res = await getStockChart(sym, newRange.range, newRange.interval);
-            return { sym, timestamps: res?.timestamps ?? [], prices: res?.closePrices ?? [] };
-          } catch {
-            return { sym, timestamps: [], prices: [] };
-          }
-        }),
-        getStockChart('XU100.IS', newRange.range, newRange.interval).catch(() => null),
-      ]).then(results => {
-        const bist100Res = results[results.length - 1];
-        const chartResults = results.slice(0, selectedSymbols.length);
-
-        setBist100Prices(bist100Res?.closePrices ?? []);
-        const newRaw = {};
-        chartResults.forEach(({ sym, prices }) => { newRaw[sym] = prices; });
-        setRawPrices(newRaw);
-
-        const seriesMap = {};
-        chartResults.forEach(({ sym, timestamps, prices }) => {
-          if (!timestamps.length || !prices.length) return;
-          const firstPrice = parseFloat(prices[0]);
-          if (!firstPrice || firstPrice === 0) return;
-          timestamps.forEach((ts, i) => {
-            const price = parseFloat(prices[i]);
-            if (price == null || isNaN(price)) return;
-            if (!seriesMap[ts]) seriesMap[ts] = { ts };
-            seriesMap[ts][sym] = parseFloat(((price - firstPrice) / firstPrice * 100).toFixed(3));
-            seriesMap[ts][`__price_${sym}`] = price;
-          });
-        });
-
-        const sorted = Object.values(seriesMap).sort((a, b) => a.ts - b.ts);
-        const formatted = sorted.map(row => {
-          const d = new Date(row.ts * 1000);
-          let label;
-          if (newRange.range === '1d') {
-            label = d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-          } else if (newRange.range === '5d') {
-            label = d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-          } else {
-            label = d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: newRange.range === '5y' ? '2-digit' : undefined });
-          }
-          return { ...row, label };
-        });
-
-        setChartData(formatted);
-        setChartLoading(false);
-      });
+    if (compared && totalCount >= 2) {
+      runCompare(RANGES[idx]);
     }
   }
 
@@ -531,25 +640,29 @@ export default function StockComparePage() {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
 
+      {searchOpen && (
+        <InstrumentSearchModal onSelect={addExtra} onClose={() => setSearchOpen(false)} />
+      )}
+
       {/* ── Başlık ── */}
       <div className="flex items-center gap-3">
         <Link to="/market/stocks" className="text-gray-400 hover:text-[#093eaa] transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('Hisse Karşılaştırma')}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('Varlık Karşılaştırma')}</h1>
           <p className="text-xs text-gray-400 mt-0.5">
-            {t('BIST hisselerini yan yana karşılaştır — en fazla')} {MAX_STOCKS} {t('hisse')}
+            {t('Hisse, kripto, döviz, altın, fon, enflasyon… her şeyi yan yana karşılaştır — en fazla')} {MAX_STOCKS} {t('öğe')}
           </p>
         </div>
       </div>
 
       {/* ── Hisse Seçici ── */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5">
         <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Hisse Ekle</p>
 
-        {/* Endeks kısayolları */}
-        <div className="flex gap-2 mb-3">
+        {/* Hızlı ekle: endeksler + faiz/enflasyon benchmark'ları */}
+        <div className="flex flex-wrap gap-2 mb-3 items-center">
           <span className="text-xs text-gray-400 self-center">{t('Hızlı ekle:')}</span>
           {INDEX_SHORTCUTS.map(idx => {
             const isSelected = selectedSymbols.includes(idx.symbol);
@@ -557,13 +670,31 @@ export default function StockComparePage() {
               <button
                 key={idx.symbol}
                 onClick={() => isSelected ? removeSymbol(idx.symbol) : addSymbol(idx.symbol)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all border ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all border ${
                   isSelected
                     ? 'bg-[#093eaa] text-white border-[#093eaa]'
                     : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-[#093eaa] hover:text-[#093eaa]'
                 }`}
               >
-                {idx.badge} {idx.label}
+                {idx.label}
+                {isSelected && <X className="w-3 h-3 ml-0.5" />}
+              </button>
+            );
+          })}
+          <span className="w-px h-4 bg-gray-200 mx-0.5" />
+          {BENCHMARK_SHORTCUTS.map(b => {
+            const isSelected = extraItems.some(e => e.key === b.key);
+            return (
+              <button
+                key={b.key}
+                onClick={() => isSelected ? removeExtra(b.key) : addExtra({ assetType: b.assetType, symbol: b.symbol, name: b.label })}
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all border ${
+                  isSelected
+                    ? 'bg-[#7c3aed] text-white border-[#7c3aed]'
+                    : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-[#7c3aed] hover:text-[#7c3aed]'
+                }`}
+              >
+                {b.label}
                 {isSelected && <X className="w-3 h-3 ml-0.5" />}
               </button>
             );
@@ -575,12 +706,12 @@ export default function StockComparePage() {
           {selectedSymbols.map((sym, idx) => {
             const indexShortcut = INDEX_SHORTCUTS.find(i => i.symbol === sym);
             const displayLabel = indexShortcut
-              ? `${indexShortcut.badge} ${indexShortcut.label}`
+              ? indexShortcut.label
               : sym.replace('.IS', '').replace('.is', '').toUpperCase();
             return (
               <span
                 key={sym}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold text-white"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold text-white"
                 style={{ background: COLORS[idx % COLORS.length] }}
               >
                 {displayLabel}
@@ -595,85 +726,51 @@ export default function StockComparePage() {
             );
           })}
 
-          {/* Ekle butonu */}
-          {selectedSymbols.length < MAX_STOCKS && (
-            <div className="relative">
-              <button
-                onClick={() => setShowDropdown(v => !v)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 border-dashed border-gray-300 text-sm text-gray-400 hover:border-[#093eaa] hover:text-[#093eaa] transition-colors"
+          {/* Ekstra (hisse-dışı) öğeler */}
+          {extraItems.map((it, ei) => {
+            const globalIdx = selectedSymbols.length + ei;
+            const typeLabel = ASSET_LABELS[it.assetType] ? t(ASSET_LABELS[it.assetType]) : it.assetType;
+            return (
+              <span
+                key={it.key}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold text-white"
+                style={{ background: COLORS[globalIdx % COLORS.length] }}
               >
-                <Plus className="w-3.5 h-3.5" />
-                Ekle
-              </button>
+                {it.name || it.symbol}
+                <span className="opacity-70 text-xs">· {typeLabel}</span>
+                <button
+                  onClick={() => removeExtra(it.key)}
+                  className="ml-0.5 hover:opacity-70 transition-opacity"
+                  aria-label={`${it.symbol} ${t('kaldır')}`}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </span>
+            );
+          })}
 
-              {showDropdown && (
-                <div className="absolute top-10 left-0 z-30 bg-white border border-gray-200 rounded-xl shadow-xl w-72 p-2">
-                  {/* Arama */}
-                  <div className="relative mb-2">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                    <input
-                      autoFocus
-                      value={searchQuery}
-                      onChange={e => setSearchQuery(e.target.value)}
-                      placeholder={t('Sembol veya şirket ara...')}
-                      className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30"
-                    />
-                  </div>
-
-                  {/* Sonuçlar */}
-                  <div className="max-h-52 overflow-y-auto space-y-0.5">
-                    {stocksLoading ? (
-                      <div className="py-4"><BounceDots size="sm" /></div>
-                    ) : filteredStocks.length === 0 ? (
-                      <p className="text-xs text-gray-400 text-center py-3">{t('Sonuç bulunamadı')}</p>
-                    ) : (
-                      filteredStocks.map(s => (
-                        <button
-                          key={s.symbol}
-                          onClick={() => addSymbol(s.symbol)}
-                          className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg hover:bg-blue-50 text-sm text-left transition-colors"
-                        >
-                          <div>
-                            <span className="font-bold text-[#093eaa]">
-                              {s.symbol?.replace('.IS', '').replace('.is', '').toUpperCase()}
-                            </span>
-                            {s.name && (
-                              <span className="text-gray-400 text-xs ml-2 truncate max-w-[140px] inline-block align-middle">
-                                {s.name}
-                              </span>
-                            )}
-                          </div>
-                          {s.price != null && (
-                            <span className="text-xs text-gray-500 shrink-0">₺{fmtNum(s.price)}</span>
-                          )}
-                        </button>
-                      ))
-                    )}
-                  </div>
-
-                  <button
-                    onClick={() => { setShowDropdown(false); setSearchQuery(''); }}
-                    className="w-full mt-2 text-xs text-gray-400 hover:text-gray-600 py-1 transition-colors"
-                  >
-                    Kapat
-                  </button>
-                </div>
-              )}
-            </div>
+          {/* Tek "Ekle" — herhangi bir enstrüman (hisse, kripto, altın, döviz, fon…) */}
+          {totalCount < MAX_STOCKS && (
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border-2 border-dashed border-gray-300 text-sm text-gray-500 hover:border-[#093eaa] hover:text-[#093eaa] transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" /> {t('Ekle')}
+            </button>
           )}
         </div>
 
         {/* Aralık seçici + Karşılaştır butonu */}
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex gap-1">
+          <div className="inline-flex items-center gap-0.5 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
             {RANGES.map((r, i) => (
               <button
                 key={r.label}
                 onClick={() => handleRangeChange(i)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
                   i === rangeIdx
-                    ? 'bg-[#093eaa] text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-white text-[#093eaa] shadow-sm'
+                    : 'text-gray-500 hover:text-gray-800'
                 }`}
               >
                 {r.label}
@@ -683,43 +780,48 @@ export default function StockComparePage() {
 
           <button
             onClick={handleCompare}
-            disabled={selectedSymbols.length < 2 || chartLoading}
-            className="ml-auto px-5 py-2 bg-[#093eaa] text-white rounded-xl text-sm font-bold hover:bg-[#0730a0] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            disabled={totalCount < 2 || chartLoading}
+            className="ml-auto px-5 py-2 bg-[#093eaa] text-white rounded-lg text-sm font-bold hover:bg-[#0730a0] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             <BarChart2 className="w-4 h-4" />
             {chartLoading ? t('Yükleniyor...') : t('Karşılaştır')}
           </button>
         </div>
 
-        {selectedSymbols.length < 2 && selectedSymbols.length > 0 && (
+        {totalCount < 2 && totalCount > 0 && (
           <p className="text-xs text-amber-500 mt-2">
-            {t('Karşılaştırma için en az 2 hisse seçmelisin.')}
+            {t('Karşılaştırma için en az 2 öğe seçmelisin.')}
+          </p>
+        )}
+        {mixedMode && (
+          <p className="text-xs text-gray-400 mt-2">
+            {t('Farklı türde varlık eklendi — yalnızca normalize % grafik gösterilir (detaylı metrik tabloları yalnız hisse-hisse kıyasında çıkar).')}
           </p>
         )}
       </div>
 
       {/* ── Grafik Yükleniyor ── */}
       {chartLoading && (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-16 flex items-center justify-center">
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-16 flex items-center justify-center">
           <BounceDots />
         </div>
       )}
 
       {/* ── Normalize Grafik ── */}
       {compared && !chartLoading && chartData.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
           <div className="mb-4">
             <h2 className="font-bold text-gray-900">{t('Göreceli Performans (%)')}</h2>
             <p className="text-xs text-gray-400 mt-0.5">
-              {t('Tüm hisseler 0%\'dan başlar — dönem başına göre yüzde değişim · Scroll ile zoom')}
+              {t('Hepsi ortak başlangıç tarihinden 0%\'dan başlar (en geç başlayan varlığın tarihi) — adil kümülatif % kıyas · Scroll ile zoom')}
             </p>
           </div>
-          <EChartsCompareChart chartData={chartData} selectedSymbols={selectedSymbols} />
+          <EChartsCompareChart chartData={chartData} seriesDefs={chartSeriesDefs} />
         </div>
       )}
 
-      {/* ── Performans Metrikleri Tablosu ── */}
-      {compared && !chartLoading && Object.keys(rawPrices).length > 0 && (() => {
+      {/* ── Performans Metrikleri Tablosu (yalnız hisse-hisse kıyasında) ── */}
+      {compared && !chartLoading && !mixedMode && Object.keys(rawPrices).length > 0 && (() => {
         const bist100M = calcMetrics(bist100Prices);
         const metrics = {};
         selectedSymbols.forEach(sym => { metrics[sym] = calcMetrics(rawPrices[sym]); });
@@ -743,9 +845,13 @@ export default function StockComparePage() {
             label: 'BIST100\'e Göre',
             render: m => {
               if (!m || !bist100M) return '-';
-              const diff = m.periodReturn - bist100M.periodReturn;
-              const pos = diff >= 0;
-              return <span className={pos ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}>{pos ? '+' : ''}{fmt2(diff)}%</span>;
+              // Genel finans konvansiyonu: relatif (çarpımsal) getiri = (1+hisse)/(1+endeks) − 1.
+              // "Parayı endeks yerine bu hisseye koysaydın % kaç daha iyi/kötü olurdun."
+              const denom = 1 + bist100M.periodReturn / 100;
+              if (denom <= 0) return '-';
+              const rel = ((1 + m.periodReturn / 100) / denom - 1) * 100;
+              const pos = rel >= 0;
+              return <span className={pos ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}>{pos ? '+' : ''}{fmt2(rel)}%</span>;
             },
           },
           { label: 'Max Drawdown',     render: m => m ? <span className="text-rose-600 font-semibold">{fmt2(m.drawdown)}%</span> : '-' },
@@ -795,7 +901,7 @@ export default function StockComparePage() {
         ];
 
         return (
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
               <div>
                 <h2 className="font-bold text-gray-900">{t('Performans Metrikleri')}</h2>
@@ -851,14 +957,14 @@ export default function StockComparePage() {
       })()}
 
       {/* ── Finansal Karşılaştırma Tablosu — sadece gerçek hisseler için ── */}
-      {compared && !chartLoading && (() => {
+      {compared && !chartLoading && !mixedMode && (() => {
         // Endeks sembollerini filtrele
         const stockSymbols = selectedSymbols.filter(sym =>
           !INDEX_SHORTCUTS.some(idx => idx.symbol === sym)
         );
         if (stockSymbols.length === 0) return null;
         return (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100">
             <h2 className="font-bold text-gray-900">{t('Finansal Karşılaştırma')}</h2>
             <p className="text-xs text-gray-400 mt-0.5">{t('Kaynak: Midas · Veriler 15 dk gecikmeli')}</p>
@@ -909,13 +1015,13 @@ export default function StockComparePage() {
       })()}
 
       {/* ── TL Yatırım Simülasyonu — sadece gerçek hisseler için ── */}
-      {compared && !chartLoading && (() => {
+      {compared && !chartLoading && !mixedMode && (() => {
         const stockSymbols = selectedSymbols.filter(sym =>
           !INDEX_SHORTCUTS.some(idx => idx.symbol === sym)
         );
         if (stockSymbols.length === 0 || Object.keys(rawPrices).length === 0) return null;
         return (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-4 flex-wrap">
             <h2 className="font-bold text-gray-900">{t('TL Yatırım Simülasyonu')}</h2>
             <div className="flex items-center gap-2 ml-auto">
@@ -978,7 +1084,7 @@ export default function StockComparePage() {
         );
       })()}
       {!compared && !chartLoading && (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-14 text-center">
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-14 text-center">
           <BarChart2 className="w-12 h-12 text-gray-200 mx-auto mb-3" />
           <p className="text-gray-500 font-semibold">
             {selectedSymbols.length === 0

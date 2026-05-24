@@ -24,6 +24,10 @@ import com.finance.portal.market.application.service.MarketFxService;
 import com.finance.portal.market.application.silver.SilverHistoryPoint;
 import com.finance.portal.market.application.silver.SilverHistoryResponse;
 import com.finance.portal.market.application.silver.SilverMarketService;
+import com.finance.portal.market.application.precious.PreciousMetalService;
+import com.finance.portal.market.application.precious.model.PreciousMetalType;
+import com.finance.portal.market.application.precious.PreciousMetalHistoryResponse;
+import com.finance.portal.market.application.precious.PreciousMetalHistoryPoint;
 import com.finance.portal.market.application.stock.StockChartResponse;
 import com.finance.portal.market.application.stock.StockQueryService;
 import com.finance.portal.market.application.viop.UnsupportedViopContractException;
@@ -70,6 +74,7 @@ public class PortfolioHistoricalPriceAdapter implements PortfolioHistoricalPrice
     private final EvdsBondPort evdsBondPort;
     private final GoldMarketService goldMarketService;
     private final SilverMarketService silverMarketService;
+    private final PreciousMetalService preciousMetalService;
     private final YahooCommodityService yahooCommodityService;
     private final CryptoMarketService cryptoMarketService;
     private final CryptoYahooChartService cryptoYahooChartService;
@@ -83,6 +88,7 @@ public class PortfolioHistoricalPriceAdapter implements PortfolioHistoricalPrice
                                            EvdsBondPort evdsBondPort,
                                            GoldMarketService goldMarketService,
                                            SilverMarketService silverMarketService,
+                                           PreciousMetalService preciousMetalService,
                                            YahooCommodityService yahooCommodityService,
                                            CryptoMarketService cryptoMarketService,
                                            CryptoYahooChartService cryptoYahooChartService,
@@ -95,6 +101,7 @@ public class PortfolioHistoricalPriceAdapter implements PortfolioHistoricalPrice
         this.evdsBondPort = evdsBondPort;
         this.goldMarketService = goldMarketService;
         this.silverMarketService = silverMarketService;
+        this.preciousMetalService = preciousMetalService;
         this.yahooCommodityService = yahooCommodityService;
         this.cryptoMarketService = cryptoMarketService;
         this.cryptoYahooChartService = cryptoYahooChartService;
@@ -289,6 +296,9 @@ public class PortfolioHistoricalPriceAdapter implements PortfolioHistoricalPrice
         if (isSilverCommoditySymbol(symbol)) {
             return fetchSilver(symbol, from, to);
         }
+        if (isPlatinumOrPalladiumSymbol(symbol)) {
+            return fetchPreciousMetal(symbol, from, to);
+        }
         CommodityHistoryResponse hist = yahooCommodityService.getHistory(symbol, commodityRange(from), "1d");
         NavigableMap<LocalDate, BigDecimal> map = new TreeMap<>();
         if (hist == null || hist.getPoints() == null) {
@@ -361,18 +371,43 @@ public class PortfolioHistoricalPriceAdapter implements PortfolioHistoricalPrice
             return usdDerived;
         }
 
-        // Yakın tarih (≤1 yıl): CoinGecko TRY
-        if (item == null || item.getId() == null) {
+        // Yakın tarih (≤1 yıl): önce CoinGecko TRY
+        NavigableMap<LocalDate, BigDecimal> coinGecko = PortfolioHistoricalPriceSeriesSupport.emptyMap();
+        if (item != null && item.getId() != null) {
+            try {
+                coinGecko = PortfolioHistoricalPriceSeriesSupport.fromCoinGeckoChart(
+                        cryptoMarketService.getMarketChart(item.getId(), cryptoDays(from), "try", null, null));
+            } catch (Exception e) {
+                log.debug("CoinGecko market chart failed for {}: {}", symbol, e.getMessage());
+            }
+        }
+        if (coinGecko != null && !coinGecko.isEmpty()) {
+            return coinGecko;
+        }
+
+        // CoinGecko boş/429 → kısa vadede de Yahoo USD×TCMB kuru fallback'ine düş, istenen pencereye kırp.
+        String baseSym = (item != null && item.getSymbol() != null && !item.getSymbol().isBlank())
+                ? item.getSymbol() : symbol;
+        NavigableMap<LocalDate, BigDecimal> usdDerived = fetchCryptoUsdFxFallback(baseSym, from, to);
+        if (usdDerived.isEmpty()) {
             return PortfolioHistoricalPriceSeriesSupport.emptyMap();
         }
-        try {
-            Map<String, Object> chart = cryptoMarketService.getMarketChart(
-                    item.getId(), cryptoDays(from), "try", null, null);
-            return PortfolioHistoricalPriceSeriesSupport.fromCoinGeckoChart(chart);
-        } catch (Exception e) {
-            log.debug("CoinGecko market chart failed for {}: {}", symbol, e.getMessage());
-            return PortfolioHistoricalPriceSeriesSupport.emptyMap();
+        // Yanlış token koruması (HYPE-USD gibi çakışmalar)
+        if (item != null && item.getCurrentPrice() != null && item.getCurrentPrice().signum() > 0) {
+            double ratio = usdDerived.lastEntry().getValue().doubleValue() / item.getCurrentPrice().doubleValue();
+            if (ratio < 0.2 || ratio > 5.0) {
+                log.debug("Crypto Yahoo fallback {} reddedildi (oran {})", symbol, ratio);
+                return PortfolioHistoricalPriceSeriesSupport.emptyMap();
+            }
         }
+        // İstenen [from, to] penceresine kırp (fallback 5y/haftalık dönebiliyor).
+        NavigableMap<LocalDate, BigDecimal> windowed = new TreeMap<>();
+        usdDerived.forEach((day, v) -> {
+            if (!day.isBefore(from) && !day.isAfter(to)) {
+                windowed.put(day, v);
+            }
+        });
+        return windowed.isEmpty() ? usdDerived : windowed;
     }
 
     /**
@@ -489,6 +524,69 @@ public class PortfolioHistoricalPriceAdapter implements PortfolioHistoricalPrice
             }
             default -> pt.getClose();
         };
+    }
+
+    /**
+     * BIST platin/paladyum: portföyde {@code PLATINUM:GRAM_TRY} / {@code PALLADIUM:USD_ONS} vb.
+     */
+    private NavigableMap<LocalDate, BigDecimal> fetchPreciousMetal(String symbol, LocalDate from, LocalDate to) {
+        String upper = symbol != null ? symbol.trim().toUpperCase(Locale.ROOT) : "";
+        PreciousMetalType type = upper.startsWith("PLATINUM") ? PreciousMetalType.PLATINUM : PreciousMetalType.PALLADIUM;
+        String cat = "GRAM_TRY";
+        if (upper.contains(":")) {
+            String[] parts = upper.split(":", 2);
+            if (parts.length > 1 && !parts[1].isBlank()) {
+                cat = parts[1].trim();
+            }
+        }
+        String currency = cat.contains("USD") ? "USD" : cat.contains("EUR") ? "EUR" : "TRY";
+
+        PreciousMetalHistoryResponse hist;
+        try {
+            hist = preciousMetalService.getHistory(type, metalRange(from), currency);
+        } catch (Exception e) {
+            log.debug("Precious metal history failed for {}: {}", symbol, e.getMessage());
+            return PortfolioHistoricalPriceSeriesSupport.emptyMap();
+        }
+        if (hist == null || hist.getPoints() == null || hist.getPoints().isEmpty()) {
+            return PortfolioHistoricalPriceSeriesSupport.emptyMap();
+        }
+
+        NavigableMap<LocalDate, BigDecimal> map = new TreeMap<>();
+        for (PreciousMetalHistoryPoint pt : hist.getPoints()) {
+            if (pt.getDate() == null) {
+                continue;
+            }
+            BigDecimal price = resolvePreciousClose(pt, cat);
+            if (price == null) {
+                continue;
+            }
+            try {
+                LocalDate day = LocalDate.parse(pt.getDate().substring(0, Math.min(10, pt.getDate().length())));
+                PortfolioHistoricalPriceSeriesSupport.putIfInRange(map, day, price, from, to);
+            } catch (Exception ignored) {
+                // skip malformed date
+            }
+        }
+        return map;
+    }
+
+    private static BigDecimal resolvePreciousClose(PreciousMetalHistoryPoint pt, String cat) {
+        BigDecimal v = switch (cat) {
+            case "KG_TRY" -> pt.getTryKg();
+            case "USD_ONS" -> pt.getUsdOns();
+            case "EUR_ONS" -> pt.getEurOns();
+            default -> pt.getTryGram();
+        };
+        return v != null ? v : pt.getValue();
+    }
+
+    static boolean isPlatinumOrPalladiumSymbol(String symbol) {
+        if (symbol == null || symbol.isBlank()) {
+            return false;
+        }
+        String upper = symbol.trim().toUpperCase(Locale.ROOT);
+        return upper.startsWith("PLATINUM") || upper.startsWith("PALLADIUM");
     }
 
     public static String exclusionReason(AssetType assetType, String symbol) {

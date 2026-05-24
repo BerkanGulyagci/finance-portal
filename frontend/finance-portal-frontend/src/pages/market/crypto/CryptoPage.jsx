@@ -5,6 +5,7 @@ import { getCryptos } from '../../../api/marketApi';
 import { useAuth } from '../../../context/AuthContext';
 import { useSortable } from '../../../hooks/useSortable';
 import SortableTh from '../../../components/common/SortableTh';
+import WatchlistStar from '../../../components/instrument/WatchlistStar';
 import { useTranslation } from '../../../i18n/LanguageContext';
 
 const PAGE_SIZE = 50;
@@ -156,10 +157,7 @@ export default function CryptoPage() {
                       <td className="px-4 py-3 text-sm text-right">{pct(c.priceChangePercentage7d)}</td>
                       <td className="px-4 py-3 text-sm text-gray-600 text-right">{c.totalVolume != null ? `₺${num(c.totalVolume, 0)}` : '-'}</td>
                       <td className="px-4 py-3 text-sm text-gray-600 text-right">{c.marketCap != null ? `₺${num(c.marketCap, 0)}` : '-'}</td>                      <td className="px-4 py-3 text-right">
-                        <button onClick={handleBuy}
-                          className="border border-emerald-500 text-emerald-600 text-xs font-bold px-3 py-1 rounded-full hover:bg-emerald-50 transition-colors whitespace-nowrap">
-                          {t('Satın Al')}
-                        </button>
+                        <WatchlistStar assetType="CRYPTO" symbol={(c.symbol || '').toUpperCase()} name={c.name} price={c.currentPrice} />
                       </td>
                     </tr>
                   ))}

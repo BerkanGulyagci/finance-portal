@@ -137,9 +137,23 @@ public class MarketFxService {
             BigDecimal buy = new BigDecimal(currency.getForexBuying());
             BigDecimal sell = new BigDecimal(currency.getForexSelling());
             int unit = currency.getUnit() != null ? currency.getUnit() : 1;
-            return new FxRateItem(currency.getCurrencyCode(), buy, sell, unit);
+            // Efektif (banknot) kurları TCMB'de bazı dövizler için boş gelebilir; varsa ekle.
+            BigDecimal effectiveBuy = parseOptionalDecimal(currency.getBanknoteBuying());
+            BigDecimal effectiveSell = parseOptionalDecimal(currency.getBanknoteSelling());
+            return new FxRateItem(currency.getCurrencyCode(), buy, sell, unit, effectiveBuy, effectiveSell);
         } catch (NumberFormatException ex) {
             logger.warn("Failed to parse TCMB currency {}: {}", currency.getCurrencyCode(), ex.getMessage());
+            return null;
+        }
+    }
+
+    private BigDecimal parseOptionalDecimal(String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            return new BigDecimal(raw.trim());
+        } catch (NumberFormatException ex) {
             return null;
         }
     }

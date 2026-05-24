@@ -113,6 +113,14 @@ export async function getStockChart(symbol, range = '1d', interval = '1m') {
   return data.data ?? null;
 }
 
+/** Tür-bağımsız tarihsel TL fiyat serisi (hisse karşılaştırmada cross-enstrüman için). */
+export async function getMarketPriceHistory(assetType, symbol, range = '1Y') {
+  const { data } = await client.get('/api/market/price-history', {
+    params: { assetType, symbol, range },
+  });
+  return data.data ?? { timestamps: [], closePrices: [] };
+}
+
 export async function getStockOhlc(symbol, range = '3mo', interval = '1d') {
   const normalized = normalizeBistSymbol(symbol);
   const { data } = await client.get(`/api/market/stocks/${encodeURIComponent(normalized)}/ohlc`, { params: { range, interval } });

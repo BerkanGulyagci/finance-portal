@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { init as klineInit, dispose as klineDispose, registerOverlay } from 'klinecharts';
-import { Trash2, X } from 'lucide-react';
+import { Trash2, X, ChevronDown } from 'lucide-react';
 import { useTranslation } from '../../../../i18n/LanguageContext';
+import IndicatorMenu from '../../../../components/common/IndicatorMenu';
 
 // ── Custom overlay kayıtları (bir kez) ───────────────────────────────────────
 let _overlaysRegistered = false;
@@ -62,6 +63,9 @@ const DRAWING_TOOLS = [
 
 const ALL_DRAWING_IDS = DRAWING_TOOLS.flatMap(g => g.tools).map(t => t.id);
 
+// MA çizgi renkleri (buton renkleriyle aynı) — MA20/50/200
+const GOLD_MA_COLORS = { 20: '#f59e0b', 50: '#a855f7', 200: '#ef4444' };
+
 // ── Alt indikatörler ──────────────────────────────────────────────────────────
 const SUB_INDICATORS = [
   { name: 'VOL',  label: 'Hacim', color: '#6b7280' },
@@ -71,7 +75,7 @@ const SUB_INDICATORS = [
 ];
 
 // ── Drawing Toolbar ───────────────────────────────────────────────────────────
-function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll }) {
+function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll, indicatorSlot }) {
   const { t } = useTranslation();
   const [openGroup, setOpenGroup] = useState(null);
 
@@ -88,13 +92,14 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
         <div key={group} className="relative" data-dg="1">
           <button
             onClick={() => setOpenGroup(openGroup === group ? null : group)}
-            className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
-              tools.some(tool => tool.id === activeTool)
-                ? 'bg-[#093eaa] text-white border-[#093eaa]'
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+              tools.some(tool => tool.id === activeTool) || openGroup === group
+                ? 'border-[#093eaa] text-[#093eaa] bg-[#093eaa]/5'
                 : 'bg-white text-gray-600 border-gray-200 hover:border-[#093eaa] hover:text-[#093eaa]'
             }`}
           >
-            {t(group)} ▾
+            {t(group)}
+            <ChevronDown className={`w-3 h-3 transition-transform ${openGroup === group ? 'rotate-180' : ''}`} />
           </button>
           {openGroup === group && (
             <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-1 min-w-[180px]">
@@ -113,13 +118,19 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
           )}
         </div>
       ))}
+      {indicatorSlot && (
+        <>
+          <div className="w-px h-6 bg-gray-200 mx-1" />
+          {indicatorSlot}
+        </>
+      )}
       <div className="w-px h-6 bg-gray-200 mx-1" />
       <button onClick={onDeleteSelected} title={t('Seçili çizimi sil')}
-        className="p-1.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 transition-all border border-gray-200">
+        className="inline-flex items-center px-2 py-1.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all border border-gray-200">
         <Trash2 className="w-3.5 h-3.5" />
       </button>
       <button onClick={onClearAll} title={t('Tüm çizimleri temizle')}
-        className="p-1.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 transition-all border border-gray-200">
+        className="inline-flex items-center px-2 py-1.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all border border-gray-200">
         <X className="w-3.5 h-3.5" />
       </button>
       {activeTool && (
@@ -162,7 +173,7 @@ function FloatingTooltip({ tooltip, containerRef, currency }) {
 
 // ── Ortak chart hook ──────────────────────────────────────────────────────────
 function useGoldKline({ idRef, points, buildStyles, buildKlineData, isLine, currency,
-                        showMA7, showMA30, showMA90, showTrend,
+                        showMA20, showMA50, showMA200, showTrend,
                         activeSubInds, subPaneIds, onChartReady }) {
   const chartRef     = useRef(null);
   const containerRef = useRef(null);
@@ -186,10 +197,10 @@ function useGoldKline({ idRef, points, buildStyles, buildKlineData, isLine, curr
     chart.applyNewData(kd);
 
     // MA
-    const maP = [...(showMA7?[7]:[]), ...(showMA30?[30]:[]), ...(showMA90?[90]:[])];
-    if (maP.length) try { chart.createIndicator({ name:'MA', calcParams:maP }, false, { id:'candle_pane' }); } catch(_){}
+    const maP = [...(showMA20 && points.length>=20?[20]:[]), ...(showMA50 && points.length>=50?[50]:[]), ...(showMA200 && points.length>=200?[200]:[])];
+    if (maP.length) try { chart.createIndicator({ name:'MA', calcParams:maP, styles:{ lines: maP.map(p => ({ color: GOLD_MA_COLORS[p], size:1.5 })) } }, false, { id:'candle_pane' }); } catch(_){}
     if (showTrend) try { chart.createIndicator({ name:'EMA', calcParams:[20],
-      styles:{ lines:[{ color:'#ef4444', size:1.5 }] } }, false, { id:'candle_pane' }); } catch(_){}
+      styles:{ lines:[{ color:'#10b981', size:1.5 }] } }, false, { id:'candle_pane' }); } catch(_){}
 
     // Alt indikatörler
     subPaneIds.current = {};
@@ -224,9 +235,9 @@ function useGoldKline({ idRef, points, buildStyles, buildKlineData, isLine, curr
     const chart = chartRef.current;
     if (!chart) return;
     try { chart.removeIndicator('candle_pane', 'MA'); } catch(_){}
-    const maP = [...(showMA7?[7]:[]), ...(showMA30?[30]:[]), ...(showMA90?[90]:[])];
-    if (maP.length) try { chart.createIndicator({ name:'MA', calcParams:maP }, false, { id:'candle_pane' }); } catch(_){}
-  }, [showMA7, showMA30, showMA90]);
+    const maP = [...(showMA20 && points.length>=20?[20]:[]), ...(showMA50 && points.length>=50?[50]:[]), ...(showMA200 && points.length>=200?[200]:[])];
+    if (maP.length) try { chart.createIndicator({ name:'MA', calcParams:maP, styles:{ lines: maP.map(p => ({ color: GOLD_MA_COLORS[p], size:1.5 })) } }, false, { id:'candle_pane' }); } catch(_){}
+  }, [showMA20, showMA50, showMA200]);
 
   // Trend toggle
   useEffect(() => {
@@ -234,7 +245,7 @@ function useGoldKline({ idRef, points, buildStyles, buildKlineData, isLine, curr
     if (!chart) return;
     try { chart.removeIndicator('candle_pane', 'EMA'); } catch(_){}
     if (showTrend) try { chart.createIndicator({ name:'EMA', calcParams:[20],
-      styles:{ lines:[{ color:'#ef4444', size:1.5 }] } }, false, { id:'candle_pane' }); } catch(_){}
+      styles:{ lines:[{ color:'#10b981', size:1.5 }] } }, false, { id:'candle_pane' }); } catch(_){}
   }, [showTrend]);
 
   // Alt indikatör toggle — dispose etmeden
@@ -257,8 +268,8 @@ function useGoldKline({ idRef, points, buildStyles, buildKlineData, isLine, curr
 }
 
 // ── Çizgi grafiği ─────────────────────────────────────────────────────────────
-function GoldLineChart({ points, isDown, showMA7, showMA30, showMA90, showTrend,
-                         activeSubInds, subPaneIds, currency, onChartReady }) {
+function GoldLineChart({ points, isDown, showMA20, showMA50, showMA200, showTrend,
+                         activeSubInds, subPaneIds, currency, onChartReady, height = 280 }) {
   const idRef = useRef(null);
   if (!idRef.current) idRef.current = `gold_line_${Math.random().toString(36).slice(2)}`;
 
@@ -291,21 +302,21 @@ function GoldLineChart({ points, isDown, showMA7, showMA30, showMA90, showTrend,
 
   const { containerRef, tooltip } = useGoldKline({
     idRef, points, buildStyles, buildKlineData, isLine: true, currency,
-    showMA7, showMA30, showMA90, showTrend, activeSubInds, subPaneIds, onChartReady,
+    showMA20, showMA50, showMA200, showTrend, activeSubInds, subPaneIds, onChartReady,
   });
 
-  if (!points?.length) return <GoldNoData />;
+  if (!points?.length) return <GoldNoData height={height} />;
   return (
     <div ref={containerRef} style={{ position:'relative' }}>
-      <div id={idRef.current} style={{ width:'100%', height:'320px' }} />
+      <div id={idRef.current} style={{ width:'100%', height:`${height}px` }} />
       <FloatingTooltip tooltip={tooltip} containerRef={containerRef} currency={currency} />
     </div>
   );
 }
 
 // ── Mum grafiği ───────────────────────────────────────────────────────────────
-function GoldCandleChart({ points, showMA7, showMA30, showMA90, showTrend,
-                           activeSubInds, subPaneIds, onChartReady }) {
+function GoldCandleChart({ points, showMA20, showMA50, showMA200, showTrend,
+                           activeSubInds, subPaneIds, onChartReady, height = 280 }) {
   const idRef = useRef(null);
   if (!idRef.current) idRef.current = `gold_candle_${Math.random().toString(36).slice(2)}`;
 
@@ -330,17 +341,17 @@ function GoldCandleChart({ points, showMA7, showMA30, showMA90, showTrend,
 
   const { containerRef } = useGoldKline({
     idRef, points, buildStyles, buildKlineData, isLine: false,
-    showMA7, showMA30, showMA90, showTrend, activeSubInds, subPaneIds, onChartReady,
+    showMA20, showMA50, showMA200, showTrend, activeSubInds, subPaneIds, onChartReady,
   });
 
-  if (!points?.length) return <GoldNoData />;
-  return <div id={idRef.current} style={{ width:'100%', height:'320px' }} />;
+  if (!points?.length) return <GoldNoData height={height} />;
+  return <div id={idRef.current} style={{ width:'100%', height:`${height}px` }} />;
 }
 
-function GoldNoData() {
+function GoldNoData({ height = 280 }) {
   const { t } = useTranslation();
   return (
-    <div className="flex items-center justify-center h-[320px] text-gray-400 text-sm">
+    <div className="flex items-center justify-center text-gray-400 text-sm" style={{ height: `${height}px` }}>
       {t('Grafik verisi yüklenemedi.')}
     </div>
   );
@@ -349,7 +360,9 @@ function GoldNoData() {
 // ── Ana export ────────────────────────────────────────────────────────────────
 export default function GoldChart({
   points, chartMode, isDown, loading,
-  showMA7, showMA30, showMA90, showTrend, currency,
+  showMA20, showMA50, showMA200, showTrend, currency,
+  onToggleMA20, onToggleMA50, onToggleMA200, onToggleTrend, dataLen = 0,
+  height = 280,
 }) {
   const { t } = useTranslation();
   const [activeSubInds, setActiveSubInds] = useState([]);
@@ -390,31 +403,28 @@ export default function GoldChart({
     );
   }, []);
 
+  const indicatorMenu = (
+    <IndicatorMenu
+      maDefs={[{ period: 20, color: '#f59e0b', label: 'MA20' }, { period: 50, color: '#a855f7', label: 'MA50' }, { period: 200, color: '#ef4444', label: 'MA200' }]}
+      activeMAs={[...(showMA20 ? [20] : []), ...(showMA50 ? [50] : []), ...(showMA200 ? [200] : [])]}
+      onToggleMA={(p) => { if (p === 20) onToggleMA20?.(); else if (p === 50) onToggleMA50?.(); else onToggleMA200?.(); }}
+      dataLen={dataLen}
+      subDefs={SUB_INDICATORS}
+      activeSubs={activeSubInds}
+      onToggleSub={toggleSubInd}
+      extras={[{ key: 'trend', label: 'Trend', color: '#10b981', active: showTrend, onToggle: () => onToggleTrend?.() }]}
+    />
+  );
+
   return (
     <div className="space-y-2">
-      {/* Alt indikatörler */}
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <span className="text-xs text-gray-400 font-medium">{t('İndikatör:')}</span>
-        {SUB_INDICATORS.map(({ name, label, color }) => {
-          const active = activeSubInds.includes(name);
-          return (
-            <button key={name} onClick={() => toggleSubInd(name)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
-                active ? 'text-white border-transparent' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
-              }`}
-              style={active ? { backgroundColor: color } : {}}>
-              {t(label)}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Drawing toolbar */}
+      {/* Drawing toolbar — İndikatör dropdown dahil (MA + Trend + osilatörler; hisse detay tarzı) */}
       <DrawingToolbar
         activeTool={activeTool}
         onSelectTool={handleSelectTool}
         onDeleteSelected={handleDeleteSelected}
         onClearAll={handleClearAll}
+        indicatorSlot={indicatorMenu}
       />
 
       {/* Grafik */}
@@ -430,17 +440,17 @@ export default function GoldChart({
         )}
         {chartMode === 'candle' ? (
           <GoldCandleChart
-            points={points} showMA7={showMA7} showMA30={showMA30}
-            showMA90={showMA90} showTrend={showTrend}
+            points={points} showMA20={showMA20} showMA50={showMA50}
+            showMA200={showMA200} showTrend={showTrend}
             activeSubInds={activeSubInds} subPaneIds={subPaneIds}
-            onChartReady={handleChartReady}
+            onChartReady={handleChartReady} height={height}
           />
         ) : (
           <GoldLineChart
-            points={points} isDown={isDown} showMA7={showMA7} showMA30={showMA30}
-            showMA90={showMA90} showTrend={showTrend} currency={currency}
+            points={points} isDown={isDown} showMA20={showMA20} showMA50={showMA50}
+            showMA200={showMA200} showTrend={showTrend} currency={currency}
             activeSubInds={activeSubInds} subPaneIds={subPaneIds}
-            onChartReady={handleChartReady}
+            onChartReady={handleChartReady} height={height}
           />
         )}
       </div>

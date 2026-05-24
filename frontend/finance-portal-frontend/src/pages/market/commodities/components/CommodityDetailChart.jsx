@@ -1,8 +1,11 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { init as klineInit, dispose as klineDispose, registerOverlay } from 'klinecharts';
-import { Trash2, X } from 'lucide-react';
+import { Trash2, X, ChevronDown } from 'lucide-react';
 import { computeKlinePricePrecision, computeKlineVolumePrecision } from '../../../../utils/numberFormat';
 import { useTranslation } from '../../../../i18n/LanguageContext';
+import TrendBadge from '../../../../components/common/TrendBadge';
+import IndicatorMenu from '../../../../components/common/IndicatorMenu';
+import { buildTrendItem } from '../../../../utils/trendUtils';
 
 // ── Custom Overlay Kayıtları ───────────────────────────────────────────────────
 // Dikdörtgen
@@ -78,7 +81,7 @@ const DRAWING_TOOLS = [
   ]},
 ];
 
-function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll }) {
+function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll, indicatorSlot }) {
   const { t } = useTranslation();
   const [openGroup, setOpenGroup] = useState(null);
 
@@ -88,13 +91,14 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
         <div key={group} className="relative">
           <button
             onClick={() => setOpenGroup(openGroup === group ? null : group)}
-            className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
-              tools.some(t => t.id === activeTool)
-                ? 'bg-[#093eaa] text-white border-[#093eaa]'
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+              tools.some(t => t.id === activeTool) || openGroup === group
+                ? 'border-[#093eaa] text-[#093eaa] bg-[#093eaa]/5'
                 : 'bg-white text-gray-600 border-gray-200 hover:border-[#093eaa] hover:text-[#093eaa]'
             }`}
           >
-            {t(group)} ▾
+            {t(group)}
+            <ChevronDown className={`w-3 h-3 transition-transform ${openGroup === group ? 'rotate-180' : ''}`} />
           </button>
           {openGroup === group && (
             <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-1 min-w-[180px]">
@@ -120,14 +124,22 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
         </div>
       ))}
 
+      {/* İndikatör menüsü (çizim gruplarının yanında — hisse detaydaki gibi) */}
+      {indicatorSlot && (
+        <>
+          <div className="w-px h-6 bg-gray-200 mx-1" />
+          {indicatorSlot}
+        </>
+      )}
+
       <div className="w-px h-6 bg-gray-200 mx-1" />
 
       <button onClick={onDeleteSelected} title={t('Seçili çizimi sil')}
-        className="p-1.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 transition-all border border-gray-200">
+        className="inline-flex items-center px-2 py-1.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all border border-gray-200">
         <Trash2 className="w-3.5 h-3.5" />
       </button>
       <button onClick={onClearAll} title={t('Tüm çizimleri temizle')}
-        className="p-1.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 transition-all border border-gray-200">
+        className="inline-flex items-center px-2 py-1.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all border border-gray-200">
         <X className="w-3.5 h-3.5" />
       </button>
 
@@ -144,9 +156,9 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
 // ── MA ve Alt İndikatör Tanımları ─────────────────────────────────────────────
 
 const MA_PERIODS = [
-  { period: 7,  color: '#f59e0b', label: 'MA7'  },
-  { period: 30, color: '#8b5cf6', label: 'MA30' },
-  { period: 90, color: '#ef4444', label: 'MA90' },
+  { period: 20,  color: '#f59e0b', label: 'MA20'  },
+  { period: 50,  color: '#8b5cf6', label: 'MA50'  },
+  { period: 200, color: '#ef4444', label: 'MA200' },
 ];
 
 const SUB_INDICATORS = [
@@ -175,14 +187,22 @@ export default function CommodityDetailChart({
   const [activeSubInds,  setActiveSubInds]  = useState([]);
   const [activeTool,     setActiveTool]     = useState(null);
 
+  // Trend rozeti — fiyat serisinden (MA20/50 + 52h konumu)
+  const trendItem = useMemo(
+    () => buildTrendItem((points ?? []).map(p => parseFloat(p.displayClose ?? p.rawClose)), 'COMMODITY'),
+    [points],
+  );
+
   // ── MA toggle ──────────────────────────────────────────────────────────────
   const applyMA = useCallback((periods) => {
     const chart = chartRef.current;
     if (!chart) return;
     chart.removeIndicator('candle_pane', 'MA');
     if (periods.length > 0) {
+      const sorted = [...periods].sort((a, b) => a - b);
+      const lines = sorted.map(p => ({ color: MA_PERIODS.find(m => m.period === p)?.color ?? '#888', size: 1.5 }));
       chart.createIndicator(
-        { name: 'MA', calcParams: periods },
+        { name: 'MA', calcParams: sorted, styles: { lines } },
         false,
         { id: 'candle_pane' }
       );
@@ -327,49 +347,30 @@ export default function CommodityDetailChart({
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
+  const indicatorMenu = (
+    <IndicatorMenu
+      maDefs={MA_PERIODS}
+      activeMAs={activeMAs}
+      onToggleMA={toggleMA}
+      dataLen={points?.length ?? 0}
+      subDefs={SUB_INDICATORS}
+      activeSubs={activeSubInds}
+      onToggleSub={toggleSubIndicator}
+    />
+  );
+
   return (
     <div>
-      {/* MA butonları */}
-      <div className="flex items-center gap-3 mb-2 flex-wrap">
-        <div className="flex gap-1 flex-wrap">
-          {MA_PERIODS.map(({ period, color, label }) => {
-            const active = activeMAs.includes(period);
-            return (
-              <button key={period} onClick={() => toggleMA(period)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all border ${
-                  active ? 'text-white border-transparent' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
-                }`}
-                style={active ? { backgroundColor: color, borderColor: color } : {}}>
-                {t(label)}
-              </button>
-            );
-          })}
-        </div>
+      {/* Trend rozeti */}
+      {trendItem && <div className="mb-2"><TrendBadge item={trendItem} size="xs" /></div>}
 
-        {/* Alt indikatörler */}
-        <div className="flex gap-1 flex-wrap items-center">
-          <span className="text-xs text-gray-400">{t('İndikatör:')}</span>
-          {SUB_INDICATORS.map(({ name, label, color }) => {
-            const active = activeSubInds.includes(name);
-            return (
-              <button key={name} onClick={() => toggleSubIndicator(name)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all border ${
-                  active ? 'text-white border-transparent' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
-                }`}
-                style={active ? { backgroundColor: color, borderColor: color } : {}}>
-                {t(label)}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Drawing Toolbar */}
+      {/* Drawing Toolbar (İndikatör menüsü çizim gruplarının yanında — hisse detay tarzı) */}
       <DrawingToolbar
         activeTool={activeTool}
         onSelectTool={handleSelectTool}
         onDeleteSelected={handleDeleteSelected}
         onClearAll={handleClearAll}
+        indicatorSlot={indicatorMenu}
       />
 
       {/* Grafik */}
@@ -388,7 +389,7 @@ export default function CommodityDetailChart({
             {t('Grafik verisi bulunamadı.')}
           </div>
         )}
-        <div id={chartId.current} style={{ width: '100%', height: '460px' }} />
+        <div id={chartId.current} style={{ width: '100%', height: '300px' }} />
       </div>
 
       {resolvedSourceNote && <p className="text-xs text-gray-400 mt-2">{resolvedSourceNote}</p>}

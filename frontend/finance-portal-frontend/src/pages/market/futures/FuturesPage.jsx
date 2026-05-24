@@ -120,18 +120,7 @@ export default function FuturesPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-2 border-l-4 border-[#093eaa] pl-4">{t('Vadeli İşlemler')}</h1>
-      <p className="text-sm text-gray-500 mb-6 pl-5">{t('Türkiye VİOP kontratları ve küresel vadeli işlemler')}</p>
-
-      <div className="flex gap-2 mb-4">
-        <button onClick={() => handleTab('viop')}
-          className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === 'viop' ? 'bg-[#093eaa] text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>
-          {t('Türkiye VİOP')}
-        </button>
-        <button onClick={() => handleTab('global')}
-          className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === 'global' ? 'bg-[#093eaa] text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>
-          {t('Küresel Vadeli')}
-        </button>
-      </div>
+      <p className="text-sm text-gray-500 mb-6 pl-5">{t('Türkiye VİOP kontratları')}</p>
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         {loading && <div className="p-8 text-center text-gray-400 text-sm">{t('Yükleniyor...')}</div>}

@@ -1,6 +1,10 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, TrendingUp, TrendingDown, Globe, ChevronDown, ChevronUp, ExternalLink, Plus, X } from 'lucide-react';
+import UniversalCompareButton from '../../../components/common/UniversalCompareButton';
+import TrendBadge from '../../../components/common/TrendBadge';
+import InstrumentActionButtons from '../../../components/instrument/InstrumentActionButtons';
+import { buildTrendItem } from '../../../utils/trendUtils';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, LineChart, Line, Brush,
@@ -140,9 +144,9 @@ function RSIBadge({ rsi }) {
 }
 
 const MA_OPTIONS = [
-  { period: 7,  label: 'MA7',  color: '#f59e0b' },
-  { period: 25, label: 'MA25', color: '#8b5cf6' },
-  { period: 99, label: 'MA99', color: '#ef4444' },
+  { period: 20,  label: 'MA20',  color: '#f59e0b' },
+  { period: 50,  label: 'MA50',  color: '#8b5cf6' },
+  { period: 200, label: 'MA200', color: '#ef4444' },
 ];
 
 // Range'e göre anlamlı MA periyotları
@@ -412,11 +416,11 @@ function CryptoLineChart({ chartData, currency, compareCoins, compareData, coinI
 
       chart.applyNewData(klineData);
 
-      // MA ekle (varsa) - önce eski MA'yı temizle
+      // MA ekle (varsa) - önce eski MA'yı temizle; çizgi rengi buton rengiyle aynı
       chart.removeIndicator('candle_pane', 'MA');
       if (activeMAs && activeMAs.length > 0) {
         chart.createIndicator(
-          { name: 'MA', calcParams: activeMAs },
+          { name: 'MA', calcParams: activeMAs, styles: { lines: activeMAs.map(p => ({ color: MA_OPTIONS.find(m => m.period === p)?.color ?? '#888', size: 1.5 })) } },
           false,
           { id: 'candle_pane' }
         );
@@ -849,6 +853,12 @@ export default function CryptoDetailPage() {
   const github = detail?.links?.repos_url?.github?.[0];
   const categories = detail?.categories?.slice(0, 3) ?? [];
 
+  // Trend rozeti — fiyat serisinden (MA20/50 + 52h konumu + 7g momentum)
+  const trendItem = useMemo(
+    () => buildTrendItem(chartData.map(d => d.price), 'CRYPTO', { priceChangePercentage7d: coin?.priceChangePercentage7d }),
+    [chartData, coin],
+  );
+
   const displayData = isComparing ? normalizedChartData() : chartData;
   const isLoading = chartLoading || compareLoading;
 
@@ -872,11 +882,6 @@ export default function CryptoDetailPage() {
         <Link to="/market/crypto" className="inline-flex items-center gap-1.5 text-sm text-[#093eaa] font-semibold hover:underline">
           <ArrowLeft className="w-4 h-4" /> {t('Kripto Para')}
         </Link>
-        <button
-          onClick={() => isAuthenticated ? navigate('/portfolio') : navigate('/login', { state: { from: '/portfolio' } })}
-          className="px-4 py-2 bg-emerald-500 text-white text-sm font-bold rounded-xl hover:bg-emerald-600 transition-all">
-          {t('Satın Al')}
-        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -913,6 +918,15 @@ export default function CryptoDetailPage() {
                 {pos24h ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                 {pos24h ? '+' : ''}{fmt(change24h)}% ({t('24s')})
               </span>
+              {trendItem && <div className="mt-2"><TrendBadge item={trendItem} size="sm" /></div>}
+              <div className="mt-3">
+                <InstrumentActionButtons
+                  assetType="CRYPTO"
+                  symbol={(coin.symbol || '').toUpperCase()}
+                  name={coin.name}
+                  price={coin.currentPrice}
+                />
+              </div>
               {coin.low24h != null && coin.high24h != null && (
                 <div className="mt-3">
                   <div className="flex justify-between text-xs text-gray-400 mb-1">
@@ -1055,21 +1069,32 @@ export default function CryptoDetailPage() {
                 ))}
               </div>
 
-              {/* Karşılaştır butonu — sadece çizgi modunda */}
+              {/* Karşılaştır kümesi — inline (aynı grafikte coin) + Tümüyle (her şeyle, ayrı sayfa) */}
               {chartMode === 'line' && (
-                <CompareDropdown
-                  compareCoins={compareCoins}
-                  onAdd={addCompare}
-                  onRemove={removeCompare}
-                  allCoins={allCoins}
+                <div title={t('Aynı grafikte başka kripto paralarla kıyasla')}>
+                  <CompareDropdown
+                    compareCoins={compareCoins}
+                    onAdd={addCompare}
+                    onRemove={removeCompare}
+                    allCoins={allCoins}
+                  />
+                </div>
+              )}
+              {coin && (
+                <UniversalCompareButton
+                  assetType="CRYPTO"
+                  symbol={(coin.symbol || '').toUpperCase()}
+                  name={coin.name}
                 />
               )}
 
-              {/* Range butonları */}
-              <div className="flex gap-1 ml-auto">
+              {/* Not: İndikatör menüsü grafiğin (CommodityDetailChart) çizim toolbar'ında — burada tekrarı kaldırıldı */}
+
+              {/* Range butonları — segmented */}
+              <div className="inline-flex items-center gap-0.5 rounded-lg border border-gray-200 bg-gray-50 p-0.5 ml-auto">
                 {CRYPTO_CHART_RANGES.map((r, i) => (
                   <button key={r.label} onClick={() => setRangeIdx(i)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${rangeIdx === i ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                    className={`px-3 py-1 rounded-md text-xs font-semibold whitespace-nowrap transition-all ${rangeIdx === i ? 'bg-white text-[#093eaa] shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>
                     {t(r.label)}
                   </button>
                 ))}

@@ -3,6 +3,10 @@ import { RefreshCw, TrendingUp, TrendingDown, BarChart2, Plus, X, ChevronDown, T
 import { init as klineInit, dispose as klineDispose, registerIndicator, registerOverlay } from 'klinecharts';
 import { getViopChart, getViopContracts } from '../../../../api/marketApi';
 import { useTranslation } from '../../../../i18n/LanguageContext';
+import UniversalCompareButton from '../../../../components/common/UniversalCompareButton';
+import TrendBadge from '../../../../components/common/TrendBadge';
+import IndicatorMenu from '../../../../components/common/IndicatorMenu';
+import { buildTrendItem } from '../../../../utils/trendUtils';
 
 // ── Custom Overlay Kayıtları (bir kez çalışır) ────────────────────────────────
 let overlaysRegistered = false;
@@ -81,12 +85,13 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
         <div key={group} className="relative">
           <button
             onClick={() => setOpenGroup(openGroup === group ? null : group)}
-            className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
-              tools.some(tool => tool.id === activeTool)
-                ? 'bg-[#093eaa] text-white border-[#093eaa]'
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+              tools.some(tool => tool.id === activeTool) || openGroup === group
+                ? 'border-[#093eaa] text-[#093eaa] bg-[#093eaa]/5'
                 : 'bg-white text-gray-600 border-gray-200 hover:border-[#093eaa] hover:text-[#093eaa]'
             }`}>
-            {t(group)} ▾
+            {t(group)}
+            <ChevronDown className={`w-3 h-3 transition-transform ${openGroup === group ? 'rotate-180' : ''}`} />
           </button>
           {openGroup === group && (
             <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-1 min-w-[180px]">
@@ -106,11 +111,11 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
       ))}
       <div className="w-px h-6 bg-gray-200 mx-1" />
       <button onClick={onDeleteSelected} title={t('Seçili çizimi sil')}
-        className="p-1.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 transition-all border border-gray-200">
+        className="inline-flex items-center px-2 py-1.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all border border-gray-200">
         <Trash2 className="w-3.5 h-3.5" />
       </button>
       <button onClick={onClearAll} title={t('Tüm çizimleri temizle')}
-        className="p-1.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 transition-all border border-gray-200">
+        className="inline-flex items-center px-2 py-1.5 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all border border-gray-200">
         <X className="w-3.5 h-3.5" />
       </button>
       {activeTool && (
@@ -134,10 +139,10 @@ const PERIODS = [
 
 const MAIN_COLOR    = '#093eaa';
 const COMPARE_COLOR = '#f97316';
-const MA7_COLOR   = '#f59e0b';
-const MA30_COLOR  = '#a855f7';
-const EMA_COLOR   = '#06b6d4';
-const BOLL_COLOR  = '#3b82f6';
+// VİOP sözleşmeleri kısa ömürlü → MA200 (200 gün) hiç dolmaz; kısa set: MA5/MA10/MA20
+const MA5_COLOR  = '#f59e0b';
+const MA10_COLOR = '#a855f7';
+const MA20_COLOR = '#ef4444';
 
 // ── Yardımcılar ───────────────────────────────────────────────────────────────
 
@@ -232,7 +237,7 @@ function ensureIndicator(name) {
 
 // ── KLineCharts stil ──────────────────────────────────────────────────────────
 
-function buildStyles(lineColor) {
+function buildStyles(lineColor, mainLabel) {
   return {
     candle: {
       type: 'area',
@@ -243,20 +248,48 @@ function buildStyles(lineColor) {
           { offset: 1, color: lineColor + '00' },
         ],
       },
-      tooltip: { showRule: 'none' },
+      // Hover tooltip'i aç (hisse detay grafiğindeki gibi): ana değer + karşılaştırma serisi.
+      // Çizgilerin üstünde okunabilsin diye arka planlı kutu (rect) + üstten boşluk.
+      tooltip: {
+        showRule: 'follow_cross',
+        showType: 'rect',
+        text: { size: 12, marginTop: 4, marginBottom: 4, marginLeft: 8, marginRight: 8 },
+        rect: {
+          offsetLeft: 8, offsetTop: 8, offsetRight: 8,
+          paddingLeft: 10, paddingRight: 10, paddingTop: 8, paddingBottom: 8,
+          borderRadius: 8, borderSize: 1, borderColor: '#e5e7eb',
+          color: 'rgba(255,255,255,0.94)',
+        },
+        custom: (data) => {
+          const d = data?.current ?? {};
+          const date = d.timestamp
+            ? new Date(d.timestamp).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' })
+            : '';
+          return [
+            { title: '', value: { text: date, color: '#6b7280' } },
+            {
+              title: mainLabel ? { text: `${mainLabel}:`, color: lineColor } : '',
+              value: { text: fmt(d.close), color: lineColor },
+            },
+          ];
+        },
+      },
       priceMark: {
         last: { show: true, upColor: lineColor, downColor: lineColor, noChangeColor: lineColor },
         high: { show: false }, low: { show: false },
       },
     },
-    indicator: { tooltip: { showRule: 'none' } },
-    yAxis: { type: 'normal' },
+    // Karşılaştırma/MA değerleri hover'da yan yana — gereksiz isim/parametre tekrarını gizle
+    indicator: { tooltip: { showRule: 'follow_cross', showType: 'rect', showName: false, showParams: false, defaultValue: '—', text: { size: 12, marginTop: 4, marginBottom: 4, marginLeft: 8, marginRight: 8 } } },
+    // Eksen yazıları net/koyu olsun (açık gri "bulanık" görünmesin)
+    xAxis: { tickText: { color: '#4b5563', size: 11 } },
+    yAxis: { type: 'normal', tickText: { color: '#4b5563', size: 11 } },
   };
 }
 
 // ── KLineCharts bileşeni ──────────────────────────────────────────────────────
 
-function ViopKlineChart({ mainPoints, comparePoints, compareName, isComparing, showMA7, showMA30, showEMA, showBOLL, showRSI, rsiPaneRef, activeTool, chartRef: externalRef }) {
+function ViopKlineChart({ mainPoints, comparePoints, compareName, compareLabel, mainLabel, isComparing, showMA5, showMA10, showMA20, showRSI, rsiPaneRef, chartRef: externalRef }) {
   const { t } = useTranslation();
   const chartId  = useRef(`viop_kline_${Math.random().toString(36).slice(2)}`);
   const chartRef = useRef(null);
@@ -297,19 +330,20 @@ function ViopKlineChart({ mainPoints, comparePoints, compareName, isComparing, s
 
       if (!klineData.length) { klineDispose(id); return; }
 
-      chart.setStyles(buildStyles(MAIN_COLOR));
+      chart.setStyles(buildStyles(MAIN_COLOR, mainLabel));
       chart.applyNewData(klineData);
       fitChartToWidth(chart, id, klineData.length);
 
       // Karşılaştırma serisi overlay
       const cmpValues = klineData.map(d => cmpMap.get(d.timestamp) ?? null);
       const indName   = (compareName ?? 'CMP').replace(/[^A-Za-z0-9_]/g, '_').slice(0, 20);
+      const figTitle  = `${compareLabel || indName}: `;
       ensureIndicator(indName);
       try {
         chart.createIndicator(
           {
             name: indName,
-            figures: [{ key: 'val', title: `${indName}: `, type: 'line' }],
+            figures: [{ key: 'val', title: figTitle, type: 'line' }],
             calc: (list) => list.map((_, i) => ({ val: cmpValues[i] ?? null })),
             styles: { lines: [{ color: COMPARE_COLOR, size: 2, smooth: true }] },
           },
@@ -325,37 +359,22 @@ function ViopKlineChart({ mainPoints, comparePoints, compareName, isComparing, s
 
       const isUp  = klineData[klineData.length - 1].close >= klineData[0].close;
       const color = isUp ? '#10b981' : '#ef4444';
-      chart.setStyles(buildStyles(color));
+      chart.setStyles(buildStyles(color, mainLabel));
       chart.applyNewData(klineData);
       fitChartToWidth(chart, id, klineData.length);
 
-      // MA
-      const maParams = [...(showMA7 ? [7] : []), ...(showMA30 ? [30] : [])];
-      if (maParams.length > 0) {
+      // MA (20 / 50 / 200) — yalnızca yeterli veri varsa; çizgi rengi buton rengiyle aynı
+      const n = mainPoints.length;
+      const maDefs = [[5, MA5_COLOR], [10, MA10_COLOR], [20, MA20_COLOR]]
+        .filter(([p]) => (p === 5 ? showMA5 : p === 10 ? showMA10 : showMA20) && n >= p);
+      if (maDefs.length > 0) {
         try {
-          chart.createIndicator({ name: 'MA', calcParams: maParams }, false, { id: 'candle_pane' });
+          chart.createIndicator({ name: 'MA', calcParams: maDefs.map(([p]) => p), styles: { lines: maDefs.map(([, c]) => ({ color: c, size: 1.5 })) } }, false, { id: 'candle_pane' });
         } catch (e) { console.warn('[ViopChart] MA init:', e); }
       }
 
-      // EMA
-      if (showEMA) {
-        try {
-          chart.createIndicator({
-            name: 'EMA', calcParams: [12, 26],
-            styles: { lines: [{ color: EMA_COLOR, size: 1.5 }, { color: '#f97316', size: 1.5 }] },
-          }, false, { id: 'candle_pane' });
-        } catch (e) { console.warn('[ViopChart] EMA init:', e); }
-      }
-
-      // Bollinger
-      if (showBOLL) {
-        try {
-          chart.createIndicator({ name: 'BOLL', calcParams: [20, 2] }, false, { id: 'candle_pane' });
-        } catch (e) { console.warn('[ViopChart] BOLL init:', e); }
-      }
-
-      // RSI — alt panel
-      if (showRSI) {
+      // RSI — alt panel (yeterli veri varsa; az noktada RSI(14) hesaplanamaz, boş panel çıkar)
+      if (showRSI && mainPoints.length >= 15) {
         try {
           const paneId = chart.createIndicator({ name: 'RSI', calcParams: [14] }, true, { height: 80 });
           if (rsiPaneRef) rsiPaneRef.current = paneId ?? null;
@@ -367,37 +386,20 @@ function ViopKlineChart({ mainPoints, comparePoints, compareName, isComparing, s
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mainPoints, comparePoints, compareName, isComparing]);
 
-  // MA / EMA / BOLL toggle — chart dispose etmeden güncelle
+  // MA toggle — chart dispose etmeden güncelle
   useEffect(() => {
     const chart = chartRef.current;
     if (!chart || isComparing) return;
 
-    // MA
     try { chart.removeIndicator('candle_pane', 'MA'); } catch (_) {}
-    const maParams = [...(showMA7 ? [7] : []), ...(showMA30 ? [30] : [])];
-    if (maParams.length > 0) {
-      try { chart.createIndicator({ name: 'MA', calcParams: maParams }, false, { id: 'candle_pane' }); }
+    const n = mainPoints.length;
+    const maDefs = [[5, MA5_COLOR], [10, MA10_COLOR], [20, MA20_COLOR]]
+      .filter(([p]) => (p === 5 ? showMA5 : p === 10 ? showMA10 : showMA20) && n >= p);
+    if (maDefs.length > 0) {
+      try { chart.createIndicator({ name: 'MA', calcParams: maDefs.map(([p]) => p), styles: { lines: maDefs.map(([, c]) => ({ color: c, size: 1.5 })) } }, false, { id: 'candle_pane' }); }
       catch (e) { console.warn('[ViopChart] MA toggle:', e); }
     }
-
-    // EMA
-    try { chart.removeIndicator('candle_pane', 'EMA'); } catch (_) {}
-    if (showEMA) {
-      try {
-        chart.createIndicator({
-          name: 'EMA', calcParams: [12, 26],
-          styles: { lines: [{ color: EMA_COLOR, size: 1.5 }, { color: '#f97316', size: 1.5 }] },
-        }, false, { id: 'candle_pane' });
-      } catch (e) { console.warn('[ViopChart] EMA toggle:', e); }
-    }
-
-    // Bollinger
-    try { chart.removeIndicator('candle_pane', 'BOLL'); } catch (_) {}
-    if (showBOLL) {
-      try { chart.createIndicator({ name: 'BOLL', calcParams: [20, 2] }, false, { id: 'candle_pane' }); }
-      catch (e) { console.warn('[ViopChart] BOLL toggle:', e); }
-    }
-  }, [showMA7, showMA30, showEMA, showBOLL, isComparing]);
+  }, [showMA5, showMA10, showMA20, isComparing]);
 
   // RSI toggle — ayrı effect (alt panel pane ID yönetimi)
   useEffect(() => {
@@ -421,13 +423,6 @@ function ViopKlineChart({ mainPoints, comparePoints, compareName, isComparing, s
     }
   }, [showRSI, isComparing, rsiPaneRef]);
 
-  // activeTool değişince overlay oluştur
-  useEffect(() => {
-    if (!chartRef.current || !activeTool) return;
-    try { chartRef.current.createOverlay({ name: activeTool }); }
-    catch (e) { console.warn('[ViopChart] overlay:', e); }
-  }, [activeTool]);
-
   if (!mainPoints?.length) {
     return (
       <div className="flex flex-col items-center justify-center h-[288px] gap-3 text-gray-400">
@@ -442,9 +437,9 @@ function ViopKlineChart({ mainPoints, comparePoints, compareName, isComparing, s
 
 // ── Toggle butonu ─────────────────────────────────────────────────────────────
 
-function Toggle({ label, active, color, onClick, disabled }) {
+function Toggle({ label, active, color, onClick, disabled, title }) {
   return (
-    <button onClick={onClick} disabled={disabled}
+    <button onClick={onClick} disabled={disabled} title={title}
       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
         disabled
           ? 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'
@@ -563,14 +558,11 @@ export default function ViopPriceChart({ contractName }) {
   const [loading, setLoading]   = useState(false);
   const [status, setStatus]     = useState('idle'); // idle | ok | empty | unsupported | error
 
-  const [showMA7, setShowMA7]   = useState(false);
-  const [showMA30, setShowMA30] = useState(false);
-  const [showEMA, setShowEMA]   = useState(false);
-  const [showBOLL, setShowBOLL] = useState(false);
-  const [showRSI, setShowRSI]   = useState(false);
+  const [showMA5, setShowMA5]   = useState(false);
+  const [showMA10, setShowMA10] = useState(false);
+  const [showMA20, setShowMA20] = useState(false);
+  const [showRSI, setShowRSI]     = useState(false);
   const rsiPaneId = useRef(null); // RSI pane ID'sini sakla
-
-  const [activeTool, setActiveTool] = useState(null);
 
   const chartInstanceRef = useRef(null);
 
@@ -580,13 +572,6 @@ export default function ViopPriceChart({ contractName }) {
   const [compareError, setCompareError]     = useState(false);
 
   const isComparing = !!compareName;
-
-  // ESC ile aktif çizim aracını kapat
-  useEffect(() => {
-    const handler = (e) => { if (e.key === 'Escape') setActiveTool(null); };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, []);
 
   // ── Veri çekme ──────────────────────────────────────────────────────────────
 
@@ -622,14 +607,10 @@ export default function ViopPriceChart({ contractName }) {
     else { setComparePoints([]); setCompareError(false); }
   }, [compareName, period, fetchCompare]);
 
-  // Karşılaştırma seçilince indikatörleri ve çizim aracını kapat
+  // Karşılaştırma seçilince indikatörleri kapat
   useEffect(() => {
-    if (compareName) {
-      setShowMA7(false); setShowMA30(false); setShowEMA(false); setShowBOLL(false);
-      setShowRSI(false); setActiveTool(null);
-    } else {
-      setShowMA7(false); setShowMA30(false); setShowEMA(false); setShowBOLL(false);
-    }
+    setShowMA5(false); setShowMA10(false); setShowMA20(false);
+    if (compareName) setShowRSI(false);
   }, [compareName]);
 
   // RSI toggle — alt panel olarak ekle/kaldır
@@ -662,13 +643,26 @@ export default function ViopPriceChart({ contractName }) {
 
   const shortName = (name) => name?.split(' ')[0] ?? name;
 
+  // İndikatör için yeterli veri var mı? (VİOP geçmişi kısa → MA200/RSI çoğu zaman dolmaz)
+  const n = status === 'ok' ? points.length : 0;
+  const maTitle = (need) => n < need ? t('Yeterli veri yok ({n} nokta gerekir)', { n: need }) : undefined;
+
+  // Trend rozeti — seri kapanışlarından (MA20/50 + 52h konumu)
+  const trendItem = useMemo(
+    () => buildTrendItem(points.map(p => parseFloat(p.value)), 'FUTURE'),
+    [points],
+  );
+
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
 
       {/* ── Başlık satırı ── */}
       <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
         <div>
-          <h2 className="font-bold text-gray-900">{t('VİOP Sözleşme Grafiği')}</h2>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="font-bold text-gray-900">{t('VİOP Sözleşme Grafiği')}</h2>
+            {!isComparing && trendItem && <TrendBadge item={trendItem} size="xs" />}
+          </div>
           {/* Tek seri: periyot değişimi */}
           {!isComparing && mainPct != null && status === 'ok' && (
             <span className={`text-sm font-semibold flex items-center gap-1 mt-0.5 ${mainPct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
@@ -699,11 +693,11 @@ export default function ViopPriceChart({ contractName }) {
 
         {/* Period butonları + yenile */}
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex gap-1 flex-wrap">
+          <div className="inline-flex items-center gap-0.5 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
             {PERIODS.map(p => (
               <button key={p.key} onClick={() => setPeriod(p.key)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  period === p.key ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                className={`px-3 py-1 rounded-md text-xs font-semibold whitespace-nowrap transition-all ${
+                  period === p.key ? 'bg-white text-[#093eaa] shadow-sm' : 'text-gray-500 hover:text-gray-800'
                 }`}>
                 {t(p.label)}
               </button>
@@ -724,19 +718,25 @@ export default function ViopPriceChart({ contractName }) {
           </span>
         </div>
 
-        <Toggle label="MA7"  active={showMA7}  color={MA7_COLOR}  disabled={isComparing} onClick={() => setShowMA7(v => !v)} />
-        <Toggle label="MA30" active={showMA30} color={MA30_COLOR} disabled={isComparing} onClick={() => setShowMA30(v => !v)} />
-        <Toggle label="EMA 12/26" active={showEMA}  color={EMA_COLOR}  disabled={isComparing} onClick={() => setShowEMA(v => !v)} />
-        <Toggle label="Bollinger" active={showBOLL} color={BOLL_COLOR} disabled={isComparing} onClick={() => setShowBOLL(v => !v)} />
-        <Toggle label="RSI 14"    active={showRSI}  color="#f59e0b"    disabled={isComparing} onClick={toggleRSI} />
+        <IndicatorMenu
+          maDefs={[{ period: 5, color: MA5_COLOR, label: 'MA5' }, { period: 10, color: MA10_COLOR, label: 'MA10' }, { period: 20, color: MA20_COLOR, label: 'MA20' }]}
+          activeMAs={[...(showMA5 ? [5] : []), ...(showMA10 ? [10] : []), ...(showMA20 ? [20] : [])]}
+          onToggleMA={(p) => { if (p === 5) setShowMA5(v => !v); else if (p === 10) setShowMA10(v => !v); else setShowMA20(v => !v); }}
+          dataLen={n}
+          extras={[{ key: 'rsi', label: 'RSI 14', color: '#f59e0b', active: showRSI, onToggle: toggleRSI, disabled: n < 15, title: n < 15 ? t('Yeterli veri yok (RSI için ~15 nokta gerekir)') : undefined }]}
+          disabled={isComparing}
+        />
 
-        <div className="ml-auto">
-          <ViopCompareSelector
-            mainName={contractName}
-            compareName={compareName}
-            onSelect={name => setCompareName(name)}
-            onClear={() => { setCompareName(null); setComparePoints([]); }}
-          />
+        <div className="ml-auto flex items-center gap-2">
+          <div title={t('Aynı grafikte başka VİOP sözleşmeleriyle kıyasla')}>
+            <ViopCompareSelector
+              mainName={contractName}
+              compareName={compareName}
+              onSelect={name => setCompareName(name)}
+              onClear={() => { setCompareName(null); setComparePoints([]); }}
+            />
+          </div>
+          <UniversalCompareButton assetType="FUTURE" symbol={contractName} name={contractName} />
         </div>
       </div>
 
@@ -798,36 +798,20 @@ export default function ViopPriceChart({ contractName }) {
         )}
 
         {!isLoading && status === 'ok' && (
-          <>
-            {/* Drawing Toolbar — karşılaştırma modunda gizle */}
-            {!isComparing && (
-              <DrawingToolbar
-                activeTool={activeTool}
-                onSelectTool={(toolId) => setActiveTool(toolId)}
-                onDeleteSelected={() => { chartInstanceRef.current?.removeOverlay(); }}
-                onClearAll={() => {
-                  DRAWING_TOOLS.flatMap(g => g.tools).forEach(it => {
-                    try { chartInstanceRef.current?.removeOverlay({ name: it.id }); } catch {}
-                  });
-                  setActiveTool(null);
-                }}
-              />
-            )}
-            <ViopKlineChart
-              mainPoints={points}
-              comparePoints={comparePoints}
-              compareName={compareName ? (compareName.replace(/[^A-Za-z0-9_]/g, '_').slice(0, 20)) : null}
-              isComparing={isComparing && comparePoints.length > 0}
-              showMA7={showMA7}
-              showMA30={showMA30}
-              showEMA={showEMA}
-              showBOLL={showBOLL}
-              showRSI={showRSI}
-              rsiPaneRef={rsiPaneId}
-              activeTool={activeTool}
-              chartRef={chartInstanceRef}
-            />
-          </>
+          <ViopKlineChart
+            mainPoints={points}
+            comparePoints={comparePoints}
+            compareName={compareName ? (compareName.replace(/[^A-Za-z0-9_]/g, '_').slice(0, 20)) : null}
+            compareLabel={compareName ? shortName(compareName) : null}
+            mainLabel={shortName(contractName)}
+            isComparing={isComparing && comparePoints.length > 0}
+            showMA5={showMA5}
+            showMA10={showMA10}
+            showMA20={showMA20}
+            showRSI={showRSI}
+            rsiPaneRef={rsiPaneId}
+            chartRef={chartInstanceRef}
+          />
         )}
       </div>
 

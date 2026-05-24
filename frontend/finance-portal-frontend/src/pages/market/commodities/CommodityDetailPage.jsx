@@ -8,6 +8,8 @@ import CommodityDetailToolbar     from './components/CommodityDetailToolbar';
 import CommodityDetailChart       from './components/CommodityDetailChart';
 import CommodityDetailSourceNotice from './components/CommodityDetailSourceNotice';
 import CommoditiesErrorState      from './components/CommoditiesErrorState';
+import UniversalCompareButton     from '../../../components/common/UniversalCompareButton';
+import InstrumentActionButtons    from '../../../components/instrument/InstrumentActionButtons';
 import { useTranslation } from '../../../i18n/LanguageContext';
 
 // history noktalarını display değerleriyle zenginleştir (USX → USD dönüşümü zaten backend'de yapılıyor)
@@ -104,7 +106,7 @@ export default function CommodityDetailPage() {
   if (!loadingSpot && error) return <CommoditiesErrorState message={error} />;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 max-w-6xl mx-auto">
       {/* Header: başlık + fiyat + 52H */}
       {loadingSpot ? (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
@@ -131,6 +133,23 @@ export default function CommodityDetailPage() {
 
       {/* Grafik kartı */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+        <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+          <h3 className="text-sm font-bold text-gray-700">{t('Fiyat Grafiği')}</h3>
+          <div className="flex items-center gap-2 flex-wrap">
+            <UniversalCompareButton
+              assetType="COMMODITY"
+              symbol={meta?.symbol}
+              name={meta?.displayNameTr || meta?.symbol}
+            />
+            <InstrumentActionButtons
+              assetType="COMMODITY"
+              symbol={meta?.symbol}
+              name={meta?.displayNameTr || meta?.symbol}
+              price={spot?.displayPrice}
+            />
+          </div>
+        </div>
+
         <CommodityDetailToolbar
           range={range}
           onRangeChange={handleRangeChange}

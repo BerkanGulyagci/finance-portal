@@ -50,16 +50,15 @@ export function filterBondHistoryByDays(points, days) {
 }
 
 /**
- * Periyoda göre filtre + 5Y için haftalık örnekleme.
+ * Periyoda göre filtre. (5Y'de eskiden haftalık örnekleme yapılıyordu; bu, nokta sayısını
+ * 200'ün altına düşürüp MA200'ün hiç çizilmemesine yol açıyordu — en uzun aralıkta en az veri.
+ * Artık tüm aralıklarda GÜNLÜK seri kullanılır; MA200 = 200 gün her aralıkta tutarlı çalışır.)
  * @returns {{ points: object[], usesWeeklySampling: boolean }}
  */
 export function prepareBondLineChartPoints(points, periodKey) {
   const periodDef = BOND_CHART_PERIODS.find((p) => p.key === periodKey)
     ?? BOND_CHART_PERIODS.find((p) => p.key === 'ONE_MONTH');
   const filtered = filterBondHistoryByDays(points, periodDef.days);
-  if (periodKey === 'FIVE_YEARS' && filtered.length > 120) {
-    return { points: downsampleWeeklyLast(filtered), usesWeeklySampling: true };
-  }
   return { points: filtered, usesWeeklySampling: false };
 }
 
