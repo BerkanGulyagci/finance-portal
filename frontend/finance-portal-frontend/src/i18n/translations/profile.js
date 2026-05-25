@@ -16,10 +16,12 @@ const en = {
   'Aktif': 'Active',
   'Pasif': 'Inactive',
   'Roller': 'Roles',
+  'Hesap Bilgileri': 'Account Information',
   'Bilgilerimi Düzenle': 'Edit My Information',
   'Şifremi Değiştir': 'Change My Password',
   'Email Değiştir': 'Change Email',
   'Bilgileri yenile': 'Refresh information',
+  'Yenile': 'Refresh',
   'Email doğrulama sayfası': 'Email verification page',
 
   // ProfileAccountModals - shared

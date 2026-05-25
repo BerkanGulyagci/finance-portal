@@ -37,9 +37,16 @@ public final class BusinessLogSupport {
     public static final String EVENT_NEWSLETTER_UNSUBSCRIBED = "NEWSLETTER_UNSUBSCRIBED";
     public static final String EVENT_NEWSLETTER_DIGEST_SENT = "NEWSLETTER_DIGEST_SENT";
 
+    // Destek talebi
+    public static final String EVENT_SUPPORT_TICKET_CREATED = "SUPPORT_TICKET_CREATED";
+    public static final String EVENT_SUPPORT_TICKET_UPDATED = "SUPPORT_TICKET_UPDATED";
+    public static final String EVENT_SUPPORT_TICKET_DELETED = "SUPPORT_TICKET_DELETED";
+    public static final String EVENT_SUPPORT_TICKET_STATUS_CHANGED = "SUPPORT_TICKET_STATUS_CHANGED";
+
     public static final String ENTITY_ALARM = "ALARM";
     public static final String ENTITY_NOTIFICATION = "NOTIFICATION";
     public static final String ENTITY_NEWSLETTER = "NEWSLETTER";
+    public static final String ENTITY_SUPPORT_TICKET = "SUPPORT_TICKET";
 
     public static final String RESULT_SUCCESS = "SUCCESS";
     public static final String RESULT_FAILURE = "FAILURE";
@@ -55,6 +62,7 @@ public final class BusinessLogSupport {
     public static final String ACTION_SUBSCRIBE = "SUBSCRIBE";
     public static final String ACTION_UNSUBSCRIBE = "UNSUBSCRIBE";
     public static final String ACTION_SEND = "SEND";
+    public static final String ACTION_STATUS_CHANGE = "STATUS_CHANGE";
 
     public static final String TRIGGER_PASSWORD_CHANGE = "password_change";
 
