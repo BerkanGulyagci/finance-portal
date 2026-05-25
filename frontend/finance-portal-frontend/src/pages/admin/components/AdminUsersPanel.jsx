@@ -12,6 +12,8 @@ export default function AdminUsersPanel({
   onSearchClear,
   statusFilter,
   onStatusFilterChange,
+  withTickets,
+  onToggleWithTickets,
   page,
   hasMore,
   onPrevPage,
@@ -31,6 +33,8 @@ export default function AdminUsersPanel({
         onClear={onSearchClear}
         statusFilter={statusFilter}
         onStatusFilterChange={onStatusFilterChange}
+        withTickets={withTickets}
+        onToggleWithTickets={onToggleWithTickets}
         resultCount={users.length}
         page={page}
         hasMore={hasMore}

@@ -1,4 +1,4 @@
-import { Search, X } from 'lucide-react';
+import { Search, X, LifeBuoy } from 'lucide-react';
 import { useTranslation } from '../../../i18n/LanguageContext';
 import { BAN_STATUS_FILTER } from '../utils/banDisplay';
 
@@ -8,6 +8,8 @@ export default function AdminUsersSearchBar({
   onClear,
   statusFilter,
   onStatusFilterChange,
+  withTickets,
+  onToggleWithTickets,
   resultCount,
   page,
   hasMore,
@@ -51,7 +53,8 @@ export default function AdminUsersSearchBar({
           <select
             value={statusFilter}
             onChange={e => onStatusFilterChange(e.target.value)}
-            className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#093eaa]"
+            disabled={withTickets}
+            className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#093eaa] disabled:opacity-50"
           >
             {FILTER_OPTIONS.map(option => (
               <option key={option.value} value={option.value}>
@@ -60,6 +63,17 @@ export default function AdminUsersSearchBar({
             ))}
           </select>
         </label>
+
+        <button
+          type="button"
+          onClick={onToggleWithTickets}
+          className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold border transition-colors shrink-0 ${
+            withTickets ? 'bg-[#093eaa] text-white border-[#093eaa]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+          }`}
+          title={t('Yalnızca destek talebi açan kullanıcılar')}
+        >
+          <LifeBuoy className="w-4 h-4" /> {t('Talep açanlar')}
+        </button>
       </div>
 
       <p className="text-xs text-gray-400 font-medium">

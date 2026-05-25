@@ -11,6 +11,7 @@ import com.finance.portal.admin.presentation.dto.BanType;
 import com.finance.portal.admin.presentation.dto.BanUserRequest;
 import com.finance.portal.admin.presentation.mapper.AdminPresentationMapper;
 import com.finance.portal.common.presentation.dto.ApiResponse;
+import com.finance.portal.support.application.service.SupportTicketService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -32,25 +33,33 @@ public class AdminUserController {
     private final BanUserService banUserService;
     private final UnbanUserService unbanUserService;
     private final AdminPresentationMapper mapper;
+    private final SupportTicketService supportTicketService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<AdminUserListResponse>> listUsers(
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int first,
             @RequestParam(defaultValue = "20") int max,
-            @RequestParam(defaultValue = "ALL") AdminBanStatusFilter status
+            @RequestParam(defaultValue = "ALL") AdminBanStatusFilter status,
+            @RequestParam(defaultValue = "false") boolean withTickets
     ) {
-        AdminUserListResponse data = mapper.toListResponse(
-                adminUserQueryService.listUsers(search, first, max, status),
-                first,
-                max
-        );
+        AdminUserListResponse data = withTickets
+                ? mapper.toListResponse(
+                        adminUserQueryService.listUsersByIds(supportTicketService.userIdsWithActiveTickets()), first, max)
+                : mapper.toListResponse(adminUserQueryService.listUsers(search, first, max, status), first, max);
+
+        // Her kullanıcıya aktif destek talebi sayısını ekle (liste rozeti için).
+        java.util.Map<String, Long> counts = supportTicketService.activeTicketCountByUser();
+        if (data.getUsers() != null) {
+            data.getUsers().forEach(u -> u.setActiveTicketCount(counts.getOrDefault(u.getId(), 0L)));
+        }
         return ResponseEntity.ok(ApiResponse.success(data, "Kullanıcılar listelendi."));
     }
 
     @GetMapping("/{userId}")
     public ResponseEntity<ApiResponse<AdminUserResponse>> getUser(@PathVariable String userId) {
         AdminUserResponse data = mapper.toResponse(adminUserQueryService.getUser(userId));
+        data.setActiveTicketCount(supportTicketService.activeTicketCountByUser().getOrDefault(userId, 0L));
         return ResponseEntity.ok(ApiResponse.success(data, "Kullanıcı bilgisi getirildi."));
     }
 

@@ -23,4 +23,7 @@ public class AdminUserResponse {
     private boolean permanentBan;
     private BanStatus banStatus;
     private String banReason;
+
+    /** Kullanıcının aktif (çözülmemiş) destek talebi sayısı — liste rozeti için. */
+    private long activeTicketCount;
 }

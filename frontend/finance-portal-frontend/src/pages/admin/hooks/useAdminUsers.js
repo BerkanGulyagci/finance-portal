@@ -23,6 +23,7 @@ export function useAdminUsers() {
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState(BAN_STATUS_FILTER.ALL);
+  const [withTickets, setWithTickets] = useState(false);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [actionUserId, setActionUserId] = useState(null);
@@ -38,6 +39,7 @@ export function useAdminUsers() {
         first: page * PAGE_SIZE,
         max: PAGE_SIZE,
         status: statusFilter,
+        withTickets,
       });
       setUsers(data?.users ?? []);
       setHasMore(Boolean(data?.hasMore));
@@ -48,7 +50,7 @@ export function useAdminUsers() {
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, page, statusFilter, t]);
+  }, [searchQuery, page, statusFilter, withTickets, t]);
 
   useEffect(() => {
     loadUsers();
@@ -70,6 +72,11 @@ export function useAdminUsers() {
 
   function changeStatusFilter(next) {
     setStatusFilter(next);
+    setPage(0);
+  }
+
+  function toggleWithTickets() {
+    setWithTickets(v => !v);
     setPage(0);
   }
 
@@ -140,6 +147,8 @@ export function useAdminUsers() {
     clearSearch,
     statusFilter,
     changeStatusFilter,
+    withTickets,
+    toggleWithTickets,
     page,
     hasMore,
     goPrevPage,

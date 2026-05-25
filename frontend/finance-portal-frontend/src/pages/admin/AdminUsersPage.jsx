@@ -19,6 +19,8 @@ export default function AdminUsersPage() {
     clearSearch,
     statusFilter,
     changeStatusFilter,
+    withTickets,
+    toggleWithTickets,
     page,
     hasMore,
     goPrevPage,
@@ -44,6 +46,11 @@ export default function AdminUsersPage() {
         onRefresh={loadUsers}
       />
 
+      <div className="flex gap-2 mb-5">
+        <span className="px-3 py-2 rounded-xl text-sm font-bold bg-[#093eaa] text-white">{t('Kullanıcılar')}</span>
+        <Link to="/admin/eurobonds" className="px-3 py-2 rounded-xl text-sm font-bold bg-white border border-gray-200 text-gray-600 hover:bg-gray-50">{t('Eurobond')}</Link>
+      </div>
+
       <AdminUsersPanel
         users={users}
         loading={loading}
@@ -53,6 +60,8 @@ export default function AdminUsersPage() {
         onSearchClear={clearSearch}
         statusFilter={statusFilter}
         onStatusFilterChange={changeStatusFilter}
+        withTickets={withTickets}
+        onToggleWithTickets={toggleWithTickets}
         page={page}
         hasMore={hasMore}
         onPrevPage={goPrevPage}

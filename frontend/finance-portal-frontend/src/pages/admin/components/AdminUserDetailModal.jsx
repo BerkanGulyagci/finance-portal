@@ -4,6 +4,7 @@ import { getUser } from '../../../api/adminApi';
 import { useTranslation } from '../../../i18n/LanguageContext';
 import UserStatusBadge from './UserStatusBadge';
 import UserRolesCell from './UserRolesCell';
+import AdminUserTickets from './AdminUserTickets';
 import { formatBanUntil, isActiveUser, isTemporaryBan } from '../utils/banDisplay';
 
 function DetailField({ label, value, mono = false }) {
@@ -84,7 +85,7 @@ export default function AdminUserDetailModal({
         if (e.target === e.currentTarget && !busy) onClose();
       }}
     >
-      <article className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+      <article className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
         <header className="relative px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50/80 to-white shrink-0">
           <div className="flex items-start gap-3 pr-8">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#093eaa]/10 text-[#093eaa]">
@@ -148,6 +149,8 @@ export default function AdminUserDetailModal({
                 <UserRolesCell roles={user.roles} />
               </div>
               <DetailField label={t('Kullanıcı ID')} value={user.id} mono />
+
+              <AdminUserTickets userId={user.id} />
             </>
           )}
         </div>

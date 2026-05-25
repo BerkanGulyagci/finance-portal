@@ -92,6 +92,19 @@ public class AdminUserQueryService {
         return temporaryBanExpiryService.expireIfNeeded(enriched);
     }
 
+    /** Belirli id'lerdeki kullanıcıları getirir (admin "talep açanlar" filtresi). Bulunamayanlar atlanır. */
+    public AdminUserListResult listUsersByIds(List<String> userIds) {
+        List<AdminUserView> users = new ArrayList<>();
+        for (String id : userIds) {
+            try {
+                users.add(getUser(id));
+            } catch (Exception ignored) {
+                // Keycloak'ta bulunamayan / silinmiş kullanıcıyı atla
+            }
+        }
+        return new AdminUserListResult(users, false);
+    }
+
     private static void validatePagination(int first, int max) {
         if (first < 0) {
             throw new IllegalArgumentException("'first' 0 veya daha büyük olmalıdır.");

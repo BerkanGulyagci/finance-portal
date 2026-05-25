@@ -1,3 +1,4 @@
+import { LifeBuoy } from 'lucide-react';
 import { useTranslation } from '../../../i18n/LanguageContext';
 import UserStatusBadge from './UserStatusBadge';
 import UserRolesCell from './UserRolesCell';
@@ -21,6 +22,14 @@ export default function AdminUsersTableRow({
         {user.username ?? '—'}
         {isSelf && (
           <span className="ml-2 text-[10px] font-bold text-[#093eaa] uppercase">{t('Siz')}</span>
+        )}
+        {user.activeTicketCount > 0 && (
+          <span
+            className="ml-2 inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full align-middle"
+            title={t('Aktif destek talebi var')}
+          >
+            <LifeBuoy className="w-3 h-3" /> {user.activeTicketCount} {t('talep')}
+          </span>
         )}
       </td>
       <td className="px-4 py-3 text-gray-600">{user.email ?? '—'}</td>

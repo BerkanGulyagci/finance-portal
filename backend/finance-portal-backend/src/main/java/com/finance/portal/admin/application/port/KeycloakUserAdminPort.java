@@ -8,6 +8,9 @@ public interface KeycloakUserAdminPort {
 
     List<AdminUserView> listUsers(String search, int first, int max);
 
+    /** Belirli bir realm rolüne sahip kullanıcılar (ör. "ADMIN") — bildirim göndermek için. */
+    List<AdminUserView> findUsersByRealmRole(String roleName);
+
     AdminUserView getUser(String userId);
 
     void setUserEnabled(String userId, boolean enabled);
