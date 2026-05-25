@@ -3,6 +3,9 @@ package com.finance.portal.market.infrastructure.external.tefas;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.finance.portal.market.application.funds.model.FundPriceHistoryPoint;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -76,10 +79,15 @@ public class TefasFundClient {
      * @param fonTipi YAT (yatırım fonu / TEFAS) | EMK (emeklilik). Boşsa YAT.
      * @return Tarih artan sıralı liste; veri yoksa boş liste.
      */
-    public List<FundPriceHistoryPoint> fetchPriceHistory(String code, String fonTipi, LocalDate from, LocalDate to) {
+    @WithSpan("TefasFundClient.fetchPriceHistory")
+    public List<FundPriceHistoryPoint> fetchPriceHistory(@SpanAttribute("tefas.code") String code,
+                                                         @SpanAttribute("tefas.fund_type") String fonTipi,
+                                                         LocalDate from, LocalDate to) {
         if (code == null || code.isBlank() || from == null || to == null || from.isAfter(to)) {
             return List.of();
         }
+        Span.current().setAttribute("tefas.from", String.valueOf(from));
+        Span.current().setAttribute("tefas.to", String.valueOf(to));
         String upper = code.trim().toUpperCase();
         String type = (fonTipi == null || fonTipi.isBlank()) ? "YAT" : fonTipi.trim().toUpperCase();
         int chunk = Math.max(1, props.getChunkDays());
@@ -111,6 +119,8 @@ public class TefasFundClient {
             }
         }
 
+        Span.current().setAttribute("tefas.chunks", windows.size());
+        Span.current().setAttribute("tefas.points", byDay.size());
         log.info("TEFAS history: code={}, type={}, {} nokta ({} chunk, {}..{})",
                 upper, type, byDay.size(), windows.size(), from, to);
         return new ArrayList<>(byDay.values());
@@ -122,7 +132,10 @@ public class TefasFundClient {
      * <b>resultList içermeyen</b> yanıtlarda kısa backoff ile yeniden dener. {@code resultList} bir dizi
      * (boş bile olsa) ise o gün için gerçekten veri yok demektir → yeniden denemez.
      */
+    @WithSpan("TefasFundClient.fetchChunk")
     private List<FundPriceHistoryPoint> fetchChunk(String code, String fonTipi, LocalDate from, LocalDate to) {
+        Span.current().setAttribute("tefas.chunk_from", String.valueOf(from));
+        Span.current().setAttribute("tefas.chunk_to", String.valueOf(to));
         String body;
         try {
             body = objectMapper.writeValueAsString(buildBody(code, fonTipi, from, to));
@@ -145,6 +158,8 @@ public class TefasFundClient {
                             String day = date.length() >= 10 ? date.substring(0, 10) : date;
                             out.add(new FundPriceHistoryPoint(day, price, decimal(row, "portfoyBuyukluk")));
                         }
+                        Span.current().setAttribute("tefas.attempts", attempt);
+                        Span.current().setAttribute("tefas.chunk_points", out.size());
                         return out; // resultList var → kesin sonuç (boş bile olsa)
                     }
                 }
@@ -164,7 +179,9 @@ public class TefasFundClient {
      * curl alt-süreci ile POST. Argümanlar shell'siz (ProcessBuilder) verilir; gövde stdin'den geçer
      * (komut enjeksiyonu yok). TEFAS, JVM JSSE TLS parmak izini engellediği için curl kullanılır.
      */
+    @WithSpan("TefasFundClient.curlPost")
     private String curlPost(String url, String jsonBody) throws Exception {
+        Span.current().setAttribute("tefas.subprocess", "curl");
         List<String> cmd = new ArrayList<>(List.of(
                 "curl", "-s", "--max-time", String.valueOf(props.getTimeoutSeconds()),
                 "-X", "POST", url,
@@ -189,12 +206,15 @@ public class TefasFundClient {
         boolean done = p.waitFor(props.getTimeoutSeconds() + 5L, TimeUnit.SECONDS);
         if (!done) {
             p.destroyForcibly();
+            Span.current().setAttribute("tefas.timed_out", true);
             return null;
         }
+        Span.current().setAttribute("tefas.exit_code", p.exitValue());
         if (p.exitValue() != 0) {
             log.debug("curl exit {} for TEFAS POST", p.exitValue());
             return null;
         }
+        Span.current().setAttribute("tefas.response_bytes", stdout.length);
         return new String(stdout, StandardCharsets.UTF_8);
     }
 

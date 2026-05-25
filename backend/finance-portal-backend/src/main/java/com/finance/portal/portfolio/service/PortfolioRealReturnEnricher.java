@@ -4,6 +4,8 @@ import com.finance.portal.market.application.economy.InflationDeflatorService;
 import com.finance.portal.market.application.economy.model.EconomySeriesPoint;
 import com.finance.portal.portfolio.presentation.dto.PortfolioHoldingResponse;
 import com.finance.portal.portfolio.presentation.dto.PortfolioResponse;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -58,6 +60,7 @@ public class PortfolioRealReturnEnricher {
      * Yanıttaki tüm holding'lere reel getiri alanlarını ve portföy reel toplamlarını uygular.
      * Holding'ler bu noktada canlı fiyatla zenginleştirilmiş ({@code marketValue} dolu) olmalıdır.
      */
+    @WithSpan("PortfolioRealReturn.apply")
     public void apply(PortfolioResponse response) {
         if (response == null) {
             return;
@@ -66,6 +69,7 @@ public class PortfolioRealReturnEnricher {
         if (holdings == null || holdings.isEmpty()) {
             return;
         }
+        Span.current().setAttribute("portfolio.holdings", holdings.size());
 
         final List<EconomySeriesPoint> tufe = safeSeries(deflator::tufeSeries, "TÜFE");
         final List<EconomySeriesPoint> usCpi = safeSeries(deflator::usCpiSeries, "ABD CPI");

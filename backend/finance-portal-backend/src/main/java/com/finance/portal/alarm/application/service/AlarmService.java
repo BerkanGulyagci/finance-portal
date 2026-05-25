@@ -12,6 +12,9 @@ import com.finance.portal.common.application.exception.ResourceNotFoundException
 import com.finance.portal.common.application.logging.BusinessLogSupport;
 import com.finance.portal.common.application.logging.CentralBusinessLogService;
 import com.finance.portal.common.domain.AssetType;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,11 +51,14 @@ public class AlarmService {
                 action, BusinessLogSupport.RESULT_SUCCESS, meta, a.getUserId(), AlarmService.class.getName());
     }
 
+    @WithSpan("AlarmService.create")
     @Transactional
-    public Alarm create(String userId, String recipientEmail, CreateAlarmRequest req) {
+    public Alarm create(@SpanAttribute("alarm.user_id") String userId, String recipientEmail, CreateAlarmRequest req) {
         if (userId == null || userId.isBlank()) {
             throw new IllegalArgumentException("userId must not be blank");
         }
+        Span.current().setAttribute("alarm.symbol", String.valueOf(req.getSymbol()));
+        Span.current().setAttribute("alarm.asset_type", String.valueOf(req.getAssetType()));
         Alarm a = new Alarm();
         a.setUserId(userId);
         a.setRecipientEmail(recipientEmail);
@@ -66,6 +72,7 @@ public class AlarmService {
         a.setNote(req.getNote());
         a.setStatus(AlarmStatus.ACTIVE);
         Alarm saved = alarmRepository.save(a);
+        Span.current().setAttribute("alarm.id", String.valueOf(saved.getId()));
         audit(BusinessLogSupport.EVENT_ALARM_CREATED, BusinessLogSupport.ACTION_CREATE, saved);
         return saved;
     }
@@ -81,8 +88,10 @@ public class AlarmService {
                 .orElseThrow(() -> new ResourceNotFoundException("Alarm not found: " + id));
     }
 
+    @WithSpan("AlarmService.update")
     @Transactional
-    public Alarm update(String userId, UUID id, UpdateAlarmRequest req) {
+    public Alarm update(@SpanAttribute("alarm.user_id") String userId, UUID id, UpdateAlarmRequest req) {
+        Span.current().setAttribute("alarm.id", String.valueOf(id));
         Alarm a = get(userId, id);
         if (req.getMetric() != null) {
             a.setMetric(parseMetric(req.getMetric()));
@@ -112,8 +121,10 @@ public class AlarmService {
         return saved;
     }
 
+    @WithSpan("AlarmService.delete")
     @Transactional
-    public void delete(String userId, UUID id) {
+    public void delete(@SpanAttribute("alarm.user_id") String userId, UUID id) {
+        Span.current().setAttribute("alarm.id", String.valueOf(id));
         Alarm a = get(userId, id);
         alarmRepository.delete(a);
         audit(BusinessLogSupport.EVENT_ALARM_DELETED, BusinessLogSupport.ACTION_DELETE, a);
@@ -123,8 +134,9 @@ public class AlarmService {
      * Bir kullanıcının tüm AKTİF alarmlarını pasifleştirir (örn. kullanıcı banlandığında).
      * @return pasifleştirilen alarm sayısı
      */
+    @WithSpan("AlarmService.disableAllForUser")
     @Transactional
-    public int disableAllForUser(String userId) {
+    public int disableAllForUser(@SpanAttribute("alarm.user_id") String userId) {
         if (userId == null || userId.isBlank()) {
             return 0;
         }
@@ -139,6 +151,7 @@ public class AlarmService {
                 disabled++;
             }
         }
+        Span.current().setAttribute("alarm.disabled_count", disabled);
         return disabled;
     }
 
@@ -147,8 +160,9 @@ public class AlarmService {
      * (kullanıcının ban'dan önce kendi kapattıkları korunur).
      * @return yeniden etkinleştirilen alarm sayısı
      */
+    @WithSpan("AlarmService.reenableBanDisabledForUser")
     @Transactional
-    public int reenableBanDisabledForUser(String userId) {
+    public int reenableBanDisabledForUser(@SpanAttribute("alarm.user_id") String userId) {
         if (userId == null || userId.isBlank()) {
             return 0;
         }
@@ -164,6 +178,7 @@ public class AlarmService {
                 reenabled++;
             }
         }
+        Span.current().setAttribute("alarm.reenabled_count", reenabled);
         return reenabled;
     }
 

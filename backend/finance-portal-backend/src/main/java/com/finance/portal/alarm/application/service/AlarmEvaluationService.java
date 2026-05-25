@@ -11,6 +11,8 @@ import com.finance.portal.alarm.domain.AlarmStatus;
 import com.finance.portal.alarm.repository.AlarmRepository;
 import com.finance.portal.common.application.logging.BusinessLogSupport;
 import com.finance.portal.common.application.logging.CentralBusinessLogService;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -57,11 +59,13 @@ public class AlarmEvaluationService {
     @Scheduled(
             fixedRateString = "${alarm.evaluation.fixed-rate-ms:60000}",
             initialDelayString = "${alarm.evaluation.initial-delay-ms:20000}")
+    @WithSpan("AlarmEvaluationService.evaluateActiveAlarms")
     public void evaluateActiveAlarms() {
         if (!enabled) {
             return;
         }
         List<Alarm> active = alarmRepository.findByStatus(AlarmStatus.ACTIVE);
+        Span.current().setAttribute("alarm.active_count", active.size());
         if (active.isEmpty()) {
             return;
         }
@@ -75,7 +79,10 @@ public class AlarmEvaluationService {
         }
     }
 
+    @WithSpan("AlarmEvaluationService.evaluateOne")
     private void evaluateOne(Alarm alarm) {
+        Span.current().setAttribute("alarm.id", String.valueOf(alarm.getId()));
+        Span.current().setAttribute("alarm.symbol", String.valueOf(alarm.getSymbol()));
         AlarmMarketSnapshot snapshot = marketDataPort.probe(alarm.getAssetType(), alarm.getSymbol());
         if (snapshot == null) {
             return;
@@ -105,7 +112,12 @@ public class AlarmEvaluationService {
         trigger(alarm, observed);
     }
 
+    @WithSpan("AlarmEvaluationService.trigger")
     private void trigger(Alarm alarm, BigDecimal observed) {
+        Span.current().setAttribute("alarm.id", String.valueOf(alarm.getId()));
+        Span.current().setAttribute("alarm.symbol", String.valueOf(alarm.getSymbol()));
+        Span.current().setAttribute("alarm.observed", String.valueOf(observed));
+        Span.current().setAttribute("alarm.threshold", String.valueOf(alarm.getThreshold()));
         LocalDateTime now = LocalDateTime.now();
         alarm.setLastTriggeredAt(now);
         if (alarm.getTriggeredAt() == null) {

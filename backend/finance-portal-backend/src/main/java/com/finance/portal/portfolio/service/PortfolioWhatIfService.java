@@ -11,6 +11,9 @@ import com.finance.portal.portfolio.application.whatif.WhatIfSeriesPoint;
 import com.finance.portal.portfolio.application.whatif.WhatIfSeriesResult;
 import com.finance.portal.portfolio.presentation.dto.PortfolioHoldingResponse;
 import com.finance.portal.portfolio.presentation.dto.PortfolioResponse;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -79,6 +82,7 @@ public class PortfolioWhatIfService {
 
     private record DateRate(LocalDate date, double rate) {}
 
+    @WithSpan("PortfolioWhatIf.compute")
     public PortfolioWhatIfResult compute(PortfolioResponse resp) {
         PortfolioWhatIfResult result = new PortfolioWhatIfResult();
         LocalDate today = LocalDate.now(TR_ZONE);
@@ -114,6 +118,8 @@ public class PortfolioWhatIfService {
         result.setActualValue(actualValue.setScale(MONEY_SCALE, RoundingMode.HALF_UP));
         result.setIncludedHoldings(positions.size());
         result.setSkippedHoldings(skipped);
+        Span.current().setAttribute("whatif.included_holdings", positions.size());
+        Span.current().setAttribute("whatif.skipped_holdings", skipped);
         if (totalCost.signum() > 0) {
             result.setActualReturnPercent(pct(actualValue, totalCost));
         }
@@ -143,7 +149,9 @@ public class PortfolioWhatIfService {
      * Özel/simülasyon modu: "istediğim tarihte istediğim varlığı X TL ile alsaydım ne olurdu".
      * Sentetik tek pozisyon kurup {@link #computeSeries} motorunu yeniden kullanır.
      */
-    public WhatIfSeriesResult computeSimSeries(String assetType, String symbol, BigDecimal amountTl,
+    @WithSpan("PortfolioWhatIf.computeSimSeries")
+    public WhatIfSeriesResult computeSimSeries(@SpanAttribute("whatif.asset_type") String assetType,
+                                               @SpanAttribute("whatif.symbol") String symbol, BigDecimal amountTl,
                                                LocalDate date, List<String> benchmarks) {
         WhatIfSeriesResult empty = new WhatIfSeriesResult();
         empty.setAsOf(LocalDate.now(TR_ZONE));
@@ -252,8 +260,11 @@ public class PortfolioWhatIfService {
      * Her seri = Σ pozisyon maliyeti × (faktör(t) / faktör(alış)). filterAssetType+filterSymbol
      * boşsa tüm portföy.
      */
-    public WhatIfSeriesResult computeSeries(PortfolioResponse resp, String filterAssetType,
-                                            String filterSymbol, List<String> benchmarkSpecs) {
+    @WithSpan("PortfolioWhatIf.computeSeries")
+    public WhatIfSeriesResult computeSeries(PortfolioResponse resp,
+                                            @SpanAttribute("whatif.asset_type") String filterAssetType,
+                                            @SpanAttribute("whatif.symbol") String filterSymbol,
+                                            List<String> benchmarkSpecs) {
         WhatIfSeriesResult result = new WhatIfSeriesResult();
         LocalDate today = LocalDate.now(TR_ZONE);
         result.setAsOf(today);
@@ -300,6 +311,8 @@ public class PortfolioWhatIfService {
         result.setLabel(label);
         result.setPoints(new ArrayList<>());
         result.setAvailableScenarios(new ArrayList<>());
+        Span.current().setAttribute("whatif.scope", String.valueOf(result.getScope()));
+        Span.current().setAttribute("whatif.positions", positions.size());
         if (positions.isEmpty()) {
             return result;
         }

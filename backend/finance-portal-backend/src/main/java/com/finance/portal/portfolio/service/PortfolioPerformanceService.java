@@ -16,6 +16,9 @@ import com.finance.portal.portfolio.domain.PortfolioType;
 import com.finance.portal.portfolio.presentation.dto.PortfolioHoldingResponse;
 import com.finance.portal.portfolio.service.performance.PortfolioPerformanceCalculator;
 import com.finance.portal.portfolio.service.performance.PortfolioPeriodGrowthCalculator;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -61,11 +64,12 @@ public class PortfolioPerformanceService {
     }
 
     @Transactional(readOnly = true)
+    @WithSpan("PortfolioPerformance.getPerformance")
     public PortfolioPerformanceResult getPerformance(
-            String userId,
-            UUID portfolioId,
-            String rangeParam,
-            String metricParam) {
+            @SpanAttribute("user.id") String userId,
+            @SpanAttribute("portfolio.id") UUID portfolioId,
+            @SpanAttribute("performance.range") String rangeParam,
+            @SpanAttribute("performance.metric") String metricParam) {
 
         Portfolio portfolio = portfolioPersistence.findByIdAndUserId(portfolioId, userId)
                 .orElseThrow(() -> new IllegalArgumentException(

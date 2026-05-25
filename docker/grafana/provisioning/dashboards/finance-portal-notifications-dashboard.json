@@ -75,7 +75,7 @@
     {
       "datasource": { "type": "grafana-opensearch-datasource", "uid": "opensearch-logs" },
       "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "orange" }, "links": [{ "title": "Abonelikten çıkışları aşağıdaki tabloda göster", "url": "/d/finance-portal-notifications?var-eventFilter=NEWSLETTER_UNSUBSCRIBED&${__url_time_range}", "targetBlank": false }], "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] }, "unit": "short" }, "overrides": [] },
-      "gridPos": { "h": 5, "w": 8, "x": 0, "y": 5 },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 5 },
       "id": 5,
       "options": { "colorMode": "background", "graphMode": "area", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "showPercentChange": false, "textMode": "auto", "wideLayout": true },
       "pluginVersion": "10.4.0",
@@ -88,7 +88,7 @@
     {
       "datasource": { "type": "grafana-opensearch-datasource", "uid": "opensearch-logs" },
       "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "blue" }, "links": [{ "title": "Bu bildirimleri aşağıdaki tabloda göster", "url": "/d/finance-portal-notifications?var-eventFilter=NOTIFICATION_CREATED&${__url_time_range}", "targetBlank": false }], "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] }, "unit": "short" }, "overrides": [] },
-      "gridPos": { "h": 5, "w": 8, "x": 8, "y": 5 },
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 5 },
       "id": 6,
       "options": { "colorMode": "background", "graphMode": "area", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "showPercentChange": false, "textMode": "auto", "wideLayout": true },
       "pluginVersion": "10.4.0",
@@ -101,7 +101,7 @@
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "max": 100, "min": 0, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 5 }, { "color": "red", "value": 20 }] }, "unit": "percent" }, "overrides": [] },
-      "gridPos": { "h": 5, "w": 8, "x": 16, "y": 5 },
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 5 },
       "id": 7,
       "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showPercentChange": false, "textMode": "auto", "wideLayout": true },
       "pluginVersion": "10.4.0",
@@ -109,6 +109,19 @@
         { "datasource": { "type": "prometheus", "uid": "prometheus" }, "editorMode": "code", "expr": "100 * (sum(increase(fp_integration_events_total{event=\"EMAIL_FAILED\"}[$__range])) or vector(0)) / clamp_min(sum(increase(fp_integration_events_total{event=~\"EMAIL_SENT|EMAIL_FAILED\"}[$__range])), 1)", "instant": true, "range": false, "refId": "A" }
       ],
       "title": "Başarısız E-posta Oranı",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "grafana-opensearch-datasource", "uid": "opensearch-logs" },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "#093eaa" }, "links": [{ "title": "Talepleri aşağıdaki tabloda göster", "url": "/d/finance-portal-notifications?var-eventFilter=SUPPORT_TICKET_CREATED&${__url_time_range}", "targetBlank": false }], "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] }, "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 5 },
+      "id": 12,
+      "options": { "colorMode": "background", "graphMode": "area", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false }, "showPercentChange": false, "textMode": "auto", "wideLayout": true },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        { "datasource": { "type": "grafana-opensearch-datasource", "uid": "opensearch-logs" }, "bucketAggs": [{ "field": "timestamp", "id": "2", "settings": { "interval": "1h", "min_doc_count": "0", "timeZone": "utc" }, "type": "date_histogram" }], "metrics": [{ "id": "1", "type": "count" }], "query": "eventType:SUPPORT_TICKET_CREATED", "refId": "A", "timeField": "timestamp" }
+      ],
+      "title": "Talepler",
       "type": "stat"
     },
     {
@@ -150,7 +163,7 @@
       "options": { "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value", "percent"] }, "pieType": "donut", "reduceOptions": { "calcs": ["sum"], "fields": "", "values": true }, "tooltip": { "mode": "single", "sort": "none" } },
       "pluginVersion": "10.4.0",
       "targets": [
-        { "datasource": { "type": "grafana-opensearch-datasource", "uid": "opensearch-logs" }, "bucketAggs": [{ "field": "eventType.keyword", "id": "2", "settings": { "min_doc_count": "1", "order": "desc", "orderBy": "_count", "size": "20" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "count" }], "query": "entityType:(ALARM OR NEWSLETTER OR NOTIFICATION) OR provider:smtp", "refId": "A", "timeField": "timestamp" }
+        { "datasource": { "type": "grafana-opensearch-datasource", "uid": "opensearch-logs" }, "bucketAggs": [{ "field": "eventType.keyword", "id": "2", "settings": { "min_doc_count": "1", "order": "desc", "orderBy": "_count", "size": "20" }, "type": "terms" }], "metrics": [{ "id": "1", "type": "count" }], "query": "entityType:(ALARM OR NEWSLETTER OR NOTIFICATION OR SUPPORT_TICKET) OR provider:smtp", "refId": "A", "timeField": "timestamp" }
       ],
       "title": "Olay Türü Dağılımı",
       "type": "piechart"
@@ -175,7 +188,7 @@
       "options": { "cellHeight": "sm", "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false }, "showHeader": true, "sortBy": [{ "desc": true, "displayName": "timestamp" }] },
       "pluginVersion": "10.4.0",
       "targets": [
-        { "datasource": { "type": "grafana-opensearch-datasource", "uid": "opensearch-logs" }, "bucketAggs": [], "metrics": [{ "id": "1", "settings": { "order": "desc", "orderBy": "timestamp", "size": "100" }, "type": "raw_document" }], "query": "(entityType:(ALARM OR NEWSLETTER OR NOTIFICATION)) AND eventType:$eventFilter", "refId": "A", "timeField": "timestamp" }
+        { "datasource": { "type": "grafana-opensearch-datasource", "uid": "opensearch-logs" }, "bucketAggs": [], "metrics": [{ "id": "1", "settings": { "order": "desc", "orderBy": "timestamp", "size": "100" }, "type": "raw_document" }], "query": "(entityType:(ALARM OR NEWSLETTER OR NOTIFICATION OR SUPPORT_TICKET)) AND eventType:$eventFilter", "refId": "A", "timeField": "timestamp" }
       ],
       "title": "Son Bildirim & Alarm Olayları (kullanıcı eylemleri)",
       "transformations": [
@@ -220,7 +233,7 @@
         "label": "Olay Türü",
         "description": "Aşağıdaki tabloları belirli bir olay türüne göre süzer. Üstteki sayım kutularına tıklayınca otomatik ayarlanır. 'Tümü' = filtre yok.",
         "type": "custom",
-        "query": "Tümü : *,Tetiklenen Alarm : ALARM_TRIGGERED,Kurulan Alarm : ALARM_CREATED,Gönderilen E-posta : EMAIL_SENT,Başarısız E-posta : EMAIL_FAILED,Yeni Abonelik : NEWSLETTER_SUBSCRIBED,Abonelik İptali : NEWSLETTER_UNSUBSCRIBED,Oluşturulan Bildirim : NOTIFICATION_CREATED,Gönderilen Bülten : NEWSLETTER_DIGEST_SENT",
+        "query": "Tümü : *,Tetiklenen Alarm : ALARM_TRIGGERED,Kurulan Alarm : ALARM_CREATED,Gönderilen E-posta : EMAIL_SENT,Başarısız E-posta : EMAIL_FAILED,Yeni Abonelik : NEWSLETTER_SUBSCRIBED,Abonelik İptali : NEWSLETTER_UNSUBSCRIBED,Oluşturulan Bildirim : NOTIFICATION_CREATED,Gönderilen Bülten : NEWSLETTER_DIGEST_SENT,Yeni Talep : SUPPORT_TICKET_CREATED,Talep Durum Değişti : SUPPORT_TICKET_STATUS_CHANGED,Talep Güncellendi : SUPPORT_TICKET_UPDATED,Talep Silindi : SUPPORT_TICKET_DELETED",
         "current": { "text": "Tümü", "value": "*", "selected": true },
         "options": [
           { "text": "Tümü", "value": "*", "selected": true },
