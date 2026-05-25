@@ -26,7 +26,7 @@ function toNumber(v) {
  * @param name      görünen ad
  * @param price     güncel fiyat (alarm/işlem modalında ön-doldurma)
  */
-export default function InstrumentActionButtons({ assetType, symbol, name, price, className = '' }) {
+export default function InstrumentActionButtons({ assetType, symbol, name, price, subType, className = '' }) {
   const { isAuthenticated } = useAuth();
   const { t } = useTranslation();
 
@@ -55,7 +55,7 @@ export default function InstrumentActionButtons({ assetType, symbol, name, price
   if (!isAuthenticated || !symbol) return null;
 
   const added = holdingCount > 0;
-  const instrument = { assetType, symbol, name: name || symbol, price: toNumber(price) };
+  const instrument = { assetType, symbol, name: name || symbol, price: toNumber(price), ...(subType ? { subType } : {}) };
 
   return (
     <>

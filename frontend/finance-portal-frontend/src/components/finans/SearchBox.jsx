@@ -4,13 +4,13 @@ import { Search, Clock, TrendingUp } from 'lucide-react';
 import {
   getStocks, getAllCryptoCoins, getFxTcmb, getCommodityList,
   getAllTefasFunds, getAllBesFunds, getAllOksFunds, getOsmanliFundBulletin,
-  getViopContracts, getEvdsBonds,
+  getViopContracts, getEvdsBonds, getGlobalBonds,
 } from '../../api/marketApi';
 import { useTranslation } from '../../i18n/LanguageContext';
 
 const TYPE_LABEL = {
   STOCK: 'Hisse', CRYPTO: 'Kripto', FX: 'Döviz', COMMODITY: 'Emtia',
-  GOLD: 'Altın', FUND: 'Fon', FUTURE: 'Vadeli', BOND: 'DİBS',
+  GOLD: 'Altın', FUND: 'Fon', FUTURE: 'Vadeli', BOND: 'DİBS', EUROBOND: 'Eurobond',
 };
 const TYPE_BADGE = {
   STOCK: 'bg-blue-50 text-blue-700',
@@ -21,6 +21,7 @@ const TYPE_BADGE = {
   FUND: 'bg-indigo-50 text-indigo-700',
   FUTURE: 'bg-rose-50 text-rose-700',
   BOND: 'bg-teal-50 text-teal-700',
+  EUROBOND: 'bg-cyan-50 text-cyan-700',
 };
 const POPULAR_SYMBOLS = ['THYAO', 'ASELS', 'GARAN', 'BIMAS', 'TUPRS', 'BTC', 'ETH', 'USD'];
 const RECENT_KEY = 'site_recent_searches';
@@ -147,6 +148,24 @@ function loadDataset() {
   }, []))).catch(() => {});
 
   loadAllBonds().then(add).catch(() => {});
+
+  loadAllEurobonds().then(add).catch(() => {});
+}
+
+/** Eurobond (Hazine dış borç) — HMB ISIN + BI. hasDetail ise detay sayfasına, değilse listeye gider. */
+async function loadAllEurobonds() {
+  const list = await getGlobalBonds();
+  return (list ?? []).reduce((acc, b) => {
+    if (!b?.isin) return acc;
+    acc.push({
+      type: 'EUROBOND',
+      symbol: String(b.isin).toUpperCase(),
+      name: b.name || b.issuer || 'Eurobond',
+      exchange: 'Eurobond',
+      path: b.hasDetail ? `/market/bonds/global/${encodeURIComponent(b.isin)}` : '/market/bonds',
+    });
+    return acc;
+  }, []);
 }
 
 /** Tüm DİBS'leri sayfa sayfa çeker (backend size'ı 100'le sınırlar; tek sayfa eksik kalır). */

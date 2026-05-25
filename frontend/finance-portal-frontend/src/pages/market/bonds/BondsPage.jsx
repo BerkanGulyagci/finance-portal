@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom';
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { getEvdsBonds } from '../../../api/marketApi';
 import { useTranslation } from '../../../i18n/LanguageContext';
+import Pagination from '../../../components/common/Pagination';
+import WatchlistStar from '../../../components/instrument/WatchlistStar';
+import EurobondList from './EurobondList';
 
 // ── Format yardımcıları ───────────────────────────────────────────────────────
 
@@ -73,45 +76,6 @@ function SortTh({ label, field, sortBy, sortDir, onSort, align = 'left' }) {
   );
 }
 
-// ── Pagination ────────────────────────────────────────────────────────────────
-
-function Pagination({ page, totalPages, totalItems, size, onChange }) {
-  const { t } = useTranslation();
-  if (totalPages <= 1) return null;
-  const from = page * size + 1;
-  const to   = Math.min((page + 1) * size, totalItems);
-
-  const pages = [];
-  const start = Math.max(0, page - 2);
-  const end   = Math.min(totalPages - 1, page + 2);
-  for (let i = start; i <= end; i++) pages.push(i);
-
-  return (
-    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 flex-wrap gap-2">
-      <p className="text-xs text-gray-400">
-        <span className="font-semibold text-gray-600">{totalItems}</span> {t('aktif kıymetten')}{' '}
-        <span className="font-semibold text-gray-600">{from}–{to}</span> {t('arası gösteriliyor')}
-      </p>
-      <div className="flex items-center gap-1">
-        <button onClick={() => onChange(0)} disabled={page === 0}
-          className="px-2 py-1 text-xs rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50">«</button>
-        <button onClick={() => onChange(page - 1)} disabled={page === 0}
-          className="px-2 py-1 text-xs rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50">‹</button>
-        {pages.map(p => (
-          <button key={p} onClick={() => onChange(p)}
-            className={`px-3 py-1 text-xs rounded border ${p === page ? 'bg-[#093eaa] text-white border-[#093eaa]' : 'border-gray-200 hover:bg-gray-50'}`}>
-            {p + 1}
-          </button>
-        ))}
-        <button onClick={() => onChange(page + 1)} disabled={page === totalPages - 1}
-          className="px-2 py-1 text-xs rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50">›</button>
-        <button onClick={() => onChange(totalPages - 1)} disabled={page === totalPages - 1}
-          className="px-2 py-1 text-xs rounded border border-gray-200 disabled:opacity-40 hover:bg-gray-50">»</button>
-      </div>
-    </div>
-  );
-}
-
 // ── Vade filtresi seçenekleri ─────────────────────────────────────────────────
 
 const MATURITY_FILTERS = [
@@ -128,6 +92,7 @@ const SIZE_OPTIONS = [25, 50, 100];
 
 export default function BondsPage() {
   const { t } = useTranslation();
+  const [tab, setTab] = useState('evds');   // 'evds' (DİBS) | 'global' (Eurobond)
   // Filtre state'leri
   const [search,       setSearch]       = useState('');
   const [type,         setType]         = useState('');
@@ -203,6 +168,29 @@ export default function BondsPage() {
       <h1 className="text-2xl font-bold text-gray-900 mb-2 border-l-4 border-[#093eaa] pl-4">
         {t('Tahvil / Bono')}
       </h1>
+      {/* ── Sekmeler ── */}
+      <div className="flex gap-2 mb-5 flex-wrap">
+        <button onClick={() => setTab('evds')}
+          className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${tab === 'evds' ? 'bg-[#093eaa] text-white shadow-sm' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+          {t('Devlet İç Borç (DİBS)')}
+        </button>
+        <button onClick={() => setTab('global')}
+          className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${tab === 'global' ? 'bg-[#093eaa] text-white shadow-sm' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+          {t('Eurobond (Dış Borç)')}
+        </button>
+      </div>
+
+      {tab === 'global' && (
+        <>
+          <p className="text-sm text-gray-500 mb-5 pl-5">
+            {t('Hazine dış borç tahvilleri (Eurobond) · Kaynak: HMB ISIN listesi + Business Insider')}
+          </p>
+          <EurobondList />
+        </>
+      )}
+
+      {tab === 'evds' && (
+      <>
       <p className="text-sm text-gray-500 mb-5 pl-5">
         {t('Devlet İç Borçlanma Senetleri (DİBS) · TCMB EVDS Gösterge Değerleri · Kaynak: TCMB EVDS')}
       </p>
@@ -330,12 +318,13 @@ export default function BondsPage() {
                     <SortTh {...thProps(t('Günlük Değişim %'), 'dailyChangePercent', 'right')} />
                     <SortTh {...thProps(t('Kupon Faiz Oranı'), 'couponRate', 'right')} />
                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('Kaynak')}</th>
+                    <th className="px-2 py-3 w-8" aria-label={t('İzle')} />
                   </tr>
                 </thead>
                 <tbody>
                   {items.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-4 py-8 text-center text-gray-400 text-sm">
+                      <td colSpan={9} className="px-4 py-8 text-center text-gray-400 text-sm">
                         {t('Gösterilecek EVDS tahvil/bono verisi bulunamadı.')}
                       </td>
                     </tr>
@@ -371,6 +360,9 @@ export default function BondsPage() {
                       <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">
                         {b.source ?? 'TCMB EVDS'}
                       </td>
+                      <td className="px-2 py-3 text-center" onClick={e => e.stopPropagation()}>
+                        <WatchlistStar assetType="BOND" symbol={b.instrumentCode} name={b.type} price={b.indicatorValue} />
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -380,8 +372,8 @@ export default function BondsPage() {
             <Pagination
               page={page}
               totalPages={totalPages}
-              totalItems={totalItems}
-              size={size}
+              totalElements={totalItems}
+              unitLabel="kıymet"
               onChange={p => setPage(p)}
             />
 
@@ -391,6 +383,8 @@ export default function BondsPage() {
           </>
         )}
       </div>
+      </>
+      )}
     </div>
   );
 }

@@ -8,7 +8,7 @@ import InstrumentSearchModal from '../../portfolio/components/InstrumentSearchMo
 
 const ASSET_LABELS = {
   STOCK: 'Hisse', CRYPTO: 'Kripto', FX: 'Döviz', FUND: 'Fon',
-  FUTURE: 'Vadeli', GOLD: 'Altın', COMMODITY: 'Emtia', BOND: 'DİBS',
+  FUTURE: 'Vadeli', GOLD: 'Altın', COMMODITY: 'Emtia', BOND: 'Tahvil',
   INDICATOR: 'Gösterge',
 };
 

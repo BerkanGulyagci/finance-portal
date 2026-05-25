@@ -9,6 +9,9 @@ import com.finance.portal.market.application.bond.evds.BondPeriod;
 import com.finance.portal.market.application.bond.evds.EvdsBondHistoryPoint;
 import com.finance.portal.market.application.bond.evds.EvdsBondInstrument;
 import com.finance.portal.market.application.bond.evds.EvdsBondService;
+import com.finance.portal.market.application.bond.eurobond.EurobondService;
+import com.finance.portal.market.application.bond.eurobond.model.EurobondChartPoint;
+import com.finance.portal.market.application.bond.eurobond.model.EurobondDetail;
 import com.finance.portal.market.application.commodity.CommodityHistoryPointDto;
 import com.finance.portal.market.application.commodity.CommodityHistoryResponse;
 import com.finance.portal.market.application.commodity.CommoditySpotDto;
@@ -48,6 +51,8 @@ import com.finance.portal.portfolio.service.support.PortfolioDateTimeParse;
 import com.finance.portal.portfolio.service.support.PortfolioHistoryPoints;
 import com.finance.portal.portfolio.service.support.PortfolioMovingAverage;
 import com.finance.portal.portfolio.service.support.RasyonetFundLookup;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -93,6 +98,7 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
     private final ViopService viopService;
     private final ViopChartService viopChartService;
     private final CentralIntegrationLogService integrationLogService;
+    private final EurobondService eurobondService;
 
     public PortfolioHoldingMarketEnricher(AssetPriceQueryService assetPriceQueryService,
                                           GoldMarketService goldMarketService,
@@ -105,7 +111,8 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
                                           RasyonetFundService rasyonetFundService,
                                           ViopService viopService,
                                           ViopChartService viopChartService,
-                                          CentralIntegrationLogService integrationLogService) {
+                                          CentralIntegrationLogService integrationLogService,
+                                          EurobondService eurobondService) {
         this.assetPriceQueryService = assetPriceQueryService;
         this.goldMarketService = goldMarketService;
         this.yahooCommodityService = yahooCommodityService;
@@ -118,6 +125,7 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
         this.viopService = viopService;
         this.viopChartService = viopChartService;
         this.integrationLogService = integrationLogService;
+        this.eurobondService = eurobondService;
     }
     private static String goldHoldingDisplayName(String upper) {
         return switch (upper) {
@@ -177,10 +185,56 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
         }
     }
 
+    /**
+     * Eurobond (Hazine dış borç) holding'i — TL hesaplama (Model 1: TL maliyet, canlı kur).
+     * Fiyat/künye Business Insider'dan; kote (USD/EUR/JPY) canlı TCMB satış kuruyla TL'ye çevrilir.
+     * Maliyet kullanıcı tarafından TL girildiği için K/Z hem tahvil hem kur hareketini içerir.
+     * 52w/MA serisi de aynı (güncel) kurla TL'ye çevrilir (altın/emtia ile aynı yaklaşım).
+     */
+    private void enrichEurobondHolding(PortfolioHoldingResponse holding, String isin) {
+        EurobondDetail d = eurobondService.detail(isin);
+        if (d == null || d.getLastPriceTry() == null) {
+            holding.setCurrency("TRY");
+            holding.setName(d != null && d.getName() != null ? d.getName() : isin);
+            return;
+        }
+        BigDecimal priceTry = d.getLastPriceTry();
+        BigDecimal qty = holding.getTotalQuantity() != null ? holding.getTotalQuantity() : BigDecimal.ZERO;
+        BigDecimal mv = priceTry.multiply(qty).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+        BigDecimal cost = holding.getTotalCost() != null ? holding.getTotalCost() : BigDecimal.ZERO;
+        BigDecimal pl = mv.subtract(cost).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+
+        holding.setCurrentPrice(priceTry);
+        holding.setMarketValue(mv);
+        holding.setProfitLoss(pl);
+        holding.setCurrency("TRY");
+        holding.setName(d.getName() != null ? d.getName() : isin);
+        holding.setChangePercent(d.getChangePercent());
+        holding.setAsOf(LocalDateTime.now());
+
+        try {
+            BigDecimal rate = d.getFxRate() != null ? d.getFxRate() : BigDecimal.ONE;
+            List<BigDecimal> closes = eurobondService.chart(isin, "1Y").stream()
+                    .map(EurobondChartPoint::close).filter(Objects::nonNull)
+                    .map(c -> c.multiply(rate).setScale(MONEY_SCALE, RoundingMode.HALF_UP))
+                    .collect(Collectors.toList());
+            if (!closes.isEmpty()) {
+                holding.setFiftyTwoWeekHigh(closes.stream().max(BigDecimal::compareTo).orElse(null));
+                holding.setFiftyTwoWeekLow(closes.stream().min(BigDecimal::compareTo).orElse(null));
+                applyMasFromCloses(holding, closes);
+            }
+        } catch (Exception e) {
+            log.debug("Eurobond 52w/MA alınamadı {}: {}", isin, e.getMessage());
+        }
+    }
+
     @Override
+    @WithSpan("PortfolioEnrich.holding")
     public void enrich(PortfolioHoldingResponse holding) {
         try {
             AssetType type = holding.getAssetType();
+            Span.current().setAttribute("holding.asset_type", type != null ? type.name() : "null");
+            Span.current().setAttribute("holding.symbol", String.valueOf(holding.getSymbol()));
             if (type == AssetType.STOCK) {
                 enrichStockOrFutureHolding(holding);
             } else if (type == AssetType.FUTURE) {
@@ -194,7 +248,12 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
             } else if (type == AssetType.FUND) {
                 enrichFundHolding(holding);
             } else if (type == AssetType.BOND) {
-                enrichBondHolding(holding);
+                String code = holding.getSymbol() != null ? holding.getSymbol().trim().toUpperCase() : "";
+                if (eurobondService.currentIsins().contains(code)) {
+                    enrichEurobondHolding(holding, code);
+                } else {
+                    enrichBondHolding(holding);
+                }
             } else if (type == AssetType.FX) {
                 enrichFxHolding(holding);
             } else {

@@ -152,6 +152,19 @@ export function isBondAssetType(assetType) {
   return String(assetType ?? '').toUpperCase() === 'BOND';
 }
 
+/**
+ * Eurobond (Hazine dış borç) enstrümanı mı? Yurt içi DİBS'ten ayırt eder.
+ * Açık işaret (subType/isEurobond) varsa onu kullanır; yoksa ISIN sezgisi: tam ISIN
+ * biçiminde olup "TR" (yurt içi) ile başlamayan tahviller eurobond'dur (US/XS/DE/JP…).
+ * Eurobond fiyatı döviz cinsindendir → modalda otomatik doldurulmaz, TL elle girilir.
+ */
+export function isEurobondInstrument(inst) {
+  if (!inst || !isBondAssetType(inst.assetType)) return false;
+  if (inst.subType === 'EUROBOND' || inst.isEurobond === true) return true;
+  const s = String(inst.symbol ?? '').trim().toUpperCase();
+  return /^[A-Z]{2}[A-Z0-9]{9}[0-9]$/.test(s) && !s.startsWith('TR');
+}
+
 export function isFutureAssetType(assetType) {
   return String(assetType ?? '').toUpperCase() === 'FUTURE';
 }

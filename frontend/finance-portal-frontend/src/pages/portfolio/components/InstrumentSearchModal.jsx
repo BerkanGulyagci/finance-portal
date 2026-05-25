@@ -29,7 +29,7 @@ const ASSET_TYPES = [
   { value: 'FUTURE',    label: 'Vadeli',   placeholder: 'XAUTRYM26, F_THYAO...' },
   { value: 'GOLD',      label: 'Altın',    placeholder: 'GOLD, XAU, gram altın...' },
   { value: 'COMMODITY', label: 'Emtia',    placeholder: 'Gram Gümüş, WTI Ham Petrol, Bakır...' },
-  { value: 'BOND',      label: 'DİBS',    placeholder: 'TRD070727K10...' },
+  { value: 'BOND',      label: 'Tahvil',  placeholder: 'TRD0707... / XS3123...' },
 ];
 
 const SEE_ALL_LINKS = {
@@ -319,8 +319,8 @@ async function fetchAll(type) {
     }
 
     if (type === 'BOND') {
-      // EVDS'den TÜM DİBS listesini çek — backend size'ı 100'le sınırlar, bu yüzden
-      // tüm sayfalar çekilir (aksi halde sadece ilk sayfa gelir, arama eksik kalır).
+      // DİBS (EVDS) + Eurobond (Hazine dış borç). Aynı sekmede ikisi de aranır/eklenir; assetType=BOND.
+      let evds = [];
       try {
         const bondParams = (p, s) => ({ page: p, size: s, sortBy: 'maturityDate', sortDir: 'asc' });
         const firstRes = await client.get('/api/market/bonds/evds', { params: bondParams(0, 100) });
@@ -336,16 +336,28 @@ async function fetchAll(type) {
           );
           rest.forEach(r => items.push(...(r.data?.data?.items ?? [])));
         }
-        if (items.length > 0) {
-          return items.map(b => ({
-            symbol: b.instrumentCode ?? '',
-            name: b.instrumentCode ?? '',
-            type: b.type ?? null,
-            indicatorValue: b.indicatorValue != null ? Number(b.indicatorValue) : null,
-          })).filter(b => b.symbol);
-        }
+        evds = items.map(b => ({
+          symbol: b.instrumentCode ?? '',
+          name: b.instrumentCode ?? '',
+          type: b.type ?? null,
+          indicatorValue: b.indicatorValue != null ? Number(b.indicatorValue) : null,
+        })).filter(b => b.symbol);
       } catch { /* fallback */ }
-      return STATIC_BOND;
+
+      let euro = [];
+      try {
+        const r = await client.get('/api/market/bonds/global');
+        euro = (r.data?.data ?? []).map(b => ({
+          symbol: b.isin ?? '',
+          name: b.name || b.issuer || b.isin || '',
+          type: 'Eurobond',
+          subType: 'EUROBOND', // modal otomatik fiyatı kapatıp TL elle girişe yönlendirir
+          indicatorValue: b.lastPrice != null ? Number(b.lastPrice) : null,
+        })).filter(b => b.symbol);
+      } catch { /* eurobond yoksa yalnız EVDS */ }
+
+      const merged = [...evds, ...euro];
+      return merged.length > 0 ? merged : STATIC_BOND;
     }
   } catch {
     // hata
@@ -699,6 +711,7 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
         fxBuy,
         fxSell,
         category: item.category,
+        ...(item.subType ? { subType: item.subType } : {}),
         commoditySpot: activeType === 'COMMODITY' && isYahooCommoditySymbol(item.symbol)
           ? commoditySpot
           : null,

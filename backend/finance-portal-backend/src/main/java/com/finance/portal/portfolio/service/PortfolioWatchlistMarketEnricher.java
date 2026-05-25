@@ -5,6 +5,9 @@ import com.finance.portal.market.application.bond.evds.BondPeriod;
 import com.finance.portal.market.application.bond.evds.EvdsBondHistoryPoint;
 import com.finance.portal.market.application.bond.evds.EvdsBondInstrument;
 import com.finance.portal.market.application.bond.evds.EvdsBondService;
+import com.finance.portal.market.application.bond.eurobond.EurobondService;
+import com.finance.portal.market.application.bond.eurobond.model.EurobondChartPoint;
+import com.finance.portal.market.application.bond.eurobond.model.EurobondDetail;
 import com.finance.portal.market.application.commodity.CommodityHistoryPointDto;
 import com.finance.portal.market.application.commodity.CommodityHistoryResponse;
 import com.finance.portal.market.application.commodity.CommoditySpotDto;
@@ -75,6 +78,7 @@ public class PortfolioWatchlistMarketEnricher implements WatchlistMarketEnrichme
     private final YahooCommodityService yahooCommodityService;
     private final GoldMarketService goldMarketService;
     private final EvdsBondService evdsBondService;
+    private final EurobondService eurobondService;
     private final ViopService viopService;
 
     public PortfolioWatchlistMarketEnricher(CryptoMarketService cryptoMarketService,
@@ -86,6 +90,7 @@ public class PortfolioWatchlistMarketEnricher implements WatchlistMarketEnrichme
                                             YahooCommodityService yahooCommodityService,
                                             GoldMarketService goldMarketService,
                                             EvdsBondService evdsBondService,
+                                            EurobondService eurobondService,
                                             ViopService viopService) {
         this.cryptoMarketService = cryptoMarketService;
         this.stockQueryService = stockQueryService;
@@ -96,6 +101,7 @@ public class PortfolioWatchlistMarketEnricher implements WatchlistMarketEnrichme
         this.yahooCommodityService = yahooCommodityService;
         this.goldMarketService = goldMarketService;
         this.evdsBondService = evdsBondService;
+        this.eurobondService = eurobondService;
         this.viopService = viopService;
     }
 
@@ -746,6 +752,11 @@ public class PortfolioWatchlistMarketEnricher implements WatchlistMarketEnrichme
     }
 
     private void enrichBond(WatchlistItemResponse r, String instrumentCode) {
+        // Eurobond ISIN'i → Business Insider (kote × canlı TCMB kuru = TL); değilse EVDS DİBS.
+        if (eurobondService.currentIsins().contains(instrumentCode.trim().toUpperCase())) {
+            enrichEurobond(r, instrumentCode.trim().toUpperCase());
+            return;
+        }
         EvdsBondInstrument bond = evdsBondService.getEvdsBondDetail(instrumentCode);
         r.setLastPrice(bond.getIndicatorValue());
         r.setChange(bond.getDailyChange());
@@ -756,6 +767,18 @@ public class PortfolioWatchlistMarketEnricher implements WatchlistMarketEnrichme
 
         LocalDate lu = bond.getLastUpdated();
         r.setAsOf(lu != null ? lu.atStartOfDay() : LocalDateTime.now());
+    }
+
+    /** Eurobond izleme satırı — fiyat TL (kote × canlı kur); favori kartı ₺ ile gösterir. */
+    private void enrichEurobond(WatchlistItemResponse r, String isin) {
+        EurobondDetail d = eurobondService.detail(isin);
+        r.setCurrency("TRY");
+        if (d == null || d.getLastPriceTry() == null) {
+            return;
+        }
+        r.setLastPrice(d.getLastPriceTry());
+        r.setChangePercent(d.getChangePercent());
+        r.setAsOf(LocalDateTime.now());
     }
 
     // ── Trend sinyalleri (holdings ile aynı çoklu-sinyal computeTrend için) ──────────
@@ -859,6 +882,21 @@ public class PortfolioWatchlistMarketEnricher implements WatchlistMarketEnrichme
 
     private List<BigDecimal> bondCloses1y(String code) {
         try {
+            String upper = code.trim().toUpperCase();
+            // Eurobond: BI 1Y kote serisi × canlı kur → TL (52w/MA trend için).
+            if (eurobondService.currentIsins().contains(upper)) {
+                EurobondDetail d = eurobondService.detail(upper);
+                BigDecimal rate = d != null && d.getFxRate() != null ? d.getFxRate() : BigDecimal.ONE;
+                List<EurobondChartPoint> pts = eurobondService.chart(upper, "1Y");
+                if (pts == null || pts.isEmpty()) {
+                    return null;
+                }
+                return pts.stream()
+                        .map(EurobondChartPoint::close)
+                        .filter(Objects::nonNull)
+                        .map(c -> c.multiply(rate).setScale(4, RoundingMode.HALF_UP))
+                        .collect(Collectors.toList());
+            }
             List<EvdsBondHistoryPoint> hist = evdsBondService.getEvdsBondHistory(code.trim(), BondPeriod.ONE_YEAR);
             if (hist == null) {
                 return null;

@@ -143,8 +143,14 @@ export function getWatchlistDetailPath(assetType, symbol) {
       return `/market/futures/${encodeURIComponent(sym)}`;
     case 'FX':
       return `/market/fx/${encodeURIComponent(sym)}`;
-    case 'BOND':
-      return `/market/bonds/${encodeURIComponent(sym)}`;
+    case 'BOND': {
+      // Eurobond (Hazine dış borç) ISIN'i (TR ile başlamayan tam ISIN) → global detay sayfası;
+      // yurt içi DİBS → EVDS detay sayfası.
+      const isEurobond = /^[A-Z]{2}[A-Z0-9]{9}[0-9]$/.test(sym.toUpperCase()) && !sym.toUpperCase().startsWith('TR');
+      return isEurobond
+        ? `/market/bonds/global/${encodeURIComponent(sym)}`
+        : `/market/bonds/${encodeURIComponent(sym)}`;
+    }
     default:
       return null;
   }

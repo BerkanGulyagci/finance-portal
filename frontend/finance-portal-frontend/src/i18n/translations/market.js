@@ -668,6 +668,9 @@ const en = {
   'Bu sayfada yer alan veriler yatırım tavsiyesi değildir. Geçmiş performans gelecekteki getirilerin garantisi değildir. Veriler Rasyonet / YatırımDirekt kaynaklıdır.':
     'Data on this page is not investment advice. Past performance does not guarantee future returns. Data from Rasyonet / YatirimDirekt.',
   'Güncel Fiyat': 'Current Price',
+  'TL ⇄ döviz çevir': 'Toggle TRY ⇄ currency',
+  'fiyata tıklayarak TL gör': 'click the price to see TRY',
+  'fiyata tıklayarak döviz/TL değiştir': 'click the price to switch currency/TRY',
   'Seçili Dönem': 'Selected Period',
   'Normalize Performans Grafiği': 'Normalized Performance Chart',
   'Grafik için yeterli fiyat geçmişi bulunamadı.': 'Not enough price history found for chart.',

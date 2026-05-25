@@ -78,6 +78,7 @@ const en = {
   'Enstrümanı değiştir': 'Change instrument',
   'yükleniyor...': 'loading...',
   'Bu tarih için fiyat bulunamadı, lütfen elle girin.': 'No price found for this date, please enter manually.',
+  'Lütfen fiyatı TL olarak giriniz.': 'Please enter the price in TRY.',
   'Not': 'Note',
   'Kısa bir not...': 'A short note...',
   'Ekleniyor...': 'Adding...',

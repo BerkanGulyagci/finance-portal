@@ -342,6 +342,25 @@ export async function getEvdsBondHistory(instrumentCode, period = 'ONE_MONTH') {
   return data.data ?? [];
 }
 
+// ── Eurobond (Hazine dış borç tahvilleri — HMB ISIN + Business Insider canlı) ──
+export async function getGlobalBonds() {
+  const { data } = await client.get('/api/market/bonds/global', { timeout: 240_000 });
+  return data.data ?? [];
+}
+
+export async function getGlobalBondDetail(isin) {
+  const { data } = await client.get(`/api/market/bonds/global/${encodeURIComponent(isin)}`, { timeout: 120_000 });
+  return data.data ?? null;
+}
+
+export async function getGlobalBondChart(isin, range = '1Y') {
+  const { data } = await client.get(
+    `/api/market/bonds/global/${encodeURIComponent(isin)}/chart`,
+    { params: { range }, timeout: 120_000 }
+  );
+  return data.data ?? [];
+}
+
 export async function getEconomicIndicators() {
   const { data } = await client.get('/api/market/indicators');
   return data.data ?? {};

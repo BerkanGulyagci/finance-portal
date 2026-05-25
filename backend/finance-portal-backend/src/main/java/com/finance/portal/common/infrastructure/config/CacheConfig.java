@@ -70,6 +70,15 @@ public class CacheConfig {
     @Value("${cache.market.economy.ttl-seconds:21600}")
     private long marketEconomyTtlSeconds;
 
+    @Value("${cache.market.eurobond.list-ttl-seconds:1800}")
+    private long eurobondListTtlSeconds;
+
+    @Value("${cache.market.eurobond.detail-ttl-seconds:1800}")
+    private long eurobondDetailTtlSeconds;
+
+    @Value("${cache.market.eurobond.chart-ttl-seconds:3600}")
+    private long eurobondChartTtlSeconds;
+
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
         return new LettuceConnectionFactory(redisHost, redisPort);
@@ -244,6 +253,21 @@ public class CacheConfig {
                 .withCacheConfiguration("market.economy",
                         RedisCacheConfiguration.defaultCacheConfig()
                                 .entryTtl(Duration.ofSeconds(marketEconomyTtlSeconds))
+                                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(
+                                        new GenericJackson2JsonRedisSerializer())))
+                .withCacheConfiguration("market.eurobond.list",
+                        RedisCacheConfiguration.defaultCacheConfig()
+                                .entryTtl(Duration.ofSeconds(eurobondListTtlSeconds))
+                                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(
+                                        new GenericJackson2JsonRedisSerializer())))
+                .withCacheConfiguration("market.eurobond.detail",
+                        RedisCacheConfiguration.defaultCacheConfig()
+                                .entryTtl(Duration.ofSeconds(eurobondDetailTtlSeconds))
+                                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(
+                                        new GenericJackson2JsonRedisSerializer())))
+                .withCacheConfiguration("market.eurobond.chart",
+                        RedisCacheConfiguration.defaultCacheConfig()
+                                .entryTtl(Duration.ofSeconds(eurobondChartTtlSeconds))
                                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(
                                         new GenericJackson2JsonRedisSerializer())))
                 .build();

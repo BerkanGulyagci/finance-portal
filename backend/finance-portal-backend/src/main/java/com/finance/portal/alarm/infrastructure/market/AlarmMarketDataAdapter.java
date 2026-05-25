@@ -7,6 +7,7 @@ import com.finance.portal.market.application.AssetPriceQueryService;
 import com.finance.portal.market.application.AssetPriceSnapshot;
 import com.finance.portal.market.application.bond.evds.EvdsBondInstrument;
 import com.finance.portal.market.application.bond.evds.EvdsBondService;
+import com.finance.portal.market.application.bond.eurobond.EurobondService;
 import com.finance.portal.market.application.commodity.CommoditySpotDto;
 import com.finance.portal.market.application.commodity.YahooCommodityService;
 import com.finance.portal.market.application.crypto.CryptoMarketService;
@@ -56,6 +57,7 @@ public class AlarmMarketDataAdapter implements AlarmMarketDataPort {
     private final ViopService viopService;
     private final SilverMarketService silverMarketService;
     private final PreciousMetalService preciousMetalService;
+    private final EurobondService eurobondService;
 
     public AlarmMarketDataAdapter(StockQueryService stockQueryService,
                                   CryptoMarketService cryptoMarketService,
@@ -65,7 +67,8 @@ public class AlarmMarketDataAdapter implements AlarmMarketDataPort {
                                   EvdsBondService evdsBondService,
                                   ViopService viopService,
                                   SilverMarketService silverMarketService,
-                                  PreciousMetalService preciousMetalService) {
+                                  PreciousMetalService preciousMetalService,
+                                  EurobondService eurobondService) {
         this.stockQueryService = stockQueryService;
         this.cryptoMarketService = cryptoMarketService;
         this.assetPriceQueryService = assetPriceQueryService;
@@ -75,6 +78,7 @@ public class AlarmMarketDataAdapter implements AlarmMarketDataPort {
         this.viopService = viopService;
         this.silverMarketService = silverMarketService;
         this.preciousMetalService = preciousMetalService;
+        this.eurobondService = eurobondService;
     }
 
     @Override
@@ -212,6 +216,12 @@ public class AlarmMarketDataAdapter implements AlarmMarketDataPort {
     }
 
     private AlarmMarketSnapshot fromBond(String symbol) {
+        String s = symbol.trim().toUpperCase(Locale.ROOT);
+        // Eurobond (Hazine dış borç) → Business Insider; aksi halde EVDS DİBS.
+        if (eurobondService.currentIsins().contains(s)) {
+            BigDecimal price = eurobondService.currentPrice(s);
+            return price != null ? new AlarmMarketSnapshot(price, null, null) : null;
+        }
         EvdsBondInstrument b = evdsBondService.getEvdsBondDetail(symbol);
         if (b == null) {
             return null;

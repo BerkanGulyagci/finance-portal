@@ -35,6 +35,9 @@ public final class IntegrationLogSupport {
     public static final String PROVIDER_TUIK = "tuik";
     public static final String PROVIDER_EXTERNAL = "external";
     public static final String PROVIDER_SMTP = "smtp";
+    public static final String PROVIDER_BUSINESS_INSIDER = "business_insider";
+    public static final String PROVIDER_HMB = "hmb";
+    public static final String PROVIDER_GROQ = "groq";
 
     public static final String OPERATION_EMAIL = "email";
 

@@ -29,6 +29,7 @@ import {
   defaultInputMode,
   isFundAssetType,
   isBondAssetType,
+  isEurobondInstrument,
   isFutureAssetType,
   sanitizeFutureContractQtyInput,
   currencySymbol,
@@ -88,19 +89,24 @@ export default function AddTransactionModal({
 
   const todayStr = localNow.slice(0, 10);
 
+  // Eurobond: fiyat döviz cinsinden → otomatik doldurma yok, kullanıcı TL elle girer.
+  const isEurobond = isEurobondInstrument(instrument);
+
   useEffect(() => {
     if (!initialInstrument) return;
     setInstrument(initialInstrument);
     setStep('form');
     setForm(f => ({
       ...f,
-      price: initPrice(initialInstrument.price),
+      // Eurobond fiyatı USD/EUR — TL elle girileceği için ön-doldurma yapma.
+      price: isEurobondInstrument(initialInstrument) ? '' : initPrice(initialInstrument.price),
       inputMode: defaultInputMode(initialInstrument.assetType),
     }));
   }, [initialInstrument]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleInstrumentSelect(inst) {
     setInstrument(inst);
+    const eurobondSel = isEurobondInstrument(inst);
     setForm(f => {
       // Döviz: TCMB "Alış/Satış" kurum perspektifindedir →
       //  - Kullanıcı ALIŞ yapıyor (BUY)  → kurum kullanıcıya satar  → forexSelling kullanılır
@@ -114,6 +120,10 @@ export default function AddTransactionModal({
           ? initPrice(inst.fxSell)   // BUY → satış kuru
           : initPrice(inst.fxBuy);   // SELL → alış kuru
       }
+      // Eurobond: kote döviz cinsinden → ön-doldurma yapma, TL elle girilecek.
+      if (eurobondSel) {
+        autoPrice = '';
+      }
       return {
         ...f,
         price: autoPrice,
@@ -122,7 +132,7 @@ export default function AddTransactionModal({
         inputMode: defaultInputMode(inst.assetType),
       };
     });
-    setPriceAuto(true);
+    setPriceAuto(!eurobondSel);
     setPriceNotFound(false);
     setStep('form');
   }
@@ -151,6 +161,13 @@ export default function AddTransactionModal({
   // Bugün/ileri tarihte güncel spot fiyat (instrument-based) korunur.
   useEffect(() => {
     if (step !== 'form' || !instrument) return undefined;
+    // Eurobond: tarihsel fiyat döviz cinsinden → otomatik doldurma yok, TL elle girilir.
+    if (isEurobond) {
+      setPriceNotFound(false);
+      setPriceLoading(false);
+      setPriceAuto(false);
+      return undefined;
+    }
     const dateOnly = (form.transactionDate || '').slice(0, 10);
     if (!dateOnly) return undefined;
     if (dateOnly >= todayStr) {
@@ -224,8 +241,9 @@ export default function AddTransactionModal({
   const useQtyFloor = cfg.floor || (isGold && goldMeta?.floorQty);
 
   const currency = useMemo(
-    () => instrument?.currency || guessCurrency(instrument?.assetType, instrument?.symbol),
-    [instrument?.currency, instrument?.assetType, instrument?.symbol],
+    // Eurobond portföye TL olarak eklenir → modalda her zaman ₺/TRY göster.
+    () => (isEurobond ? 'TRY' : (instrument?.currency || guessCurrency(instrument?.assetType, instrument?.symbol))),
+    [isEurobond, instrument?.currency, instrument?.assetType, instrument?.symbol],
   );
 
   const symShort = getShortSymbol(instrument?.symbol);
@@ -710,7 +728,7 @@ export default function AddTransactionModal({
                   onChange={e => { set('price', parseGroupedInput(e.target.value)); setPriceAuto(false); setPriceNotFound(false); }}
                   placeholder="0,00"
                   className={`w-full bg-[#f3f3fc] border rounded-xl pl-4 pr-9 py-2.5 text-sm text-[#1a1b22] placeholder-[#747684] focus:outline-none focus:border-[#002a7d] focus:ring-1 focus:ring-[#002a7d] ${
-                    priceNotFound ? 'border-amber-300' : priceAuto ? 'border-[#10b981]/60' : 'border-[#e2e1eb]'
+                    (priceNotFound || isEurobond) ? 'border-amber-300' : priceAuto ? 'border-[#10b981]/60' : 'border-[#e2e1eb]'
                   }`}
                 />
                 {currencySymbol(currency) && (
@@ -719,7 +737,12 @@ export default function AddTransactionModal({
                   </span>
                 )}
               </div>
-              {priceNotFound && (
+              {isEurobond && (
+                <p className="mt-1 text-[11px] text-amber-600 leading-snug">
+                  {t('Lütfen fiyatı TL olarak giriniz.')}
+                </p>
+              )}
+              {priceNotFound && !isEurobond && (
                 <p className="mt-1 text-[11px] text-amber-600 leading-snug">
                   {t('Bu tarih için fiyat bulunamadı, lütfen elle girin.')}
                 </p>

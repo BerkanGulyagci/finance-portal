@@ -3,6 +3,9 @@ package com.finance.portal.portfolio.infrastructure.market;
 import com.finance.portal.common.domain.AssetType;
 import com.finance.portal.market.application.bond.evds.model.EvdsSeriesPoint;
 import com.finance.portal.market.application.bond.evds.port.EvdsBondPort;
+import com.finance.portal.market.application.bond.eurobond.EurobondService;
+import com.finance.portal.market.application.bond.eurobond.model.EurobondChartPoint;
+import com.finance.portal.market.application.bond.eurobond.model.EurobondDetail;
 import com.finance.portal.market.application.commodity.CommodityHistoryPointDto;
 import com.finance.portal.market.application.commodity.CommodityHistoryResponse;
 import com.finance.portal.market.application.commodity.YahooCommodityService;
@@ -72,6 +75,7 @@ public class PortfolioHistoricalPriceAdapter implements PortfolioHistoricalPrice
     private final TcmbFxHistoryPort tcmbFxHistoryPort;
     private final MarketFxService marketFxService;
     private final EvdsBondPort evdsBondPort;
+    private final EurobondService eurobondService;
     private final GoldMarketService goldMarketService;
     private final SilverMarketService silverMarketService;
     private final PreciousMetalService preciousMetalService;
@@ -86,6 +90,7 @@ public class PortfolioHistoricalPriceAdapter implements PortfolioHistoricalPrice
                                            TcmbFxHistoryPort tcmbFxHistoryPort,
                                            MarketFxService marketFxService,
                                            EvdsBondPort evdsBondPort,
+                                           EurobondService eurobondService,
                                            GoldMarketService goldMarketService,
                                            SilverMarketService silverMarketService,
                                            PreciousMetalService preciousMetalService,
@@ -99,6 +104,7 @@ public class PortfolioHistoricalPriceAdapter implements PortfolioHistoricalPrice
         this.tcmbFxHistoryPort = tcmbFxHistoryPort;
         this.marketFxService = marketFxService;
         this.evdsBondPort = evdsBondPort;
+        this.eurobondService = eurobondService;
         this.goldMarketService = goldMarketService;
         this.silverMarketService = silverMarketService;
         this.preciousMetalService = preciousMetalService;
@@ -226,6 +232,11 @@ public class PortfolioHistoricalPriceAdapter implements PortfolioHistoricalPrice
     }
 
     private NavigableMap<LocalDate, BigDecimal> fetchBond(String symbol, LocalDate from, LocalDate to) {
+        String code = symbol != null ? symbol.trim().toUpperCase(Locale.ROOT) : "";
+        // Eurobond ISIN'i → Business Insider kote serisi × tarihe uygun TCMB kuru (TL).
+        if (eurobondService.currentIsins().contains(code)) {
+            return fetchEurobond(code, from, to);
+        }
         List<EvdsSeriesPoint> points = evdsBondPort.fetchIndicatorValues(symbol, from, to);
         NavigableMap<LocalDate, BigDecimal> map = new TreeMap<>();
         for (EvdsSeriesPoint p : points) {
@@ -234,6 +245,111 @@ public class PortfolioHistoricalPriceAdapter implements PortfolioHistoricalPrice
             }
         }
         return map;
+    }
+
+    /**
+     * Eurobond günlük TL kapanış serisi: BI kote (USD/EUR/JPY) × <b>o güne ait</b> TCMB satış kuru
+     * (floor-fill; o günden öncesi yoksa en yakın). Kur tarihsel veri yoksa güncel kura düşer.
+     * Portföy performans grafiği ve genel /price-history (karşılaştırma) için kullanılır.
+     */
+    private NavigableMap<LocalDate, BigDecimal> fetchEurobond(String isin, LocalDate from, LocalDate to) {
+        NavigableMap<LocalDate, BigDecimal> map = new TreeMap<>();
+        EurobondDetail d = eurobondService.detail(isin);
+        String currency = d != null && d.getCurrency() != null ? d.getCurrency().toUpperCase(Locale.ROOT) : "USD";
+
+        List<EurobondChartPoint> pts = eurobondService.chart(isin, eurobondRange(from));
+        if (pts == null || pts.isEmpty()) {
+            return map;
+        }
+
+        NavigableMap<LocalDate, BigDecimal> fxByDay = loadFxHistoryPerUnit(currency, from.minusDays(10), to);
+        BigDecimal latestFx = d != null && d.getFxRate() != null
+                ? d.getFxRate() : eurobondService.fxRateToTry(currency);
+        if (fxByDay.isEmpty() && (latestFx == null || latestFx.signum() <= 0)) {
+            return map;
+        }
+
+        for (EurobondChartPoint p : pts) {
+            if (p == null || p.date() == null || p.close() == null) {
+                continue;
+            }
+            LocalDate day;
+            try {
+                day = LocalDate.parse(p.date().substring(0, Math.min(10, p.date().length())));
+            } catch (Exception e) {
+                continue;
+            }
+            BigDecimal fx = null;
+            var fl = fxByDay.floorEntry(day);
+            if (fl != null) {
+                fx = fl.getValue();
+            } else if (!fxByDay.isEmpty()) {
+                fx = fxByDay.firstEntry().getValue();
+            }
+            if (fx == null || fx.signum() <= 0) {
+                fx = latestFx;
+            }
+            if (fx == null || fx.signum() <= 0) {
+                continue;
+            }
+            BigDecimal tryClose = p.close().multiply(fx).setScale(6, RoundingMode.HALF_UP);
+            PortfolioHistoricalPriceSeriesSupport.putIfInRange(map, day, tryClose, from, to);
+        }
+        return map;
+    }
+
+    /** Verilen döviz için günlük TCMB satış kuru serisi (birim>1 ise bölünür; örn. JPY). */
+    private NavigableMap<LocalDate, BigDecimal> loadFxHistoryPerUnit(String currency, LocalDate from, LocalDate to) {
+        NavigableMap<LocalDate, BigDecimal> map = new TreeMap<>();
+        if (currency == null || currency.isBlank() || "TRY".equalsIgnoreCase(currency)) {
+            return map;
+        }
+        String cur = currency.toUpperCase(Locale.ROOT);
+        int unit = 1;
+        try {
+            FxLatestRates latest = marketFxService.getTcmbLatestRates(cur);
+            if (latest != null && latest.getRates() != null) {
+                FxRateItem rate = latest.getRates().stream()
+                        .filter(r -> cur.equalsIgnoreCase(r.getSymbol()))
+                        .findFirst().orElse(null);
+                if (rate != null && rate.getUnit() > 1) {
+                    unit = rate.getUnit();
+                }
+            }
+        } catch (Exception ignored) {
+            // birim 1 varsay
+        }
+        BigDecimal unitBd = BigDecimal.valueOf(unit);
+        try {
+            List<FxHistoryPoint> pts = tcmbFxHistoryPort.fetchHistory(cur, from, to);
+            for (FxHistoryPoint p : pts) {
+                if (p.getDate() == null || p.getClose() == null) {
+                    continue;
+                }
+                try {
+                    LocalDate day = LocalDate.parse(p.getDate().substring(0, 10));
+                    BigDecimal close = unit > 1 ? p.getClose().divide(unitBd, 8, RoundingMode.HALF_UP) : p.getClose();
+                    map.put(day, close);
+                } catch (Exception ignored) {
+                    // skip
+                }
+            }
+        } catch (Exception e) {
+            log.debug("Eurobond FX history unavailable for {}: {}", cur, e.getMessage());
+        }
+        return map;
+    }
+
+    /** BI eurobond grafik aralığı — istenen {@code from}'u kapsayacak en kısa range. */
+    private static String eurobondRange(LocalDate from) {
+        long d = daysSince(from);
+        if (d <= 31) return "1M";
+        if (d <= 95) return "3M";
+        if (d <= 185) return "6M";
+        if (d <= 370) return "1Y";
+        if (d <= 1100) return "3Y";
+        if (d <= 1830) return "5Y";
+        return "MAX";
     }
 
     private NavigableMap<LocalDate, BigDecimal> fetchGold(String symbol, LocalDate from, LocalDate to) {
