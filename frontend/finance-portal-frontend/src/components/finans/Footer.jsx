@@ -35,14 +35,14 @@ export function Footer() {
                 src="/brand-logo.png"
                 alt=""
                 role="presentation"
-                className="h-10 w-auto sm:h-11 max-w-[190px] sm:max-w-[210px] object-contain object-center shrink-0"
-                width={210}
-                height={44}
+                className="h-11 w-auto sm:h-12 object-contain object-center shrink-0"
+                width={57}
+                height={48}
                 decoding="async"
               />
               <div className="text-lg font-bold tracking-tight leading-tight flex items-center">
-                <span className="text-[#093eaa]">Finans</span>
-                <span className="text-gray-900">Portalı</span>
+                <span className="text-[#093eaa]">Port</span>
+                <span className="text-gray-900">iva</span>
               </div>
             </div>
             <p className="text-sm text-gray-500 mb-6">
@@ -88,7 +88,7 @@ export function Footer() {
 
         <div className="border-t border-gray-200 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-xs text-gray-400">
-            {t('© 2025 Finans Portalı. Tüm hakları saklıdır. Veriler gecikmeli olarak yansıtılabilir.')}
+            {t('© 2025 Portiva. Tüm hakları saklıdır. Veriler gecikmeli olarak yansıtılabilir.')}
           </p>
         </div>
       </div>

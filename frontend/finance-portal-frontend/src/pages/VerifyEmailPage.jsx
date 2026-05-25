@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Mail, Wallet } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../i18n/LanguageContext';
 
@@ -11,12 +11,10 @@ export default function VerifyEmailPage() {
     <div className="bg-[#f5f6f8] flex items-center justify-center px-4 py-12 -mx-4 sm:-mx-6 lg:-mx-8 -my-8">
       <div className="w-full max-w-md">
         <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="bg-[#093eaa] p-2 rounded-xl">
-            <Wallet className="w-7 h-7 text-white" />
-          </div>
+          <img src="/brand-logo.png" alt="" className="h-12 w-auto object-contain shrink-0" width={57} height={48} decoding="async" />
           <h1 className="text-2xl font-bold tracking-tight">
-            <span className="text-[#093eaa]">Finans</span>
-            <span className="text-gray-900">Portalı</span>
+            <span className="text-[#093eaa]">Port</span>
+            <span className="text-gray-900">iva</span>
           </h1>
         </div>
 

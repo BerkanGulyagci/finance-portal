@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { Wallet } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 
 export default function NotFoundPage() {
@@ -8,12 +7,10 @@ export default function NotFoundPage() {
     <div className="min-h-screen bg-[#f5f6f8] flex items-center justify-center px-4">
       <div className="text-center">
         <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="bg-[#093eaa] p-2 rounded-xl">
-            <Wallet className="w-7 h-7 text-white" />
-          </div>
+          <img src="/brand-logo.png" alt="" className="h-12 w-auto object-contain shrink-0" width={57} height={48} decoding="async" />
           <h1 className="text-2xl font-bold">
-            <span className="text-[#093eaa]">{t('Finans')}</span>
-            <span className="text-gray-900">{t('Portalı')}</span>
+            <span className="text-[#093eaa]">Port</span>
+            <span className="text-gray-900">iva</span>
           </h1>
         </div>
         <p className="text-8xl font-black text-gray-200 mb-4">404</p>

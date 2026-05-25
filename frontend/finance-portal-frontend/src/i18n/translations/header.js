@@ -63,6 +63,7 @@ const en = {
   'Portföyüm': 'My Portfolio',
   'Profilim': 'My Profile',
   'Hesap Ayarları': 'Account Settings',
+  'Taleplerim': 'My Tickets',
   'Şifre Değiştir': 'Change Password',
   'Çıkış Yap': 'Log Out',
   'Hesabım': 'My Account',

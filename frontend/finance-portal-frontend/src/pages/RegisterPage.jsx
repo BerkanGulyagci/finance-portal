@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Wallet, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { registerRequest } from '../api/authApi';
 import { useTranslation } from '../i18n/LanguageContext';
 
@@ -57,12 +57,10 @@ export default function RegisterPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="bg-[#093eaa] p-2 rounded-xl">
-            <Wallet className="w-7 h-7 text-white" />
-          </div>
+          <img src="/brand-logo.png" alt="" className="h-12 w-auto object-contain shrink-0" width={57} height={48} decoding="async" />
           <h1 className="text-2xl font-bold tracking-tight">
-            <span className="text-[#093eaa]">Finans</span>
-            <span className="text-gray-900">Portalı</span>
+            <span className="text-[#093eaa]">Port</span>
+            <span className="text-gray-900">iva</span>
           </h1>
         </div>
 

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useId } from 'react';
-import { ChevronDown, Menu, X, User, Settings, Shield, LogOut, Briefcase, Bell, BellRing, LayoutGrid } from 'lucide-react';
+import { ChevronDown, Menu, X, User, Shield, LogOut, Briefcase, Bell, BellRing, LayoutGrid, LifeBuoy } from 'lucide-react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../i18n/LanguageContext';
@@ -81,10 +81,10 @@ function ProfileMenu({ onClose, t }) {
         <User className="w-4 h-4 shrink-0" />
         {t('Profilim')}
       </Link>
-      <button type="button" onClick={() => openProfileModal('name')} className={itemClass}>
-        <Settings className="w-4 h-4 shrink-0" />
-        {t('Hesap Ayarları')}
-      </button>
+      <Link to="/profile?tab=support" onClick={onClose} className={itemClass}>
+        <LifeBuoy className="w-4 h-4 shrink-0" />
+        {t('Taleplerim')}
+      </Link>
       <button type="button" onClick={() => openProfileModal('password')} className={itemClass}>
         <Shield className="w-4 h-4 shrink-0" />
         {t('Şifre Değiştir')}
@@ -309,20 +309,20 @@ export function Header() {
           <Link
             to="/"
             className="flex items-center gap-2.5 sm:gap-3 shrink-0 min-w-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#093eaa]/40 rounded-lg"
-            aria-label={t('FinansPortalı — ana sayfa')}
+            aria-label="Portiva — ana sayfa"
           >
             <img
               src="/brand-logo.png"
               alt=""
               role="presentation"
-              className="h-10 w-auto sm:h-11 max-w-[min(190px,42vw)] sm:max-w-[210px] object-contain object-center shrink-0"
-              width={210}
-              height={44}
+              className="h-11 w-auto sm:h-12 object-contain object-center shrink-0"
+              width={57}
+              height={48}
               decoding="async"
             />
             <span className="text-lg font-bold tracking-tight truncate leading-tight flex items-center">
-              <span className="text-[#093eaa]">{t('Finans')}</span>
-              <span className="text-gray-900">{t('Portalı')}</span>
+              <span className="text-[#093eaa]">Port</span>
+              <span className="text-gray-900">iva</span>
             </span>
           </Link>
 
@@ -461,9 +461,9 @@ export function Header() {
                   className="block py-2 text-sm font-semibold text-gray-700 hover:text-[#093eaa]">
                   {t('Bildirimler')}
                 </Link>
-                <Link to="/profile?modal=name" onClick={() => setMobileOpen(false)}
+                <Link to="/profile?tab=support" onClick={() => setMobileOpen(false)}
                   className="block py-2 text-sm font-semibold text-gray-700 hover:text-[#093eaa]">
-                  {t('Hesap Ayarları')}
+                  {t('Taleplerim')}
                 </Link>
                 <Link to="/profile?modal=password" onClick={() => setMobileOpen(false)}
                   className="block py-2 text-sm font-semibold text-gray-700 hover:text-[#093eaa]">

@@ -37,7 +37,7 @@
         </#list>
     </#if>
     <title>${msg("loginTitle",(realm.displayName!''))}</title>
-    <link rel="icon" href="${url.resourcesPath}/img/favicon.ico" />
+    <link rel="icon" type="image/png" href="${url.resourcesPath}/img/brand-logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -102,8 +102,8 @@
 
       <main class="fp-auth-card ${properties.kcLoginMain!}" id="fp-auth-main">
         <div class="fp-auth-card-brand">
-          <img class="fp-auth-card-logo" src="${url.resourcesPath}/img/brand-logo.png" alt="" width="44" height="44" loading="lazy" />
-          <span class="fp-auth-card-wordmark"><span class="fp-brand-finans">Finans</span><span class="fp-brand-portal">Portalı</span></span>
+          <img class="fp-auth-card-logo" src="${url.resourcesPath}/img/brand-logo.png" alt="" width="52" height="44" loading="lazy" />
+          <span class="fp-auth-card-wordmark"><span class="fp-brand-finans">Port</span><span class="fp-brand-portal">iva</span></span>
         </div>
 
         <div class="${properties.kcLoginMainHeader!} fp-auth-card-heading">

@@ -27,8 +27,8 @@ const en = {
   'Kullanım Şartları': 'Terms of Use',
 
   // Copyright
-  '© 2025 Finans Portalı. Tüm hakları saklıdır. Veriler gecikmeli olarak yansıtılabilir.':
-    '© 2025 Finance Portal. All rights reserved. Data may be displayed with a delay.',
+  '© 2025 Portiva. Tüm hakları saklıdır. Veriler gecikmeli olarak yansıtılabilir.':
+    '© 2025 Portiva. All rights reserved. Data may be displayed with a delay.',
 };
 
 export default { en };
