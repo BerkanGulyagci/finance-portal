@@ -107,6 +107,31 @@ newsletter:
     # Her gün 08:00'de (Europe/Istanbul) — o gün gönderilmesi gereken abonelikler bulunur
     cron: ${NEWSLETTER_DIGEST_CRON:0 0 8 * * *}
 
+# Warren AI — finans/ekonomi sohbet asistanı. Sağlayıcı-bağımsız (OpenAI-uyumlu); varsayılan Groq (ücretsiz).
+# api-key SADECE .env.local'de tutulur (ASSISTANT_API_KEY); boşsa endpoint "şu an kullanılamıyor" döner.
+assistant:
+  enabled: ${ASSISTANT_ENABLED:true}
+  provider: ${ASSISTANT_PROVIDER:groq}
+  api-url: ${ASSISTANT_API_URL:https://api.groq.com/openai/v1/chat/completions}
+  api-key: ${ASSISTANT_API_KEY:}
+  model: ${ASSISTANT_MODEL:llama-3.3-70b-versatile}
+  timeout-seconds: ${ASSISTANT_TIMEOUT_SECONDS:30}
+  max-tokens: ${ASSISTANT_MAX_TOKENS:700}
+  temperature: ${ASSISTANT_TEMPERATURE:0.4}
+  anon-message-limit: ${ASSISTANT_ANON_LIMIT:2}      # giriş yapmayan kullanıcı için toplam mesaj hakkı
+  user-daily-limit: ${ASSISTANT_USER_DAILY_LIMIT:50} # giriş yapan kullanıcı için günlük mesaj hakkı
+  history-limit: ${ASSISTANT_HISTORY_LIMIT:10}        # Groq'a gönderilen son mesaj sayısı
+  max-input-chars: ${ASSISTANT_MAX_INPUT_CHARS:2000}  # tek mesaj uzunluk sınırı
+  cache-ttl-seconds: ${ASSISTANT_CACHE_TTL_SECONDS:21600}  # araçsız tek-soru yanıtları Redis cache (0=kapalı)
+  # Gemini fallback — Groq kota/hata verince devreye girer. Anahtar: aistudio.google.com (ücretsiz)
+  fallback-enabled: ${ASSISTANT_FALLBACK_ENABLED:true}
+  gemini-api-url: ${GEMINI_API_URL:https://generativelanguage.googleapis.com/v1beta/models}
+  gemini-api-key: ${GEMINI_API_KEY:}
+  gemini-model: ${GEMINI_MODEL:gemini-2.5-flash}
+  # Model zinciri: "saglayici:model" adımları, sırayla denenir; biri kota/hata verince sonrakine düşülür.
+  # saglayici = groq | gemini. Anahtarı olmayan sağlayıcı adımı atlanır. Boş bırakılırsa: Groq → Gemini.
+  chain: "${ASSISTANT_CHAIN:gemini:gemini-2.5-flash,gemini:gemini-2.5-flash-lite,groq:llama-3.3-70b-versatile}"
+
 news:
   api:
     url: https://newsapi.org/v2/top-headlines

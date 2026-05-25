@@ -35,14 +35,34 @@ const en = {
   'Gündem Haberleri': 'Top Stories',
   'Dünyadan Haberler': 'World News',
 
-  // AIChatWidget
-  'Merhaba! Bugünkü piyasa hareketlerini özetlememi ister misiniz? Ya da bir hisseyi analiz edebilirim.':
-    'Hello! Would you like me to summarize today\'s market movements? Or I can analyze a stock for you.',
-  'Sorunuzu analiz ediyorum. Size en güncel piyasa verileriyle yardımcı olacağım.':
-    'I am analyzing your question. I will help you with the latest market data.',
-  'Warren AI': 'Warren AI',
+  // AIChatWidget (Porti)
+  'Merhaba! Ben Porti. Piyasa, fiyat ve finans sorularında yardımcı olabilirim. Ne öğrenmek istersin?':
+    'Hi! I\'m Porti. I can help with market, price and finance questions. What would you like to know?',
+  'Merhaba {name}! Ben Porti. Piyasa, fiyat ve finans sorularında yardımcı olabilirim. Ne öğrenmek istersin?':
+    'Hi {name}! I\'m Porti. I can help with market, price and finance questions. What would you like to know?',
+  'Porti': 'Porti',
   'Finansal Asistan': 'Financial Assistant',
-  'Sorunuzu buraya yazın...': 'Type your question here...',
+  "Porti'ye sorun...": 'Ask Porti...',
+  'Büyüt': 'Expand',
+  'Küçült': 'Collapse',
+  'Kapat': 'Close',
+  'Sohbeti temizle': 'Clear chat',
+  'Gönder': 'Send',
+  'Bugün portföyünde neler olmuş, birlikte inceleyelim? 👀': 'Let\'s see what happened in your portfolio today 👀',
+  'Hızlı İşlemler': 'Quick Actions',
+  'Piyasa Özeti': 'Market Summary',
+  'Haberler': 'News',
+  'Portföyüm': 'My Portfolio',
+  'Terimler': 'Terms',
+  'Nasıl Yaparım?': 'How To?',
+  'Devam etmek için lütfen giriş yapın.': 'Please sign in to continue.',
+  'Devam etmek için giriş yapın': 'Sign in to continue',
+  'Giriş Yap': 'Sign In',
+  'Günlük mesaj hakkınız doldu. Lütfen daha sonra tekrar deneyin.': 'You have reached your daily message limit. Please try again later.',
+  'Asistan şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin.': 'The assistant is currently unavailable. Please try again later.',
+  'Şu an yoğunluk var (günlük ücretsiz AI kotası dolmuş olabilir). Lütfen birkaç dakika sonra tekrar deneyin.': 'High demand right now (the free daily AI quota may be used up). Please try again in a few minutes.',
+  'Bir hata oluştu. Lütfen tekrar deneyin.': 'Something went wrong. Please try again.',
+  'Porti yapay zekâdır, hata yapabilir. Yatırım tavsiyesi değildir.': 'Porti is AI-generated and may be wrong. Not investment advice.',
 
   // Sidebar
   'En Son Haberler': 'Latest News',
