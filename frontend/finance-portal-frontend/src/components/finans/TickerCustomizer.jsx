@@ -58,19 +58,22 @@ export default function TickerCustomizer() {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
-      <h2 className="font-bold text-gray-900 mb-1 flex items-center gap-2">
-        <LineChart className="w-5 h-5 text-[#093eaa]" /> {t('Piyasa Şeridini Özelleştir')}
-      </h2>
-      <p className="text-xs text-gray-400 mb-4">
-        {t('Sayfanın üstündeki piyasa şeridinde hangi varlıkların görüneceğini seçin.')}
-      </p>
+    <div className="m3-card p-6">
+      <div className="flex items-center gap-3 mb-4">
+        <span className="m3-icon-chip"><LineChart className="w-5 h-5" /></span>
+        <div className="min-w-0">
+          <h3 className="font-bold text-gray-900 leading-tight">{t('Piyasa Şeridini Özelleştir')}</h3>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {t('Sayfanın üstündeki piyasa şeridinde hangi varlıkların görüneceğini seçin.')}
+          </p>
+        </div>
+      </div>
 
-      <div className="grid sm:grid-cols-2 gap-4">
+      <div className="grid sm:grid-cols-2 gap-3">
         {TICKER_CATALOG.map(group => {
           const allOn = group.items.every(it => enabled.has(it.key));
           return (
-            <div key={group.group} className="border border-gray-100 rounded-xl p-3">
+            <div key={group.group} className="border border-gray-200/70 bg-[#f8f9fc] rounded-lg p-3">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t(group.group)}</span>
                 <button
@@ -106,7 +109,7 @@ export default function TickerCustomizer() {
           <button
             type="button"
             onClick={() => setSearchOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#093eaa] text-white text-xs font-bold hover:bg-[#0a2966] transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#e7eefb] text-[#0b347f] text-xs font-bold hover:bg-[#d8e3f9] transition-colors"
           >
             <Plus className="w-3.5 h-3.5" /> {t('Varlık Ekle')}
           </button>
@@ -116,11 +119,11 @@ export default function TickerCustomizer() {
         ) : (
           <div className="flex flex-wrap gap-2">
             {custom.map(c => (
-              <span key={`${c.assetType}:${c.symbol}`} className="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1 rounded-full bg-[#093eaa]/5 border border-[#093eaa]/15 text-xs font-semibold text-[#093eaa]">
+              <span key={`${c.assetType}:${c.symbol}`} className="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1 rounded-lg bg-[#093eaa]/5 border border-[#093eaa]/15 text-xs font-semibold text-[#093eaa]">
                 {c.name}
                 <span className="text-[9px] text-gray-400">{t(ASSET_LABEL[c.assetType] ?? c.assetType)}</span>
                 <button type="button" onClick={() => removeCustom(c.assetType, c.symbol)} title={t('Kaldır')}
-                  className="p-0.5 rounded-full hover:bg-rose-100 hover:text-rose-600 text-gray-400">
+                  className="p-0.5 rounded-md hover:bg-rose-100 hover:text-rose-600 text-gray-400">
                   <X className="w-3 h-3" />
                 </button>
               </span>

@@ -12,7 +12,7 @@ function ModalShell({ title, open, onClose, children }) {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40">
       <div
-        className="bg-white rounded-2xl shadow-xl border border-gray-200 w-full max-w-md max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-xl shadow-xl border border-gray-200 w-full max-w-md max-h-[90vh] overflow-y-auto"
         role="dialog"
         aria-modal="true"
       >
@@ -38,7 +38,7 @@ function FieldInput({ label, id, type = 'text', value, onChange, autoComplete })
         value={value}
         onChange={onChange}
         autoComplete={autoComplete}
-        className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30 focus:border-[#093eaa]"
+        className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30 focus:border-[#093eaa]"
       />
     </label>
   );
@@ -95,7 +95,7 @@ export function ProfileNameModal({ open, profile, onClose, onSuccess }) {
         <button
           type="submit"
           disabled={busy}
-          className="w-full bg-[#093eaa] text-white py-2.5 rounded-xl text-sm font-bold hover:bg-[#093eaa]/90 disabled:opacity-60"
+          className="w-full bg-[#093eaa] text-white py-2.5 rounded-lg text-sm font-bold hover:bg-[#0b347f] transition-colors disabled:opacity-60"
         >
           {busy ? t('Kaydediliyor...') : t('Kaydet')}
         </button>
@@ -150,7 +150,7 @@ export function ProfileEmailModal({ open, profile, onClose, onRequiresReLogin })
         <button
           type="submit"
           disabled={busy}
-          className="w-full bg-[#093eaa] text-white py-2.5 rounded-xl text-sm font-bold hover:bg-[#093eaa]/90 disabled:opacity-60"
+          className="w-full bg-[#093eaa] text-white py-2.5 rounded-lg text-sm font-bold hover:bg-[#0b347f] transition-colors disabled:opacity-60"
         >
           {busy ? t('Kaydediliyor...') : t('Email Güncelle')}
         </button>
@@ -241,7 +241,7 @@ export function ProfilePasswordModal({ open, onClose, onRequiresReLogin }) {
         <button
           type="submit"
           disabled={busy}
-          className="w-full bg-[#093eaa] text-white py-2.5 rounded-xl text-sm font-bold hover:bg-[#093eaa]/90 disabled:opacity-60"
+          className="w-full bg-[#093eaa] text-white py-2.5 rounded-lg text-sm font-bold hover:bg-[#0b347f] transition-colors disabled:opacity-60"
         >
           {busy ? t('Kaydediliyor...') : t('Şifreyi Güncelle')}
         </button>

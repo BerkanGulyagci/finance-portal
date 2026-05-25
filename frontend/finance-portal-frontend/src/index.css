@@ -112,3 +112,76 @@ body {
     transform: none !important;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Material 3 yüzey + buton bileşenleri (Profil vb. — tutarlı, az oval, az lacivert)
+   Marka: #093eaa. İkincil eylemler "tonal" (açık mavi) ile lacivert yükü azaltılır.
+   @layer components: Tailwind yardımcı sınıfları bunları geçersiz kılabilsin diye.
+   ───────────────────────────────────────────────────────────────────────────── */
+@layer components {
+  /* Kart: tek tip kenarlık + 12px köşe + çok hafif gölge (yüzeyler "yüzmesin") */
+  .m3-card {
+    background: #ffffff;
+    border: 1px solid #e6e8ef;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  }
+
+  /* Başlık ikonları için tonal kapsayıcı (çıplak lacivert ikon yerine) */
+  .m3-icon-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    flex: none;
+    border-radius: 0.625rem;
+    background: #e7eefb;
+    color: #093eaa;
+  }
+
+  /* Buton tabanı — 8px köşe (daha az oval) */
+  .m3-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.25rem;
+    padding: 0.625rem 1rem;
+    transition: background-color 0.2s, box-shadow 0.2s, color 0.2s, border-color 0.2s;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .m3-btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+  /* Dolu (filled) — yalnız asıl/birincil eylem için */
+  .m3-btn-filled { background: #093eaa; color: #ffffff; }
+  .m3-btn-filled:hover:not(:disabled) { background: #0b347f; box-shadow: 0 2px 6px rgba(9, 62, 170, 0.28); }
+
+  /* Tonal — ikincil eylemler (açık mavi zemin, lacivert metin) */
+  .m3-btn-tonal { background: #e7eefb; color: #0b347f; }
+  .m3-btn-tonal:hover:not(:disabled) { background: #d8e3f9; }
+
+  /* Çerçeveli (outlined) — düşük vurgulu eylem */
+  .m3-btn-outlined { background: #ffffff; color: #3b3f47; border: 1px solid #cdd0d9; }
+  .m3-btn-outlined:hover:not(:disabled) { background: #f4f6fb; border-color: #b6bac6; }
+
+  /* Metin (text) — bağlantı benzeri eylem */
+  .m3-btn-text { background: transparent; color: #093eaa; padding: 0.5rem 0.75rem; }
+  .m3-btn-text:hover:not(:disabled) { background: rgba(9, 62, 170, 0.07); }
+
+  /* Küçük durum etiketi (chip) — 8px köşe */
+  .m3-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.1875rem 0.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid transparent;
+  }
+}
