@@ -10,6 +10,7 @@ import {
   canToggleTry,
 } from './commodityConstants';
 import { useTranslation } from '../../../../i18n/LanguageContext';
+import WatchlistStar from '../../../../components/instrument/WatchlistStar';
 
 export default function CommodityCard({ meta, spot, loading, onClick }) {
   const { t } = useTranslation();
@@ -28,9 +29,12 @@ export default function CommodityCard({ meta, spot, loading, onClick }) {
   }
 
   return (
-    <button
+    <div
       onClick={onClick}
-      className="w-full h-full text-left bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300 hover:-translate-y-0.5 transition-all duration-200 p-5 group min-h-[200px] flex flex-col"
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}
+      className="w-full h-full text-left bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300 hover:-translate-y-0.5 transition-all duration-200 p-5 group min-h-[200px] flex flex-col cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#093eaa]/40"
     >
       {/* Başlık + kategori rozetleri */}
       <div className="flex items-start justify-between gap-2 mb-4">
@@ -124,13 +128,16 @@ export default function CommodityCard({ meta, spot, loading, onClick }) {
         )}
       </div>
 
-      {/* Alt bilgi: sembol + kaynak */}
-      <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
+      {/* Alt bilgi: sembol + kaynak + izle */}
+      <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-gray-100">
         <span className="text-[10px] font-mono text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">
           {meta.symbol}
         </span>
-        <span className="text-[10px] text-gray-400">Yahoo Finance</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] text-gray-400">Yahoo Finance</span>
+          <WatchlistStar assetType="COMMODITY" symbol={meta.symbol} name={meta.displayNameTr} price={primary?.value} />
+        </div>
       </div>
-    </button>
+    </div>
   );
 }

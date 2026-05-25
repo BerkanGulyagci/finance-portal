@@ -4,6 +4,8 @@ import { getStocks, getStockChart, getAllStocks } from '../../../api/marketApi';
 import { useSortable } from '../../../hooks/useSortable';
 import SortableTh from '../../../components/common/SortableTh';
 import WatchlistStar from '../../../components/instrument/WatchlistStar';
+import InstrumentLogo from '../../../components/instrument/InstrumentLogo';
+import Pagination from '../../../components/common/Pagination';
 import { STOCK_CHART_RANGES, formatStockChartTimeLabel } from './stockChartRanges';
 import { useTranslation } from '../../../i18n/LanguageContext';
 
@@ -372,7 +374,10 @@ export default function StocksPage() {
                   : sorted.map(r => (
                     <tr key={r.symbol} className="border-t border-gray-100 hover:bg-blue-50 transition-colors cursor-pointer">
                       <td className="px-4 py-3 font-bold text-sm">
-                        <Link to={`/market/stocks/${r.symbol}`} className="text-[#093eaa] hover:underline">{r.symbol}</Link>
+                        <div className="flex items-center gap-2.5">
+                          <InstrumentLogo symbol={r.symbol} name={r.name} size={24} />
+                          <Link to={`/market/stocks/${r.symbol}`} className="text-[#093eaa] hover:underline">{r.symbol}</Link>
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700">{r.name ?? '-'}</td>
                       <td className="px-4 py-3 text-sm font-semibold text-right">
@@ -400,31 +405,14 @@ export default function StocksPage() {
         )}
 
         {/* Pagination — sadece endeks filtresi ve arama yokken */}
-        {totalPages > 1 && !loading && !activeIndex && !search && (
-          <div className="p-4 flex items-center justify-between border-t border-gray-100 flex-wrap gap-3">
-            <span className="text-xs text-gray-500">{t('Toplam')} {totalElements} {t('hisse')} · {t('Sayfa')} {page + 1} / {totalPages}</span>
-            <div className="flex gap-1">
-              <button disabled={page === 0} onClick={() => handlePageChange(0)}
-                className="px-2 py-1.5 rounded border border-gray-200 text-xs hover:bg-gray-50 disabled:opacity-40">«</button>
-              <button disabled={page === 0} onClick={() => handlePageChange(page - 1)}
-                className="px-3 py-1.5 rounded border border-gray-200 text-xs hover:bg-gray-50 disabled:opacity-40">‹</button>
-              {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                const p = page < 4 ? i : page - 3 + i;
-                if (p >= totalPages) return null;
-                return (
-                  <button key={p} onClick={() => handlePageChange(p)}
-                    className={`px-3 py-1.5 rounded border text-xs ${p === page ? 'bg-[#093eaa] text-white border-[#093eaa]' : 'border-gray-200 hover:bg-gray-50'}`}>
-                    {p + 1}
-                  </button>
-                );
-              })}
-              {totalPages > 7 && <span className="px-2 py-1.5 text-xs text-gray-400">... {totalPages}</span>}
-              <button disabled={page >= totalPages - 1} onClick={() => handlePageChange(page + 1)}
-                className="px-3 py-1.5 rounded border border-gray-200 text-xs hover:bg-gray-50 disabled:opacity-40">›</button>
-              <button disabled={page >= totalPages - 1} onClick={() => handlePageChange(totalPages - 1)}
-                className="px-2 py-1.5 rounded border border-gray-200 text-xs hover:bg-gray-50 disabled:opacity-40">»</button>
-            </div>
-          </div>
+        {!loading && !activeIndex && !search && (
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            totalElements={totalElements}
+            unitLabel="hisse"
+            onChange={handlePageChange}
+          />
         )}
       </div>
     </div>

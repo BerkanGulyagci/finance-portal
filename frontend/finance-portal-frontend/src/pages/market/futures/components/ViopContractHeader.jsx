@@ -2,6 +2,7 @@ import { TrendingUp, TrendingDown, Clock } from 'lucide-react';
 import { parseTrNumber, formatPrice } from '../../../../utils/numberFormat';
 import { useTranslation } from '../../../../i18n/LanguageContext';
 import InstrumentActionButtons from '../../../../components/instrument/InstrumentActionButtons';
+import InstrumentLogo from '../../../../components/instrument/InstrumentLogo';
 
 export default function ViopContractHeader({ contract }) {
   const { t } = useTranslation();
@@ -15,29 +16,12 @@ export default function ViopContractHeader({ contract }) {
   // Son fiyatı parse et
   const lastPrice = parseTrNumber(contract.lastPrice);
 
-  // Şirket kodunu name'den çıkar (örn: "AEFES Vadeli 25 May 26" → "AEFES")
-  const extractCompanyCode = (name) => {
-    if (!name) return null;
-    const match = name.match(/^([A-Z]+)/);
-    return match ? match[1] : null;
-  };
-
-  const companyCode = extractCompanyCode(contract.name);
-  const logoUrl = companyCode ? `https://s3-symbol-logo.tradingview.com/${companyCode.toLowerCase()}.svg` : null;
-
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm px-5 py-3">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         {/* Sol: logo + isim/tip + fiyat (tek satır) */}
         <div className="flex items-center gap-3 min-w-0">
-          {logoUrl && (
-            <img
-              src={`/api/proxy/image?url=${encodeURIComponent(logoUrl)}`}
-              alt={companyCode}
-              className="w-9 h-9 rounded-lg object-contain border border-gray-100 p-1 bg-white shrink-0"
-              onError={e => { e.target.style.display = 'none'; }}
-            />
-          )}
+          <InstrumentLogo symbol={contract.name} name={contract.name} size={36} />
           <div className="min-w-0">
             <h1 className="text-lg font-black text-gray-900 leading-tight truncate">{contract.name}</h1>
             <p className="text-xs text-gray-400">{t('Vadeli İşlem Sözleşmesi · VİOP')}</p>

@@ -4,6 +4,9 @@ import { BarChart2 } from 'lucide-react';
 import { getAllTefasFunds, getAllBesFunds, getAllOksFunds, getOsmanliFundBulletin } from '../../../api/marketApi';
 import { useSortable } from '../../../hooks/useSortable';
 import SortableTh from '../../../components/common/SortableTh';
+import Pagination from '../../../components/common/Pagination';
+import WatchlistStar from '../../../components/instrument/WatchlistStar';
+import { Dropdown } from '../../../components/finans/Dropdown';
 import { useTranslation } from '../../../i18n/LanguageContext';
 
 const PAGE_SIZE = 20;
@@ -69,7 +72,7 @@ function FundTable({ funds, accentColor, loading, error, showFounder = false }) 
   const { sorted, sortKey, sortDir, handleSort } = useSortable(filtered, 'code', 'asc');
   const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
   const paged = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-  const thProps = (key, label, align = 'left') => ({ label, sortKey: key, currentKey: sortKey, currentDir: sortDir, onSort: k => { handleSort(k); setPage(0); }, align });
+  const thProps = (key, label, align = 'left') => ({ label, sortKey: key, currentKey: sortKey, currentDir: sortDir, onSort: k => { handleSort(k); setPage(0); }, align, onColor: true });
 
   const headerBg = { backgroundColor: accentColor };
 
@@ -94,18 +97,22 @@ function FundTable({ funds, accentColor, loading, error, showFounder = false }) 
           className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 min-w-[260px]"
           style={{ '--tw-ring-color': accentColor + '50' }} />
         {showFounder && founders.length > 0 && (
-          <select value={founderFilter} onChange={e => { setFounderFilter(e.target.value); setPage(0); }}
-            className="px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none">
-            <option value="">{t('Tüm Şirketler')}</option>
-            {founders.map(f => <option key={f} value={f}>{f}</option>)}
-          </select>
+          <Dropdown
+            className="w-52" menuWidth="w-64"
+            value={founderFilter}
+            options={[{ label: t('Tüm Şirketler'), value: '' }, ...founders.map(f => ({ label: f, value: f }))]}
+            onChange={v => { setFounderFilter(v); setPage(0); }}
+            placeholder={t('Tüm Şirketler')}
+          />
         )}
         {fundTypes.length > 0 && (
-          <select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setPage(0); }}
-            className="px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none">
-            <option value="">{t('Tüm Tipler')}</option>
-            {fundTypes.map(ft => <option key={ft} value={ft}>{ft}</option>)}
-          </select>
+          <Dropdown
+            className="w-44" menuWidth="w-56"
+            value={typeFilter}
+            options={[{ label: t('Tüm Tipler'), value: '' }, ...fundTypes.map(ft => ({ label: ft, value: ft }))]}
+            onChange={v => { setTypeFilter(v); setPage(0); }}
+            placeholder={t('Tüm Tipler')}
+          />
         )}
         <span className="ml-auto text-xs text-gray-400">
           {sorted.length > 0 ? `${sorted.length} ${t('kayıttan')} ${page * PAGE_SIZE + 1}–${Math.min((page + 1) * PAGE_SIZE, sorted.length)} ${t('arası')}` : `0 ${t('kayıt')}`}
@@ -127,12 +134,13 @@ function FundTable({ funds, accentColor, loading, error, showFounder = false }) 
               <SortableTh {...thProps('returnThreeMonths', t('3 Ay %'), 'right')} className="text-white" />
               <SortableTh {...thProps('returnOneYear', t('1 Yıl %'), 'right')} className="text-white" />
               <SortableTh {...thProps('returnThreeYears', t('3 Yıl %'), 'right')} className="text-white" />
-              <th className="px-3 py-3 w-10" />
+              <th className="px-3 py-3 w-10 border-b border-black/10" />
+              <th className="px-2 py-3 w-8 border-b border-black/10" aria-label={t('İzle')} />
             </tr>
           </thead>
           <tbody>
             {paged.length === 0 ? (
-              <tr><td colSpan={showFounder ? 11 : 10} className="px-4 py-8 text-center text-gray-400 text-sm">{t('Sonuç bulunamadı.')}</td></tr>
+              <tr><td colSpan={showFounder ? 12 : 11} className="px-4 py-8 text-center text-gray-400 text-sm">{t('Sonuç bulunamadı.')}</td></tr>
             ) : paged.map((r, i) => (
               <tr key={r.code} className={`border-t border-gray-100 transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}
                 style={{ '--hover-bg': accentColor + '10' }}
@@ -166,35 +174,22 @@ function FundTable({ funds, accentColor, loading, error, showFounder = false }) 
                     <BarChart2 className="w-3.5 h-3.5" />
                   </Link>
                 </td>
+                <td className="px-2 py-3 text-center" onClick={e => e.stopPropagation()}>
+                  <WatchlistStar assetType="FUND" symbol={r.code} name={r.name} price={toFloat(r.price)} />
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="p-4 flex items-center justify-between border-t border-gray-100 flex-wrap gap-3">
-          <span className="text-xs text-gray-500">{sorted.length} {t('kayıt')}</span>
-          <div className="flex gap-1 flex-wrap">
-            <button disabled={page === 0} onClick={() => setPage(0)} className="px-3 py-1.5 rounded border border-gray-200 text-xs hover:bg-gray-50 disabled:opacity-40">«</button>
-            <button disabled={page === 0} onClick={() => setPage(p => p - 1)} className="px-3 py-1.5 rounded border border-gray-200 text-xs hover:bg-gray-50 disabled:opacity-40">‹</button>
-            {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-              const p = page < 4 ? i : page - 3 + i;
-              if (p >= totalPages) return null;
-              return (
-                <button key={p} onClick={() => setPage(p)}
-                  className="px-3 py-1.5 rounded border text-xs"
-                  style={p === page ? { backgroundColor: accentColor, color: 'white', borderColor: accentColor } : {}}>
-                  {p + 1}
-                </button>
-              );
-            })}
-            <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)} className="px-3 py-1.5 rounded border border-gray-200 text-xs hover:bg-gray-50 disabled:opacity-40">›</button>
-            <button disabled={page >= totalPages - 1} onClick={() => setPage(totalPages - 1)} className="px-3 py-1.5 rounded border border-gray-200 text-xs hover:bg-gray-50 disabled:opacity-40">»</button>
-          </div>
-        </div>
-      )}
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        totalElements={sorted.length}
+        unitLabel="fon"
+        onChange={(p) => setPage(p)}
+      />
     </>
   );
 }
@@ -218,7 +213,7 @@ function OsmanliBulletinTable({ funds, loading, error }) {
   }, [funds, search, typeFilter, groupFilter]);
 
   const { sorted, sortKey, sortDir, handleSort } = useSortable(filtered, 'code', 'asc');
-  const thProps = (key, label, align = 'left') => ({ label, sortKey: key, currentKey: sortKey, currentDir: sortDir, onSort: handleSort, align });
+  const thProps = (key, label, align = 'left') => ({ label, sortKey: key, currentKey: sortKey, currentDir: sortDir, onSort: handleSort, align, onColor: true });
   const AC = '#d97706';
 
   if (loading) return (
@@ -240,18 +235,22 @@ function OsmanliBulletinTable({ funds, loading, error }) {
           value={search} onChange={e => setSearch(e.target.value)}
           className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none min-w-[240px]" />
         {types.length > 0 && (
-          <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
-            className="px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none">
-            <option value="">{t('Tüm Tipler')}</option>
-            {types.map(ty => <option key={ty} value={ty}>{ty}</option>)}
-          </select>
+          <Dropdown
+            className="w-44" menuWidth="w-56"
+            value={typeFilter}
+            options={[{ label: t('Tüm Tipler'), value: '' }, ...types.map(ty => ({ label: ty, value: ty }))]}
+            onChange={v => setTypeFilter(v)}
+            placeholder={t('Tüm Tipler')}
+          />
         )}
         {groups.length > 0 && (
-          <select value={groupFilter} onChange={e => setGroupFilter(e.target.value)}
-            className="px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none">
-            <option value="">{t('Tüm Gruplar')}</option>
-            {groups.map(g => <option key={g} value={g}>{g}</option>)}
-          </select>
+          <Dropdown
+            className="w-52" menuWidth="w-64"
+            value={groupFilter}
+            options={[{ label: t('Tüm Gruplar'), value: '' }, ...groups.map(g => ({ label: g, value: g }))]}
+            onChange={v => setGroupFilter(v)}
+            placeholder={t('Tüm Gruplar')}
+          />
         )}
         <span className="ml-auto text-xs text-gray-400">{sorted.length} {t('fon')}</span>
       </div>
@@ -269,12 +268,13 @@ function OsmanliBulletinTable({ funds, loading, error }) {
               <SortableTh {...thProps('weeklyReturn', t('Haftalık %'), 'right')} className="text-white" />
               <SortableTh {...thProps('monthlyReturn', t('Aylık %'), 'right')} className="text-white" />
               <SortableTh {...thProps('yearlyReturn', t('Yıllık %'), 'right')} className="text-white" />
-              <th className="px-3 py-3 border-b border-amber-700 w-10" />
+              <th className="px-3 py-3 border-b border-black/10 w-10" />
+              <th className="px-2 py-3 border-b border-black/10 w-8" aria-label={t('İzle')} />
             </tr>
           </thead>
           <tbody>
             {sorted.length === 0 ? (
-              <tr><td colSpan={10} className="px-4 py-8 text-center text-gray-400 text-sm">{t('Sonuç bulunamadı.')}</td></tr>
+              <tr><td colSpan={11} className="px-4 py-8 text-center text-gray-400 text-sm">{t('Sonuç bulunamadı.')}</td></tr>
             ) : sorted.map((r, i) => (
               <tr key={r.code} className={`border-t border-gray-100 transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}
                 onMouseEnter={e => e.currentTarget.style.backgroundColor = '#fef3c7'}
@@ -303,6 +303,9 @@ function OsmanliBulletinTable({ funds, loading, error }) {
                     onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; e.currentTarget.style.color = ''; }}>
                     <BarChart2 className="w-3.5 h-3.5" />
                   </Link>
+                </td>
+                <td className="px-2 py-3 text-center" onClick={e => e.stopPropagation()}>
+                  <WatchlistStar assetType="FUND" symbol={r.code} name={r.name} />
                 </td>
               </tr>
             ))}
@@ -355,19 +358,23 @@ export default function TefasPage() {
       </h1>
       <p className="text-sm text-gray-500 mb-5 pl-5">{t('Kaynak: Rasyonet / YatırımDirekt')}</p>
 
-      {/* Tab butonları */}
-      <div className="flex gap-2 mb-4 flex-wrap">
+      {/* Tab butonları — Material 3: aktif "filled" (yükseltili), pasif "outlined" + state-layer hover */}
+      <div className="flex gap-2.5 mb-4 flex-wrap">
         {TABS.map(tb => {
           const count = data[tb.key]?.length;
           const isActive = activeTab === tb.key;
           return (
             <button key={tb.key} onClick={() => handleTab(tb.key)}
-              className={`flex flex-col items-start px-4 py-2.5 rounded-xl border-2 transition-all text-left ${
-                isActive ? 'text-white shadow-sm' : 'bg-white border-gray-200 hover:border-gray-300'
+              className={`flex flex-col items-start px-5 py-2.5 rounded-xl text-left transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+                isActive ? 'shadow-md hover:shadow-lg' : 'bg-white border border-gray-300 hover:shadow-sm'
               }`}
-              style={isActive ? { backgroundColor: tb.color, borderColor: tb.color } : {}}>
+              style={isActive
+                ? { backgroundColor: tb.color, '--tw-ring-color': tb.color + '66' }
+                : { '--tw-ring-color': tb.color + '66' }}
+              onMouseEnter={isActive ? undefined : e => { e.currentTarget.style.backgroundColor = tb.color + '14'; }}
+              onMouseLeave={isActive ? undefined : e => { e.currentTarget.style.backgroundColor = ''; }}>
               <span className={`text-sm font-bold ${isActive ? 'text-white' : tb.text}`}>{tb.label}</span>
-              <span className={`text-xs ${isActive ? 'text-white/80' : 'text-gray-400'}`}>
+              <span className={`text-xs ${isActive ? 'text-white/80' : 'text-gray-500'}`}>
                 {t(tb.sub)}{count != null ? ` · ${count} ${t('fon')}` : ''}
               </span>
             </button>

@@ -6,6 +6,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useSortable } from '../../../hooks/useSortable';
 import SortableTh from '../../../components/common/SortableTh';
 import WatchlistStar from '../../../components/instrument/WatchlistStar';
+import Pagination from '../../../components/common/Pagination';
 import { useTranslation } from '../../../i18n/LanguageContext';
 
 const PAGE_SIZE = 50;
@@ -164,42 +165,13 @@ export default function CryptoPage() {
                 </tbody>
               </table>
             </div>
-            {totalPages > 1 && (
-              <div className="p-4 flex gap-2 flex-wrap border-t border-gray-100 items-center">
-                <button disabled={page === 0} onClick={() => setPage(p => p - 1)}
-                  className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm hover:bg-gray-50 disabled:opacity-40">‹</button>
-
-                {(() => {
-                  const delta = 2;
-                  const left  = Math.max(0, page - delta);
-                  const right = Math.min(totalPages - 1, page + delta);
-                  const pages = [];
-
-                  if (left > 0) {
-                    pages.push(0);
-                    if (left > 1) pages.push('...');
-                  }
-                  for (let i = left; i <= right; i++) pages.push(i);
-                  if (right < totalPages - 1) {
-                    if (right < totalPages - 2) pages.push('...');
-                    pages.push(totalPages - 1);
-                  }
-
-                  return pages.map((p, idx) =>
-                    p === '...'
-                      ? <span key={`ellipsis-${idx}`} className="px-1 text-gray-400 text-sm">…</span>
-                      : <button key={p} onClick={() => setPage(p)}
-                          className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${p === page ? 'bg-[#093eaa] text-white border-[#093eaa]' : 'border-gray-200 hover:bg-gray-50'}`}>
-                          {p + 1}
-                        </button>
-                  );
-                })()}
-
-                <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}
-                  className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm hover:bg-gray-50 disabled:opacity-40">›</button>
-                <span className="text-xs text-gray-400 ml-1">{totalPages} {t('sayfa')}</span>
-              </div>
-            )}
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              totalElements={sorted.length}
+              unitLabel="coin"
+              onChange={(p) => { setPage(p); window.scrollTo(0, 0); }}
+            />
           </>
         )}
       </div>

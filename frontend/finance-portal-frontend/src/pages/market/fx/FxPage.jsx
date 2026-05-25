@@ -4,6 +4,7 @@ import { BarChart2, Search, X, ArrowRight, Banknote, Landmark, Globe2 } from 'lu
 import { getFxTcmb, getFxOpen, getBankCurrencyRates, getBankCurrencyRatesByCurrency } from '../../../api/marketApi.js';
 import { useSortable } from '../../../hooks/useSortable.js';
 import SortableTh from '../../../components/common/SortableTh.jsx';
+import WatchlistStar from '../../../components/instrument/WatchlistStar';
 import { FX_META, FlagImg } from '../../../utils/fxMeta.jsx';
 import { useTranslation } from '../../../i18n/LanguageContext';
 
@@ -336,6 +337,7 @@ export default function FxPage() {
                   <SortableTh {...tcmbTh('effectiveBuy', <FxColLabel tr={t('Efektif Alış')} en="Banknote Buying" />, 'right')} />
                   <SortableTh {...tcmbTh('effectiveSell', <FxColLabel tr={t('Efektif Satış')} en="Banknote Selling" />, 'right')} />
                   <th className="px-4 py-3 border-b border-[#e2e8f0] w-10" />
+                  <th className="px-2 py-3 border-b border-[#e2e8f0] w-8" aria-label={t('İzle')} />
                 </tr>
               </thead>
               <tbody key={`tcmb-${q}`} className="m3-stagger">
@@ -377,6 +379,9 @@ export default function FxPage() {
                           <BarChart2 className="w-3.5 h-3.5" />
                         </Link>
                       </td>
+                      <td className="px-2 py-3 text-center" onClick={e => e.stopPropagation()}>
+                        <WatchlistStar assetType="FX" symbol={r.symbol} name={meta?.ad ?? r.symbol} price={r.sell} />
+                      </td>
                     </tr>
                   );
                 })}
@@ -403,6 +408,7 @@ export default function FxPage() {
                     {t('Döviz Cinsi')}
                   </th>
                   <SortableTh {...openTh('sell', t('Kur'), 'right')} />
+                  <th className="px-2 py-3 border-b border-[#e2e8f0] w-8" aria-label={t('İzle')} />
                 </tr>
               </thead>
               <tbody key={`open-${q}`} className="m3-stagger">
@@ -420,6 +426,9 @@ export default function FxPage() {
                       </td>
                       <td className="px-4 py-3 text-sm text-[#5a6472]">{meta?.ad ?? r.symbol}</td>
                       <td className="px-4 py-3 text-sm font-semibold text-[#1a1c1e] text-right tabular-nums">{num(r.sell ?? r.buy, 6)}</td>
+                      <td className="px-2 py-3 text-center" onClick={e => e.stopPropagation()}>
+                        <WatchlistStar assetType="FX" symbol={r.symbol} name={meta?.ad ?? r.symbol} price={r.sell ?? r.buy} />
+                      </td>
                     </tr>
                   );
                 })}
