@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useId, useMemo } from 'react';
+import { useEffect, useLayoutEffect, useState, useRef, useId, useMemo } from 'react';
 import { ChevronDown, ChevronUp, LineChart } from 'lucide-react';
 import { readTickerPrefs, readCustomTickerItems, TICKER_PREFS_EVENT } from '../../utils/tickerPrefs';
 import {
@@ -10,6 +10,7 @@ import {
   getGoldHistory,
   getCryptoChart,
   getMarketPriceHistory,
+  getEconomicIndicators,
 } from '../../api/marketApi';
 import { useTranslation } from '../../i18n/LanguageContext';
 
@@ -167,8 +168,11 @@ export function MarketTicker() {
     }
   });
   const trackRef = useRef(null);
+  const containerRef = useRef(null);
   const offsetRef = useRef(0);
   const [isPaused, setIsPaused] = useState(false);
+  // Şeridi dolduracak kopya sayısı (az öğede bile sürekli, kesintisiz kaysın diye dinamik hesaplanır).
+  const [copies, setCopies] = useState(2);
 
   useEffect(() => {
     try {
@@ -309,6 +313,19 @@ export function MarketTicker() {
           });
         });
 
+        // Ekonomi göstergeleri (TÜFE/faiz/ÜFE/mevduat) — günlük değişim/sparkline yok, yalnız değer (%).
+        const eco = await getEconomicIndicators().catch(() => null);
+        if (eco) {
+          const pushEco = (key, label, v) => {
+            if (v == null || v === '') return;
+            result.push({ key, label, value: `%${v}`, change: null, dir: null, spark: [] });
+          };
+          pushEco('eco:inflation', t('TÜFE'), eco.inflation);
+          pushEco('eco:policyRate', t('Politika Faizi'), eco.policyRate);
+          pushEco('eco:ppi', t('ÜFE'), eco.ppi);
+          pushEco('eco:deposit', t('Mevduat Faizi'), eco.depositRate);
+        }
+
         setAllItems(result);
       } catch {
         setAllItems([]);
@@ -361,10 +378,25 @@ export function MarketTicker() {
     return () => { cancelled = true; };
   }, [customDefs]);
 
-  // Kesintisiz kayan şerit: track'i CSS transform ile sola taşı (scrollLeft yerine —
-  // overflow:hidden'da daha güvenilir). İçerik iki kez basılır; yarı genişliğe gelince başa sar.
+  // İçerik şeride sığıyor mu? Sığıyorsa kaydırma yok (tek kopya, soldan hizalı, sabit).
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    const track = trackRef.current;
+    if (!container || !track || !tickerOpen) return;
+    const oneSetW = track.scrollWidth / copies;
+    if (oneSetW <= 0) return;
+    const needed = Math.max(2, Math.ceil(container.clientWidth / oneSetW) + 1);
+    if (needed !== copies) setCopies(needed);
+  }, [items, copies, tickerOpen]);
+
+  // Kesintisiz kayan şerit (yalnız taşma varsa): track'i CSS transform ile sola taşı.
+  // İçerik iki kez basılır; bir set genişliğine gelince başa sar.
   useEffect(() => {
-    if (!tickerOpen || items.length === 0) return undefined;
+    if (!tickerOpen || items.length === 0) {
+      if (trackRef.current) trackRef.current.style.transform = 'translate3d(0,0,0)';
+      offsetRef.current = 0;
+      return undefined;
+    }
     const track = trackRef.current;
     if (!track) return undefined;
     const SPEED = 40; // px/sn
@@ -374,10 +406,10 @@ export function MarketTicker() {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       if (!isPaused) {
-        const half = track.scrollWidth / 2;
-        if (half > 0) {
+        const oneSet = track.scrollWidth / copies;
+        if (oneSet > 0) {
           offsetRef.current += SPEED * dt;
-          if (offsetRef.current >= half) offsetRef.current -= half;
+          if (offsetRef.current >= oneSet) offsetRef.current -= oneSet;
           track.style.transform = `translate3d(${-offsetRef.current}px,0,0)`;
         }
       }
@@ -385,7 +417,7 @@ export function MarketTicker() {
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [isPaused, items, tickerOpen]);
+  }, [isPaused, items, tickerOpen, copies]);
 
   if (!items.length) return null;
 
@@ -418,9 +450,9 @@ export function MarketTicker() {
     const valueColor = isUp ? COLOR_UP : isDown ? COLOR_DOWN : COLOR_NEUTRAL;
     const sparkColor = isUp ? COLOR_UP : isDown ? COLOR_DOWN : COLOR_NEUTRAL;
     return (
-      <div className="flex items-center gap-3 shrink-0 px-5 border-r border-gray-200 last:border-r-0 min-w-[160px]">
+      <div className="flex items-center gap-3 shrink-0 px-5 border-r border-gray-200 last:border-r-0 min-w-[160px] max-w-[240px]">
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">{item.label}</p>
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5 truncate" title={item.label}>{item.label}</p>
           <p className="text-sm font-bold leading-tight" style={{ color: valueColor }}>{item.value}</p>
           {item.change != null && (
             <p className={`text-[10px] font-semibold mt-0.5 ${isUp ? 'text-emerald-600' : isDown ? 'text-rose-600' : 'text-slate-500'}`}>
@@ -446,14 +478,15 @@ export function MarketTicker() {
         <ChevronUp className="w-4 h-4" aria-hidden />
       </button>
       <div
+        ref={containerRef}
         className="flex-1 min-w-0 overflow-hidden"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
       >
         <div ref={trackRef} className="flex items-stretch w-max select-none py-2 will-change-transform">
-          {[...items, ...items].map((item, i) => (
-            <TickerCard key={`${item.label}-${i}`} item={item} />
-          ))}
+          {Array.from({ length: copies }).flatMap((_, c) =>
+            items.map((item, i) => <TickerCard key={`${c}-${item.label}-${i}`} item={item} />)
+          )}
         </div>
       </div>
     </div>
