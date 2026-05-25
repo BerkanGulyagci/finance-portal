@@ -8,12 +8,13 @@ import { getMarketPriceHistory } from '../../api/marketApi';
 import { getWatchlistDetailPath } from '../portfolio/constants/watchlistMarketRoutes';
 import { fmtMoney, fmtPct, pctClass, num } from './dashUtils';
 import { useTranslation } from '../../i18n/LanguageContext';
+import { prefGet, prefSet } from '../../api/prefs';
 
 function readList(key) {
-  try { const v = JSON.parse(localStorage.getItem(key) || 'null'); return Array.isArray(v) ? v : []; }
-  catch { return []; }
+  const v = prefGet(key, []);
+  return Array.isArray(v) ? v : [];
 }
-function saveList(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch { /* yoksay */ } }
+function saveList(key, v) { prefSet(key, v); }
 
 function Avatar({ row }) {
   if (row.logoKind === 'stock') return <StockLogo symbol={row.symbol} name={row.name} />;

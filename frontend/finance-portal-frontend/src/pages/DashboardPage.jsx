@@ -10,6 +10,9 @@ import {
 import { calculateAllocationByType } from './portfolio/utils/portfolioAnalyticsHelpers';
 import { ANALYTICS_BY_KEY } from './portfolio/components/analytics/analyticsRegistry';
 import { readPfCharts, removePfChart, DASH_PF_EVENT } from '../utils/dashboardCharts';
+import { readWlCharts, removeWlChart, DASH_WL_EVENT } from '../utils/watchlistDashCharts';
+import { WL_CHART_BY_KEY } from './portfolio/components/watchlistChartRegistry';
+import { prefGet, prefSet } from '../api/prefs';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useTranslation } from '../i18n/LanguageContext';
@@ -21,6 +24,7 @@ import StatTiles from './dashboard/StatTiles';
 import PortfolioDistributionCard from './dashboard/PortfolioDistributionCard';
 import PortfoliosCard from './dashboard/PortfoliosCard';
 import RecentTransactionsCard from './dashboard/RecentTransactionsCard';
+import PersonalNewsCard from './dashboard/PersonalNewsCard';
 import MarketListCard from './dashboard/MarketListCard';
 import EconomyCard from './dashboard/EconomyCard';
 import FavoritesCard from './dashboard/FavoritesCard';
@@ -30,10 +34,10 @@ const CHARTS_KEY = 'fp-dashboard-charts';
 const HIDDEN_PF_KEY = 'fp-dashboard-hidden-portfolios';
 
 function readJson(key) {
-  try { const v = JSON.parse(localStorage.getItem(key) || 'null'); return Array.isArray(v) ? v : []; }
-  catch { return []; }
+  const v = prefGet(key, []);
+  return Array.isArray(v) ? v : [];
 }
-function saveJson(key, list) { try { localStorage.setItem(key, JSON.stringify(list)); } catch { /* yoksay */ } }
+function saveJson(key, list) { prefSet(key, list); }
 
 function findEco(economy, key) {
   for (const g of economy?.groups ?? []) {
@@ -76,6 +80,7 @@ export default function DashboardPage() {
 
   const [charts, setCharts] = useState(() => readJson(CHARTS_KEY));
   const [pfCharts, setPfCharts] = useState(readPfCharts);
+  const [wlCharts, setWlCharts] = useState(readWlCharts);
   const [hiddenPids, setHiddenPids] = useState(() => new Set(readJson(HIDDEN_PF_KEY)));
   const [searchMode, setSearchMode] = useState(null); // 'chart' | 'favorite' | 'alarm'
   const [distFocusId, setDistFocusId] = useState(null); // pie'ye sürüklenen portföy
@@ -107,11 +112,15 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const onPf = () => setPfCharts(readPfCharts());
+    const onWl = () => setWlCharts(readWlCharts());
+    const onStorage = () => { onPf(); onWl(); };
     window.addEventListener(DASH_PF_EVENT, onPf);
-    window.addEventListener('storage', onPf);
+    window.addEventListener(DASH_WL_EVENT, onWl);
+    window.addEventListener('storage', onStorage);
     return () => {
       window.removeEventListener(DASH_PF_EVENT, onPf);
-      window.removeEventListener('storage', onPf);
+      window.removeEventListener(DASH_WL_EVENT, onWl);
+      window.removeEventListener('storage', onStorage);
     };
   }, []);
 
@@ -258,6 +267,7 @@ export default function DashboardPage() {
       node: <FavoritesCard items={favorites} onAdd={() => setSearchMode('favorite')} onRemove={removeFavorite} />,
     });
     items.push({ key: 'recentTx', w: 4, h: 8, node: <RecentTransactionsCard transactions={recentTx} /> });
+    items.push({ key: 'personalNews', w: 4, h: 7, node: <PersonalNewsCard /> });
   }
   items.push({ key: 'economy', w: 4, h: 7, node: <EconomyCard eco={eco} /> });
   items.push({
@@ -311,6 +321,33 @@ export default function DashboardPage() {
             <Comp holdings={pf.holdings ?? []} valuesHidden={false} currency={pf.currency} />
           </div>
         </div>
+      ),
+    });
+  });
+
+  // İzleme listesi "Grafikler" sekmesinden dashboard'a eklenen grafikler (kaynak izleme listesi yazılır).
+  wlCharts.forEach(wc => {
+    const entry = WL_CHART_BY_KEY[wc.chartKind];
+    if (!entry) return;
+    const wlItems = favorites.filter(f => f.portfolioId === wc.watchlistId);
+    const Comp = entry.Comp;
+    items.push({
+      key: `wl:${wc.watchlistId}:${wc.chartKind}`, w: entry.w, h: entry.h, noHide: true,
+      node: (
+        <Comp
+          items={wlItems}
+          source={`${t('İzleme')}: ${wc.watchlistName}`}
+          action={(
+            <button
+              type="button"
+              onClick={() => removeWlChart(wc.watchlistId, wc.chartKind)}
+              title={t('Kaldır')}
+              className="gb-no-drag p-1 rounded-md text-gray-300 hover:text-rose-500 hover:bg-rose-50 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        />
       ),
     });
   });

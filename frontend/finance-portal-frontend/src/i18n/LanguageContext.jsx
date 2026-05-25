@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import translations from './translations';
+import { prefGet, prefSet } from '../api/prefs';
 
 const STORAGE_KEY = 'app_language';
 const DEFAULT_LANGUAGE = 'tr';
@@ -9,7 +10,7 @@ const LanguageContext = createContext(null);
 
 function detectInitialLanguage() {
   if (typeof window === 'undefined') return DEFAULT_LANGUAGE;
-  const saved = localStorage.getItem(STORAGE_KEY);
+  const saved = prefGet(STORAGE_KEY, null);
   if (saved && SUPPORTED_LANGUAGES.includes(saved)) return saved;
   return DEFAULT_LANGUAGE;
 }
@@ -25,7 +26,7 @@ export function LanguageProvider({ children }) {
 
   const setLanguage = useCallback((lang) => {
     if (!SUPPORTED_LANGUAGES.includes(lang)) return;
-    localStorage.setItem(STORAGE_KEY, lang);
+    prefSet(STORAGE_KEY, lang);
     setLanguageState(lang);
   }, []);
 

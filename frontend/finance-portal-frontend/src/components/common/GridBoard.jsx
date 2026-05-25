@@ -4,6 +4,7 @@ import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import { GripHorizontal, RotateCcw, X, Pencil, Check } from 'lucide-react';
 import { useTranslation } from '../../i18n/LanguageContext';
+import { prefGet, prefSet } from '../../api/prefs';
 
 const RGL = WidthProvider(GridLayout);
 
@@ -12,8 +13,9 @@ const ROW_H = 30;
 const DEFAULT_W = 4;   // 3 kart / satır
 const DEFAULT_H = 13;
 
-function lsGet(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } }
-function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* yoksay */ } }
+// Düzen + gizli kartlar cihazlar arası senkronlanır (prefs: localStorage + giriş yapılmışsa sunucu).
+function lsGet(k) { return prefGet(k, null); }
+function lsSet(k, v) { prefSet(k, v); }
 
 // Kartları soldan sağa yerleştir, satıra sığmazsa alta sar (serbest yerleşim için başlangıç düzeni).
 function buildDefault(metaItems) {

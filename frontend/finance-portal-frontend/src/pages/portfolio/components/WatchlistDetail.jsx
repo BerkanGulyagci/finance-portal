@@ -326,14 +326,13 @@ export default function WatchlistDetail({ portfolio }) {
         )
       )}
       {activeTab === 'charts' && (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-          <WatchlistCharts
-            items={items}
-            loading={loading}
-            resolveDetailPath={resolveDetailPath}
-            portfolioName={portfolio.name}
-          />
-        </div>
+        <WatchlistCharts
+          items={items}
+          loading={loading}
+          resolveDetailPath={resolveDetailPath}
+          portfolioName={portfolio.name}
+          portfolioId={portfolio.id}
+        />
       )}
 
       {/* Özet bilgi */}
