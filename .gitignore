@@ -50,5 +50,6 @@ frontend/**/dist/
 ### Temp / scratch test payloads ###
 tmp-*.json
 
-### ApacheDS runtime logs (container rewrites these on every run) ###
-docker/apacheds/data/default/log/
+### ApacheDS runtime instance data (bind-mounted; the container regenerates ###
+### it on first run and rewrites the DB/logs/locks constantly — not source). ###
+docker/apacheds/data/

@@ -1,4 +1,0 @@
-dn: dc=openmicroscopy,dc=org
-dc: openmicroscopy
-objectclass: domain
-objectclass: top
