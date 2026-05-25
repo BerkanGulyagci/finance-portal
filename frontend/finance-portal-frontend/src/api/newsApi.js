@@ -1,4 +1,5 @@
 import axios from 'axios';
+import client from './client';
 
 const BASE_URL = 'http://localhost:8080';
 
@@ -12,29 +13,46 @@ export function proxyImageUrl(url) {
 }
 
 /**
- * Public endpoint — no auth token sent intentionally.
- * @param {{ category?: string, country?: string, keyword?: string, pageSize?: number }} filters
- * @returns {Promise<NewsItemDto[]>}
+ * Çoklu-kaynak, filtreli + sayfalı haber listesi (aggregator).
+ * @param {{ category?: string, source?: string, q?: string, range?: string, page?: number, pageSize?: number }} filters
+ * @returns {Promise<{ items, categories, sources, page, pageSize, totalElements, totalPages }>}
  */
 export async function getNews(filters = {}) {
-  const params = {};
+  const params = { page: filters.page ?? 1, pageSize: filters.pageSize ?? 12 };
   if (filters.category) params.category = filters.category;
-  if (filters.country)  params.country  = filters.country;
-  if (filters.keyword)  params.keyword  = filters.keyword;
-  if (filters.pageSize) params.pageSize = filters.pageSize;
+  if (filters.source) params.source = filters.source;
+  if (filters.q) params.q = filters.q;
+  if (filters.range) params.range = filters.range;
+  if (filters.region) params.region = filters.region;
+  if (filters.lang) params.lang = filters.lang;
 
   const { data: wrapper } = await axios.get(`${BASE_URL}/api/news`, { params });
-  return wrapper.data?.items ?? [];
+  return wrapper.data ?? {
+    items: [], categories: [], sources: [], page: 1, pageSize: 12, totalElements: 0, totalPages: 1,
+  };
+}
+
+/** Giriş yapan kullanıcının portföyüne göre "Size Özel" haberler (token gerektirir; client ile gönderilir). */
+export async function getForMeNews({ lang, limit = 9 } = {}) {
+  const params = { limit };
+  if (lang) params.lang = lang;
+  const { data: wrapper } = await client.get('/api/news/for-me', { params });
+  return wrapper.data ?? { items: [] };
+}
+
+/** Tek haber detayı + ilgili haberler. lang verilirse içerik o dile çevrilir (best-effort). */
+export async function getNewsDetail(id, lang) {
+  const params = lang ? { lang } : {};
+  const { data: wrapper } = await axios.get(`${BASE_URL}/api/news/detail/${id}`, { params });
+  return wrapper.data ?? null;
 }
 
 export async function getBloombergHtNews() {
   const { data: wrapper } = await axios.get(`${BASE_URL}/api/news/bloomberg-ht`);
-  // ApiResponse<List<NewsItemDto>>
   return wrapper.data ?? [];
 }
 
 export async function getGoldNews() {
   const { data: wrapper } = await axios.get(`${BASE_URL}/api/news/gold`);
-  // ApiResponse<{ items: NewsItemDto[], isFiltered: boolean, label: string }>
   return wrapper.data ?? { items: [], isFiltered: false, label: 'Son Haberler' };
 }

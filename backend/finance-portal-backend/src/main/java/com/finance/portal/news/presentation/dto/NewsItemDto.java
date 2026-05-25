@@ -2,6 +2,8 @@ package com.finance.portal.news.presentation.dto;
 
 public class NewsItemDto {
 
+    /** URL'den türetilmiş kararlı kimlik (detay sayfası linki). */
+    private String id;
     private String title;
     private String description;
     private String url;
@@ -9,6 +11,9 @@ public class NewsItemDto {
     private String publishedAt;
     private String source;
     private String author;
+    /** Normalize kategori adı (NewsCategory.name()) + görünen etiket. */
+    private String category;
+    private String categoryLabel;
 
     public NewsItemDto() {
     }
@@ -78,5 +83,29 @@ public class NewsItemDto {
 
     public void setAuthor(String author) {
         this.author = author;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getCategoryLabel() {
+        return categoryLabel;
+    }
+
+    public void setCategoryLabel(String categoryLabel) {
+        this.categoryLabel = categoryLabel;
     }
 }

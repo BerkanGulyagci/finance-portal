@@ -37,6 +37,7 @@ import CommodityDetailPage from '../pages/market/commodities/CommodityDetailPage
 import StockComparePage from '../pages/market/stock/StockComparePage';
 import ComparePage from '../pages/market/fx/ComparePage';
 import NewsPage from '../pages/NewsPage';
+import NewsDetailPage from '../pages/news/NewsDetailPage';
 import NotFoundPage from '../pages/NotFoundPage';
 import UnauthorizedPage from '../pages/admin/UnauthorizedPage';
 import AdminUsersPage from '../pages/admin/AdminUsersPage';
@@ -58,6 +59,7 @@ export default function AppRouter() {
           <Route path="/register"          element={<RegisterPage />} />
           <Route path="/verify-email"      element={<VerifyEmailPage />} />
           <Route path="/news"              element={<NewsPage />} />
+          <Route path="/news/:id"          element={<NewsDetailPage />} />
           <Route path="/dashboard"         element={<DashboardPage />} />
           <Route path="/market"            element={<MarketPage />} />
           <Route path="/market/stocks"     element={<StocksPage />} />

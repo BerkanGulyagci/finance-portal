@@ -3,6 +3,7 @@ package com.finance.portal.news.application.scheduler;
 import com.finance.portal.common.application.exception.ExternalApiException;
 import com.finance.portal.common.application.logging.CentralIntegrationLogService;
 import com.finance.portal.common.application.logging.IntegrationLogSupport;
+import com.finance.portal.news.application.service.NewsAggregateCache;
 import com.finance.portal.news.application.service.NewsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,16 +18,25 @@ public class NewsCacheScheduler {
     private static final Logger logger = LoggerFactory.getLogger(NewsCacheScheduler.class);
 
     private final NewsService newsService;
+    private final NewsAggregateCache newsAggregateCache;
     private final CentralIntegrationLogService integrationLogService;
 
     public NewsCacheScheduler(NewsService newsService,
+                              NewsAggregateCache newsAggregateCache,
                               CentralIntegrationLogService integrationLogService) {
         this.newsService = newsService;
+        this.newsAggregateCache = newsAggregateCache;
         this.integrationLogService = integrationLogService;
     }
 
     @Scheduled(fixedDelayString = "${news.cache.warmup.fixed-delay-ms}")
     public void warmUpNewsCache() {
+        // Çoklu-kaynak toplu haber listesini tazele (ücretsiz API kotalarını koruyan ana yenileme noktası)
+        try {
+            newsAggregateCache.refresh();
+        } catch (Exception e) {
+            logger.warn("News aggregate refresh failed: {}", e.getMessage());
+        }
         try {
             newsService.getNews("business", "tr", 1, 10, null);
             logger.debug("News cache warm-up completed successfully");
