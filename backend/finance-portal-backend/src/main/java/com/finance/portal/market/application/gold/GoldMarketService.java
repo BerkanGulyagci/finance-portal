@@ -17,6 +17,7 @@ import io.opentelemetry.instrumentation.annotations.SpanAttribute;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -84,6 +85,7 @@ public class GoldMarketService {
     // ── Cache temizleme — her saat ────────────────────────────────────────────
 
     @Scheduled(initialDelay = 0, fixedRate = 3_600_000)
+    @SchedulerLock(name = "gold-cache-evict", lockAtMostFor = "PT1H", lockAtLeastFor = "PT55M")
     @CacheEvict(cacheNames = {"market.gold.spot", "market.gold.history"}, allEntries = true)
     public void evictGoldCaches() {
         log.info("Gold caches evicted (hourly)");

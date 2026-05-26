@@ -9,6 +9,7 @@ import com.finance.portal.market.application.fx.model.FxLatestRates;
 import com.finance.portal.market.application.fx.model.FxRateItem;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -51,12 +52,14 @@ public class YahooCommodityService {
     // ── Cache temizleme ───────────────────────────────────────────────────────
 
     @Scheduled(initialDelay = 60_000, fixedRate = 60_000)
+    @SchedulerLock(name = "commodity-spot-evict", lockAtMostFor = "PT1M", lockAtLeastFor = "PT50S")
     @CacheEvict(cacheNames = "market.commodity.spot", allEntries = true)
     public void evictSpotCache() {
         log.debug("Commodity spot cache evicted");
     }
 
     @Scheduled(initialDelay = 600_000, fixedRate = 600_000)
+    @SchedulerLock(name = "commodity-history-evict", lockAtMostFor = "PT10M", lockAtLeastFor = "PT9M")
     @CacheEvict(cacheNames = "market.commodity.history", allEntries = true)
     public void evictHistoryCache() {
         log.debug("Commodity history cache evicted");

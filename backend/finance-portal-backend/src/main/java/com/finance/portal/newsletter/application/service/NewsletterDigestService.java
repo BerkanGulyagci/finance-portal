@@ -9,6 +9,7 @@ import com.finance.portal.newsletter.repository.NewsletterSubscriptionRepository
 import com.finance.portal.notification.application.port.EmailSenderPort;
 import com.finance.portal.notification.application.service.NotificationService;
 import com.finance.portal.notification.domain.NotificationType;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -70,6 +71,7 @@ public class NewsletterDigestService {
     }
 
     @Scheduled(cron = "${newsletter.digest.cron:0 0 8 * * *}", zone = "Europe/Istanbul")
+    @SchedulerLock(name = "newsletter-digest-daily", lockAtMostFor = "PT30M", lockAtLeastFor = "PT5M")
     public void sendDueDigests() {
         if (!enabled) {
             return;

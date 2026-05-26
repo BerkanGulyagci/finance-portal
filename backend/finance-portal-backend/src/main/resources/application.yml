@@ -1,5 +1,8 @@
 server:
   port: 8080
+  # Graceful shutdown: kapatma sinyali gelince yeni istek almaz, mevcutları bitirir.
+  # K8s pod rollout / replica scale-down sırasında istek kaybını önler.
+  shutdown: graceful
   servlet:
     encoding:
       charset: UTF-8
@@ -7,6 +10,9 @@ server:
       force: true
 
 spring:
+  # Graceful shutdown'a tanınan azami süre — bu süre içinde mevcut istekler bitirilir.
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
   config:
     # Yerel gizli anahtarlar: backend/finance-portal-backend/.env.local (gitignore)
     import: optional:file:.env.local[.properties]
@@ -76,6 +82,16 @@ management:
   endpoint:
     health:
       show-details: when-authorized
+      # K8s probe'ları için liveness/readiness ayrımı.
+      # liveness: süreç sağlıklı mı (hayır → pod restart).
+      # readiness: trafik almaya hazır mı (hayır → Service trafik göndermez).
+      probes:
+        enabled: true
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,db,redis
     prometheus:
       enabled: true
 

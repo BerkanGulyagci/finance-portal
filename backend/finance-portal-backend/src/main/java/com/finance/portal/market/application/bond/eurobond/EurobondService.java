@@ -9,6 +9,7 @@ import com.finance.portal.market.application.bond.eurobond.port.HmbIsinSource;
 import com.finance.portal.market.application.fx.model.FxLatestRates;
 import com.finance.portal.market.application.fx.model.FxRateItem;
 import com.finance.portal.market.application.service.MarketFxService;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.Cache;
@@ -136,6 +137,7 @@ public class EurobondService {
 
     /** Ayda bir (21'i 06:00) en son bilinen xlsx URL'inden ISIN listesini yeniden çeker (varsa). */
     @Scheduled(cron = "${eurobond.isin-refresh-cron:0 0 6 21 * *}")
+    @SchedulerLock(name = "eurobond-isin-refresh", lockAtMostFor = "PT30M", lockAtLeastFor = "PT1M")
     void scheduledRefresh() {
         String url = hmb.lastXlsxUrl();
         if (url == null) {

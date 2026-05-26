@@ -2,6 +2,7 @@ package com.finance.portal.market.application.stock;
 
 import com.finance.portal.market.application.stock.port.MidasStockPort;
 import jakarta.annotation.PostConstruct;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -84,8 +85,12 @@ public class StockSymbolProvider {
         refreshSymbols();
     }
 
-    /** Her gün 02:00'de güncelle (endeks bileşenleri 3 ayda bir değişir) */
+    /** Her gün 02:00'de güncelle (endeks bileşenleri 3 ayda bir değişir).
+     *  NOT: @SchedulerLock yalnızca @Scheduled proxy yolunda devreye girer;
+     *  @PostConstruct -> refreshSymbols() doğrudan çağrısında her pod kendi
+     *  bellek listelerini doldurur — bu da istenen davranıştır. */
     @Scheduled(cron = "0 0 2 * * *")
+    @SchedulerLock(name = "stock-symbol-refresh", lockAtMostFor = "PT30M", lockAtLeastFor = "PT5M")
     public void refreshSymbols() {
         log.info("Refreshing BIST symbol lists from Midas...");
         try {

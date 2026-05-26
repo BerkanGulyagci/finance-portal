@@ -5,6 +5,7 @@ import com.finance.portal.market.application.precious.port.BistMetalFiyatlariPor
 import com.finance.portal.market.application.precious.model.PreciousMetalType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -43,6 +44,7 @@ public class PreciousMetalService {
     // ── Cache temizleme ───────────────────────────────────────────────────────
 
     @Scheduled(initialDelay = 120_000, fixedRate = 3_600_000)
+    @SchedulerLock(name = "precious-cache-evict", lockAtMostFor = "PT1H", lockAtLeastFor = "PT55M")
     @CacheEvict(cacheNames = {"market.precious.spot", "market.precious.history"}, allEntries = true)
     public void evictPreciousCaches() {
         log.info("Precious metals (PT/PD) caches evicted (hourly)");

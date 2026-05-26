@@ -5,6 +5,7 @@ import com.finance.portal.common.application.logging.CentralIntegrationLogServic
 import com.finance.portal.common.application.logging.IntegrationLogSupport;
 import com.finance.portal.news.application.service.NewsAggregateCache;
 import com.finance.portal.news.application.service.NewsService;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -30,6 +31,7 @@ public class NewsCacheScheduler {
     }
 
     @Scheduled(fixedDelayString = "${news.cache.warmup.fixed-delay-ms}")
+    @SchedulerLock(name = "news-cache-warmup", lockAtMostFor = "PT15M", lockAtLeastFor = "PT5M")
     public void warmUpNewsCache() {
         // Çoklu-kaynak toplu haber listesini tazele (ücretsiz API kotalarını koruyan ana yenileme noktası)
         try {

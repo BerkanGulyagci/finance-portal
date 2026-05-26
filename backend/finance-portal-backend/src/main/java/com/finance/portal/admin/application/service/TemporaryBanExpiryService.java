@@ -8,6 +8,7 @@ import com.finance.portal.common.application.logging.BusinessLogSupport;
 import com.finance.portal.common.application.logging.CentralBusinessLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -27,6 +28,7 @@ public class TemporaryBanExpiryService {
     private final CentralBusinessLogService centralBusinessLogService;
 
     @Scheduled(fixedDelay = 60_000, initialDelay = 30_000)
+    @SchedulerLock(name = "ban-expiry-check", lockAtMostFor = "PT2M", lockAtLeastFor = "PT30S")
     public void expireTemporaryBans() {
         Instant now = Instant.now();
         List<UserBanState> expired = userBanStatePort.findExpiredTemporaryBans(now);

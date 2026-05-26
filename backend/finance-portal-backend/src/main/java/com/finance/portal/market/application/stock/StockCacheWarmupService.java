@@ -2,6 +2,7 @@ package com.finance.portal.market.application.stock;
 
 import com.finance.portal.common.application.logging.CentralIntegrationLogService;
 import com.finance.portal.common.application.logging.IntegrationLogSupport;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -39,6 +40,7 @@ public class StockCacheWarmupService {
 
     // Her 8 dakikada bir yenile (TTL 10 dakika, biraz önce yenile)
     @Scheduled(fixedDelay = 8 * 60 * 1000, initialDelay = 10 * 60 * 1000)
+    @SchedulerLock(name = "stock-cache-warmup", lockAtMostFor = "PT8M", lockAtLeastFor = "PT7M")
     public void scheduledWarmup() {
         log.info("Stock cache scheduled refresh starting...");
         warmupAllPages();

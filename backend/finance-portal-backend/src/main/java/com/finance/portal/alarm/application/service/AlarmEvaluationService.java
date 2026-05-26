@@ -13,6 +13,7 @@ import com.finance.portal.common.application.logging.BusinessLogSupport;
 import com.finance.portal.common.application.logging.CentralBusinessLogService;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -59,6 +60,7 @@ public class AlarmEvaluationService {
     @Scheduled(
             fixedRateString = "${alarm.evaluation.fixed-rate-ms:60000}",
             initialDelayString = "${alarm.evaluation.initial-delay-ms:20000}")
+    @SchedulerLock(name = "alarm-evaluation", lockAtMostFor = "PT2M", lockAtLeastFor = "PT30S")
     @WithSpan("AlarmEvaluationService.evaluateActiveAlarms")
     public void evaluateActiveAlarms() {
         if (!enabled) {

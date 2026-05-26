@@ -8,6 +8,7 @@ import com.finance.portal.market.application.precious.model.PreciousMetalType;
 import com.finance.portal.market.application.precious.model.PriceUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -47,6 +48,7 @@ public class SilverMarketService {
     // ── Cache temizleme — her saat ────────────────────────────────────────────
 
     @Scheduled(initialDelay = 60_000, fixedRate = 3_600_000)
+    @SchedulerLock(name = "silver-cache-evict", lockAtMostFor = "PT1H", lockAtLeastFor = "PT55M")
     @CacheEvict(cacheNames = {"market.silver.spot", "market.silver.history"}, allEntries = true)
     public void evictSilverCaches() {
         log.info("Silver caches evicted (hourly)");
