@@ -2,8 +2,13 @@
 #
 # Runs on every push and pull request targeting main. Two independent jobs
 # execute in parallel on Ubuntu runners:
-#   1) backend-test    — Java 21, Maven verify (compile + 142 active tests)
+#   1) backend-test    — Java 21, Maven verify (Surefire unit + Failsafe IT
+#                        with Testcontainers Postgres + WireMock for Binance).
+#                        Uploads the JaCoCo coverage report as an artifact.
 #   2) frontend-build  — Node 20, npm ci + Vite production build
+#
+# Testcontainers needs a Docker daemon; ubuntu-latest GitHub runners ship
+# with Docker pre-installed.
 #
 # If the same branch is pushed again while a previous run is still going,
 # the older run is cancelled to save CI minutes.
@@ -43,6 +48,27 @@ jobs:
 
       - name: Build and test (mvn verify)
         run: ./mvnw -B --no-transfer-progress verify
+
+      # JaCoCo HTML + XML raporu artifact olarak yüklenir.
+      # Actions sekmesi → run → Artifacts altında indirilebilir.
+      - name: Upload JaCoCo coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-coverage-report
+          path: backend/finance-portal-backend/target/site/jacoco/
+          retention-days: 14
+
+      # Surefire + Failsafe ham raporları — fail durumunda debug için
+      - name: Upload Surefire / Failsafe reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            backend/finance-portal-backend/target/surefire-reports/
+            backend/finance-portal-backend/target/failsafe-reports/
+          retention-days: 7
 
   frontend-build:
     name: Frontend (Node 20 + Vite)
