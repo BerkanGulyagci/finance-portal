@@ -151,6 +151,10 @@ public class NewsAggregatorService {
      * Kullanıcının portföyüne göre "Size Özel" haberler: tuttuğu sembol/isim geçen (yüksek puan)
      * veya varlık türüne uyan kategorideki (orta puan) haberler; puana + güncelliğe göre sıralı.
      */
+    // Sonar S2259 false-positive: bu metotta matched/safeMatched Stream#toList'ten
+    // gelir → asla null değildir; Objects.requireNonNullElse ile bile garantilense
+    // Sonar dataflow tanımıyor. Method-level suppress.
+    @SuppressWarnings("java:S2259")
     @WithSpan("NewsAggregatorService.forUser")
     public NewsQueryResult forUser(String userId, String lang, int limit) {
         int size = Math.max(1, Math.min(limit, 30));
@@ -185,9 +189,6 @@ public class NewsAggregatorService {
                 .limit(size)
                 .map(Map.Entry::getKey)
                 .toList();
-        // Stream#toList Java 16+ asla null dönmez (immutable list) ama Sonar'ın
-        // dataflow analizi bunu garanti sayamıyor → defansif coalesce ile S2259 susar.
-        if (matched == null) matched = List.of();
 
         List<NewsArticle> out = translatePage(matched, lang);
         return new NewsQueryResult(out, 1, size, (long) matched.size(), 1, List.of(), Map.of());
