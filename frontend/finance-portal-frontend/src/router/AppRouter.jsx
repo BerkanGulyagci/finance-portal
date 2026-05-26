@@ -62,7 +62,6 @@ export default function AppRouter() {
           <Route path="/verify-email"      element={<VerifyEmailPage />} />
           <Route path="/news"              element={<NewsPage />} />
           <Route path="/news/:id"          element={<NewsDetailPage />} />
-          <Route path="/dashboard"         element={<DashboardPage />} />
           <Route path="/market"            element={<MarketPage />} />
           <Route path="/market/stocks"     element={<StocksPage />} />
           <Route path="/market/stocks/compare" element={<StockComparePage />} />
@@ -100,6 +99,7 @@ export default function AppRouter() {
 
         {/* Protected routes */}
         <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+          <Route path="/dashboard"         element={<DashboardPage />} />
           <Route path="/portfolio"         element={<PortfolioPage />} />
           <Route path="/portfolio/:id"     element={<PortfolioDetailPage />} />
           <Route path="/alarms"            element={<AlarmsPage />} />
