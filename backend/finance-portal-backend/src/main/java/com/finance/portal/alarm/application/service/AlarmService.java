@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -184,9 +185,12 @@ public class AlarmService {
 
     // ── parse helpers ──────────────────────────────────────────────────────────
 
+    // NOT: toUpperCase() platform locale'ine duyarlı; Türkçe locale'de "i" → "İ" olur ve
+    // "price" gibi küçük-harf girdiler enum sabitleriyle (PRICE) eşleşmez. Locale.ROOT
+    // determinist büyük-harf yapımı sağlar (S1449 / S1640 ailesinden Sonar uyarısı).
     private static AssetType parseAssetType(String v) {
         try {
-            return AssetType.valueOf(requireText(v, "assetType").trim().toUpperCase());
+            return AssetType.valueOf(requireText(v, "assetType").trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
             throw new IllegalArgumentException("Invalid assetType: " + v);
         }
@@ -194,7 +198,7 @@ public class AlarmService {
 
     private static AlarmMetric parseMetric(String v) {
         try {
-            return AlarmMetric.valueOf(requireText(v, "metric").trim().toUpperCase());
+            return AlarmMetric.valueOf(requireText(v, "metric").trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
             throw new IllegalArgumentException("Invalid metric: " + v);
         }
@@ -202,7 +206,7 @@ public class AlarmService {
 
     private static AlarmDirection parseDirection(String v) {
         try {
-            return AlarmDirection.valueOf(requireText(v, "direction").trim().toUpperCase());
+            return AlarmDirection.valueOf(requireText(v, "direction").trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
             throw new IllegalArgumentException("Invalid direction: " + v);
         }
@@ -213,7 +217,7 @@ public class AlarmService {
             return AlarmFrequency.ONCE;
         }
         try {
-            return AlarmFrequency.valueOf(v.trim().toUpperCase());
+            return AlarmFrequency.valueOf(v.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
             throw new IllegalArgumentException("Invalid frequency: " + v);
         }
@@ -221,7 +225,7 @@ public class AlarmService {
 
     private static AlarmStatus parseStatus(String v) {
         try {
-            return AlarmStatus.valueOf(v.trim().toUpperCase());
+            return AlarmStatus.valueOf(v.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
             throw new IllegalArgumentException("Invalid status: " + v);
         }
