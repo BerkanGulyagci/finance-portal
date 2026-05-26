@@ -306,7 +306,10 @@ public class ArticleContentFetcher implements ArticleContentPort {
 
     /** HTML varlıklarını çözer: sayısal (&#304; / &#x131;) + yaygın isimli (Türkçe ü/ö/ç dahil). */
     private static String decodeEntities(String s) {
-        if (s == null || s.indexOf('&') < 0) {
+        if (s == null) {
+            return "";
+        }
+        if (s.indexOf('&') < 0) {
             return s;
         }
         // Bazı kaynaklar (Patronlar Dünyası) çift-encode'lu: "&amp;ccedil;" → tek geçişte "&ccedil;" kalır.

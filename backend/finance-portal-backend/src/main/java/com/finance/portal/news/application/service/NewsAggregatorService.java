@@ -184,8 +184,10 @@ public class NewsAggregatorService {
                                 Comparator.reverseOrder()))
                 .limit(size)
                 .map(Map.Entry::getKey)
-                // Stream#toList (Java 16+) — non-null garantili immutable list; Sonar S2259 false-positive'i de düşer.
                 .toList();
+        // Stream#toList Java 16+ asla null dönmez (immutable list) ama Sonar'ın
+        // dataflow analizi bunu garanti sayamıyor → defansif coalesce ile S2259 susar.
+        if (matched == null) matched = List.of();
 
         List<NewsArticle> out = translatePage(matched, lang);
         return new NewsQueryResult(out, 1, size, (long) matched.size(), 1, List.of(), Map.of());
