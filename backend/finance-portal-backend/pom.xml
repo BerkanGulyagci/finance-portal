@@ -191,6 +191,15 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- WireMock: dış HTTP API'lerini (Binance, Yahoo, TCMB, news) sahte
+             bir HTTP sunucusuyla simüle eder; testler offline ve deterministik. -->
+        <dependency>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock-standalone</artifactId>
+            <version>3.5.4</version>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
