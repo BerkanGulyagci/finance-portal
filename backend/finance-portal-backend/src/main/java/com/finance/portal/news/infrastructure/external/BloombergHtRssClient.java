@@ -117,6 +117,9 @@ public class BloombergHtRssClient implements BloombergNewsPort {
         try {
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
                     .get(30, java.util.concurrent.TimeUnit.SECONDS);
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            log.debug("Interrupted while enriching og:images");
         } catch (Exception e) {
             log.debug("og:image enrichment timed out or failed: {}", e.getMessage());
         }

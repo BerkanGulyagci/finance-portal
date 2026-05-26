@@ -114,6 +114,10 @@ public class TefasFundClient {
                         byDay.putIfAbsent(p.getDate(), p);
                     }
                 }
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                log.debug("Interrupted while collecting TEFAS history for {}", upper);
+                break;
             } catch (Exception e) {
                 log.debug("TEFAS history chunk failed for {} ({}): {}", upper, type, e.getMessage());
             }

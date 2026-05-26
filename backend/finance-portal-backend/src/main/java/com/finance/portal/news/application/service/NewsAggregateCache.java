@@ -120,9 +120,9 @@ public class NewsAggregateCache {
         if (targets.isEmpty()) {
             return;
         }
-        ExecutorService pool = Executors.newFixedThreadPool(Math.min(12, targets.size()));
         Map<Integer, String> found = new ConcurrentHashMap<>();
-        try {
+        // Java 21: ExecutorService AutoCloseable — close() pending task'leri bekler
+        try (ExecutorService pool = Executors.newFixedThreadPool(Math.min(12, targets.size()))) {
             for (int idx : targets) {
                 final int i = idx;
                 pool.submit(() -> {
@@ -133,11 +133,11 @@ public class NewsAggregateCache {
                 });
             }
             pool.shutdown();
-            pool.awaitTermination(IMG_BUDGET_SEC, TimeUnit.SECONDS);
+            if (!pool.awaitTermination(IMG_BUDGET_SEC, TimeUnit.SECONDS)) {
+                pool.shutdownNow();
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-        } finally {
-            pool.shutdownNow();
         }
         found.forEach((idx, img) -> articles.set(idx, articles.get(idx).withImageUrl(img)));
         if (!found.isEmpty()) {

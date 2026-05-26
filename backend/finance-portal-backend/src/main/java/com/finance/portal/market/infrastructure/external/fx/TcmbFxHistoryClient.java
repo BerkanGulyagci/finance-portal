@@ -103,6 +103,10 @@ public class TcmbFxHistoryClient implements TcmbFxHistoryPort {
             try {
                 FxHistoryPoint pt = futures.get(i).get(10, TimeUnit.SECONDS);
                 if (pt != null) points.add(pt);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                log.debug("Interrupted while fetching day {}", workdays.get(i));
+                break;
             } catch (Exception e) {
                 // Tatil günü veya timeout — sessizce atla
                 log.debug("Skipping day {}: {}", workdays.get(i), e.getMessage());

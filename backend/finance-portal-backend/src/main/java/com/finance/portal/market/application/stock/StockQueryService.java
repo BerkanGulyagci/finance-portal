@@ -87,8 +87,8 @@ public class StockQueryService {
     private StockPageResponse fetchPage(List<String> symbols, int totalElements, int page, int size) {
         List<StockSummary> content = new ArrayList<>();
         if (!symbols.isEmpty()) {
-            var executor = Executors.newFixedThreadPool(5);
-            try {
+            // Java 21: ExecutorService AutoCloseable — try-with-resources kapanışı garantiler
+            try (var executor = Executors.newFixedThreadPool(5)) {
                 List<Future<StockSummary>> futures = symbols.stream()
                         .map(symbol -> executor.submit(() -> {
                             try {
@@ -105,12 +105,14 @@ public class StockQueryService {
                         if (s != null) {
                             content.add(s);
                         }
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        logger.warn("Interrupted while collecting stock summaries");
+                        break;
                     } catch (Exception ex) {
                         logger.warn("Stock summary future failed: {}", ex.getMessage());
                     }
                 }
-            } finally {
-                executor.shutdown();
             }
         }
         int totalPages = size > 0 ? (int) Math.ceil((double) totalElements / size) : 0;

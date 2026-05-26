@@ -74,7 +74,14 @@ public class EurobondService {
             }, executor));
         }
         for (CompletableFuture<Void> f : futures) {
-            try { f.get(60, TimeUnit.SECONDS); } catch (Exception ignored) { /* HMB satırına düş */ }
+            try {
+                f.get(60, TimeUnit.SECONDS);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                break;
+            } catch (Exception ignored) {
+                /* HMB satırına düş */
+            }
         }
         List<EurobondSummary> out = new ArrayList<>(bonds.size());
         for (HmbBond hb : bonds) {

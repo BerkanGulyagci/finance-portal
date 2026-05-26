@@ -23,4 +23,14 @@ public class AssistantToolUsageTracker {
     public int count() {
         return count.get()[0];
     }
+
+    /**
+     * İstek bittiğinde Tomcat thread'i havuza geri döner; ThreadLocal'ı silmezsek
+     * sonraki istek bu thread'i kullandığında eski değeri görür ve uzun vadede
+     * ClassLoader/heap sızıntısı oluşur. AssistantService.chat() sonunda finally
+     * bloğunda çağırılır.
+     */
+    public void clear() {
+        count.remove();
+    }
 }

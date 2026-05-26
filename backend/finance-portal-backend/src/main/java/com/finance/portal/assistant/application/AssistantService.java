@@ -159,6 +159,9 @@ public class AssistantService {
             // 429 → sağlayıcı kotası/yoğunluğu (günlük ücretsiz token limiti dahil) → ayrı mesaj.
             boolean rateLimited = e.getMessage() != null && e.getMessage().contains("429");
             return AssistantReply.of(rateLimited ? Status.BUSY : Status.UNAVAILABLE);
+        } finally {
+            // Tomcat thread havuza geri dönmeden ThreadLocal'ı temizle (Sonar S5164).
+            usageTracker.clear();
         }
     }
 

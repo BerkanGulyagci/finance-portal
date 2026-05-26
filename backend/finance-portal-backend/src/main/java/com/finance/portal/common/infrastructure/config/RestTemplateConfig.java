@@ -1,6 +1,5 @@
 package com.finance.portal.common.infrastructure.config;
 
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,8 +24,8 @@ public class RestTemplateConfig {
      * TCMB EVDS — liste toplu çekiminde daha uzun yanıt süreleri görülebilir;
      * genel RestTemplate zaman aşımını tüm API'lere yaymamak için ayrı bean.
      */
+    // @Bean method adı zaten qualifier görevi görür ("evdsRestTemplate"); ek @Qualifier gereksiz (S6831).
     @Bean
-    @Qualifier("evdsRestTemplate")
     public RestTemplate evdsRestTemplate(RestTemplateBuilder builder) {
         return builder
                 .setConnectTimeout(Duration.ofSeconds(15))

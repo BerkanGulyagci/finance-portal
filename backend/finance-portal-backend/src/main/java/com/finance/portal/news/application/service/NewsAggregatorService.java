@@ -255,8 +255,8 @@ public class NewsAggregatorService {
         if (targets.isEmpty()) {
             return items;
         }
-        ExecutorService pool = Executors.newFixedThreadPool(Math.min(8, targets.size()));
-        try {
+        // Java 21: ExecutorService AutoCloseable — close() submitted task'lerin bitmesini bekler
+        try (ExecutorService pool = Executors.newFixedThreadPool(Math.min(8, targets.size()))) {
             for (int idx : targets) {
                 final int i = idx;
                 pool.submit(() -> {
@@ -267,11 +267,11 @@ public class NewsAggregatorService {
                 });
             }
             pool.shutdown();
-            pool.awaitTermination(TRANSLATE_BUDGET_SEC, TimeUnit.SECONDS);
+            if (!pool.awaitTermination(TRANSLATE_BUDGET_SEC, TimeUnit.SECONDS)) {
+                pool.shutdownNow();
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-        } finally {
-            pool.shutdownNow();
         }
         return Arrays.asList(arr);
     }
