@@ -1,5 +1,10 @@
 # Finance Portal
 
+[![CI](https://github.com/BerkanGulyagci/finance-portal/actions/workflows/ci.yml/badge.svg)](https://github.com/BerkanGulyagci/finance-portal/actions/workflows/ci.yml)
+[![Java 21](https://img.shields.io/badge/Java-21%20LTS-orange?logo=openjdk)](https://adoptium.net/temurin/releases/?version=21)
+[![Spring Boot 3.2](https://img.shields.io/badge/Spring%20Boot-3.2-brightgreen?logo=springboot)](https://spring.io/projects/spring-boot)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A modern, enterprise-grade financial portal application built with clean architecture principles and industry best practices.
 
 ## Overview
