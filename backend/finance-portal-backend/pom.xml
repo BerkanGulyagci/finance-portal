@@ -28,7 +28,23 @@
     </scm>
     <properties>
         <java.version>21</java.version>
+        <testcontainers.version>1.19.7</testcontainers.version>
     </properties>
+
+    <!-- Testcontainers BOM: integration testlerinde gerçek Docker container'ları
+         (Postgres vb.) ayağa kaldırır; CI'da da çalışır (GitHub runner'da Docker hazır). -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${testcontainers.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <!-- Logback'i exclude et, Log4j2 kullan -->
         <dependency>
@@ -161,6 +177,20 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Testcontainers: JUnit Jupiter @Testcontainers + @Container desteği -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Testcontainers Postgres modülü: PostgreSQLContainer<?> -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
@@ -242,6 +272,23 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+
+            <!-- Failsafe: integration testleri (*IT.java) Surefire'dan ayrı koşar.
+                   mvn test   → sadece Surefire (unit, *Test.java, hızlı)
+                   mvn verify → Surefire + Failsafe (her şey, integration dahil)
+                 Failsafe varsayılan olarak *IT.java + *ITCase.java arar. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
 
             <!-- JaCoCo: test koşumunda satır/branch coverage'ı kaydet,
