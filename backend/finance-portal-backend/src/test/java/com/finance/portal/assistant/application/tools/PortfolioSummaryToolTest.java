@@ -106,16 +106,17 @@ class PortfolioSummaryToolTest {
 
         String r = tool.execute(node("{}"), authedCtx);
 
-        assertThat(r).contains("\"Ana\" portföyü");
-        assertThat(r).contains("Toplam değer: 3700");
-        assertThat(r).contains("Toplam maliyet: 3000");
         // Toplam K/Z = 500+200 = 700; %= 700/3000=23.33
-        assertThat(r).contains("Toplam K/Z: 700");
-        assertThat(r).contains("23.33%");
-        assertThat(r).contains("Varlık türü dağılımı");
-        assertThat(r).contains("Hisse").contains("Altın");
-        assertThat(r).contains("[DÖKÜM_YOK");                 // marker, kullanıcıya detayı sor
-        assertThat(r).doesNotContain("Varlıklar:\n• THYAO");  // detay yok
+        assertThat(r)
+                .contains("\"Ana\" portföyü")
+                .contains("Toplam değer: 3700")
+                .contains("Toplam maliyet: 3000")
+                .contains("Toplam K/Z: 700")
+                .contains("23.33%")
+                .contains("Varlık türü dağılımı")
+                .contains("Hisse").contains("Altın")
+                .contains("[DÖKÜM_YOK")                 // marker, kullanıcıya detayı sor
+                .doesNotContain("Varlıklar:\n• THYAO"); // detay yok
     }
 
     @Test
@@ -133,9 +134,10 @@ class PortfolioSummaryToolTest {
 
         String r = tool.execute(node("{}"), authedCtx);
 
-        assertThat(r).contains("2 portföy birleşik");
-        assertThat(r).contains("Toplam değer: 1700");      // 1100 + 600
-        assertThat(r).contains("Hisse").contains("Kripto");
+        assertThat(r)
+                .contains("2 portföy birleşik")
+                .contains("Toplam değer: 1700")     // 1100 + 600
+                .contains("Hisse").contains("Kripto");
     }
 
     // ------------------------------ portfolio_name filtresi ------------------------------
@@ -155,10 +157,11 @@ class PortfolioSummaryToolTest {
 
         String r = tool.execute(node("{\"portfolio_name\":\"Ana\"}"), authedCtx);
 
-        assertThat(r).contains("\"Ana\" portföyü");
-        assertThat(r).contains("Toplam değer: 1200");      // sadece Ana
-        assertThat(r).doesNotContain("Toplam değer: 1800");
-        assertThat(r).contains("Diğer portföyler: Yedek");
+        assertThat(r)
+                .contains("\"Ana\" portföyü")
+                .contains("Toplam değer: 1200")     // sadece Ana
+                .doesNotContain("Toplam değer: 1800")
+                .contains("Diğer portföyler: Yedek");
     }
 
     @Test
@@ -186,9 +189,10 @@ class PortfolioSummaryToolTest {
 
         String r = tool.execute(node("{\"portfolio_name\":\"YokOlan\"}"), authedCtx);
 
-        assertThat(r).contains("YokOlan").contains("bulunamadı");
-        assertThat(r).contains("Ana");                     // mevcut portföy adları
-        assertThat(r).contains("Hangisini analiz edeyim");
+        assertThat(r)
+                .contains("YokOlan").contains("bulunamadı")
+                .contains("Ana")                     // mevcut portföy adları
+                .contains("Hangisini analiz edeyim");
     }
 
     // ------------------------------ detailed=true ------------------------------
@@ -208,8 +212,7 @@ class PortfolioSummaryToolTest {
 
         String r = tool.execute(node("{\"detailed\":true}"), authedCtx);
 
-        assertThat(r).contains("Varlıklar:");
-        assertThat(r).doesNotContain("[DÖKÜM_YOK");
+        assertThat(r).contains("Varlıklar:").doesNotContain("[DÖKÜM_YOK");
         // Sıralama: THYAO (1500) → XAU (550) → BTC (300)
         int iThyao = r.indexOf("• THYAO");
         int iXau = r.indexOf("• XAU");

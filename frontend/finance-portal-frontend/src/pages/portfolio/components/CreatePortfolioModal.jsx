@@ -32,7 +32,7 @@ const TYPE_OPTIONS = [
 export default function CreatePortfolioModal({ onClose, onCreated }) {
   const { t } = useTranslation();
   const [selectedType, setSelectedType] = useState('HOLDINGS');
-  const [form, setForm] = useState({ name: '', description: '', currency: 'TRY' });
+  const [form, setForm] = useState({ name: '', description: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -49,7 +49,7 @@ export default function CreatePortfolioModal({ onClose, onCreated }) {
       await createPortfolio({
         name: form.name.trim(),
         description: form.description.trim() || undefined,
-        currency: selectedType === 'WATCHLIST' ? 'TRY' : form.currency,
+        currency: 'TRY',
         portfolioType: selectedType,
       });
       // Response'a güvenmek yerine listeyi yeniden çek
@@ -140,24 +140,6 @@ export default function CreatePortfolioModal({ onClose, onCreated }) {
               className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30 focus:border-[#093eaa]"
             />
           </div>
-
-          {/* Currency — sadece HOLDINGS için */}
-          {selectedType === 'HOLDINGS' && (
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                {t('Para Birimi')}
-              </label>
-              <select
-                value={form.currency}
-                onChange={e => set('currency', e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30 focus:border-[#093eaa] bg-white"
-              >
-                {['TRY', 'USD', 'EUR', 'GBP'].map(c => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-          )}
 
           {error && (
             <p className="text-rose-500 text-sm bg-rose-50 px-3 py-2 rounded-lg">{error}</p>

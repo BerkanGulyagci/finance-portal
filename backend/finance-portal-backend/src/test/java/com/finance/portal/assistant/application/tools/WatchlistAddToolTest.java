@@ -94,8 +94,7 @@ class WatchlistAddToolTest {
     void execute_unconfirmed_returnsPending() {
         String r = tool.execute(node("{\"asset_type\":\"STOCK\",\"symbol\":\"thyao\"}"), authedCtx);
 
-        assertThat(r).startsWith("ONAY_BEKLENIYOR");
-        assertThat(r).contains("THYAO");                 // uppercase
+        assertThat(r).startsWith("ONAY_BEKLENIYOR").contains("THYAO");  // uppercase
         verifyNoInteractions(portfolioService);
     }
 
@@ -209,8 +208,7 @@ class WatchlistAddToolTest {
 
         String r = tool.execute(node("{\"asset_type\":\"FX\",\"symbol\":\"USD\",\"confirm\":true}"), authedCtx);
 
-        assertThat(r).startsWith("Favorilere eklenemedi");
-        assertThat(r).contains("db down");
+        assertThat(r).startsWith("Favorilere eklenemedi").contains("db down");
     }
 
     // ------------------------------ helper ------------------------------

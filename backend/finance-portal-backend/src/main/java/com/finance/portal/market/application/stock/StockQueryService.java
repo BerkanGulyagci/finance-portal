@@ -85,36 +85,7 @@ public class StockQueryService {
     }
 
     private StockPageResponse fetchPage(List<String> symbols, int totalElements, int page, int size) {
-        List<StockSummary> content = new ArrayList<>();
-        if (!symbols.isEmpty()) {
-            // Java 21: ExecutorService AutoCloseable — try-with-resources kapanışı garantiler
-            try (var executor = Executors.newFixedThreadPool(5)) {
-                List<Future<StockSummary>> futures = symbols.stream()
-                        .map(symbol -> executor.submit(() -> {
-                            try {
-                                return getStockSummary(symbol);
-                            } catch (Exception ex) {
-                                logger.warn("Failed to fetch stock summary for {}: {}", symbol, ex.getMessage());
-                                return null;
-                            }
-                        }))
-                        .toList();
-                for (Future<StockSummary> f : futures) {
-                    try {
-                        StockSummary s = f.get(5, TimeUnit.SECONDS);
-                        if (s != null) {
-                            content.add(s);
-                        }
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        logger.warn("Interrupted while collecting stock summaries");
-                        break;
-                    } catch (Exception ex) {
-                        logger.warn("Stock summary future failed: {}", ex.getMessage());
-                    }
-                }
-            }
-        }
+        List<StockSummary> content = symbols.isEmpty() ? new ArrayList<>() : fetchSummariesInParallel(symbols);
         int totalPages = size > 0 ? (int) Math.ceil((double) totalElements / size) : 0;
         StockPageResponse response = new StockPageResponse();
         response.setContent(content);
@@ -123,6 +94,49 @@ public class StockQueryService {
         response.setTotalElements(totalElements);
         response.setTotalPages(totalPages);
         return response;
+    }
+
+    /** {@code symbols}'in özetlerini 5 thread'lik havuzda paralel toplar; başarısızlığa ayrı katlanır. */
+    private List<StockSummary> fetchSummariesInParallel(List<String> symbols) {
+        List<StockSummary> content = new ArrayList<>();
+        try (var executor = Executors.newFixedThreadPool(5)) {
+            List<Future<StockSummary>> futures = submitSummaryFutures(executor, symbols);
+            collectSummaryFutures(futures, content);
+        }
+        return content;
+    }
+
+    private List<Future<StockSummary>> submitSummaryFutures(java.util.concurrent.ExecutorService executor,
+                                                            List<String> symbols) {
+        return symbols.stream()
+                .map(symbol -> executor.submit(() -> safeFetchSummary(symbol)))
+                .toList();
+    }
+
+    private StockSummary safeFetchSummary(String symbol) {
+        try {
+            return getStockSummary(symbol);
+        } catch (Exception ex) {
+            logger.warn("Failed to fetch stock summary for {}: {}", symbol, ex.getMessage());
+            return null;
+        }
+    }
+
+    private void collectSummaryFutures(List<Future<StockSummary>> futures, List<StockSummary> sink) {
+        for (Future<StockSummary> f : futures) {
+            try {
+                StockSummary s = f.get(5, TimeUnit.SECONDS);
+                if (s != null) {
+                    sink.add(s);
+                }
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                logger.warn("Interrupted while collecting stock summaries");
+                return;
+            } catch (Exception ex) {
+                logger.warn("Stock summary future failed: {}", ex.getMessage());
+            }
+        }
     }
 
     public StockChartResponse getStockChart(String symbol) {

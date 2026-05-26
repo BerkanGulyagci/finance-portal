@@ -66,9 +66,12 @@ public class ImageProxyService {
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (!(o instanceof ProxiedImage other)) return false;
-            return java.util.Arrays.equals(content, other.content)
-                    && java.util.Objects.equals(contentType, other.contentType);
+            // Java 21 record pattern — Sonar S6878
+            if (!(o instanceof ProxiedImage(byte[] otherContent, String otherContentType))) {
+                return false;
+            }
+            return java.util.Arrays.equals(content, otherContent)
+                    && java.util.Objects.equals(contentType, otherContentType);
         }
 
         @Override

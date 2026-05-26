@@ -191,7 +191,8 @@ public class NewsAggregatorService {
                 .toList();
 
         List<NewsArticle> out = translatePage(matched, lang);
-        return new NewsQueryResult(out, 1, size, (long) matched.size(), 1, List.of(), Map.of());
+        // int → long widening implicit; explicit cast gereksiz (S1905).
+        return new NewsQueryResult(out, 1, size, matched.size(), 1, List.of(), Map.of());
     }
 
     private static int scoreFor(NewsArticle a, Pattern kwPattern, Set<NewsCategory> cats) {

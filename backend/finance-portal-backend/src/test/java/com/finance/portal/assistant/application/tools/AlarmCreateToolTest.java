@@ -107,11 +107,12 @@ class AlarmCreateToolTest {
     void execute_unconfirmed_returnsPendingMarker_doesNotCreate() {
         String r = tool.execute(node("{\"asset_type\":\"STOCK\",\"symbol\":\"thyao\",\"direction\":\"ABOVE\",\"threshold\":300}"), authedCtx);
 
-        assertThat(r).startsWith("ONAY_BEKLENIYOR");
-        assertThat(r).contains("THYAO");      // sembol uppercase
-        assertThat(r).contains("≥");          // ABOVE → ≥
-        assertThat(r).contains("300");
-        assertThat(r).contains("Onaylıyor musun");
+        assertThat(r)
+                .startsWith("ONAY_BEKLENIYOR")
+                .contains("THYAO")        // sembol uppercase
+                .contains("≥")            // ABOVE → ≥
+                .contains("300")
+                .contains("Onaylıyor musun");
         verify(alarmService, never()).create(any(), any(), any());
     }
 
@@ -168,8 +169,7 @@ class AlarmCreateToolTest {
                 "{\"asset_type\":\"STOCK\",\"symbol\":\"THYAO\",\"metric\":\"CHANGE_PERCENT\",\"direction\":\"ABOVE\",\"threshold\":5,\"confirm\":false}"),
                 authedCtx);
 
-        assertThat(r).contains("günlük değişim");
-        assertThat(r).contains("%");
+        assertThat(r).contains("günlük değişim").contains("%");
     }
 
     @Test
@@ -179,8 +179,7 @@ class AlarmCreateToolTest {
                 "{\"asset_type\":\"CRYPTO\",\"symbol\":\"BTC\",\"direction\":\"BELOW\",\"threshold\":50000,\"confirm\":false}"),
                 authedCtx);
 
-        assertThat(r).contains("≤");
-        assertThat(r).doesNotContain("≥");
+        assertThat(r).contains("≤").doesNotContain("≥");
     }
 
     @Test
@@ -193,8 +192,7 @@ class AlarmCreateToolTest {
                 "{\"asset_type\":\"STOCK\",\"symbol\":\"THYAO\",\"direction\":\"ABOVE\",\"threshold\":300,\"confirm\":true}"),
                 authedCtx);
 
-        assertThat(r).startsWith("Alarm kurulamadı");
-        assertThat(r).contains("invalid threshold");
+        assertThat(r).startsWith("Alarm kurulamadı").contains("invalid threshold");
     }
 
     // ------------------------------ helper ------------------------------

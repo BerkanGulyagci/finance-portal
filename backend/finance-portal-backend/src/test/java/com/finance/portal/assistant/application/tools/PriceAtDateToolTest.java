@@ -109,10 +109,11 @@ class PriceAtDateToolTest {
 
         String r = tool.execute(node("{\"asset_type\":\"GOLD\",\"symbol\":\"GRAM\",\"date\":\"2025-01-10\"}"), null);
 
-        assertThat(r).contains("GRAM");
-        assertThat(r).contains("2025-01-10");
-        assertThat(r).contains("3060.19");                  // stripTrailingZeros uygulanmış
-        assertThat(r).doesNotContain("en yakın iş günü");   // tam eşleşme
+        assertThat(r)
+                .contains("GRAM")
+                .contains("2025-01-10")
+                .contains("3060.19")                  // stripTrailingZeros uygulanmış
+                .doesNotContain("en yakın iş günü");  // tam eşleşme
     }
 
     @Test
@@ -126,8 +127,7 @@ class PriceAtDateToolTest {
 
         String r = tool.execute(node("{\"asset_type\":\"GOLD\",\"symbol\":\"GRAM\",\"date\":\"2025-01-11\"}"), null);
 
-        assertThat(r).contains("2025-01-10");
-        assertThat(r).contains("en yakın iş günü");
+        assertThat(r).contains("2025-01-10").contains("en yakın iş günü");
     }
 
     @Test

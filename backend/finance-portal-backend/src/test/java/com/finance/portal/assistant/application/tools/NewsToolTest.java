@@ -54,11 +54,12 @@ class NewsToolTest {
 
         String r = tool.execute(node("{}"), null);
 
-        assertThat(r).startsWith("Güncel başlıklar:");
-        assertThat(r).contains("• Merkez bankası");
-        assertThat(r).contains("(BloombergHT)");
-        assertThat(r).contains("• BIST 100");
-        assertThat(r).contains("(Anadolu)");
+        assertThat(r)
+                .startsWith("Güncel başlıklar:")
+                .contains("• Merkez bankası")
+                .contains("(BloombergHT)")
+                .contains("• BIST 100")
+                .contains("(Anadolu)");
     }
 
     @Test
@@ -140,9 +141,10 @@ class NewsToolTest {
 
         String r = tool.execute(node("{}"), null);
 
-        assertThat(r).contains("• Geçerli başlık");
-        assertThat(r).contains("(Y)");
-        assertThat(r).doesNotContain("(X)");
+        assertThat(r)
+                .contains("• Geçerli başlık")
+                .contains("(Y)")
+                .doesNotContain("(X)");
     }
 
     private static JsonNode node(String json) {

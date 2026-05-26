@@ -2,7 +2,6 @@ package com.finance.portal.assistant.application.tools;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.finance.portal.common.domain.AssetType;
 import com.finance.portal.portfolio.application.port.PortfolioHistoricalPricePort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -86,13 +85,14 @@ class PriceHistoryToolTest {
 
         String r = tool.execute(node("{\"asset_type\":\"STOCK\",\"symbol\":\"THYAO\"}"), null);
 
-        assertThat(r).contains("THYAO");
-        assertThat(r).contains("başlangıç").contains("güncel");
         // Getiri = (130-100)/100 = 30% → "30.00%" (fmt 2 ondalık ama strip → "30")
-        assertThat(r).contains("dönem getirisi 30");
-        assertThat(r).contains("min 100").contains("max 130");
-        assertThat(r).doesNotContain("MA20");
-        assertThat(r).doesNotContain("RSI");
+        assertThat(r)
+                .contains("THYAO")
+                .contains("başlangıç").contains("güncel")
+                .contains("dönem getirisi 30")
+                .contains("min 100").contains("max 130")
+                .doesNotContain("MA20")
+                .doesNotContain("RSI");
     }
 
     @Test
@@ -117,8 +117,7 @@ class PriceHistoryToolTest {
 
         String r = tool.execute(node("{\"asset_type\":\"STOCK\",\"symbol\":\"X\",\"range\":\"3M\"}"), null);
 
-        assertThat(r).contains("MA20");
-        assertThat(r).contains("(fiyat altında)");        // son 110, MA20 daha yüksek
+        assertThat(r).contains("MA20").contains("(fiyat altında)");   // son 110, MA20 daha yüksek
     }
 
     @Test
@@ -135,9 +134,7 @@ class PriceHistoryToolTest {
 
         String r = tool.execute(node("{\"asset_type\":\"CRYPTO\",\"symbol\":\"BTC\",\"range\":\"1Y\"}"), null);
 
-        assertThat(r).contains("MA20");
-        assertThat(r).contains("MA50");
-        assertThat(r).contains("RSI(14)");
+        assertThat(r).contains("MA20").contains("MA50").contains("RSI(14)");
     }
 
     @Test

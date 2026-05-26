@@ -145,8 +145,10 @@ class PortfolioHoldingsBuilderTest {
     void build_sellWithoutPosition_throws() {
         PortfolioTransaction s = tx(SELL("THYAO", AssetType.STOCK,
                 "5", "100", "0", "2026-05-22T10:00:00"));
+        // Tek kısıt: lambda yalnızca builder.build() çağrısını içermeli (Sonar S5778).
+        List<PortfolioTransaction> txs = List.of(s);
 
-        assertThatThrownBy(() -> builder.build(List.of(s)))
+        assertThatThrownBy(() -> builder.build(txs))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("SELL with non-positive open quantity");
     }

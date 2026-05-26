@@ -21,7 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Disabled("Requires running Keycloak (admin token). Will be re-enabled via Testcontainers in Phase 2.")
-class SecurityIntegrationTests {
+class SecurityIT {
 
     @Autowired
     MockMvc mockMvc;

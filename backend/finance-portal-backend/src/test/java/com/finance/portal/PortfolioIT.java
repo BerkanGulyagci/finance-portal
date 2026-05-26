@@ -38,7 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Transactional
 @Disabled("Requires running Keycloak (admin token). Will be re-enabled via Testcontainers in Phase 2.")
-class PortfolioIntegrationTests {
+class PortfolioIT {
 
     @Autowired
     MockMvc mockMvc;
