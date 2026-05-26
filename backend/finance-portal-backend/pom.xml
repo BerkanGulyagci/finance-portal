@@ -29,6 +29,16 @@
     <properties>
         <java.version>21</java.version>
         <testcontainers.version>1.19.7</testcontainers.version>
+
+        <!-- SonarQube config (self-hosted): mvn sonar:sonar koşulurken kullanılır.
+             Yerel host URL ve token CLI'dan -D ile geçilebilir. -->
+        <sonar.host.url>http://localhost:9000</sonar.host.url>
+        <sonar.projectKey>finance-portal-backend</sonar.projectKey>
+        <sonar.projectName>Finance Portal Backend</sonar.projectName>
+        <sonar.java.source>21</sonar.java.source>
+        <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+        <sonar.junit.reportPaths>${project.build.directory}/surefire-reports,${project.build.directory}/failsafe-reports</sonar.junit.reportPaths>
+        <sonar.coverage.exclusions>**/dto/**,**/domain/**,**/config/**,**/*Application.java</sonar.coverage.exclusions>
     </properties>
 
     <!-- Testcontainers BOM: integration testlerinde gerçek Docker container'ları

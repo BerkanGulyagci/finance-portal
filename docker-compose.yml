@@ -351,6 +351,33 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # SonarQube — self-hosted kod kalite analiz sunucusu (lokal-only).
+  # 'sonar' profili altında: varsayılan `docker compose up` BU SERVİSİ BAŞLATMAZ.
+  # Analiz yapmak için:    docker compose --profile sonar up -d sonarqube
+  # Sonra UI'a gir:        http://localhost:9000   (admin/admin, ilk girişte değiştir)
+  # Backend kökünde:       ./mvnw -B verify sonar:sonar  -Dsonar.host.url=http://localhost:9000  -Dsonar.token=<token>
+  sonarqube:
+    image: sonarqube:community
+    container_name: finance-portal-sonarqube
+    profiles: ["sonar"]
+    ports:
+      - "9000:9000"
+    environment:
+      # Dev için yerleşik H2 yeterli (production tek-instance için Postgres önerilir).
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+    networks:
+      - finance-portal-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 networks:
   finance-portal-network:
     driver: bridge
@@ -361,3 +388,6 @@ volumes:
   tempo_data:
   prometheus_data:
   grafana_data:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
