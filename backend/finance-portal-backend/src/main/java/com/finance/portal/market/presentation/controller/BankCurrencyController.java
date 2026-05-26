@@ -22,6 +22,10 @@ import java.util.Map;
  *   GET /api/market/currency/banks?currency=USD     → Döviz koduna göre filtre
  *   GET /api/market/currency/banks/{bankName}       → Banka adına göre filtre
  */
+// Sonar S6863: bu controller hata durumunda da HTTP 200 + body {"success":false} dönüyor.
+// Mevcut frontend bu sözleşmeye dayalı; tüm controller'ları ControllerAdvice tabanlı
+// 4xx/5xx error response'a geçirmek ayrı bir refactor task (TODO #API-error-uniformity).
+@SuppressWarnings("java:S6863")
 @RestController
 @RequestMapping("/api/market/currency")
 public class BankCurrencyController {

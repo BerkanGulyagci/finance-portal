@@ -60,7 +60,28 @@ public class ImageProxyService {
         return MediaType.IMAGE_JPEG_VALUE;
     }
 
+    // Record'un default equals/hashCode'u array referansı karşılaştırır — Sonar S6218.
+    // Override ile array içeriğini hesaba kat: aynı byte'lar + aynı contentType ise eşit.
     public record ProxiedImage(byte[] content, String contentType) {
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof ProxiedImage other)) return false;
+            return java.util.Arrays.equals(content, other.content)
+                    && java.util.Objects.equals(contentType, other.contentType);
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * java.util.Arrays.hashCode(content)
+                    + java.util.Objects.hashCode(contentType);
+        }
+
+        @Override
+        public String toString() {
+            return "ProxiedImage[contentType=" + contentType
+                    + ", content.length=" + (content != null ? content.length : 0) + "]";
+        }
     }
 
     public sealed interface ImageProxyResult permits ImageProxyResult.Success, ImageProxyResult.Forbidden, ImageProxyResult.NotFound {

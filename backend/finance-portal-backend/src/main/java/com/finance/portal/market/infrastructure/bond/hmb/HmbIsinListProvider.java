@@ -47,9 +47,18 @@ public class HmbIsinListProvider implements HmbIsinSource {
     private final RestTemplate restTemplate;
     private final CentralIntegrationLogService integrationLog;
 
-    /** ISIN → statik künye (tohumdan). LinkedHashMap → tablo sırası korunur. */
-    private volatile Map<String, HmbBond> registry = new LinkedHashMap<>();
+    /**
+     * Immutable-swap pattern: yenileme her seferinde TÜM Map'i sıfırdan kurar ve
+     * volatile referansı atomik olarak yeni IMMUTABLE Map'e siver. Okuyucular hep
+     * tutarlı bir snapshot görür; iç değişiklik (put/remove) hiç olmaz. Bu yüzden
+     * volatile non-primitive Sonar S3077'si bu kullanım için yanlış-pozitiftir.
+     */
+    @SuppressWarnings({"java:S3077"})
+    private volatile Map<String, HmbBond> registry = Map.of();
+
+    @SuppressWarnings({"java:S3077"})
     private volatile List<String> activeIsins = List.of();
+
     private volatile String lastXlsxUrl = null;
 
     public HmbIsinListProvider(RestTemplate restTemplate, CentralIntegrationLogService integrationLog) {
@@ -82,7 +91,7 @@ public class HmbIsinListProvider implements HmbIsinSource {
         } catch (Exception e) {
             log.warn("HMB tohum CSV okunamadı: {}", e.getMessage());
         }
-        this.registry = reg;
+        this.registry = Map.copyOf(reg);
         this.activeIsins = List.copyOf(reg.keySet());
         log.info("HMB tahvil tohum listesi yüklendi: {} ISIN", activeIsins.size());
     }

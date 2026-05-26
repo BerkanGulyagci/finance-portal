@@ -209,7 +209,11 @@ public class BusinessInsiderBondClient implements BusinessInsiderBondPort {
         synchronized (gate) {
             long wait = MIN_INTERVAL_MS - (System.currentTimeMillis() - lastReqAt);
             if (wait > 0) {
-                try { Thread.sleep(wait); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+                // Sonar S2276 yanlış-pozitif: Bu rate-limit gate'i. wait() kullansak
+                // monitor serbest kalır, paralel thread'ler aynı anda istek atar ve
+                // Business Insider 429/ban verir. Thread.sleep monitor'u tutarak
+                // kuyruğu sıralı tutar — istenen davranış.
+                try { Thread.sleep(wait); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }  // NOSONAR S2276
             }
             lastReqAt = System.currentTimeMillis();
         }

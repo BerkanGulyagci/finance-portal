@@ -38,6 +38,10 @@ public class NewsAggregateCache {
     private final List<NewsProvider> providers;
     private final ArticleContentPort contentPort;
 
+    // Immutable-swap pattern: cached her zaman yeni IMMUTABLE List ile değiştirilir
+    // (atomik referans swap); okuyucular tutarlı snapshot görür. Bu yüzden Sonar
+    // S3077 (volatile non-primitive) burada yanlış-pozitiftir.
+    @SuppressWarnings({"java:S3077"})
     private volatile List<NewsArticle> cached = List.of();
     private volatile long lastRefresh = 0L;
 
