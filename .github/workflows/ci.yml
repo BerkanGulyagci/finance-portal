@@ -1,0 +1,68 @@
+# Finance Portal — Continuous Integration
+#
+# Runs on every push and pull request targeting main. Two independent jobs
+# execute in parallel on Ubuntu runners:
+#   1) backend-test    — Java 21, Maven verify (compile + 142 active tests)
+#   2) frontend-build  — Node 20, npm ci + Vite production build
+#
+# If the same branch is pushed again while a previous run is still going,
+# the older run is cancelled to save CI minutes.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-test:
+    name: Backend (Java 21 + Maven)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend/finance-portal-backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Ensure mvnw is executable
+        run: chmod +x mvnw
+
+      - name: Build and test (mvn verify)
+        run: ./mvnw -B --no-transfer-progress verify
+
+  frontend-build:
+    name: Frontend (Node 20 + Vite)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/finance-portal-frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/finance-portal-frontend/package-lock.json
+
+      - name: Install dependencies (npm ci)
+        run: npm ci
+
+      - name: Build (npm run build)
+        run: npm run build
