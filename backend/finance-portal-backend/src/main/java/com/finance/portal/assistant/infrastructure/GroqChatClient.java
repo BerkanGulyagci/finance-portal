@@ -233,7 +233,8 @@ public class GroqChatClient implements AssistantChatPort {
     private static long parseRetryMs(org.springframework.web.client.HttpStatusCodeException e) {
         long ms = 1500;
         try {
-            String ra = e.getResponseHeaders() != null ? e.getResponseHeaders().getFirst("Retry-After") : null;
+            var headers = e.getResponseHeaders();
+            String ra = headers != null ? headers.getFirst("Retry-After") : null;
             if (ra != null && !ra.isBlank()) {
                 ms = (long) (Double.parseDouble(ra.trim()) * 1000);
             } else {

@@ -184,6 +184,9 @@ public class PortfolioWatchlistMarketEnricher implements WatchlistMarketEnrichme
     }
 
     private void enrichStockLike(WatchlistItemResponse r, String symbol) {
+        if (symbol == null || symbol.isBlank()) {
+            return;
+        }
         StockSummary s = stockQueryService.getStockSummary(symbol.toUpperCase());
         applyStockSummary(r, s);
     }

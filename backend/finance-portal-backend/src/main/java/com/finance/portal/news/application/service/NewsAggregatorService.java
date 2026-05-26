@@ -184,7 +184,8 @@ public class NewsAggregatorService {
                                 Comparator.reverseOrder()))
                 .limit(size)
                 .map(Map.Entry::getKey)
-                .collect(Collectors.toList());
+                // Stream#toList (Java 16+) — non-null garantili immutable list; Sonar S2259 false-positive'i de düşer.
+                .toList();
 
         List<NewsArticle> out = translatePage(matched, lang);
         return new NewsQueryResult(out, 1, size, (long) matched.size(), 1, List.of(), Map.of());

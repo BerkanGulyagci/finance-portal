@@ -41,7 +41,10 @@ public final class NewsHtmlUtil {
 
     /** HTML varlıklarını çözer; çift-encode için stabil olana dek (≤3 geçiş) tekrarlar. */
     public static String decodeEntities(String s) {
-        if (s == null || s.indexOf('&') < 0) {
+        if (s == null) {
+            return "";
+        }
+        if (s.indexOf('&') < 0) {
             return s;
         }
         String out = s;

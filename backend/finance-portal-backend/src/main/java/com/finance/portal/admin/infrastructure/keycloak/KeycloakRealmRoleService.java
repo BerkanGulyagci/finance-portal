@@ -180,6 +180,9 @@ public class KeycloakRealmRoleService {
     }
 
     static String extractErrorDetail(Exception ex) {
+        if (ex == null) {
+            return "(unknown error)";
+        }
         Throwable current = ex;
         while (current != null) {
             if (current instanceof RestClientResponseException response) {

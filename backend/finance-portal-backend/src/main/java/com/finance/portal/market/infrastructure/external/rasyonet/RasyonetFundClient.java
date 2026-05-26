@@ -249,8 +249,8 @@ public class RasyonetFundClient {
                     uri, HttpMethod.GET, entity, byte[].class);
 
             int httpStatus = response.getStatusCode().value();
-            String contentType = response.getHeaders().getContentType() != null
-                    ? response.getHeaders().getContentType().toString() : "unknown";
+            var ct = response.getHeaders().getContentType();
+            String contentType = ct != null ? ct.toString() : "unknown";
 
             byte[] bytes = response.getBody();
             if (bytes == null || bytes.length == 0) {

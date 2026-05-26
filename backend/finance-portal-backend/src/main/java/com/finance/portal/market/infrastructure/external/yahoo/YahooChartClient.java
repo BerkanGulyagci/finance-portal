@@ -238,11 +238,11 @@ public class YahooChartClient {
 
     private String encodePathSegment(String value) {
         // Encode only characters that are not allowed in path segments
-        return UriComponentsBuilder.fromPath("/{segment}")
+        String encoded = UriComponentsBuilder.fromPath("/{segment}")
                 .buildAndExpand(value)
                 .encode(StandardCharsets.UTF_8)
-                .getPath()
-                .substring(1);
+                .getPath();
+        return encoded != null && encoded.length() > 1 ? encoded.substring(1) : "";
     }
 
     public List<StockSummary> fetchQuoteBatch(List<String> symbols) {
