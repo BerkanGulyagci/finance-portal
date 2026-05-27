@@ -12,10 +12,6 @@ import com.finance.portal.market.application.commodity.YahooCommodityService;
 import com.finance.portal.market.application.funds.model.RasyonetFundDetailDto;
 import com.finance.portal.market.application.funds.model.RasyonetFundDto;
 import com.finance.portal.market.application.funds.service.RasyonetFundService;
-import com.finance.portal.market.application.gold.GoldHistoryPoint;
-import com.finance.portal.market.application.gold.GoldHistoryResponse;
-import com.finance.portal.market.application.gold.GoldMarketService;
-import com.finance.portal.market.application.gold.GoldSpotResponse;
 import com.finance.portal.market.application.service.MarketFxService;
 import com.finance.portal.market.application.silver.SilverHistoryPoint;
 import com.finance.portal.market.application.silver.SilverHistoryResponse;
@@ -29,6 +25,7 @@ import com.finance.portal.portfolio.service.enrich.BondHoldingEnricher;
 import com.finance.portal.portfolio.service.enrich.CryptoHoldingEnricher;
 import com.finance.portal.portfolio.service.enrich.FutureHoldingEnricher;
 import com.finance.portal.portfolio.service.enrich.FxHoldingEnricher;
+import com.finance.portal.portfolio.service.enrich.GoldHoldingEnricher;
 import com.finance.portal.portfolio.service.enrich.StockHoldingEnricher;
 import com.finance.portal.portfolio.service.support.PortfolioDateTimeParse;
 import com.finance.portal.portfolio.service.support.PortfolioHistoryPoints;
@@ -62,15 +59,7 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
     private static final int MONEY_SCALE = 4;
     private static final int FUND_MONEY_SCALE = 8;
 
-    private static final BigDecimal GOLD_FINENESS_22K = new BigDecimal("0.9166");
-    private static final BigDecimal GOLD_FINENESS_14K = new BigDecimal("0.5850");
-    private static final BigDecimal GOLD_GROSS_QUARTER  = new BigDecimal("1.754");
-    private static final BigDecimal GOLD_GROSS_HALF     = new BigDecimal("3.508");
-    private static final BigDecimal GOLD_GROSS_ZIYNET   = new BigDecimal("7.016");
-    private static final BigDecimal GOLD_GROSS_REPUBLIC = new BigDecimal("7.216");
-
     private final AssetPriceQueryService assetPriceQueryService;
-    private final GoldMarketService goldMarketService;
     private final YahooCommodityService yahooCommodityService;
     private final SilverMarketService silverMarketService;
     private final MarketFxService marketFxService;
@@ -81,9 +70,9 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
     private final StockHoldingEnricher stockHoldingEnricher;
     private final FutureHoldingEnricher futureHoldingEnricher;
     private final FxHoldingEnricher fxHoldingEnricher;
+    private final GoldHoldingEnricher goldHoldingEnricher;
 
     public PortfolioHoldingMarketEnricher(AssetPriceQueryService assetPriceQueryService,
-                                          GoldMarketService goldMarketService,
                                           YahooCommodityService yahooCommodityService,
                                           SilverMarketService silverMarketService,
                                           MarketFxService marketFxService,
@@ -93,9 +82,9 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
                                           BondHoldingEnricher bondHoldingEnricher,
                                           StockHoldingEnricher stockHoldingEnricher,
                                           FutureHoldingEnricher futureHoldingEnricher,
-                                          FxHoldingEnricher fxHoldingEnricher) {
+                                          FxHoldingEnricher fxHoldingEnricher,
+                                          GoldHoldingEnricher goldHoldingEnricher) {
         this.assetPriceQueryService = assetPriceQueryService;
-        this.goldMarketService = goldMarketService;
         this.yahooCommodityService = yahooCommodityService;
         this.silverMarketService = silverMarketService;
         this.marketFxService = marketFxService;
@@ -106,19 +95,7 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
         this.stockHoldingEnricher = stockHoldingEnricher;
         this.futureHoldingEnricher = futureHoldingEnricher;
         this.fxHoldingEnricher = fxHoldingEnricher;
-    }
-    private static String goldHoldingDisplayName(String upper) {
-        return switch (upper) {
-            case "GOLD" -> "Altın (Ons)";
-            case "GRAM" -> "Gram Altın";
-            case "14AYAR", "AYAR14" -> "14 Ayar Bilezik";
-            case "22AYAR", "AYAR22" -> "22 Ayar Bilezik";
-            case "CEYREK" -> "Çeyrek Altın";
-            case "YARIM" -> "Yarım Altın";
-            case "TAM", "ZIYNET" -> "Tam Altın";
-            case "CUMHUR", "ATA" -> "Cumhuriyet Altını";
-            default -> "Altın (" + upper + ")";
-        };
+        this.goldHoldingEnricher = goldHoldingEnricher;
     }
 
     @Override
@@ -135,7 +112,7 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
             } else if (type == AssetType.CRYPTO) {
                 cryptoHoldingEnricher.enrich(holding);
             } else if (type == AssetType.GOLD) {
-                enrichGoldHolding(holding);
+                goldHoldingEnricher.enrich(holding);
             } else if (type == AssetType.COMMODITY) {
                 enrichCommodityHolding(holding);
             } else if (type == AssetType.FUND) {
@@ -225,69 +202,6 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
         }
     }
 
-    /**
-     * Altın sembolüne göre 1Y kapanış serisi (mevcut fiyat birimiyle uyumlu).
-     * GOLD → TRY/ons; GRAM ve türevleri → gram TRY veya teorik çarpan.
-     */
-    private List<BigDecimal> buildGoldPriceSeries(String upper, BigDecimal usdTry) {
-        if ("GOLD".equals(upper)) {
-            if (usdTry == null) {
-                return List.of();
-            }
-            GoldHistoryResponse hist = goldMarketService.getGoldHistory("1Y", "USD");
-            if (hist == null || hist.getPoints() == null) {
-                return List.of();
-            }
-            return hist.getPoints().stream()
-                    .map(GoldHistoryPoint::getClose)
-                    .filter(Objects::nonNull)
-                    .map(c -> c.multiply(usdTry).setScale(2, RoundingMode.HALF_UP))
-                    .collect(Collectors.toList());
-        }
-        GoldHistoryResponse hist = goldMarketService.getGoldHistory("1Y", "TRY");
-        if (hist == null || hist.getPoints() == null) {
-            return List.of();
-        }
-        List<BigDecimal> gramCloses = hist.getPoints().stream()
-                .map(GoldHistoryPoint::getClose)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-        BigDecimal factor = goldTheoryFactor(upper);
-        if (factor == null) {
-            return gramCloses;
-        }
-        return gramCloses.stream()
-                .map(g -> g.multiply(factor).setScale(2, RoundingMode.HALF_UP))
-                .collect(Collectors.toList());
-    }
-
-    private static BigDecimal goldTheoryFactor(String upper) {
-        return switch (upper) {
-            case "GRAM" -> null;
-            case "14AYAR", "AYAR14" -> GOLD_FINENESS_14K;
-            case "22AYAR", "AYAR22" -> GOLD_FINENESS_22K;
-            case "CEYREK" -> GOLD_GROSS_QUARTER.multiply(GOLD_FINENESS_22K);
-            case "YARIM" -> GOLD_GROSS_HALF.multiply(GOLD_FINENESS_22K);
-            case "TAM", "ZIYNET" -> GOLD_GROSS_ZIYNET.multiply(GOLD_FINENESS_22K);
-            case "CUMHUR", "ATA" -> GOLD_GROSS_REPUBLIC.multiply(GOLD_FINENESS_22K);
-            default -> null;
-        };
-    }
-
-    private void applyGoldHistoryMetrics(PortfolioHoldingResponse holding, String upper, BigDecimal usdTry) {
-        try {
-            List<BigDecimal> series = buildGoldPriceSeries(upper, usdTry);
-            if (series.isEmpty()) {
-                return;
-            }
-            holding.setFiftyTwoWeekHigh(series.stream().max(BigDecimal::compareTo).orElse(null));
-            holding.setFiftyTwoWeekLow(series.stream().min(BigDecimal::compareTo).orElse(null));
-            applyMasFromCloses(holding, series);
-        } catch (Exception e) {
-            log.debug("Gold history metrics unavailable for {}: {}", upper, e.getMessage());
-        }
-    }
-
     private void applyYahooCommodityMas(PortfolioHoldingResponse holding, String symbol) {
         try {
             CommodityHistoryResponse hist = yahooCommodityService.getHistory(symbol, "1Y", "1d");
@@ -324,118 +238,6 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
         holding.setAsOf(snapshot.getAsOf());
     }
 
-    /**
-     * GOLD: GoldMarketService üzerinden spot fiyat + ons değişim verileri.
-     * GOLD sembolü → TRY/ons (onsUsd × TCMB).
-     * GRAM sembolü → TRY/gram fiyatı.
-     */
-    private void enrichGoldHolding(PortfolioHoldingResponse holding) {
-        GoldSpotResponse spot = goldMarketService.getSpotGold();
-        LocalDateTime asOf = PortfolioDateTimeParse.parseLenient(spot.getLastUpdated());
-        if (asOf == null) asOf = PortfolioDateTimeParse.parseLenient(spot.getUpdatedAt());
-
-        String upper = holding.getSymbol().toUpperCase();
-        BigDecimal price;
-        String currency;
-        BigDecimal change = null;
-        BigDecimal changePercent = null;
-        BigDecimal high = null;
-        BigDecimal low  = null;
-
-        switch (upper) {
-            case "GOLD" -> {
-                // İşlem fiyatı TRY/ons → canlı fiyat da TRY/ons (ham USD/ons kullanılmaz)
-                price = spot.getOnsTry();
-                if (price == null && spot.getOnsUsd() != null && spot.getUsdTry() != null) {
-                    price = spot.getOnsUsd().multiply(spot.getUsdTry()).setScale(2, RoundingMode.HALF_UP);
-                }
-                currency = "TRY";
-                BigDecimal usdTry = spot.getUsdTry();
-                if (spot.getOnsChange() != null && usdTry != null) {
-                    change = spot.getOnsChange().multiply(usdTry).setScale(2, RoundingMode.HALF_UP);
-                }
-                changePercent = spot.getOnsChangePercent();
-                if (spot.getOnsHigh() != null && usdTry != null) {
-                    high = spot.getOnsHigh().multiply(usdTry).setScale(2, RoundingMode.HALF_UP);
-                }
-                if (spot.getOnsLow() != null && usdTry != null) {
-                    low = spot.getOnsLow().multiply(usdTry).setScale(2, RoundingMode.HALF_UP);
-                }
-            }
-            case "GRAM" -> {
-                price    = spot.getGramGoldTry() != null ? spot.getGramGoldTry() : spot.getGramTl();
-                currency = "TRY";
-                high     = spot.getGramHighTry();
-                low      = spot.getGramLowTry();
-                change   = spot.getChange();
-                changePercent = spot.getChangePercent();
-            }
-            case "CEYREK" -> { price = spot.getQuarterGoldTry();   currency = "TRY"; }
-            case "YARIM"  -> { price = spot.getHalfGoldTry();      currency = "TRY"; }
-            case "TAM"    -> { price = spot.getZiynetGoldTry();     currency = "TRY"; }
-            case "ZIYNET" -> { price = spot.getZiynetGoldTry();     currency = "TRY"; }
-            case "CUMHUR", "ATA" -> { price = spot.getRepublicGoldTry(); currency = "TRY"; }
-            case "14AYAR", "AYAR14" -> {
-                price = spot.getFourteenKBraceletTry() != null ? spot.getFourteenKBraceletTry() : spot.getAyar14Tl();
-                currency = "TRY";
-                change = spot.getChange();
-                changePercent = spot.getChangePercent();
-            }
-            case "22AYAR", "AYAR22" -> {
-                price = spot.getTwentyTwoKBraceletTry() != null ? spot.getTwentyTwoKBraceletTry() : spot.getAyar22Tl();
-                currency = "TRY";
-                change = spot.getChange();
-                changePercent = spot.getChangePercent();
-            }
-            default -> throw new UnsupportedOperationException("Unsupported gold symbol: " + upper);
-        }
-
-        if (price == null) {
-            if ("GOLD".equals(upper)) {
-                holding.setCurrency("TRY");
-                holding.setName("Altın (Ons)");
-                holding.setAsOf(asOf);
-                if (spot.getQuantityKg() != null) {
-                    holding.setVolume(spot.getQuantityKg().longValue());
-                }
-                return;
-            }
-            throw new IllegalStateException("Gold price unavailable for: " + upper);
-        }
-
-        BigDecimal mv = price.multiply(holding.getTotalQuantity()).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
-        BigDecimal pl = mv.subtract(holding.getTotalCost()).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
-
-        // Sikke/ziynet (Çeyrek/Yarım/Tam/Ata) için günlük değişim spot'ta ayrı gelmiyor;
-        // gram altınla aynı oranda hareket ettiklerinden gram günlük %'sinden türetilir
-        // (değişim tutarı = fiyat × %/100). GRAM/ONS/14-22 ayar zaten kendi değerini taşır.
-        if (changePercent == null && spot.getChangePercent() != null) {
-            changePercent = spot.getChangePercent();
-        }
-        if (change == null && changePercent != null) {
-            change = price.multiply(changePercent)
-                    .divide(BigDecimal.valueOf(100), MONEY_SCALE, RoundingMode.HALF_UP);
-        }
-
-        holding.setCurrentPrice(price);
-        holding.setMarketValue(mv);
-        holding.setProfitLoss(pl);
-        holding.setCurrency(currency);
-        holding.setAsOf(asOf);
-        holding.setName(goldHoldingDisplayName(upper));
-        holding.setChange(change);
-        holding.setChangePercent(changePercent);
-        holding.setDayHigh(high);
-        holding.setDayLow(low);
-
-        // 52 hafta + MA20/MA50 — trend hesabı için aynı fiyat serisi
-        applyGoldHistoryMetrics(holding, upper, spot.getUsdTry());
-
-        // Volume: BIST altın hacmini quantityKg üzerinden doldur (Long'a çevir)
-        if (spot.getQuantityKg() != null) {
-            holding.setVolume(spot.getQuantityKg().longValue());
-        }
-    }
 
     /**
      * COMMODITY: SILVER:GRAM_TRY gibi BIST semboller için SilverMarketService,
