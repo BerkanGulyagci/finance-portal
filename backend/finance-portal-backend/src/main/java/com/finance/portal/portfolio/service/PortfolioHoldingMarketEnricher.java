@@ -5,23 +5,13 @@ import com.finance.portal.common.application.logging.IntegrationLogSupport;
 import com.finance.portal.common.domain.AssetType;
 import com.finance.portal.market.application.AssetPriceQueryService;
 import com.finance.portal.market.application.AssetPriceSnapshot;
-import com.finance.portal.market.application.commodity.CommodityHistoryPointDto;
-import com.finance.portal.market.application.commodity.CommodityHistoryResponse;
-import com.finance.portal.market.application.commodity.CommoditySpotDto;
-import com.finance.portal.market.application.commodity.YahooCommodityService;
 import com.finance.portal.market.application.funds.model.RasyonetFundDetailDto;
 import com.finance.portal.market.application.funds.model.RasyonetFundDto;
 import com.finance.portal.market.application.funds.service.RasyonetFundService;
-import com.finance.portal.market.application.service.MarketFxService;
-import com.finance.portal.market.application.silver.SilverHistoryPoint;
-import com.finance.portal.market.application.silver.SilverHistoryResponse;
-import com.finance.portal.market.application.silver.SilverMarketService;
-import com.finance.portal.market.application.silver.SilverSpotResponse;
-import com.finance.portal.market.application.fx.model.FxLatestRates;
-import com.finance.portal.market.application.fx.model.FxRateItem;
 import com.finance.portal.portfolio.application.port.HoldingMarketEnrichmentPort;
 import com.finance.portal.portfolio.presentation.dto.PortfolioHoldingResponse;
 import com.finance.portal.portfolio.service.enrich.BondHoldingEnricher;
+import com.finance.portal.portfolio.service.enrich.CommodityHoldingEnricher;
 import com.finance.portal.portfolio.service.enrich.CryptoHoldingEnricher;
 import com.finance.portal.portfolio.service.enrich.FutureHoldingEnricher;
 import com.finance.portal.portfolio.service.enrich.FxHoldingEnricher;
@@ -60,9 +50,6 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
     private static final int FUND_MONEY_SCALE = 8;
 
     private final AssetPriceQueryService assetPriceQueryService;
-    private final YahooCommodityService yahooCommodityService;
-    private final SilverMarketService silverMarketService;
-    private final MarketFxService marketFxService;
     private final RasyonetFundService rasyonetFundService;
     private final CentralIntegrationLogService integrationLogService;
     private final CryptoHoldingEnricher cryptoHoldingEnricher;
@@ -71,11 +58,9 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
     private final FutureHoldingEnricher futureHoldingEnricher;
     private final FxHoldingEnricher fxHoldingEnricher;
     private final GoldHoldingEnricher goldHoldingEnricher;
+    private final CommodityHoldingEnricher commodityHoldingEnricher;
 
     public PortfolioHoldingMarketEnricher(AssetPriceQueryService assetPriceQueryService,
-                                          YahooCommodityService yahooCommodityService,
-                                          SilverMarketService silverMarketService,
-                                          MarketFxService marketFxService,
                                           RasyonetFundService rasyonetFundService,
                                           CentralIntegrationLogService integrationLogService,
                                           CryptoHoldingEnricher cryptoHoldingEnricher,
@@ -83,11 +68,9 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
                                           StockHoldingEnricher stockHoldingEnricher,
                                           FutureHoldingEnricher futureHoldingEnricher,
                                           FxHoldingEnricher fxHoldingEnricher,
-                                          GoldHoldingEnricher goldHoldingEnricher) {
+                                          GoldHoldingEnricher goldHoldingEnricher,
+                                          CommodityHoldingEnricher commodityHoldingEnricher) {
         this.assetPriceQueryService = assetPriceQueryService;
-        this.yahooCommodityService = yahooCommodityService;
-        this.silverMarketService = silverMarketService;
-        this.marketFxService = marketFxService;
         this.rasyonetFundService = rasyonetFundService;
         this.integrationLogService = integrationLogService;
         this.cryptoHoldingEnricher = cryptoHoldingEnricher;
@@ -96,6 +79,7 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
         this.futureHoldingEnricher = futureHoldingEnricher;
         this.fxHoldingEnricher = fxHoldingEnricher;
         this.goldHoldingEnricher = goldHoldingEnricher;
+        this.commodityHoldingEnricher = commodityHoldingEnricher;
     }
 
     @Override
@@ -114,7 +98,7 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
             } else if (type == AssetType.GOLD) {
                 goldHoldingEnricher.enrich(holding);
             } else if (type == AssetType.COMMODITY) {
-                enrichCommodityHolding(holding);
+                commodityHoldingEnricher.enrich(holding);
             } else if (type == AssetType.FUND) {
                 enrichFundHolding(holding);
             } else if (type == AssetType.BOND) {
@@ -184,42 +168,6 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
         }
     }
 
-    private BigDecimal fetchUsdTryRate() {
-        try {
-            FxLatestRates latest = marketFxService.getTcmbLatestRates("USD");
-            if (latest == null || latest.getRates() == null) {
-                return null;
-            }
-            return latest.getRates().stream()
-                    .filter(r -> "USD".equalsIgnoreCase(r.getSymbol()))
-                    .map(FxRateItem::getSell)
-                    .filter(Objects::nonNull)
-                    .findFirst()
-                    .orElse(null);
-        } catch (Exception e) {
-            log.debug("USD/TRY rate unavailable: {}", e.getMessage());
-            return null;
-        }
-    }
-
-    private void applyYahooCommodityMas(PortfolioHoldingResponse holding, String symbol) {
-        try {
-            CommodityHistoryResponse hist = yahooCommodityService.getHistory(symbol, "1Y", "1d");
-            if (hist == null || hist.getPoints() == null || hist.getPoints().isEmpty()) {
-                return;
-            }
-            BigDecimal usdTry = "TRY".equalsIgnoreCase(holding.getCurrency()) ? fetchUsdTryRate() : null;
-            List<BigDecimal> closes = hist.getPoints().stream()
-                    .map(CommodityHistoryPointDto::getDisplayClose)
-                    .filter(Objects::nonNull)
-                    .map(c -> usdTry != null ? c.multiply(usdTry).setScale(2, RoundingMode.HALF_UP) : c)
-                    .collect(Collectors.toList());
-            applyMasFromCloses(holding, closes);
-        } catch (Exception e) {
-            log.debug("Commodity MA skipped for {}: {}", symbol, e.getMessage());
-        }
-    }
-
     /** FX, BOND gibi basit fiyat snapshot yeterli olan tipler için. */
     private void enrichFromPriceSnapshot(PortfolioHoldingResponse holding) {
         AssetPriceSnapshot snapshot = assetPriceQueryService.getCurrentPrice(
@@ -238,149 +186,6 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
         holding.setAsOf(snapshot.getAsOf());
     }
 
-
-    /**
-     * COMMODITY: SILVER:GRAM_TRY gibi BIST semboller için SilverMarketService,
-     * diğerleri için YahooCommodityService (NG=F, CL=F vb.).
-     * CommoditySpotDto zaten change, changePercent, dayHigh/Low, weekHigh52/Low52, volume içeriyor.
-     */
-    private void enrichCommodityHolding(PortfolioHoldingResponse holding) {
-        String symbol = holding.getSymbol();
-
-        if (symbol.contains(":")) {
-            String[] parts = symbol.split(":", 2);
-            String metal = parts[0].toUpperCase();
-            String cat   = parts.length > 1 ? parts[1].toUpperCase() : "";
-            if ("SILVER".equals(metal)) {
-                enrichSilverHolding(holding, cat);
-                return;
-            }
-        }
-
-        // Yahoo Finance destekli emtia (NG=F, CL=F, GC=F vb.)
-        CommoditySpotDto spot = yahooCommodityService.getSpot(symbol);
-        BigDecimal price = spot.getDisplayPrice() != null ? spot.getDisplayPrice() : spot.getRawPrice();
-        if (price == null) throw new IllegalStateException("Commodity price unavailable: " + symbol);
-
-        BigDecimal mv = price.multiply(holding.getTotalQuantity()).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
-        BigDecimal pl = mv.subtract(holding.getTotalCost()).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
-
-        holding.setCurrentPrice(price);
-        holding.setMarketValue(mv);
-        holding.setProfitLoss(pl);
-        holding.setCurrency("TRY");
-        holding.setAsOf(PortfolioDateTimeParse.parseLenient(spot.getLastUpdated()));
-        String displayName = spot.getDisplayNameTr() != null ? spot.getDisplayNameTr() : spot.getDisplayNameEn();
-        if (displayName != null) holding.setName(displayName);
-        holding.setChange(spot.getChange());
-        holding.setChangePercent(spot.getChangePercent());
-        // Emtia için güvenilir işlem hacmi gelmiyor → "Hacim" doldurulmaz.
-        holding.setDayHigh(spot.getDayHigh());
-        holding.setDayLow(spot.getDayLow());
-        holding.setFiftyTwoWeekHigh(spot.getWeekHigh52());
-        holding.setFiftyTwoWeekLow(spot.getWeekLow52());
-        applyYahooCommodityMas(holding, symbol);
-    }
-
-    /** SILVER:GRAM_TRY / SILVER:KG_TRY / SILVER:USD_ONS gibi BIST gümüş sembolleri. */
-    private void enrichSilverHolding(PortfolioHoldingResponse holding, String cat) {
-        SilverSpotResponse spot = silverMarketService.getSpotSilver();
-        BigDecimal price = null;
-        String currency = "TRY";
-        BigDecimal high = null;
-        BigDecimal low  = null;
-        BigDecimal change = null;
-        BigDecimal changePercent = null;
-
-        switch (cat.isBlank() ? "GRAM_TRY" : cat) {
-            case "GRAM_TRY" -> {
-                SilverHistoryResponse hist = silverMarketService.getSilverHistory("1W", "TRY");
-                PortfolioHistoryPoints.SilverWindow lp = PortfolioHistoryPoints.silverWindow(hist);
-                if (lp.latest() != null && lp.latest().getClose() != null) {
-                    price = lp.latest().getClose();
-                    high = lp.latest().getHigh();
-                    low = lp.latest().getLow();
-                } else {
-                    price = spot.getSilverGramCloseTry();
-                    high = spot.getSilverGramHighTry();
-                    low = spot.getSilverGramLowTry();
-                }
-                if (price == null) {
-                    price = spot.getSilverGramTry();
-                }
-                if (lp.latest() != null && lp.prev() != null && lp.latest().getClose() != null
-                        && lp.prev().getClose() != null && lp.prev().getClose().compareTo(BigDecimal.ZERO) != 0) {
-                    BigDecimal refPrice = price != null ? price : lp.latest().getClose();
-                    change = refPrice.subtract(lp.prev().getClose());
-                    changePercent = change.divide(lp.prev().getClose(), 6, RoundingMode.HALF_UP)
-                            .multiply(BigDecimal.valueOf(100))
-                            .setScale(2, RoundingMode.HALF_UP);
-                }
-            }
-            case "KG_TRY" -> {
-                price = spot.getWeightedAverageTryKg();
-                high = spot.getHighTryKg();
-                low = spot.getLowTryKg();
-            }
-            case "USD_ONS" -> {
-                SilverHistoryResponse hist = silverMarketService.getSilverHistory("1W", "USD");
-                PortfolioHistoryPoints.SilverWindow lp = PortfolioHistoryPoints.silverWindow(hist);
-                if (lp.latest() != null) {
-                    price = lp.latest().getClose();
-                    high = lp.latest().getHigh();
-                    low = lp.latest().getLow();
-                    if (price != null && lp.prev() != null && lp.prev().getClose() != null
-                            && lp.prev().getClose().compareTo(BigDecimal.ZERO) != 0) {
-                        change = price.subtract(lp.prev().getClose());
-                        changePercent = change.divide(lp.prev().getClose(), 6, RoundingMode.HALF_UP)
-                                .multiply(BigDecimal.valueOf(100))
-                                .setScale(2, RoundingMode.HALF_UP);
-                    }
-                } else {
-                    price = spot.getSilverUsdOns();
-                    currency = "USD";
-                }
-            }
-            default -> throw new UnsupportedOperationException("Unsupported silver category: " + cat);
-        }
-
-        if (price == null) throw new IllegalStateException("Silver price unavailable for cat: " + cat);
-
-        BigDecimal mv = price.multiply(holding.getTotalQuantity()).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
-        BigDecimal pl = mv.subtract(holding.getTotalCost()).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
-
-        holding.setCurrentPrice(price);
-        holding.setMarketValue(mv);
-        holding.setProfitLoss(pl);
-        holding.setCurrency(currency);
-        holding.setAsOf(PortfolioDateTimeParse.parseLenient(spot.getLastUpdated()));
-        holding.setName("Gümüş");
-        holding.setChange(change);
-        holding.setChangePercent(changePercent);
-        holding.setDayHigh(high);
-        holding.setDayLow(low);
-
-        // 52-week range — 1Y history min/max
-        try {
-            String histCurrency = "USD".equals(currency) ? "USD" : "TRY";
-            SilverHistoryResponse hist1y = silverMarketService.getSilverHistory("1Y", histCurrency);
-            if (hist1y != null && hist1y.getPoints() != null) {
-                List<BigDecimal> closes1y = hist1y.getPoints().stream()
-                        .map(SilverHistoryPoint::getClose)
-                        .filter(java.util.Objects::nonNull)
-                        .collect(java.util.stream.Collectors.toList());
-                if (!closes1y.isEmpty()) {
-                    holding.setFiftyTwoWeekHigh(closes1y.stream().max(BigDecimal::compareTo).orElse(null));
-                    holding.setFiftyTwoWeekLow(closes1y.stream().min(BigDecimal::compareTo).orElse(null));
-                    applyMasFromCloses(holding, closes1y);
-                }
-            }
-        } catch (Exception e) {
-            log.debug("52w range unavailable for SILVER {}: {}", cat, e.getMessage());
-        }
-
-        // Emtia (gümüş) için "Hacim" gösterilmez (güvenilir işlem hacmi değil).
-    }
 
     /**
      * FUND: Rasyonet kart / liste — NAV, getiriler, günlük değişim alanları, ~1 yıl NAV geçmişi (52w / MA).
