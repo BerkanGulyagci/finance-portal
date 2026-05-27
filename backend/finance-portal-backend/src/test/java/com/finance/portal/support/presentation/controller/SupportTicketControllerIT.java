@@ -202,7 +202,7 @@ class SupportTicketControllerIT {
     }
 
     // =========================================================================
-    // DELETE /api/support/tickets/{id}
+    // Ticket silme endpoint testleri (DELETE)
     // =========================================================================
 
     @Test

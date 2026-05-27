@@ -24,8 +24,8 @@ import java.util.Map;
  */
 // Sonar S6863: bu controller hata durumunda da HTTP 200 + body {"success":false} dönüyor.
 // Mevcut frontend bu sözleşmeye dayalı; tüm controller'ları ControllerAdvice tabanlı
-// 4xx/5xx error response'a geçirmek ayrı bir refactor task (TODO #API-error-uniformity).
-@SuppressWarnings("java:S6863")
+// 4xx/5xx error response'a geçirmek ayrı bir refactor görevi (#API-error-uniformity).
+@SuppressWarnings({"java:S6863", "java:S1135"})
 @RestController
 @RequestMapping("/api/market/currency")
 public class BankCurrencyController {

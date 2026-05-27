@@ -115,8 +115,8 @@ class HmbIsinListProviderTest {
 
     @Test
     void refresh_wrongHmbFilename_withForce_bypassesKeywordCheck() throws Exception {
-        // HMB filename şeması değişirse admin force=true ile override edebilmeli;
-        // ama içerik doğrulamaları (min ISIN, TR prefix, overlap) hâlâ uygulanır.
+        // HMB filename şeması değişirse admin "force" parametresi ile override edebilmeli;
+        // ama içerik doğrulamaları (min ISIN sayısı, TR prefix oranı, overlap) hâlâ uygulanır.
         setActiveIsins(List.of());
         List<String> validIsins = genusValidIsins(25);
         String nonStandardUrl =
@@ -218,7 +218,7 @@ class HmbIsinListProviderTest {
         // 20 mevcut + 10 yeni = 30 cumulative.
         assertThat(total).isEqualTo(30);
         assertThat(provider.isins()).hasSize(30);
-        // Mevcut ISIN'lerin TAMAMI hâlâ aktif (HİÇ DROP yok).
+        // Mevcut ISIN'lerin tamamı hâlâ aktif (silinme yok).
         assertThat(provider.isins()).containsAll(previous);
         // lastXlsxUrl güncellendi.
         assertThat(provider.lastXlsxUrl()).isEqualTo(URL);

@@ -28,7 +28,6 @@ import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -124,7 +123,7 @@ class EurobondAdminControllerIT {
 
     @Test
     void refresh_asAdmin_validUrl_returnsCount() throws Exception {
-        when(hmbIsinSource.refreshFromXlsx(eq(VALID_URL), eq(false))).thenReturn(42);
+        when(hmbIsinSource.refreshFromXlsx(VALID_URL, false)).thenReturn(42);
 
         mockMvc.perform(post("/api/admin/eurobonds/refresh")
                         .with(jwt("ADMIN"))
@@ -154,7 +153,7 @@ class EurobondAdminControllerIT {
     void refresh_asAdmin_wrongFilename_returns400WithKeywordMessage() throws Exception {
         // Provider'ın gerçek IllegalArgumentException davranışını taklit et (Yurt_Disi_Tahvil_Ihraclari reddi).
         String wrongUrl = "https://ms.hmb.gov.tr/uploads/2026/05/Merkezi_Yonetim_Yurt_Disi_Tahvil_Ihraclari-x.xlsx";
-        when(hmbIsinSource.refreshFromXlsx(eq(wrongUrl), eq(false)))
+        when(hmbIsinSource.refreshFromXlsx(wrongUrl, false))
                 .thenThrow(new IllegalArgumentException(
                         "Bu URL HMB \"Dış Borç Stoku Tahvil Listesi\" gibi görünmüyor."));
 
@@ -170,7 +169,7 @@ class EurobondAdminControllerIT {
     void refresh_asAdmin_withForceTrue_forwardsFlag() throws Exception {
         String nonStandardUrl =
                 "https://ms.hmb.gov.tr/uploads/2027/01/HMB_New_Scheme-x.xlsx";
-        when(hmbIsinSource.refreshFromXlsx(eq(nonStandardUrl), eq(true))).thenReturn(25);
+        when(hmbIsinSource.refreshFromXlsx(nonStandardUrl, true)).thenReturn(25);
 
         mockMvc.perform(post("/api/admin/eurobonds/refresh")
                         .with(jwt("ADMIN"))

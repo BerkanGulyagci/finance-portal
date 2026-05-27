@@ -181,7 +181,7 @@ class NotificationControllerIT {
     }
 
     // =========================================================================
-    // DELETE /api/notifications/{id}
+    // Bildirim silme endpoint testleri (DELETE)
     // =========================================================================
 
     @Test
