@@ -313,12 +313,12 @@ public class PortfolioWhatIfService {
      * zaman içinde gerçek/enflasyon/altın/dolar/mevduat değerini aylık noktalarla verir.
      * Her seri = Σ pozisyon maliyeti × (faktör(t) / faktör(alış)). filterAssetType+filterSymbol
      * boşsa tüm portföy.
-     */
-    /**
-     * S3776 suppress: yöntem 10 paralel hipotetik seri (gerçek / TÜFE / US-CPI / altın / USD /
-     * mevduat / BIST / BTC / S&P500 / benchmarks) için aynı zaman üzerinde toplama yapar.
-     * Her seri kendi availability/base/ratio dalına sahip — her birini ayrı helper'a almak
-     * 30+ parametre veya çok satırlı tuple/record geçirmek demek; mevcut yapı top-down okunur.
+     *
+     * <p>S3776 suppress: yöntem 10 paralel hipotetik seri (gerçek / TÜFE / US-CPI / altın /
+     * USD / mevduat / BIST / BTC / S&amp;P500 / benchmarks) için aynı zaman üzerinde toplama
+     * yapar. Her seri kendi availability/base/ratio dalına sahip — her birini ayrı helper'a
+     * almak 30+ parametre veya çok satırlı tuple/record geçirmek demek; mevcut yapı top-down
+     * okunur.
      */
     @SuppressWarnings("java:S3776")
     @WithSpan("PortfolioWhatIf.computeSeries")

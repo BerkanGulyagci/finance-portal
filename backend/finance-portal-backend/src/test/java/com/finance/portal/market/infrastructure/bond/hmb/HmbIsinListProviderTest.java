@@ -217,13 +217,16 @@ class HmbIsinListProviderTest {
 
         int total = provider.refreshFromXlsx(URL);
 
-        // 20 mevcut + 10 yeni == 30 cumulative; mevcut ISIN'ler de hâlâ aktif (silinme yok);
-        // ve lastXlsxUrl güncellenmiş olmalı.
-        assertThat(total).isEqualTo(30);
+        assertThat(total)
+                .as("20 mevcut + 10 yeni == 30 (cumulative union)")
+                .isEqualTo(30);
         assertThat(provider.isins())
+                .as("mevcut ISIN'ler hâlâ aktif kalmalı — silinme yok")
                 .hasSize(30)
                 .containsAll(previous);
-        assertThat(provider.lastXlsxUrl()).isEqualTo(URL);
+        assertThat(provider.lastXlsxUrl())
+                .as("son başarılı xlsx URL'i güncellenmiş olmalı")
+                .isEqualTo(URL);
     }
 
     @Test
