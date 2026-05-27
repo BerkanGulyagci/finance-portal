@@ -113,10 +113,12 @@ class HmbIsinListProviderTest {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
+    /**
+     * HMB filename şeması değişirse admin "force" parametresi ile override edebilmeli;
+     * ama içerik doğrulamaları (min ISIN sayısı, TR prefix oranı, overlap) hâlâ uygulanır.
+     */
     @Test
     void refresh_wrongHmbFilename_withForce_bypassesKeywordCheck() throws Exception {
-        // HMB filename şeması değişirse admin "force" parametresi ile override edebilmeli;
-        // ama içerik doğrulamaları (min ISIN sayısı, TR prefix oranı, overlap) hâlâ uygulanır.
         setActiveIsins(List.of());
         List<String> validIsins = genusValidIsins(25);
         String nonStandardUrl =
@@ -215,12 +217,12 @@ class HmbIsinListProviderTest {
 
         int total = provider.refreshFromXlsx(URL);
 
-        // 20 mevcut + 10 yeni = 30 cumulative.
+        // 20 mevcut + 10 yeni == 30 cumulative; mevcut ISIN'ler de hâlâ aktif (silinme yok);
+        // ve lastXlsxUrl güncellenmiş olmalı.
         assertThat(total).isEqualTo(30);
-        assertThat(provider.isins()).hasSize(30);
-        // Mevcut ISIN'lerin tamamı hâlâ aktif (silinme yok).
-        assertThat(provider.isins()).containsAll(previous);
-        // lastXlsxUrl güncellendi.
+        assertThat(provider.isins())
+                .hasSize(30)
+                .containsAll(previous);
         assertThat(provider.lastXlsxUrl()).isEqualTo(URL);
     }
 

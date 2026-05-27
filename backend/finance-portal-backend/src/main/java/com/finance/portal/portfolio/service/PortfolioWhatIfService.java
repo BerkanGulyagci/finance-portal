@@ -229,7 +229,12 @@ public class PortfolioWhatIfService {
      * Holdings'i geçerli pozisyonlara (TL maliyet + alış tarihi + asset serisi) çevirir.
      * Eksik veri (costTl ≤ 0 ya da date null) olan satırları eler. computeSeries'in cognitive
      * complexity'sini düşürmek için ayrıldı; tek başına 7 dallı bir döngü.
+     *
+     * <p>S3776 suppress: her dal (filter eşleşmesi, cost/date validasyonu, price-fetch try/catch,
+     * earliest takibi, single-mod etiket) ayrı bir invariantı koruyor; daha alt helper'lara
+     * bölmek paramlar/return tuple'ları nedeniyle okunabilirliği bozar.
      */
+    @SuppressWarnings("java:S3776")
     private PositionBundle buildPositions(List<PortfolioHoldingResponse> holdings, LocalDate today,
                                           String filterAssetType, String filterSymbol, boolean single) {
         List<SeriesPos> positions = new ArrayList<>();
@@ -309,6 +314,13 @@ public class PortfolioWhatIfService {
      * Her seri = Σ pozisyon maliyeti × (faktör(t) / faktör(alış)). filterAssetType+filterSymbol
      * boşsa tüm portföy.
      */
+    /**
+     * S3776 suppress: yöntem 10 paralel hipotetik seri (gerçek / TÜFE / US-CPI / altın / USD /
+     * mevduat / BIST / BTC / S&P500 / benchmarks) için aynı zaman üzerinde toplama yapar.
+     * Her seri kendi availability/base/ratio dalına sahip — her birini ayrı helper'a almak
+     * 30+ parametre veya çok satırlı tuple/record geçirmek demek; mevcut yapı top-down okunur.
+     */
+    @SuppressWarnings("java:S3776")
     @WithSpan("PortfolioWhatIf.computeSeries")
     public WhatIfSeriesResult computeSeries(PortfolioResponse resp,
                                             @SpanAttribute("whatif.asset_type") String filterAssetType,
