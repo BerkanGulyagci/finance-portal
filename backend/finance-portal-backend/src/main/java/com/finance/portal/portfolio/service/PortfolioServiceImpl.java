@@ -681,11 +681,25 @@ public class PortfolioServiceImpl implements PortfolioService {
                 }, BigDecimal::add);
 
         if (sellQty.compareTo(currentQty) > 0) {
-            throw new IllegalArgumentException(
-                    "Insufficient quantity for SELL: available=" + currentQty
-                    + " requested=" + sellQty
-                    + " symbol=" + symbol);
+            String shown = symbol != null ? symbol : "varlık";
+            String userMessage;
+            if (currentQty.signum() <= 0) {
+                userMessage = "Bu " + shown + " için portföyünüzde satılabilecek miktar yok. "
+                        + "Önce alış işlemi eklemelisiniz.";
+            } else {
+                userMessage = "Yetersiz miktar: portföyünüzde " + stripTrailingZeros(currentQty) + " adet "
+                        + shown + " var, " + stripTrailingZeros(sellQty) + " adet satmaya çalıştınız.";
+            }
+            throw new IllegalArgumentException(userMessage);
         }
+    }
+
+    /** "100.0000" → "100", "1.5000" → "1.5" — kullanıcıya hata mesajında temiz görünüm. */
+    private static String stripTrailingZeros(BigDecimal v) {
+        if (v == null) {
+            return "0";
+        }
+        return v.stripTrailingZeros().toPlainString();
     }
 
     private static boolean transactionSymbolMatches(AssetType requestAssetType,
