@@ -132,7 +132,12 @@ public class EurobondService {
 
     /** Admin/zamanlı: HMB xlsx'inden ISIN listesini tazele ve eurobond cache'lerini boşalt. */
     public int refreshIsins(String xlsxUrl) {
-        int n = hmb.refreshFromXlsx(xlsxUrl);
+        return refreshIsins(xlsxUrl, false);
+    }
+
+    /** {@link #refreshIsins(String)}; force=true admin override (URL filename keyword check'i bypass). */
+    public int refreshIsins(String xlsxUrl, boolean force) {
+        int n = hmb.refreshFromXlsx(xlsxUrl, force);
         evict(LIST_CACHE);
         evict(DETAIL_CACHE);
         return n;

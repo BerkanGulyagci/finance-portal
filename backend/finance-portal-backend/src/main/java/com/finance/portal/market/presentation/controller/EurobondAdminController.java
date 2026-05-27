@@ -35,12 +35,15 @@ public class EurobondAdminController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> refresh(@RequestParam String xlsxUrl) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> refresh(
+            @RequestParam String xlsxUrl,
+            @RequestParam(required = false, defaultValue = "false") boolean force) {
         try {
-            int count = eurobondService.refreshIsins(xlsxUrl);
+            int count = eurobondService.refreshIsins(xlsxUrl, force);
             Map<String, Object> body = new LinkedHashMap<>();
             body.put("count", count);
             body.put("xlsxUrl", xlsxUrl);
+            body.put("force", force);
             return ResponseEntity.ok(ApiResponse.success(body, count + " ISIN yüklendi ve cache boşaltıldı."));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));

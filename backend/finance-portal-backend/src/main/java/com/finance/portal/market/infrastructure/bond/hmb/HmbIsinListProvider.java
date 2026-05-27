@@ -20,9 +20,13 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -43,6 +47,33 @@ public class HmbIsinListProvider implements HmbIsinSource {
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
     private static final Pattern ISIN = Pattern.compile("^[A-Z]{2}[A-Z0-9]{9}[0-9]$");
     private static final Pattern T_TAG = Pattern.compile("<t[^>]*>([^<]*)</t>");
+
+    /**
+     * HMB dış borç tahvil ISIN'leri Türkiye Hazinesi'nin ihraççı kodlarını taşır:
+     * — US900123... (USD, ABD piyasası), XS... (Eurobond), JP579200... (Samurai/JPY).
+     * Yüklenen xlsx'in gerçekten Hazine listesi olduğunu doğrulamak için kullanılır.
+     */
+    private static final Set<String> TR_SOVEREIGN_PREFIXES = Set.of("XS", "US", "JP");
+
+    /**
+     * HMB'nin birden fazla "tahvil xlsx"i var; bizim ilgilendiğimiz tek dosya
+     * "Dış Borç Stoku Tahvil Listesi" (Eurobond stok). Diğer kuzen dosya
+     * "Yurt Dışı Tahvil İhraçları" daha geniş kapsamlı — kabul edilmemeli.
+     * URL slug'ında ASCII karşılığını arıyoruz (HMB filename'lerinde Türkçe karakter yok).
+     */
+    private static final String EXPECTED_URL_KEYWORD = "dis_borc_stoku";
+
+    /** Geçerli bir HMB listesinde olması beklenen minimum ISIN sayısı (yanlış dosya filtresi). */
+    static final int MIN_EXPECTED_ISINS = 20;
+
+    /** Toplam ISIN içinde TR sovereign formatında (XS/US/JP) olması gereken minimum oran. */
+    static final double MIN_TR_PREFIX_RATIO = 0.50;
+
+    /**
+     * Yeni xlsx'in mevcut aktif liste ile minimum örtüşme oranı. Aylık güncellemede
+     * çoğu ISIN değişmez — sıfıra yakın örtüşme = yanlış/alakasız dosya.
+     */
+    static final double MIN_OVERLAP_RATIO = 0.30;
 
     private final RestTemplate restTemplate;
     private final CentralIntegrationLogService integrationLog;
@@ -78,7 +109,7 @@ public class HmbIsinListProvider implements HmbIsinSource {
                     continue;
                 }
                 String[] c = s.split(",", -1);
-                String isin = c[0].trim().toUpperCase();
+                String isin = c[0].trim().toUpperCase(Locale.ROOT);
                 if (!ISIN.matcher(isin).matches()) {
                     continue;
                 }
@@ -117,9 +148,17 @@ public class HmbIsinListProvider implements HmbIsinSource {
     }
 
     @Override
-    public int refreshFromXlsx(String xlsxUrl) {
-        if (xlsxUrl == null || !xlsxUrl.toLowerCase().endsWith(".xlsx")) {
+    public int refreshFromXlsx(String xlsxUrl, boolean force) {
+        if (xlsxUrl == null || !xlsxUrl.toLowerCase(Locale.ROOT).endsWith(".xlsx")) {
             throw new IllegalArgumentException("Geçerli bir .xlsx URL'i verin.");
+        }
+        String lowerUrl = xlsxUrl.toLowerCase(Locale.ROOT);
+        if (!force && !lowerUrl.contains(EXPECTED_URL_KEYWORD)) {
+            throw new IllegalArgumentException(
+                    "Bu URL HMB \"Dış Borç Stoku Tahvil Listesi\" gibi görünmüyor. " +
+                    "Beklenen dosya adı: ...Merkezi_Yonetim_Dis_Borc_Stoku_Tahvil_Listesi-*.xlsx " +
+                    "(Yurt_Disi_Tahvil_Ihraclari farklı bir liste — kabul edilmez). " +
+                    "HMB filename şeması değiştiyse force=true ile override edebilirsiniz.");
         }
         byte[] bytes = download(xlsxUrl);
         if (bytes == null || bytes.length == 0) {
@@ -135,13 +174,77 @@ public class HmbIsinListProvider implements HmbIsinSource {
                     null, null, null, false, Map.of("url", xlsxUrl), HmbIsinListProvider.class.getName());
             throw new IllegalStateException("xlsx içinde ISIN bulunamadı (format değişmiş olabilir): " + xlsxUrl);
         }
-        this.activeIsins = List.copyOf(found);
+
+        List<String> previous = this.activeIsins;
+        validateHmbContent(xlsxUrl, found, previous);
+
+        // Option A — cumulative union. Eski xlsx'te olan ama yenisinde olmayan ISIN'ler
+        // kullanıcı portföylerinde olabilir; bu yüzden aktif listeden DROP edilmez,
+        // sadece yenisinde olan ISIN'ler aktif kümeye eklenir.
+        List<String> merged = unionPreservingOrder(previous, found);
+        int added = merged.size() - previous.size();
+        this.activeIsins = List.copyOf(merged);
         this.lastXlsxUrl = xlsxUrl;
         integrationLog.publish("HMB_ISIN_REFRESHED", "INFO",
-                "HMB ISIN listesi güncellendi: " + found.size(), IntegrationLogSupport.PROVIDER_HMB, "isin_refresh",
-                "200", null, false, false, Map.of("count", found.size(), "url", xlsxUrl), HmbIsinListProvider.class.getName());
-        log.info("HMB aktif ISIN listesi güncellendi: {} ISIN (kaynak={})", found.size(), xlsxUrl);
-        return found.size();
+                "HMB ISIN listesi güncellendi: " + merged.size() + " (yeni: " + added + ")",
+                IntegrationLogSupport.PROVIDER_HMB, "isin_refresh",
+                "200", null, false, false,
+                Map.of("count", merged.size(), "added", added, "found", found.size(), "url", xlsxUrl),
+                HmbIsinListProvider.class.getName());
+        log.info("HMB aktif ISIN listesi güncellendi: cumulative={} (xlsx'te {} ISIN, +{} yeni, kaynak={})",
+                merged.size(), found.size(), added, xlsxUrl);
+        return merged.size();
+    }
+
+    /**
+     * Yanlış/alakasız xlsx yüklenmesini engeller. Geçerli bir HMB Eurobond listesi:
+     * <ul>
+     *   <li>en az {@value #MIN_EXPECTED_ISINS} ISIN içerir,</li>
+     *   <li>ISIN'lerin yarısından fazlası TR ihraççı prefiksinde (XS/US/JP) olur,</li>
+     *   <li>mevcut aktif liste boş değilse, onunla en az %{@value #MIN_OVERLAP_RATIO}*100 örtüşür.</li>
+     * </ul>
+     */
+    private void validateHmbContent(String xlsxUrl, List<String> found, List<String> previous) {
+        if (found.size() < MIN_EXPECTED_ISINS) {
+            reject(xlsxUrl, "Yüklenen xlsx HMB Eurobond listesi gibi görünmüyor: yalnızca "
+                    + found.size() + " ISIN bulundu (en az " + MIN_EXPECTED_ISINS + " bekleniyor).");
+        }
+
+        long trCount = found.stream()
+                .filter(i -> i.length() >= 2 && TR_SOVEREIGN_PREFIXES.contains(i.substring(0, 2)))
+                .count();
+        double trRatio = (double) trCount / found.size();
+        if (trRatio < MIN_TR_PREFIX_RATIO) {
+            reject(xlsxUrl, "Yüklenen xlsx HMB Eurobond listesi gibi görünmüyor: ISIN'lerin yalnızca %"
+                    + Math.round(trRatio * 100) + "'i TR ihraççı formatında (XS/US/JP); en az %"
+                    + Math.round(MIN_TR_PREFIX_RATIO * 100) + " bekleniyor.");
+        }
+
+        if (!previous.isEmpty()) {
+            Set<String> prevSet = new HashSet<>(previous);
+            long overlap = found.stream().filter(prevSet::contains).count();
+            double overlapRatio = (double) overlap / previous.size();
+            if (overlapRatio < MIN_OVERLAP_RATIO) {
+                reject(xlsxUrl, "Yüklenen xlsx mevcut Eurobond listesiyle yalnızca %"
+                        + Math.round(overlapRatio * 100) + " örtüşüyor (en az %"
+                        + Math.round(MIN_OVERLAP_RATIO * 100)
+                        + " bekleniyor). Yanlış/alakasız dosya yüklenmiş olabilir.");
+            }
+        }
+    }
+
+    private void reject(String xlsxUrl, String message) {
+        integrationLog.publish(IntegrationLogSupport.EVENT_EXTERNAL_API_PARSE_FAILED, "WARN",
+                "HMB xlsx içerik doğrulaması başarısız", IntegrationLogSupport.PROVIDER_HMB, "isin_refresh",
+                null, null, null, false, Map.of("url", xlsxUrl, "reason", message),
+                HmbIsinListProvider.class.getName());
+        throw new IllegalArgumentException(message);
+    }
+
+    private static List<String> unionPreservingOrder(List<String> existing, List<String> incoming) {
+        LinkedHashSet<String> set = new LinkedHashSet<>(existing);
+        set.addAll(incoming);
+        return new ArrayList<>(set);
     }
 
     private byte[] download(String url) {
@@ -168,7 +271,7 @@ public class HmbIsinListProvider implements HmbIsinSource {
                 String xml = new String(zip.readAllBytes(), StandardCharsets.UTF_8);
                 Matcher m = T_TAG.matcher(xml);
                 while (m.find()) {
-                    String v = m.group(1).trim().toUpperCase();
+                    String v = m.group(1).trim().toUpperCase(Locale.ROOT);
                     if (ISIN.matcher(v).matches() && seen.add(v)) {
                         out.add(v);
                     }
