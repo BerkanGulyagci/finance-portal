@@ -21,10 +21,6 @@ import com.finance.portal.market.application.silver.SilverHistoryPoint;
 import com.finance.portal.market.application.silver.SilverHistoryResponse;
 import com.finance.portal.market.application.silver.SilverMarketService;
 import com.finance.portal.market.application.silver.SilverSpotResponse;
-import com.finance.portal.market.application.stock.StockChartResponse;
-import com.finance.portal.market.application.stock.StockDetail;
-import com.finance.portal.market.application.stock.StockQueryService;
-import com.finance.portal.market.application.stock.StockSummary;
 import com.finance.portal.market.application.viop.UnsupportedViopContractException;
 import com.finance.portal.market.application.viop.ViopChartPeriod;
 import com.finance.portal.market.application.viop.ViopChartService;
@@ -40,6 +36,7 @@ import com.finance.portal.portfolio.application.port.HoldingMarketEnrichmentPort
 import com.finance.portal.portfolio.presentation.dto.PortfolioHoldingResponse;
 import com.finance.portal.portfolio.service.enrich.BondHoldingEnricher;
 import com.finance.portal.portfolio.service.enrich.CryptoHoldingEnricher;
+import com.finance.portal.portfolio.service.enrich.StockHoldingEnricher;
 import com.finance.portal.portfolio.service.support.PortfolioDateTimeParse;
 import com.finance.portal.portfolio.service.support.PortfolioHistoryPoints;
 import com.finance.portal.portfolio.service.support.PortfolioMovingAverage;
@@ -83,7 +80,6 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
     private final GoldMarketService goldMarketService;
     private final YahooCommodityService yahooCommodityService;
     private final SilverMarketService silverMarketService;
-    private final StockQueryService stockQueryService;
     private final MarketFxService marketFxService;
     private final RasyonetFundService rasyonetFundService;
     private final ViopService viopService;
@@ -91,24 +87,24 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
     private final CentralIntegrationLogService integrationLogService;
     private final CryptoHoldingEnricher cryptoHoldingEnricher;
     private final BondHoldingEnricher bondHoldingEnricher;
+    private final StockHoldingEnricher stockHoldingEnricher;
 
     public PortfolioHoldingMarketEnricher(AssetPriceQueryService assetPriceQueryService,
                                           GoldMarketService goldMarketService,
                                           YahooCommodityService yahooCommodityService,
                                           SilverMarketService silverMarketService,
-                                          StockQueryService stockQueryService,
                                           MarketFxService marketFxService,
                                           RasyonetFundService rasyonetFundService,
                                           ViopService viopService,
                                           ViopChartService viopChartService,
                                           CentralIntegrationLogService integrationLogService,
                                           CryptoHoldingEnricher cryptoHoldingEnricher,
-                                          BondHoldingEnricher bondHoldingEnricher) {
+                                          BondHoldingEnricher bondHoldingEnricher,
+                                          StockHoldingEnricher stockHoldingEnricher) {
         this.assetPriceQueryService = assetPriceQueryService;
         this.goldMarketService = goldMarketService;
         this.yahooCommodityService = yahooCommodityService;
         this.silverMarketService = silverMarketService;
-        this.stockQueryService = stockQueryService;
         this.marketFxService = marketFxService;
         this.rasyonetFundService = rasyonetFundService;
         this.viopService = viopService;
@@ -116,6 +112,7 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
         this.integrationLogService = integrationLogService;
         this.cryptoHoldingEnricher = cryptoHoldingEnricher;
         this.bondHoldingEnricher = bondHoldingEnricher;
+        this.stockHoldingEnricher = stockHoldingEnricher;
     }
     private static String goldHoldingDisplayName(String upper) {
         return switch (upper) {
@@ -139,7 +136,7 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
             Span.current().setAttribute("holding.asset_type", type != null ? type.name() : "null");
             Span.current().setAttribute("holding.symbol", String.valueOf(holding.getSymbol()));
             if (type == AssetType.STOCK) {
-                enrichStockOrFutureHolding(holding);
+                stockHoldingEnricher.enrich(holding);
             } else if (type == AssetType.FUTURE) {
                 enrichFutureHolding(holding);
             } else if (type == AssetType.CRYPTO) {
@@ -201,47 +198,6 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
             case FUTURE -> IntegrationLogSupport.PROVIDER_AKBANK_VIOP;
             default -> IntegrationLogSupport.PROVIDER_EXTERNAL;
         };
-    }
-
-    /**
-     * STOCK: StockDetail üzerinden zenginleştirilmiş holding verisi.
-     * Günlük değişim, hacim, intraday high/low ve 52 hafta aralığı doldurulur.
-     * getStockDetail @Cacheable ile önbelleğe alındığı için tekrar API çağrısı yapılmaz.
-     * MA20/MA50, 3 aylık günlük chart verisi üzerinden hesaplanır (önbellek: market.stocks.chart).
-     */
-    private void enrichStockOrFutureHolding(PortfolioHoldingResponse holding) {
-        StockDetail detail = stockQueryService.getStockDetail(holding.getSymbol().toUpperCase());
-        StockSummary summary = detail.getSummary();
-
-        BigDecimal price = summary.getPrice();
-        BigDecimal mv = price.multiply(holding.getTotalQuantity()).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
-        BigDecimal pl = mv.subtract(holding.getTotalCost()).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
-
-        holding.setCurrentPrice(price);
-        holding.setMarketValue(mv);
-        holding.setProfitLoss(pl);
-        holding.setCurrency(summary.getCurrency() != null ? summary.getCurrency() : detail.getCurrency());
-        holding.setAsOf(PortfolioDateTimeParse.parseLenient(summary.getAsOf()));
-        holding.setName(detail.getName() != null ? detail.getName()
-                : (summary.getName() != null ? summary.getName() : holding.getSymbol()));
-        holding.setChange(summary.getChange());
-        holding.setChangePercent(summary.getChangePercent());
-        holding.setVolume(summary.getVolume());
-        holding.setDayHigh(summary.getDayHigh());
-        holding.setDayLow(summary.getDayLow());
-        holding.setFiftyTwoWeekHigh(detail.getFiftyTwoWeekHigh());
-        holding.setFiftyTwoWeekLow(detail.getFiftyTwoWeekLow());
-
-        // MA20 / MA50 — 3 aylık günlük kapanışlardan hesapla (önbellekte ise bedava)
-        try {
-            StockChartResponse chart = stockQueryService.getStockChartWithParams(
-                    holding.getSymbol().toUpperCase(), "3mo", "1d");
-            List<BigDecimal> closes = chart.getClosePrices();
-            holding.setMa20(PortfolioMovingAverage.simpleMa(closes, 20));
-            holding.setMa50(PortfolioMovingAverage.simpleMa(closes, 50));
-        } catch (Exception e) {
-            log.debug("MA computation skipped for {}: {}", holding.getSymbol(), e.getMessage());
-        }
     }
 
     /**
