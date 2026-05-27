@@ -213,6 +213,55 @@ public class PortfolioWhatIfService {
         }
     }
 
+    /** Pozisyon listesi + en eski tarih + (single mod) tek varlık etiketi — buildPositions çıktısı. */
+    private static final class PositionBundle {
+        final List<SeriesPos> positions;
+        final LocalDate earliest;
+        final String singleLabel;
+        PositionBundle(List<SeriesPos> positions, LocalDate earliest, String singleLabel) {
+            this.positions = positions;
+            this.earliest = earliest;
+            this.singleLabel = singleLabel;
+        }
+    }
+
+    /**
+     * Holdings'i geçerli pozisyonlara (TL maliyet + alış tarihi + asset serisi) çevirir.
+     * Eksik veri (costTl ≤ 0 ya da date null) olan satırları eler. computeSeries'in cognitive
+     * complexity'sini düşürmek için ayrıldı; tek başına 7 dallı bir döngü.
+     */
+    private PositionBundle buildPositions(List<PortfolioHoldingResponse> holdings, LocalDate today,
+                                          String filterAssetType, String filterSymbol, boolean single) {
+        List<SeriesPos> positions = new ArrayList<>();
+        LocalDate earliest = today;
+        String singleLabel = null;
+        for (PortfolioHoldingResponse h : holdings) {
+            if (single && !matches(h, filterAssetType, filterSymbol)) {
+                continue;
+            }
+            BigDecimal costTl = currencyConverter.toTry(h.getTotalCost(), h.getCurrency());
+            LocalDate date = h.getFirstBuyDate() != null ? h.getFirstBuyDate().toLocalDate() : null;
+            if (costTl == null || costTl.signum() <= 0 || date == null) {
+                continue;
+            }
+            NavigableMap<LocalDate, BigDecimal> assetSeries;
+            try {
+                assetSeries = pricePort.fetchDailyClosePrices(
+                        h.getAssetType(), h.getSymbol(), date.minusDays(10), today).orElse(null);
+            } catch (Exception e) {
+                assetSeries = null;
+            }
+            positions.add(new SeriesPos(costTl, date, assetSeries));
+            if (date.isBefore(earliest)) {
+                earliest = date;
+            }
+            if (single) {
+                singleLabel = (h.getName() != null && !h.getName().isBlank()) ? h.getName() : h.getSymbol();
+            }
+        }
+        return new PositionBundle(positions, earliest, singleLabel);
+    }
+
     /** Kullanıcı-eklemeli serbest kıyas tanımı. needsFx: USD cinsi enstrüman (×USD/TRY ile TL'ye çevrilir). */
     private record BenchSpec(String id, AssetType type, String symbol, boolean needsFx) {}
 
@@ -277,38 +326,14 @@ public class PortfolioWhatIfService {
         List<PortfolioHoldingResponse> holdings = (resp != null && resp.getHoldings() != null)
                 ? resp.getHoldings() : List.of();
 
-        List<SeriesPos> positions = new ArrayList<>();
-        LocalDate earliest = today;
-        String label = single ? null : "Tüm Portföy";
-
-        for (PortfolioHoldingResponse h : holdings) {
-            if (single && !(matches(h, filterAssetType, filterSymbol))) {
-                continue;
-            }
-            BigDecimal costTl = currencyConverter.toTry(h.getTotalCost(), h.getCurrency());
-            LocalDate date = h.getFirstBuyDate() != null ? h.getFirstBuyDate().toLocalDate() : null;
-            if (costTl == null || costTl.signum() <= 0 || date == null) {
-                continue;
-            }
-            NavigableMap<LocalDate, BigDecimal> assetSeries;
-            try {
-                assetSeries = pricePort.fetchDailyClosePrices(
-                        h.getAssetType(), h.getSymbol(), date.minusDays(10), today).orElse(null);
-            } catch (Exception e) {
-                assetSeries = null;
-            }
-            positions.add(new SeriesPos(costTl, date, assetSeries));
-            if (date.isBefore(earliest)) {
-                earliest = date;
-            }
-            if (single) {
-                label = h.getName() != null && !h.getName().isBlank() ? h.getName() : h.getSymbol();
-                result.setAssetType(filterAssetType);
-                result.setSymbol(filterSymbol);
-            }
+        PositionBundle bundle = buildPositions(holdings, today, filterAssetType, filterSymbol, single);
+        List<SeriesPos> positions = bundle.positions;
+        LocalDate earliest = bundle.earliest != null ? bundle.earliest : today;
+        if (single && bundle.singleLabel != null) {
+            result.setAssetType(filterAssetType);
+            result.setSymbol(filterSymbol);
         }
-
-        result.setLabel(label);
+        result.setLabel(single ? bundle.singleLabel : "Tüm Portföy");
         result.setPoints(new ArrayList<>());
         result.setAvailableScenarios(new ArrayList<>());
         Span.current().setAttribute("whatif.scope", String.valueOf(result.getScope()));

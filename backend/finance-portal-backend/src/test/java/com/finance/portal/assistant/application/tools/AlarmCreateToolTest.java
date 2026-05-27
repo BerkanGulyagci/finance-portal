@@ -7,6 +7,8 @@ import com.finance.portal.alarm.presentation.dto.CreateAlarmRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -73,30 +75,20 @@ class AlarmCreateToolTest {
 
     // ------------------------------ validation ------------------------------
 
-    @Test
-    @DisplayName("execute: eksik symbol → 'Eksik bilgi' uyarısı")
-    void execute_missingSymbol_complains() {
-        String r = tool.execute(node("{\"asset_type\":\"STOCK\",\"direction\":\"ABOVE\",\"threshold\":300}"), authedCtx);
+    /**
+     * 3 farklı eksik/hatalı input türü — hepsi "Eksik bilgi" uyarısı verip AlarmService'i
+     * tetiklememeli. Sonar S5976: aynı assertion'ı tekrar eden testler parameterized'a indirgenir.
+     */
+    @ParameterizedTest(name = "execute: {1} → ''Eksik bilgi''")
+    @CsvSource({
+            "'{\"asset_type\":\"STOCK\",\"direction\":\"ABOVE\",\"threshold\":300}',                          eksik symbol",
+            "'{\"asset_type\":\"STOCK\",\"symbol\":\"THYAO\",\"direction\":\"ABOVE\",\"threshold\":\"abc\"}', threshold sayi degil",
+            "'{\"asset_type\":\"STOCK\",\"symbol\":\"THYAO\",\"threshold\":300}',                            eksik direction"
+    })
+    void execute_invalidInput_returnsMissingInfoWithoutCallingService(String payload, String label) {
+        String r = tool.execute(node(payload), authedCtx);
 
-        assertThat(r).contains("Eksik bilgi");
-        verifyNoInteractions(alarmService);
-    }
-
-    @Test
-    @DisplayName("execute: threshold sayı değil → 'Eksik bilgi'")
-    void execute_thresholdNotNumber_complains() {
-        String r = tool.execute(node("{\"asset_type\":\"STOCK\",\"symbol\":\"THYAO\",\"direction\":\"ABOVE\",\"threshold\":\"abc\"}"), authedCtx);
-
-        assertThat(r).contains("Eksik bilgi");
-        verifyNoInteractions(alarmService);
-    }
-
-    @Test
-    @DisplayName("execute: eksik direction → 'Eksik bilgi'")
-    void execute_missingDirection_complains() {
-        String r = tool.execute(node("{\"asset_type\":\"STOCK\",\"symbol\":\"THYAO\",\"threshold\":300}"), authedCtx);
-
-        assertThat(r).contains("Eksik bilgi");
+        assertThat(r).as(label).contains("Eksik bilgi");
         verifyNoInteractions(alarmService);
     }
 

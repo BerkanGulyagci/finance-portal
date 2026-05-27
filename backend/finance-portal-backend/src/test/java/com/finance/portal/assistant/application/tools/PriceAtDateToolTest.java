@@ -7,6 +7,8 @@ import com.finance.portal.portfolio.application.port.PortfolioHistoricalPricePor
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -41,39 +43,21 @@ class PriceAtDateToolTest {
                 .containsExactlyInAnyOrder("asset_type", "symbol", "date");
     }
 
-    @Test
-    @DisplayName("execute: eksik symbol → uyarı")
-    void execute_missingSymbol_complains() {
-        String r = tool.execute(node("{\"asset_type\":\"STOCK\",\"date\":\"2026-01-10\"}"), null);
+    /**
+     * 4 farklı geçersiz/eksik input türü — her biri kendi açıklayıcı mesajını üretmeli
+     * ve pricePort'a hiç gitmemeli. Sonar S5976: aynı şekildeki testler parameterized.
+     */
+    @ParameterizedTest(name = "execute: {2} → ''{1}''")
+    @CsvSource({
+            "'{\"asset_type\":\"STOCK\",\"date\":\"2026-01-10\"}',                                 'Sembol ve tarih gereklidir', eksik symbol",
+            "'{\"asset_type\":\"STOCK\",\"symbol\":\"THYAO\"}',                                    'Sembol ve tarih gereklidir', eksik date",
+            "'{\"asset_type\":\"GARBAGE\",\"symbol\":\"X\",\"date\":\"2026-01-10\"}',              'Geçersiz varlık türü',        gecersiz asset_type",
+            "'{\"asset_type\":\"STOCK\",\"symbol\":\"THYAO\",\"date\":\"not-a-date\"}',            'Geçersiz tarih',              bozuk tarih formati"
+    })
+    void execute_invalidInput_returnsFriendlyErrorAndSkipsPort(String payload, String expectedMessage, String label) {
+        String r = tool.execute(node(payload), null);
 
-        assertThat(r).contains("Sembol ve tarih gereklidir");
-        verifyNoInteractions(pricePort);
-    }
-
-    @Test
-    @DisplayName("execute: eksik date → uyarı")
-    void execute_missingDate_complains() {
-        String r = tool.execute(node("{\"asset_type\":\"STOCK\",\"symbol\":\"THYAO\"}"), null);
-
-        assertThat(r).contains("Sembol ve tarih gereklidir");
-        verifyNoInteractions(pricePort);
-    }
-
-    @Test
-    @DisplayName("execute: geçersiz asset_type → açıklayıcı hata")
-    void execute_invalidAssetType_rejected() {
-        String r = tool.execute(node("{\"asset_type\":\"GARBAGE\",\"symbol\":\"X\",\"date\":\"2026-01-10\"}"), null);
-
-        assertThat(r).contains("Geçersiz varlık türü");
-        verifyNoInteractions(pricePort);
-    }
-
-    @Test
-    @DisplayName("execute: kötü tarih formatı → açıklayıcı hata")
-    void execute_badDate_rejected() {
-        String r = tool.execute(node("{\"asset_type\":\"STOCK\",\"symbol\":\"THYAO\",\"date\":\"not-a-date\"}"), null);
-
-        assertThat(r).contains("Geçersiz tarih");
+        assertThat(r).as(label).contains(expectedMessage);
         verifyNoInteractions(pricePort);
     }
 

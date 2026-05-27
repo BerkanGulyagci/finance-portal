@@ -88,46 +88,64 @@ public class TefasFundClient {
         }
         Span.current().setAttribute("tefas.from", String.valueOf(from));
         Span.current().setAttribute("tefas.to", String.valueOf(to));
-        String upper = code.trim().toUpperCase();
-        String type = (fonTipi == null || fonTipi.isBlank()) ? "YAT" : fonTipi.trim().toUpperCase();
-        int chunk = Math.max(1, props.getChunkDays());
+        String upper = code.trim().toUpperCase(java.util.Locale.ROOT);
+        String type = (fonTipi == null || fonTipi.isBlank())
+                ? "YAT"
+                : fonTipi.trim().toUpperCase(java.util.Locale.ROOT);
 
-        List<LocalDate[]> windows = new ArrayList<>();
-        LocalDate cursor = from;
-        while (!cursor.isAfter(to)) {
-            LocalDate end = cursor.plusDays(chunk - 1L);
-            if (end.isAfter(to)) end = to;
-            windows.add(new LocalDate[]{cursor, end});
-            cursor = end.plusDays(1);
-        }
-
-        List<CompletableFuture<List<FundPriceHistoryPoint>>> futures = new ArrayList<>();
+        List<LocalDate[]> windows = buildDateWindows(from, to, Math.max(1, props.getChunkDays()));
+        List<CompletableFuture<List<FundPriceHistoryPoint>>> futures = new ArrayList<>(windows.size());
         for (LocalDate[] w : windows) {
             futures.add(CompletableFuture.supplyAsync(() -> fetchChunk(upper, type, w[0], w[1]), executor));
         }
-
-        NavigableMap<String, FundPriceHistoryPoint> byDay = new TreeMap<>();
-        for (CompletableFuture<List<FundPriceHistoryPoint>> f : futures) {
-            try {
-                for (FundPriceHistoryPoint p : f.get(props.getTimeoutSeconds() + 10L, TimeUnit.SECONDS)) {
-                    if (p.getDate() != null && p.getPrice() != null) {
-                        byDay.putIfAbsent(p.getDate(), p);
-                    }
-                }
-            } catch (InterruptedException ie) {
-                Thread.currentThread().interrupt();
-                log.debug("Interrupted while collecting TEFAS history for {}", upper);
-                break;
-            } catch (Exception e) {
-                log.debug("TEFAS history chunk failed for {} ({}): {}", upper, type, e.getMessage());
-            }
-        }
+        NavigableMap<String, FundPriceHistoryPoint> byDay = collectUniqueByDay(futures, upper, type);
 
         Span.current().setAttribute("tefas.chunks", windows.size());
         Span.current().setAttribute("tefas.points", byDay.size());
         log.info("TEFAS history: code={}, type={}, {} nokta ({} chunk, {}..{})",
                 upper, type, byDay.size(), windows.size(), from, to);
         return new ArrayList<>(byDay.values());
+    }
+
+    /** {@code [from, to]} aralığını {@code chunkDays} uzunluğunda kapalı pencerelere böler. */
+    private static List<LocalDate[]> buildDateWindows(LocalDate from, LocalDate to, int chunkDays) {
+        List<LocalDate[]> windows = new ArrayList<>();
+        LocalDate cursor = from;
+        while (!cursor.isAfter(to)) {
+            LocalDate end = cursor.plusDays(chunkDays - 1L);
+            if (end.isAfter(to)) {
+                end = to;
+            }
+            windows.add(new LocalDate[]{cursor, end});
+            cursor = end.plusDays(1);
+        }
+        return windows;
+    }
+
+    /**
+     * Tüm chunk future'larını boşaltır ve gün-tekilleştirilmiş bir map üretir.
+     * Bir chunk patlasa veya thread interrupt edilse bile diğer chunk'lar denenir.
+     */
+    private NavigableMap<String, FundPriceHistoryPoint> collectUniqueByDay(
+            List<CompletableFuture<List<FundPriceHistoryPoint>>> futures, String code, String type) {
+        NavigableMap<String, FundPriceHistoryPoint> byDay = new TreeMap<>();
+        long timeoutSec = props.getTimeoutSeconds() + 10L;
+        for (CompletableFuture<List<FundPriceHistoryPoint>> f : futures) {
+            try {
+                for (FundPriceHistoryPoint p : f.get(timeoutSec, TimeUnit.SECONDS)) {
+                    if (p.getDate() != null && p.getPrice() != null) {
+                        byDay.putIfAbsent(p.getDate(), p);
+                    }
+                }
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                log.debug("Interrupted while collecting TEFAS history for {}", code);
+                break;
+            } catch (Exception e) {
+                log.debug("TEFAS history chunk failed for {} ({}): {}", code, type, e.getMessage());
+            }
+        }
+        return byDay;
     }
 
     /**
