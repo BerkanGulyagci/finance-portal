@@ -118,9 +118,18 @@ export function Sidebar() {
         {/* Üst: girdi */}
         <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-md p-2.5">
           <input
-            type="number"
-            value={amount}
-            onChange={e => setAmount(Number(e.target.value))}
+            type="text"
+            inputMode="decimal"
+            value={amount.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
+            onChange={e => {
+              let raw = e.target.value.replace(/[^\d,]/g, '');
+              const firstComma = raw.indexOf(',');
+              if (firstComma !== -1) {
+                raw = raw.slice(0, firstComma + 1) + raw.slice(firstComma + 1).replace(/,/g, '');
+              }
+              const n = parseFloat(raw.replace(',', '.'));
+              setAmount(Number.isFinite(n) ? n : 0);
+            }}
             className="bg-transparent border-none text-gray-900 font-semibold focus:outline-none flex-1 text-sm min-w-0"
           />
           {swapped ? (
