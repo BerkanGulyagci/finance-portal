@@ -33,8 +33,6 @@ import com.finance.portal.market.application.viop.ViopContract;
 import com.finance.portal.market.application.viop.ViopService;
 import com.finance.portal.market.application.viop.model.ViopContractDetail;
 import com.finance.portal.market.application.service.MarketFxService;
-import com.finance.portal.market.application.crypto.CryptoMarketService;
-import com.finance.portal.market.application.crypto.model.CryptoMarketItem;
 import com.finance.portal.market.application.precious.model.PreciousMetalType;
 import com.finance.portal.market.application.fx.model.FxHistory;
 import com.finance.portal.market.application.fx.model.FxHistoryPoint;
@@ -42,6 +40,7 @@ import com.finance.portal.market.application.fx.model.FxLatestRates;
 import com.finance.portal.market.application.fx.model.FxRateItem;
 import com.finance.portal.portfolio.application.port.WatchlistMarketEnrichmentPort;
 import com.finance.portal.portfolio.presentation.dto.WatchlistItemResponse;
+import com.finance.portal.portfolio.service.watchlistenrich.CryptoWatchlistEnricher;
 import com.finance.portal.portfolio.service.support.PortfolioDateTimeParse;
 import com.finance.portal.portfolio.service.support.PortfolioHistoryPoints;
 import com.finance.portal.portfolio.service.support.PortfolioMovingAverage;
@@ -69,7 +68,6 @@ public class PortfolioWatchlistMarketEnricher implements WatchlistMarketEnrichme
 
     private static final Logger log = LoggerFactory.getLogger(PortfolioWatchlistMarketEnricher.class);
 
-    private final CryptoMarketService cryptoMarketService;
     private final StockQueryService stockQueryService;
     private final MarketFxService marketFxService;
     private final RasyonetFundService rasyonetFundService;
@@ -80,9 +78,9 @@ public class PortfolioWatchlistMarketEnricher implements WatchlistMarketEnrichme
     private final EvdsBondService evdsBondService;
     private final EurobondService eurobondService;
     private final ViopService viopService;
+    private final CryptoWatchlistEnricher cryptoWatchlistEnricher;
 
-    public PortfolioWatchlistMarketEnricher(CryptoMarketService cryptoMarketService,
-                                            StockQueryService stockQueryService,
+    public PortfolioWatchlistMarketEnricher(StockQueryService stockQueryService,
                                             MarketFxService marketFxService,
                                             RasyonetFundService rasyonetFundService,
                                             SilverMarketService silverMarketService,
@@ -91,8 +89,8 @@ public class PortfolioWatchlistMarketEnricher implements WatchlistMarketEnrichme
                                             GoldMarketService goldMarketService,
                                             EvdsBondService evdsBondService,
                                             EurobondService eurobondService,
-                                            ViopService viopService) {
-        this.cryptoMarketService = cryptoMarketService;
+                                            ViopService viopService,
+                                            CryptoWatchlistEnricher cryptoWatchlistEnricher) {
         this.stockQueryService = stockQueryService;
         this.marketFxService = marketFxService;
         this.rasyonetFundService = rasyonetFundService;
@@ -103,6 +101,7 @@ public class PortfolioWatchlistMarketEnricher implements WatchlistMarketEnrichme
         this.evdsBondService = evdsBondService;
         this.eurobondService = eurobondService;
         this.viopService = viopService;
+        this.cryptoWatchlistEnricher = cryptoWatchlistEnricher;
     }
 
     @Override
@@ -115,7 +114,7 @@ public class PortfolioWatchlistMarketEnricher implements WatchlistMarketEnrichme
             }
 
             switch (type) {
-                case CRYPTO -> enrichCrypto(r, symbol);
+                case CRYPTO -> cryptoWatchlistEnricher.enrich(r, symbol);
                 case STOCK -> enrichStockLike(r, symbol);
                 case FUTURE -> enrichFuture(r, symbol);
                 case FUND -> enrichFund(r, symbol);
@@ -161,26 +160,6 @@ public class PortfolioWatchlistMarketEnricher implements WatchlistMarketEnrichme
         r.setLastPrice(sell);
         r.setCurrency("TRY");
         r.setAsOf(PortfolioDateTimeParse.parseLenient(fx.getAsOf()));
-    }
-
-    private void enrichCrypto(WatchlistItemResponse r, String symbol) {
-        CryptoMarketItem item = cryptoMarketService.findBySymbol(symbol);
-        r.setLastPrice(item.getCurrentPrice());
-        r.setCurrency("TRY");
-        r.setHigh(item.getHigh24h());
-        r.setLow(item.getLow24h());
-        r.setChange(item.getPriceChange24h());
-        r.setChangePercent(item.getPriceChangePercentage24h());
-        r.setVolume(item.getTotalVolume() != null ? item.getTotalVolume().longValue() : null);
-        r.setAsOf(PortfolioDateTimeParse.parseLenient(item.getLastUpdated()));
-
-        if (item.getCurrentPrice() != null && item.getPriceChange24h() != null) {
-            r.setOpen(item.getCurrentPrice().subtract(item.getPriceChange24h()));
-        }
-
-        // Trend için 7 günlük momentum + ~1y kapanışlardan MA/52w (CRYPTO applyTrendSignals'ta atlanır).
-        r.setPriceChangePercentage7d(item.getPriceChangePercentage7d());
-        applyMaAnd52w(r, cryptoCloses1y(item.getId()));
     }
 
     private void enrichStockLike(WatchlistItemResponse r, String symbol) {
@@ -825,27 +804,6 @@ public class PortfolioWatchlistMarketEnricher implements WatchlistMarketEnrichme
         try {
             StockChartResponse chart = stockQueryService.getStockChartWithParams(symbol.toUpperCase(), "1y", "1d");
             return chart != null ? chart.getClosePrices() : null;
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private List<BigDecimal> cryptoCloses1y(String coinId) {
-        if (coinId == null || coinId.isBlank()) {
-            return null;
-        }
-        try {
-            Map<String, Object> chart = cryptoMarketService.getMarketChart(coinId, "365", "try", null, null);
-            if (chart == null || !(chart.get("prices") instanceof List<?> rows)) {
-                return null;
-            }
-            List<BigDecimal> closes = new ArrayList<>(rows.size());
-            for (Object o : rows) {
-                if (o instanceof List<?> row && row.size() >= 2 && row.get(1) instanceof Number n) {
-                    closes.add(BigDecimal.valueOf(n.doubleValue()));
-                }
-            }
-            return closes;
         } catch (Exception e) {
             return null;
         }
