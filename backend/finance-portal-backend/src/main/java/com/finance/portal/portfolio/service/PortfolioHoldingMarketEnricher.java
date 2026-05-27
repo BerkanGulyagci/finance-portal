@@ -5,13 +5,6 @@ import com.finance.portal.common.application.logging.IntegrationLogSupport;
 import com.finance.portal.common.domain.AssetType;
 import com.finance.portal.market.application.AssetPriceQueryService;
 import com.finance.portal.market.application.AssetPriceSnapshot;
-import com.finance.portal.market.application.bond.evds.BondPeriod;
-import com.finance.portal.market.application.bond.evds.EvdsBondHistoryPoint;
-import com.finance.portal.market.application.bond.evds.EvdsBondInstrument;
-import com.finance.portal.market.application.bond.evds.EvdsBondService;
-import com.finance.portal.market.application.bond.eurobond.EurobondService;
-import com.finance.portal.market.application.bond.eurobond.model.EurobondChartPoint;
-import com.finance.portal.market.application.bond.eurobond.model.EurobondDetail;
 import com.finance.portal.market.application.commodity.CommodityHistoryPointDto;
 import com.finance.portal.market.application.commodity.CommodityHistoryResponse;
 import com.finance.portal.market.application.commodity.CommoditySpotDto;
@@ -45,6 +38,7 @@ import com.finance.portal.market.application.viop.model.ViopChartPoint;
 import com.finance.portal.market.application.viop.model.ViopContractDetail;
 import com.finance.portal.portfolio.application.port.HoldingMarketEnrichmentPort;
 import com.finance.portal.portfolio.presentation.dto.PortfolioHoldingResponse;
+import com.finance.portal.portfolio.service.enrich.BondHoldingEnricher;
 import com.finance.portal.portfolio.service.enrich.CryptoHoldingEnricher;
 import com.finance.portal.portfolio.service.support.PortfolioDateTimeParse;
 import com.finance.portal.portfolio.service.support.PortfolioHistoryPoints;
@@ -89,42 +83,39 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
     private final GoldMarketService goldMarketService;
     private final YahooCommodityService yahooCommodityService;
     private final SilverMarketService silverMarketService;
-    private final EvdsBondService evdsBondService;
     private final StockQueryService stockQueryService;
     private final MarketFxService marketFxService;
     private final RasyonetFundService rasyonetFundService;
     private final ViopService viopService;
     private final ViopChartService viopChartService;
     private final CentralIntegrationLogService integrationLogService;
-    private final EurobondService eurobondService;
     private final CryptoHoldingEnricher cryptoHoldingEnricher;
+    private final BondHoldingEnricher bondHoldingEnricher;
 
     public PortfolioHoldingMarketEnricher(AssetPriceQueryService assetPriceQueryService,
                                           GoldMarketService goldMarketService,
                                           YahooCommodityService yahooCommodityService,
                                           SilverMarketService silverMarketService,
-                                          EvdsBondService evdsBondService,
                                           StockQueryService stockQueryService,
                                           MarketFxService marketFxService,
                                           RasyonetFundService rasyonetFundService,
                                           ViopService viopService,
                                           ViopChartService viopChartService,
                                           CentralIntegrationLogService integrationLogService,
-                                          EurobondService eurobondService,
-                                          CryptoHoldingEnricher cryptoHoldingEnricher) {
+                                          CryptoHoldingEnricher cryptoHoldingEnricher,
+                                          BondHoldingEnricher bondHoldingEnricher) {
         this.assetPriceQueryService = assetPriceQueryService;
         this.goldMarketService = goldMarketService;
         this.yahooCommodityService = yahooCommodityService;
         this.silverMarketService = silverMarketService;
-        this.evdsBondService = evdsBondService;
         this.stockQueryService = stockQueryService;
         this.marketFxService = marketFxService;
         this.rasyonetFundService = rasyonetFundService;
         this.viopService = viopService;
         this.viopChartService = viopChartService;
         this.integrationLogService = integrationLogService;
-        this.eurobondService = eurobondService;
         this.cryptoHoldingEnricher = cryptoHoldingEnricher;
+        this.bondHoldingEnricher = bondHoldingEnricher;
     }
     private static String goldHoldingDisplayName(String upper) {
         return switch (upper) {
@@ -138,93 +129,6 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
             case "CUMHUR", "ATA" -> "Cumhuriyet Altını";
             default -> "Altın (" + upper + ")";
         };
-    }
-
-    private void enrichBondHolding(PortfolioHoldingResponse holding) {
-        String code = holding.getSymbol() != null ? holding.getSymbol().trim() : "";
-        EvdsBondInstrument bond = evdsBondService.getEvdsBondDetail(code);
-        BigDecimal price = bond.getIndicatorValue();
-        if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalStateException("Bond EVDS indicator unavailable for: " + code);
-        }
-
-        BigDecimal mv = price.multiply(holding.getTotalQuantity()).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
-        BigDecimal pl = mv.subtract(holding.getTotalCost()).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
-
-        holding.setCurrentPrice(price);
-        holding.setMarketValue(mv);
-        holding.setProfitLoss(pl);
-        holding.setCurrency("TRY");
-        holding.setChange(bond.getDailyChange());
-        holding.setChangePercent(bond.getDailyChangePercent());
-
-        LocalDate lu = bond.getLastUpdated();
-        holding.setAsOf(lu != null ? lu.atStartOfDay() : LocalDateTime.now());
-
-        if (bond.getType() != null && !bond.getType().isBlank()) {
-            holding.setName(code + " · " + bond.getType());
-        }
-
-        try {
-            List<EvdsBondHistoryPoint> hist = evdsBondService.getEvdsBondHistory(code, BondPeriod.ONE_YEAR);
-            if (hist != null && !hist.isEmpty()) {
-                List<BigDecimal> closes = hist.stream()
-                        .map(EvdsBondHistoryPoint::getIndicatorValue)
-                        .filter(Objects::nonNull)
-                        .collect(Collectors.toList());
-                if (!closes.isEmpty()) {
-                    holding.setFiftyTwoWeekHigh(closes.stream().max(BigDecimal::compareTo).orElse(null));
-                    holding.setFiftyTwoWeekLow(closes.stream().min(BigDecimal::compareTo).orElse(null));
-                    holding.setMa20(PortfolioMovingAverage.simpleMa(closes, 20));
-                    holding.setMa50(PortfolioMovingAverage.simpleMa(closes, 50));
-                }
-            }
-        } catch (Exception e) {
-            log.debug("Bond history / MA unavailable for {}: {}", code, e.getMessage());
-        }
-    }
-
-    /**
-     * Eurobond (Hazine dış borç) holding'i — TL hesaplama (Model 1: TL maliyet, canlı kur).
-     * Fiyat/künye Business Insider'dan; kote (USD/EUR/JPY) canlı TCMB satış kuruyla TL'ye çevrilir.
-     * Maliyet kullanıcı tarafından TL girildiği için K/Z hem tahvil hem kur hareketini içerir.
-     * 52w/MA serisi de aynı (güncel) kurla TL'ye çevrilir (altın/emtia ile aynı yaklaşım).
-     */
-    private void enrichEurobondHolding(PortfolioHoldingResponse holding, String isin) {
-        EurobondDetail d = eurobondService.detail(isin);
-        if (d == null || d.getLastPriceTry() == null) {
-            holding.setCurrency("TRY");
-            holding.setName(d != null && d.getName() != null ? d.getName() : isin);
-            return;
-        }
-        BigDecimal priceTry = d.getLastPriceTry();
-        BigDecimal qty = holding.getTotalQuantity() != null ? holding.getTotalQuantity() : BigDecimal.ZERO;
-        BigDecimal mv = priceTry.multiply(qty).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
-        BigDecimal cost = holding.getTotalCost() != null ? holding.getTotalCost() : BigDecimal.ZERO;
-        BigDecimal pl = mv.subtract(cost).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
-
-        holding.setCurrentPrice(priceTry);
-        holding.setMarketValue(mv);
-        holding.setProfitLoss(pl);
-        holding.setCurrency("TRY");
-        holding.setName(d.getName() != null ? d.getName() : isin);
-        holding.setChangePercent(d.getChangePercent());
-        holding.setAsOf(LocalDateTime.now());
-
-        try {
-            BigDecimal rate = d.getFxRate() != null ? d.getFxRate() : BigDecimal.ONE;
-            List<BigDecimal> closes = eurobondService.chart(isin, "1Y").stream()
-                    .map(EurobondChartPoint::close).filter(Objects::nonNull)
-                    .map(c -> c.multiply(rate).setScale(MONEY_SCALE, RoundingMode.HALF_UP))
-                    .collect(Collectors.toList());
-            if (!closes.isEmpty()) {
-                holding.setFiftyTwoWeekHigh(closes.stream().max(BigDecimal::compareTo).orElse(null));
-                holding.setFiftyTwoWeekLow(closes.stream().min(BigDecimal::compareTo).orElse(null));
-                applyMasFromCloses(holding, closes);
-            }
-        } catch (Exception e) {
-            log.debug("Eurobond 52w/MA alınamadı {}: {}", isin, e.getMessage());
-        }
     }
 
     @Override
@@ -247,12 +151,7 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
             } else if (type == AssetType.FUND) {
                 enrichFundHolding(holding);
             } else if (type == AssetType.BOND) {
-                String code = holding.getSymbol() != null ? holding.getSymbol().trim().toUpperCase() : "";
-                if (eurobondService.currentIsins().contains(code)) {
-                    enrichEurobondHolding(holding, code);
-                } else {
-                    enrichBondHolding(holding);
-                }
+                bondHoldingEnricher.enrich(holding);
             } else if (type == AssetType.FX) {
                 enrichFxHolding(holding);
             } else {
