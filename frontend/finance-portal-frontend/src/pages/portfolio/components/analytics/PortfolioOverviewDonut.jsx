@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { CHART_DONUT_COLORS } from '../../utils/portfolioAnalyticsHelpers';
+import { CHART_DONUT_COLORS, formatSharePercent } from '../../utils/portfolioAnalyticsHelpers';
 import { useTranslation } from '../../../../i18n/LanguageContext';
 
 function currencySymbol(cur) {
@@ -29,26 +29,6 @@ function formatCompact(amount, displayCurrency, rates, valuesHidden) {
     body = value.toLocaleString('tr-TR', { maximumFractionDigits: 0 });
   }
   return `${sym}${body}`;
-}
-
-/** Küçük dilimlerde de anlamlı yüzde göstermek için adaptif precision. */
-function formatPctPrecise(pct, valuesHidden) {
-  if (valuesHidden) return '••••';
-  if (pct == null || !Number.isFinite(pct)) return '-';
-  if (pct === 0) return '%0';
-  const abs = Math.abs(pct);
-  let dec;
-  if (abs >= 10) dec = 1;
-  else if (abs >= 1) dec = 1;
-  else if (abs >= 0.1) dec = 2;
-  else if (abs >= 0.01) dec = 3;
-  else dec = 4;
-  const rounded = Math.round(pct * 10 ** dec) / 10 ** dec;
-  if (Number.isInteger(rounded)) {
-    return `%${rounded.toLocaleString('tr-TR')}`;
-  }
-  const str = rounded.toLocaleString('tr-TR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
-  return `%${str}`;
 }
 
 /**
@@ -152,7 +132,7 @@ export default function PortfolioOverviewDonut({
                 className="mt-0.5 text-base font-semibold tabular-nums leading-none"
                 style={{ color: focusedColor }}
               >
-                {formatPctPrecise(focusedPct, valuesHidden)}
+                {formatSharePercent(focusedPct, valuesHidden)}
               </p>
               <p className="mt-0.5 text-[9px] text-gray-400 tabular-nums">
                 {formatCompact(focused.value, displayCurrency, rates, valuesHidden)}
@@ -231,7 +211,7 @@ export default function PortfolioOverviewDonut({
                   {entry.name}
                 </span>
                 <span className="shrink-0 tabular-nums text-gray-500">
-                  {formatPctPrecise(pct, valuesHidden)}
+                  {formatSharePercent(pct, valuesHidden)}
                 </span>
               </button>
             </li>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { PieChart as PieIcon, X } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import DashCard, { CardLink } from './DashCard';
-import { calculateAllocationByType, CHART_DONUT_COLORS } from '../portfolio/utils/portfolioAnalyticsHelpers';
+import { calculateAllocationByType, CHART_DONUT_COLORS, formatSharePercent } from '../portfolio/utils/portfolioAnalyticsHelpers';
 import { fmtMoney } from './dashUtils';
 import { useTranslation } from '../../i18n/LanguageContext';
 
@@ -69,7 +69,7 @@ export default function PortfolioDistributionCard({ holdings, focusName, onDropP
                     <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: CHART_DONUT_COLORS[i % CHART_DONUT_COLORS.length] }} />
                     <span className="truncate text-gray-700">{e.name}</span>
                   </span>
-                  <span className="tabular-nums font-semibold text-gray-500 shrink-0">%{e.sharePct.toFixed(1)}</span>
+                  <span className="tabular-nums font-semibold text-gray-500 shrink-0">{formatSharePercent(e.sharePct)}</span>
                 </li>
               ))}
             </ul>

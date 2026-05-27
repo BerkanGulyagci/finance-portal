@@ -239,10 +239,19 @@ export function getTopLosers(holdings, limit = 5) {
 export function formatSharePercent(percentOf100, valuesHidden) {
   if (valuesHidden) return '••••';
   if (!Number.isFinite(percentOf100)) return '-';
-  const x = Math.round(percentOf100 * 10) / 10;
-  const str = Number.isInteger(x)
-    ? x.toLocaleString('tr-TR')
-    : x.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  if (percentOf100 === 0) return '%0';
+  const abs = Math.abs(percentOf100);
+  // Küçük dilimler için adaptif precision — aksi takdirde "%0" görünüp veri kaybolur.
+  let dec;
+  if (abs >= 1) dec = 1;
+  else if (abs >= 0.1) dec = 2;
+  else if (abs >= 0.01) dec = 3;
+  else dec = 4;
+  const rounded = Math.round(percentOf100 * 10 ** dec) / 10 ** dec;
+  if (Number.isInteger(rounded)) {
+    return `%${rounded.toLocaleString('tr-TR')}`;
+  }
+  const str = rounded.toLocaleString('tr-TR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
   return `%${str}`;
 }
 
