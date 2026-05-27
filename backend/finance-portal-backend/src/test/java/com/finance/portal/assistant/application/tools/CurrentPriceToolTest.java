@@ -193,8 +193,10 @@ class CurrentPriceToolTest {
 
         String r = tool.execute(node("{\"asset_type\":\"STOCK\",\"symbol\":\"THYAO\"}"), null);
 
-        assertThat(r).startsWith("THYAO = 305.5 TRY").contains("günlük 2.1%");
-        assertThat(r).doesNotContain(".IS");
+        assertThat(r)
+                .startsWith("THYAO = 305.5 TRY")
+                .contains("günlük 2.1%")
+                .doesNotContain(".IS");
     }
 
     @Test

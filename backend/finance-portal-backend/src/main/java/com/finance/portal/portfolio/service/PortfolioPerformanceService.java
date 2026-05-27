@@ -16,7 +16,6 @@ import com.finance.portal.portfolio.domain.PortfolioType;
 import com.finance.portal.portfolio.presentation.dto.PortfolioHoldingResponse;
 import com.finance.portal.portfolio.service.performance.PortfolioPerformanceCalculator;
 import com.finance.portal.portfolio.service.performance.PortfolioPeriodGrowthCalculator;
-import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.instrumentation.annotations.SpanAttribute;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import org.springframework.stereotype.Service;

@@ -25,8 +25,9 @@ class CommodityHistoricalTryConversionTest {
 
         // 2.96 USD × 45.27 TRY = 133.9992 (matematiksel doğru sonuç).
         // Eski expected "134.001120" hatalı sabitti.
-        assertThat(tryClose).isNotNull();
-        assertThat(tryClose).isEqualByComparingTo("133.999200");
+        assertThat(tryClose)
+                .isNotNull()
+                .isEqualByComparingTo("133.999200");
     }
 
     @Test

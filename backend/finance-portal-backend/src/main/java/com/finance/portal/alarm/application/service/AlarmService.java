@@ -31,6 +31,8 @@ import java.util.UUID;
 @Service
 public class AlarmService {
 
+    private static final String SPAN_ATTR_ALARM_ID = "alarm.id";
+
     private final AlarmRepository alarmRepository;
     private final CentralBusinessLogService businessLog;
 
@@ -73,7 +75,7 @@ public class AlarmService {
         a.setNote(req.getNote());
         a.setStatus(AlarmStatus.ACTIVE);
         Alarm saved = alarmRepository.save(a);
-        Span.current().setAttribute("alarm.id", String.valueOf(saved.getId()));
+        Span.current().setAttribute(SPAN_ATTR_ALARM_ID, String.valueOf(saved.getId()));
         audit(BusinessLogSupport.EVENT_ALARM_CREATED, BusinessLogSupport.ACTION_CREATE, saved);
         return saved;
     }
@@ -92,7 +94,7 @@ public class AlarmService {
     @WithSpan("AlarmService.update")
     @Transactional
     public Alarm update(@SpanAttribute("alarm.user_id") String userId, UUID id, UpdateAlarmRequest req) {
-        Span.current().setAttribute("alarm.id", String.valueOf(id));
+        Span.current().setAttribute(SPAN_ATTR_ALARM_ID, String.valueOf(id));
         Alarm a = get(userId, id);
         if (req.getMetric() != null) {
             a.setMetric(parseMetric(req.getMetric()));
@@ -125,7 +127,7 @@ public class AlarmService {
     @WithSpan("AlarmService.delete")
     @Transactional
     public void delete(@SpanAttribute("alarm.user_id") String userId, UUID id) {
-        Span.current().setAttribute("alarm.id", String.valueOf(id));
+        Span.current().setAttribute(SPAN_ATTR_ALARM_ID, String.valueOf(id));
         Alarm a = get(userId, id);
         alarmRepository.delete(a);
         audit(BusinessLogSupport.EVENT_ALARM_DELETED, BusinessLogSupport.ACTION_DELETE, a);

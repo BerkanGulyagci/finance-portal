@@ -10,7 +10,6 @@ import com.finance.portal.notification.repository.NotificationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 
 import java.util.List;
 import java.util.Optional;
@@ -79,7 +78,7 @@ class NotificationServiceTest {
         service.createAndSend(USER, NotificationType.NEWSLETTER, "Bülten",
                 "Plain body", "<h1>HTML</h1>", EMAIL, null);
 
-        verify(emailSender).send(eq(EMAIL), eq("Bülten"), eq("<h1>HTML</h1>"));
+        verify(emailSender).send(EMAIL, "Bülten", "<h1>HTML</h1>");
     }
 
     @Test
@@ -88,7 +87,7 @@ class NotificationServiceTest {
         service.createAndSend(USER, NotificationType.ALARM, "Başlık",
                 "Düz gövde", null, EMAIL, null);
 
-        verify(emailSender).send(eq(EMAIL), eq("Başlık"), eq("Düz gövde"));
+        verify(emailSender).send(EMAIL, "Başlık", "Düz gövde");
     }
 
     @Test

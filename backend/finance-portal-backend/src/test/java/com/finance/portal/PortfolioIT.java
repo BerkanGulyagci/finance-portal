@@ -8,8 +8,6 @@ import com.finance.portal.common.application.port.UserAccountStatusPort;
 import com.finance.portal.common.domain.AssetType;
 import com.finance.portal.market.application.AssetPriceQueryService;
 import com.finance.portal.market.application.AssetPriceSnapshot;
-import com.finance.portal.portfolio.domain.Portfolio;
-import com.finance.portal.portfolio.domain.TransactionType;
 import com.finance.portal.portfolio.repository.PortfolioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;

@@ -10,18 +10,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-
-import java.time.Instant;
-import java.util.List;
-import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -60,23 +54,6 @@ class SecurityIT {
     @BeforeEach
     void setUp() {
         when(userAccountStatusPort.isAccountEnabled(any())).thenReturn(true);
-    }
-
-    private SecurityMockMvcRequestPostProcessors.JwtRequestPostProcessor jwtWithRoles(String... roles) {
-        Jwt jwt = new Jwt(
-                "mock-token",
-                Instant.now(),
-                Instant.now().plusSeconds(3600),
-                Map.of("alg", "none"),
-                Map.of(
-                        "sub", "test-user",
-                        "preferred_username", "test-user",
-                        "email_verified", true,
-                        "email", "test-user@example.com",
-                        "realm_access", Map.of("roles", List.of(roles))
-                )
-        );
-        return SecurityMockMvcRequestPostProcessors.jwt().jwt(jwt);
     }
 
     @Test
