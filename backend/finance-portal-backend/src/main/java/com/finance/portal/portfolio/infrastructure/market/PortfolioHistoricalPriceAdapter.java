@@ -9,8 +9,10 @@ import com.finance.portal.market.application.bond.eurobond.model.EurobondDetail;
 import com.finance.portal.market.application.commodity.CommodityHistoryPointDto;
 import com.finance.portal.market.application.commodity.CommodityHistoryResponse;
 import com.finance.portal.market.application.commodity.YahooCommodityService;
+import com.finance.portal.market.application.crypto.CryptoBinanceChartService;
 import com.finance.portal.market.application.crypto.CryptoMarketService;
 import com.finance.portal.market.application.crypto.CryptoYahooChartService;
+import com.finance.portal.market.application.crypto.model.CryptoChartCandle;
 import com.finance.portal.market.application.crypto.model.CryptoMarketItem;
 import com.finance.portal.market.application.funds.model.FundPriceHistoryPoint;
 import com.finance.portal.market.application.funds.model.RasyonetFundDetailDto;
@@ -44,7 +46,9 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Locale;
@@ -82,6 +86,7 @@ public class PortfolioHistoricalPriceAdapter implements PortfolioHistoricalPrice
     private final YahooCommodityService yahooCommodityService;
     private final CryptoMarketService cryptoMarketService;
     private final CryptoYahooChartService cryptoYahooChartService;
+    private final CryptoBinanceChartService cryptoBinanceChartService;
     private final ViopChartService viopChartService;
 
     public PortfolioHistoricalPriceAdapter(StockQueryService stockQueryService,
@@ -97,6 +102,7 @@ public class PortfolioHistoricalPriceAdapter implements PortfolioHistoricalPrice
                                            YahooCommodityService yahooCommodityService,
                                            CryptoMarketService cryptoMarketService,
                                            CryptoYahooChartService cryptoYahooChartService,
+                                           CryptoBinanceChartService cryptoBinanceChartService,
                                            ViopChartService viopChartService) {
         this.stockQueryService = stockQueryService;
         this.rasyonetFundService = rasyonetFundService;
@@ -111,6 +117,7 @@ public class PortfolioHistoricalPriceAdapter implements PortfolioHistoricalPrice
         this.yahooCommodityService = yahooCommodityService;
         this.cryptoMarketService = cryptoMarketService;
         this.cryptoYahooChartService = cryptoYahooChartService;
+        this.cryptoBinanceChartService = cryptoBinanceChartService;
         this.viopChartService = viopChartService;
     }
 
@@ -467,11 +474,27 @@ public class PortfolioHistoricalPriceAdapter implements PortfolioHistoricalPrice
         }
 
         // Eski tarih (>~1 yıl): CoinGecko market_chart zaten ~1 yıl ile sınırlı VE sık 429 veriyor
-        // (price-at'i 80 sn bloke edebiliyor). Doğrudan Yahoo USD × TCMB USD/TRY fallback'ine git.
-        // Sembol eşlemesi için item varsa onun ticker'ını, yoksa girdi sembolünü kullan.
+        // (price-at'i 80 sn bloke edebiliyor). Önce Binance BTCTRY/ETHTRY günlük (frontend ile aynı
+        // kaynak — günlük hassasiyet, FX dönüşüm yok); pair yoksa veya from Binance listeleme
+        // tarihinden öncesi ise Yahoo USD × TCMB USD/TRY fallback'ine düşeriz.
         if (daysSince(from) > 366) {
             String baseSym = (item != null && item.getSymbol() != null && !item.getSymbol().isBlank())
                     ? item.getSymbol() : symbol;
+
+            // 1) Binance TRY direkt (5y günlük / max haftalık) — pair coin'in gerçek TRY çiftiyse
+            //    ratio check otomatik 1'e yakın olur.
+            NavigableMap<LocalDate, BigDecimal> binance = fetchCryptoBinanceTry(baseSym, from);
+            if (!binance.isEmpty()) {
+                LocalDate oldest = binance.firstKey();
+                // Binance pair'in listeleme tarihi `from`'dan sonraysa, istenen gün serinin
+                // altında kalır → Yahoo'ya düş (Yahoo BTC için 2014'e kadar var).
+                if (!oldest.isAfter(from)) {
+                    return binance;
+                }
+                log.debug("Binance {}TRY series starts {} but from={} — Yahoo fallback'e geç", baseSym, oldest, from);
+            }
+
+            // 2) Yahoo USD × TCMB fallback
             NavigableMap<LocalDate, BigDecimal> usdDerived = fetchCryptoUsdFxFallback(baseSym, from, to);
             // Yahoo ticker çakışması koruması: türetilen güncel TL değeri coin'in gerçek güncel TRY
             // fiyatından çok uzaksa (ör. HYPE-USD = farklı/ölü bir token) → yanlış token, kullanma.
@@ -527,6 +550,40 @@ public class PortfolioHistoricalPriceAdapter implements PortfolioHistoricalPrice
     }
 
     /**
+     * Kripto eski tarihler için TL serisi (öncelikli): Binance Spot {BASE}TRY günlük (5y) ya da
+     * haftalık (max) kapanışları. Frontend 5Y/Tüm grafikleriyle aynı kaynak — FX dönüşümü yok.
+     * Coin'in TRY pair'i Binance'te listelenmemişse veya istenen tarih listeleme öncesi ise
+     * boş döner; çağıran kod Yahoo fallback'ine geçer.
+     */
+    private NavigableMap<LocalDate, BigDecimal> fetchCryptoBinanceTry(String baseSymbol, LocalDate from) {
+        NavigableMap<LocalDate, BigDecimal> out = new TreeMap<>();
+        if (baseSymbol == null || baseSymbol.isBlank()) {
+            return out;
+        }
+        // 5y günlük serisi 1830 güne kadarki tarihleri kapsar; daha eski talepler için max (haftalık).
+        String range = daysSince(from) <= 1830 ? "5y" : "max";
+        List<CryptoChartCandle> candles;
+        try {
+            candles = cryptoBinanceChartService.getChartCandles(baseSymbol, range, "try");
+        } catch (Exception e) {
+            log.debug("Binance TRY chart failed for {}: {}", baseSymbol, e.getMessage());
+            return out;
+        }
+        if (candles == null || candles.isEmpty()) {
+            return out;
+        }
+        ZoneId istanbul = ZoneId.of("Europe/Istanbul");
+        for (CryptoChartCandle c : candles) {
+            if (c.getClose() == null || c.getClose().signum() <= 0) {
+                continue;
+            }
+            LocalDate day = Instant.ofEpochSecond(c.getTimestamp()).atZone(istanbul).toLocalDate();
+            out.put(day, c.getClose());
+        }
+        return out;
+    }
+
+    /**
      * Kripto eski tarihler için TL serisi: Yahoo Finance USD kapanışları (BTC-USD vb.) × o güne ait
      * TCMB USD/TRY satış kuru (forward-fill). CoinGecko'nun ~1 yıl ile sınırlı TRY market_chart'ı
      * eski tarihlerde boş kaldığında devreye girer. Yahoo line chart yalnız 5y (haftalık) ve max
@@ -555,8 +612,14 @@ public class PortfolioHistoricalPriceAdapter implements PortfolioHistoricalPrice
             return out;
         }
 
+        // NOT: TCMB pencereyi bugüne kadar yüklüyoruz, sadece [from, to]'ya değil. Çağıran kod
+        // fetchCrypto'da haritanın SON noktasını (= bugünkü Yahoo USD × kur) CoinGecko'nun güncel
+        // TRY fiyatıyla karşılaştırıp ratio sanity-check yapıyor. Eğer TCMB'yi `to`'ya kadar
+        // yüklersek, eski from (ör. 2015) için bugünkü kur kayıt edilmez → son nokta eski kurla
+        // çarpılır → BTC için ratio ~0.08 çıkıp Yahoo fallback komple reddedilir.
         NavigableMap<LocalDate, BigDecimal> usdTryByDay =
-                CommodityHistoricalTryConversion.loadUsdTryHistory(tcmbFxHistoryPort, from.minusDays(10), to);
+                CommodityHistoricalTryConversion.loadUsdTryHistory(
+                        tcmbFxHistoryPort, from.minusDays(10), LocalDate.now());
         BigDecimal latestUsdTry = fetchUsdTryRate();
         // Kur o günden öncesine ait değilse en eski mevcut kuru kullan (eski coin günleri TCMB
         // geçmişinin başından da eski olabilir).
@@ -565,11 +628,14 @@ public class PortfolioHistoricalPriceAdapter implements PortfolioHistoricalPrice
             return out;
         }
 
+        // NOT: Burada [from, to] penceresine KIRPMIYORUZ. Çağıran kod (fetchCrypto) ratio
+        // sanity-check yaparken haritanın son noktasını CoinGecko'nun güncel TRY fiyatıyla
+        // karşılaştırıyor. Eğer burada `to`'ya göre kırpsaydık, eski tarihli price-at
+        // sorgularında son nokta 2021 değeri olup ratio ~0 çıkıp Yahoo fallback toptan
+        // reddediliyordu. Pencereleme caller'ın price-at floorEntry'siyle veya >1y kolunda
+        // doğrudan tüketimle yapılır.
         for (Map.Entry<LocalDate, BigDecimal> e : usdByDay.entrySet()) {
             LocalDate day = e.getKey();
-            if (day.isAfter(to)) {
-                continue;
-            }
             BigDecimal fallbackRate = earliestUsdTry != null ? earliestUsdTry : latestUsdTry;
             BigDecimal tryClose = CommodityHistoricalTryConversion.convertUsdCloseToTry(
                     e.getValue(), day, usdTryByDay, fallbackRate);
