@@ -21,21 +21,15 @@ import com.finance.portal.market.application.silver.SilverHistoryPoint;
 import com.finance.portal.market.application.silver.SilverHistoryResponse;
 import com.finance.portal.market.application.silver.SilverMarketService;
 import com.finance.portal.market.application.silver.SilverSpotResponse;
-import com.finance.portal.market.application.viop.UnsupportedViopContractException;
-import com.finance.portal.market.application.viop.ViopChartPeriod;
-import com.finance.portal.market.application.viop.ViopChartService;
-import com.finance.portal.market.application.viop.ViopContract;
-import com.finance.portal.market.application.viop.ViopService;
 import com.finance.portal.market.application.fx.model.FxHistory;
 import com.finance.portal.market.application.fx.model.FxHistoryPoint;
 import com.finance.portal.market.application.fx.model.FxLatestRates;
 import com.finance.portal.market.application.fx.model.FxRateItem;
-import com.finance.portal.market.application.viop.model.ViopChartPoint;
-import com.finance.portal.market.application.viop.model.ViopContractDetail;
 import com.finance.portal.portfolio.application.port.HoldingMarketEnrichmentPort;
 import com.finance.portal.portfolio.presentation.dto.PortfolioHoldingResponse;
 import com.finance.portal.portfolio.service.enrich.BondHoldingEnricher;
 import com.finance.portal.portfolio.service.enrich.CryptoHoldingEnricher;
+import com.finance.portal.portfolio.service.enrich.FutureHoldingEnricher;
 import com.finance.portal.portfolio.service.enrich.StockHoldingEnricher;
 import com.finance.portal.portfolio.service.support.PortfolioDateTimeParse;
 import com.finance.portal.portfolio.service.support.PortfolioHistoryPoints;
@@ -82,12 +76,11 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
     private final SilverMarketService silverMarketService;
     private final MarketFxService marketFxService;
     private final RasyonetFundService rasyonetFundService;
-    private final ViopService viopService;
-    private final ViopChartService viopChartService;
     private final CentralIntegrationLogService integrationLogService;
     private final CryptoHoldingEnricher cryptoHoldingEnricher;
     private final BondHoldingEnricher bondHoldingEnricher;
     private final StockHoldingEnricher stockHoldingEnricher;
+    private final FutureHoldingEnricher futureHoldingEnricher;
 
     public PortfolioHoldingMarketEnricher(AssetPriceQueryService assetPriceQueryService,
                                           GoldMarketService goldMarketService,
@@ -95,24 +88,22 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
                                           SilverMarketService silverMarketService,
                                           MarketFxService marketFxService,
                                           RasyonetFundService rasyonetFundService,
-                                          ViopService viopService,
-                                          ViopChartService viopChartService,
                                           CentralIntegrationLogService integrationLogService,
                                           CryptoHoldingEnricher cryptoHoldingEnricher,
                                           BondHoldingEnricher bondHoldingEnricher,
-                                          StockHoldingEnricher stockHoldingEnricher) {
+                                          StockHoldingEnricher stockHoldingEnricher,
+                                          FutureHoldingEnricher futureHoldingEnricher) {
         this.assetPriceQueryService = assetPriceQueryService;
         this.goldMarketService = goldMarketService;
         this.yahooCommodityService = yahooCommodityService;
         this.silverMarketService = silverMarketService;
         this.marketFxService = marketFxService;
         this.rasyonetFundService = rasyonetFundService;
-        this.viopService = viopService;
-        this.viopChartService = viopChartService;
         this.integrationLogService = integrationLogService;
         this.cryptoHoldingEnricher = cryptoHoldingEnricher;
         this.bondHoldingEnricher = bondHoldingEnricher;
         this.stockHoldingEnricher = stockHoldingEnricher;
+        this.futureHoldingEnricher = futureHoldingEnricher;
     }
     private static String goldHoldingDisplayName(String upper) {
         return switch (upper) {
@@ -138,7 +129,7 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
             if (type == AssetType.STOCK) {
                 stockHoldingEnricher.enrich(holding);
             } else if (type == AssetType.FUTURE) {
-                enrichFutureHolding(holding);
+                futureHoldingEnricher.enrich(holding);
             } else if (type == AssetType.CRYPTO) {
                 cryptoHoldingEnricher.enrich(holding);
             } else if (type == AssetType.GOLD) {
@@ -198,164 +189,6 @@ public class PortfolioHoldingMarketEnricher implements HoldingMarketEnrichmentPo
             case FUTURE -> IntegrationLogSupport.PROVIDER_AKBANK_VIOP;
             default -> IntegrationLogSupport.PROVIDER_EXTERNAL;
         };
-    }
-
-    /**
-     * FUTURE (VİOP): İş Yatırım grafiği ile 52w/MA her zaman denenir; Akbank listesi ile anlık fiyat vb. eklenir.
-     * <p>
-     * Akbank {@code market.viop.contracts} önbelleği geçici boş / eşleşme başarısız olsa bile erken {@code return}
-     * grafik adımını atlamasın diye grafik zenginleştirmesi liste yolundan ayrılmıştır.
-     * <ul>
-     *   <li>Mevcut fiyat: lastPrice → settlementPrice</li>
-     *   <li>Piyasa değeri: kalan miktar × fiyat × çarpan (çarpan bilgisi yoksa 1)</li>
-     *   <li>{@code change}: kontrat başına günlük fark (current − önceki uzlaşma — frontend günlük K/Z için qty ile çarpıyor)</li>
-     *   <li>{@code changePercent}: listedeki günlük %</li>
-     *   <li>{@code volume}: toplam açık pozisyon (open interest)</li>
-     *   <li>İş Yatırım grafik (1Y→…): min/max → 52 hafta kolonları; günlük son kapanışlar → MA20/MA50</li>
-     * </ul>
-     */
-    private void enrichFutureHolding(PortfolioHoldingResponse holding) {
-        String contractName = holding.getSymbol() != null ? holding.getSymbol().trim() : null;
-        if (contractName == null || contractName.isBlank()) {
-            return;
-        }
-        // Liste başarısız olsa bile (geçici boş cache vb.) 52w / MA kaybolmasın
-        applyViopYearChartMetrics(holding, contractName);
-
-        final ViopContractDetail d;
-        try {
-            Optional<ViopContract> match = viopService.findMatchingContract(contractName);
-            if (match.isEmpty()) {
-                log.debug("VIOP contracts list had no row matching holding symbol={}", contractName);
-                return;
-            }
-            d = viopService.buildDetailDto(match.get());
-        } catch (Exception ex) {
-            log.warn("VIOP enrichment failed for holding symbol={}: {}",
-                    contractName, ex.getMessage());
-            return;
-        }
-
-        BigDecimal current = d.getLastPrice();
-        if (current == null) {
-            current = d.getSettlementPrice();
-        }
-        if (current == null) {
-            log.debug("VIOP no price for contract {}", contractName);
-            return;
-        }
-
-        BigDecimal multiplier = BigDecimal.ONE;
-
-        BigDecimal qty = holding.getTotalQuantity() != null ? holding.getTotalQuantity() : BigDecimal.ZERO;
-        BigDecimal mv = qty.multiply(current).multiply(multiplier).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
-        BigDecimal totalCost = holding.getTotalCost() != null ? holding.getTotalCost() : BigDecimal.ZERO;
-        BigDecimal pl = mv.subtract(totalCost).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
-
-        holding.setCurrentPrice(current);
-        holding.setMarketValue(mv);
-        holding.setProfitLoss(pl);
-        holding.setCurrency("TRY");
-        holding.setName(d.getName() != null ? d.getName() : contractName);
-        LocalDateTime asOf = PortfolioDateTimeParse.parseLenient(d.getTime());
-        holding.setAsOf(asOf != null ? asOf : LocalDateTime.now());
-
-        holding.setChangePercent(d.getChangePercent());
-        holding.setDayHigh(d.getHigh());
-        holding.setDayLow(d.getLow());
-
-        BigDecimal prevSet = d.getPrevSettlementPrice();
-        if (prevSet != null) {
-            holding.setChange(current.subtract(prevSet).multiply(multiplier)
-                    .setScale(MONEY_SCALE, RoundingMode.HALF_UP));
-        }
-
-        // VİOP'ta gerçek işlem hacmi verisi yok (yalnız açık pozisyon var) → "Hacim" doldurulmaz.
-
-        String canonical = d.getName() != null ? d.getName() : contractName;
-        if (!canonical.trim().equals(contractName)) {
-            applyViopYearChartMetrics(holding, canonical);
-        }
-    }
-
-    /**
-     * İş Yatırım grafik serisinden (1Y → 6A → 3A → 1A, ilk dolu seri) min/max aralığı ve
-     * günlük son kapanışlardan MA20/MA50 hesaplar.
-     */
-    private void applyViopYearChartMetrics(PortfolioHoldingResponse holding, String chartContractName) {
-        if (chartContractName == null || chartContractName.isBlank()) {
-            return;
-        }
-        String trimmed = chartContractName.trim();
-        List<ViopChartPoint> pts = null;
-        try {
-            for (ViopChartPeriod p : List.of(
-                    ViopChartPeriod.ONE_YEAR,
-                    ViopChartPeriod.SIX_MONTHS,
-                    ViopChartPeriod.THREE_MONTHS,
-                    ViopChartPeriod.ONE_MONTH)) {
-                List<ViopChartPoint> chunk = viopChartService.getChart(trimmed, p);
-                if (chunk != null && chunk.size() >= 2) {
-                    pts = chunk;
-                    break;
-                }
-            }
-        } catch (UnsupportedViopContractException ex) {
-            log.debug("VIOP chart unsupported for '{}': {}", trimmed, ex.getMessage());
-            return;
-        } catch (Exception ex) {
-            log.debug("VIOP chart fetch failed for '{}': {}", trimmed, ex.getMessage());
-            return;
-        }
-        if (pts == null || pts.isEmpty()) {
-            return;
-        }
-        List<ViopChartPoint> sorted = new ArrayList<>(pts);
-        sorted.sort(Comparator.comparing(ViopChartPoint::getTimestamp, Comparator.nullsLast(Long::compareTo)));
-
-        List<BigDecimal> allVals = new ArrayList<>();
-        TreeMap<LocalDate, BigDecimal> dailyLast = new TreeMap<>();
-        for (ViopChartPoint p : sorted) {
-            if (p.getValue() == null) {
-                continue;
-            }
-            allVals.add(p.getValue());
-            LocalDate day = chartPointToLocalDate(p);
-            if (day != null) {
-                dailyLast.put(day, p.getValue());
-            }
-        }
-        if (allVals.isEmpty()) {
-            return;
-        }
-        BigDecimal lo = allVals.stream().min(BigDecimal::compareTo).orElse(null);
-        BigDecimal hi = allVals.stream().max(BigDecimal::compareTo).orElse(null);
-        if (lo != null && hi != null) {
-            holding.setFiftyTwoWeekLow(lo.setScale(PRICE_SCALE, RoundingMode.HALF_UP));
-            holding.setFiftyTwoWeekHigh(hi.setScale(PRICE_SCALE, RoundingMode.HALF_UP));
-        }
-
-        List<BigDecimal> dailyCloses = new ArrayList<>(dailyLast.values());
-        BigDecimal ma20 = PortfolioMovingAverage.simpleMa(dailyCloses, 20);
-        BigDecimal ma50 = PortfolioMovingAverage.simpleMa(dailyCloses, 50);
-        if (ma20 != null) {
-            holding.setMa20(ma20);
-        }
-        if (ma50 != null) {
-            holding.setMa50(ma50);
-        }
-    }
-
-    private static LocalDate chartPointToLocalDate(ViopChartPoint p) {
-        String dt = p.getDateTime();
-        if (dt == null || dt.length() < 10) {
-            return null;
-        }
-        try {
-            return LocalDate.parse(dt.substring(0, 10));
-        } catch (Exception e) {
-            return null;
-        }
     }
 
     /**
