@@ -1,6 +1,10 @@
 package com.finance.portal;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.finance.portal.admin.application.port.KeycloakUserAdminPort;
+import com.finance.portal.auth.application.port.KeycloakRegistrationFollowUpPort;
+import com.finance.portal.auth.application.port.UserRegistrationPort;
+import com.finance.portal.common.application.port.UserAccountStatusPort;
 import com.finance.portal.common.domain.AssetType;
 import com.finance.portal.market.application.AssetPriceQueryService;
 import com.finance.portal.market.application.AssetPriceSnapshot;
@@ -8,7 +12,6 @@ import com.finance.portal.portfolio.domain.Portfolio;
 import com.finance.portal.portfolio.domain.TransactionType;
 import com.finance.portal.portfolio.repository.PortfolioRepository;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -17,8 +20,13 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -37,8 +45,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-@Disabled("Requires running Keycloak (admin token). Will be re-enabled via Testcontainers in Phase 2.")
+@Testcontainers
 class PortfolioIT {
+
+    /** Gerçek Postgres container — Flyway migration'ları üzerine koşar; testler izole DB'de çalışır. */
+    @Container
+    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:17-alpine")
+            .withDatabaseName("portfolio_it_test")
+            .withUsername("test")
+            .withPassword("test");
+
+    @DynamicPropertySource
+    static void registerProps(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
+        registry.add("spring.datasource.username", POSTGRES::getUsername);
+        registry.add("spring.datasource.password", POSTGRES::getPassword);
+    }
 
     @Autowired
     MockMvc mockMvc;
@@ -51,6 +73,23 @@ class PortfolioIT {
 
     @MockBean
     AssetPriceQueryService assetPriceQueryService;
+
+    // Keycloak admin/registration port'ları — gerçek KC olmadığı için mock'lanır.
+    // PortfolioIT'de JWT zaten mock olarak enjekte edildiği için bu port'lara hiç çağrı
+    // yapılmamalı; emniyet için mock'larlar.
+    @MockBean
+    KeycloakUserAdminPort keycloakUserAdminPort;
+
+    @MockBean
+    KeycloakRegistrationFollowUpPort keycloakRegistrationFollowUpPort;
+
+    @MockBean
+    UserRegistrationPort userRegistrationPort;
+
+    // DisabledAccountFilter her request'te bunu çağırıyor → Keycloak admin API'sini tetikliyor.
+    // Test'lerde "tüm user'lar enabled" varsayalım.
+    @MockBean
+    UserAccountStatusPort userAccountStatusPort;
 
     private static final String USER_A = "user-a-subject";
     private static final String USER_B = "user-b-subject";
@@ -66,6 +105,8 @@ class PortfolioIT {
                 LocalDateTime.now()
         );
         when(assetPriceQueryService.getCurrentPrice(any(), any())).thenReturn(mockSnapshot);
+        // DisabledAccountFilter her request'te bu portu çağırıyor; test'te herkes aktif.
+        when(userAccountStatusPort.isAccountEnabled(any())).thenReturn(true);
     }
 
     // =========================================================================
@@ -366,6 +407,9 @@ class PortfolioIT {
                 Map.of(
                         "sub", subject,
                         "preferred_username", subject,
+                        // EmailVerifiedFilter /api/portfolios üzerinde email_verified=true talep ediyor.
+                        "email_verified", true,
+                        "email", subject + "@example.com",
                         "realm_access", Map.of("roles", List.of("USER"))
                 )
         );

@@ -5,11 +5,12 @@ import com.finance.portal.admin.application.model.BanStatus;
 import com.finance.portal.admin.application.port.KeycloakUserAdminPort;
 import com.finance.portal.admin.application.port.UserBanStatePort;
 import com.finance.portal.alarm.application.service.AlarmService;
+import com.finance.portal.auth.application.port.KeycloakRegistrationFollowUpPort;
+import com.finance.portal.auth.application.port.UserRegistrationPort;
 import com.finance.portal.newsletter.application.service.NewsletterService;
 import com.finance.portal.notification.application.service.NotificationService;
 import com.finance.portal.common.application.port.UserAccountStatusPort;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -18,7 +19,12 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.Instant;
 import java.util.Collections;
@@ -37,8 +43,21 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@Disabled("Requires running Keycloak (admin token). Will be re-enabled via Testcontainers in Phase 2.")
+@Testcontainers
 class AdminSecurityIT {
+
+    @Container
+    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:17-alpine")
+            .withDatabaseName("admin_it_test")
+            .withUsername("test")
+            .withPassword("test");
+
+    @DynamicPropertySource
+    static void registerProps(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
+        registry.add("spring.datasource.username", POSTGRES::getUsername);
+        registry.add("spring.datasource.password", POSTGRES::getPassword);
+    }
 
     @Autowired
     MockMvc mockMvc;
@@ -61,6 +80,12 @@ class AdminSecurityIT {
     @MockBean
     NotificationService notificationService;
 
+    @MockBean
+    KeycloakRegistrationFollowUpPort keycloakRegistrationFollowUpPort;
+
+    @MockBean
+    UserRegistrationPort userRegistrationPort;
+
     @BeforeEach
     void setUpAccountStatus() {
         when(userAccountStatusPort.isAccountEnabled(anyString())).thenReturn(true);
@@ -75,6 +100,8 @@ class AdminSecurityIT {
                 Map.of(
                         "sub", "admin-user-id",
                         "preferred_username", "berkanadmin",
+                        "email_verified", true,
+                        "email", "admin@example.com",
                         "realm_access", Map.of("roles", List.of(roles))
                 )
         );
