@@ -22,7 +22,7 @@ class CryptoYahooChartServiceTest {
 
     @Test
     void resolveYahooRangeInterval_maps5yAndMax() {
-        assertThat(CryptoYahooChartService.resolveYahooRangeInterval("5y")).containsExactly("5y", "1wk");
-        assertThat(CryptoYahooChartService.resolveYahooRangeInterval("max")).containsExactly("max", "1mo");
+        assertThat(CryptoYahooChartService.resolveYahooRangeInterval("5y")).containsExactly("5y", "1d");
+        assertThat(CryptoYahooChartService.resolveYahooRangeInterval("max")).containsExactly("max", "1d");
     }
 }

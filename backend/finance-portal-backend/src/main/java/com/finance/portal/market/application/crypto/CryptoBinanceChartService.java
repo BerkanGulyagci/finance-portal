@@ -97,9 +97,11 @@ public class CryptoBinanceChartService {
     }
 
     private static String resolveInterval(String range) {
+        // 5y / max ikisi de günlük: price-at eski tarih sorgularında haftalık aralık
+        // floorEntry'yi Pazartesi'ye yapıştırıp 3-6 gün kayma yaratıyordu. Binance kline
+        // pagination 1000/page ile çalışır → BTCTRY max (~2350 gün) 3 sayfada gelir.
         return switch (range) {
-            case "5y" -> "1d";
-            case "max" -> "1w";
+            case "5y", "max" -> "1d";
             default -> null;
         };
     }

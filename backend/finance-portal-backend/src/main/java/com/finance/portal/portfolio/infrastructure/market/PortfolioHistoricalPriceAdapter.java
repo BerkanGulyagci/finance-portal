@@ -481,14 +481,22 @@ public class PortfolioHistoricalPriceAdapter implements PortfolioHistoricalPrice
             String baseSym = (item != null && item.getSymbol() != null && !item.getSymbol().isBlank())
                     ? item.getSymbol() : symbol;
 
-            // 1) Binance TRY direkt (5y günlük / max haftalık) — pair coin'in gerçek TRY çiftiyse
-            //    ratio check otomatik 1'e yakın olur.
+            // 1) Binance TRY direkt (5y / max ikisi de günlük) — pair coin'in gerçek TRY
+            //    çiftiyse ratio check otomatik 1'e yakın olur.
             NavigableMap<LocalDate, BigDecimal> binance = fetchCryptoBinanceTry(baseSym, from);
             if (!binance.isEmpty()) {
                 LocalDate oldest = binance.firstKey();
-                // Binance pair'in listeleme tarihi `from`'dan sonraysa, istenen gün serinin
-                // altında kalır → Yahoo'ya düş (Yahoo BTC için 2014'e kadar var).
-                if (!oldest.isAfter(from)) {
+                // İki durumu ayır:
+                // (a) Binance pair'i `from`'u kapsıyorsa (oldest ≤ from): tüm pencere içinde
+                //     güvenle kullan — chart ya da price-at fark etmez.
+                // (b) Aksi durumda window dar (≤ 60 gün) ve Binance'in `to`'ya kadar verisi
+                //     varsa (floorEntry(to) != null), bu büyük olasılıkla price-at sorgusu →
+                //     Binance günlük precision'a izin ver. Geniş window'larda (chart) eski
+                //     veri için Yahoo'ya düş.
+                boolean coversFrom = !oldest.isAfter(from);
+                boolean priceAtLikeWindow = ChronoUnit.DAYS.between(from, to) <= 60
+                        && binance.floorEntry(to) != null;
+                if (coversFrom || priceAtLikeWindow) {
                     return binance;
                 }
                 log.debug("Binance {}TRY series starts {} but from={} — Yahoo fallback'e geç", baseSym, oldest, from);

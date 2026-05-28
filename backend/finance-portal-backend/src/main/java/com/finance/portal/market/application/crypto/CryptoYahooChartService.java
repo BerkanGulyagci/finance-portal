@@ -65,9 +65,12 @@ public class CryptoYahooChartService {
 
     static String[] resolveYahooRangeInterval(String range) {
         String r = CryptoBinanceChartService.normalizeRange(range);
+        // 5y / max için günlük (1d) — eski tarih price-at sorgularında haftalık/aylık
+        // floorEntry kaymasını gidermek için. BTC max+1d ~4400 nokta, 5y+1d ~1825 nokta;
+        // frontend kripto USD/EUR çizgisi için de daha yüksek çözünürlük (Binance TRY zaten günlük).
         return switch (r) {
-            case "5y" -> new String[]{"5y", "1wk"};
-            case "max" -> new String[]{"max", "1mo"};
+            case "5y" -> new String[]{"5y", "1d"};
+            case "max" -> new String[]{"max", "1d"};
             default -> null;
         };
     }

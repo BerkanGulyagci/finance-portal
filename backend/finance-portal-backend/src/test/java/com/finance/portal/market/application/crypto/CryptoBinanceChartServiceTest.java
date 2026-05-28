@@ -37,9 +37,9 @@ class CryptoBinanceChartServiceTest {
         List<CryptoChartCandle> first = batch(1000, 1_000_000L);
         long nextStart = first.get(first.size() - 1).getCloseTimeMs() + 1;
 
-        when(port.fetchKlinesPage(eq("BTCTRY"), eq("1w"), eq(1000), eq(0L)))
+        when(port.fetchKlinesPage(eq("BTCTRY"), eq("1d"), eq(1000), eq(0L)))
                 .thenReturn(first);
-        when(port.fetchKlinesPage(eq("BTCTRY"), eq("1w"), eq(1000), eq(nextStart)))
+        when(port.fetchKlinesPage(eq("BTCTRY"), eq("1d"), eq(1000), eq(nextStart)))
                 .thenReturn(batch(50, 2_000_000L));
 
         CryptoBinanceChartService service = new CryptoBinanceChartService(port);
