@@ -65,10 +65,55 @@ public class BondHoldingEnricher {
     /** EVDS (TCMB) iç piyasa tahvili: indicator + history serisi → mv/pl/52w/MA. */
     private void enrichEvdsBond(PortfolioHoldingResponse holding) {
         String code = holding.getSymbol() != null ? holding.getSymbol().trim() : "";
-        EvdsBondInstrument bond = evdsBondService.getEvdsBondDetail(code);
-        BigDecimal price = bond.getIndicatorValue();
+
+        // Önce 1Y history çek — vadesi dolan bonolarda indicator boş geldiğinde son
+        // kapanışı fallback olarak kullanırız. Aynı sorgu 52w/MA için de gereklidir.
+        List<EvdsBondHistoryPoint> hist = null;
+        try {
+            hist = evdsBondService.getEvdsBondHistory(code, BondPeriod.ONE_YEAR);
+        } catch (Exception e) {
+            log.debug("Bond history fetch failed for {}: {}", code, e.getMessage());
+        }
+
+        EvdsBondInstrument bond = null;
+        BigDecimal price = null;
+        BigDecimal change = null;
+        BigDecimal changePercent = null;
+        String type = null;
+        LocalDate lu = null;
+        try {
+            bond = evdsBondService.getEvdsBondDetail(code);
+            price = bond.getIndicatorValue();
+            change = bond.getDailyChange();
+            changePercent = bond.getDailyChangePercent();
+            type = bond.getType();
+            lu = bond.getLastUpdated();
+        } catch (Exception e) {
+            log.debug("EVDS bond detail unavailable for {}: {}", code, e.getMessage());
+        }
+
+        // Fallback: indicator yoksa (vadesi dolmuş / EVDS'de yok) history serisinin son kapanışı.
+        boolean usedHistoryFallback = false;
+        LocalDate fallbackDate = null;
+        if ((price == null || price.compareTo(BigDecimal.ZERO) <= 0) && hist != null && !hist.isEmpty()) {
+            for (int i = hist.size() - 1; i >= 0; i--) {
+                EvdsBondHistoryPoint pt = hist.get(i);
+                if (pt.getIndicatorValue() != null && pt.getIndicatorValue().compareTo(BigDecimal.ZERO) > 0) {
+                    price = pt.getIndicatorValue();
+                    fallbackDate = pt.getDate();
+                    usedHistoryFallback = true;
+                    break;
+                }
+            }
+        }
+
         if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalStateException("Bond EVDS indicator unavailable for: " + code);
+            // Hem indicator hem history yok → enricher null bırakır, UI "—" gösterir.
+            holding.setCurrency("TRY");
+            if (type != null && !type.isBlank()) {
+                holding.setName(code + " · " + type);
+            }
+            return;
         }
 
         BigDecimal mv = marketValue(price, holding.getTotalQuantity());
@@ -78,32 +123,30 @@ public class BondHoldingEnricher {
         holding.setMarketValue(mv);
         holding.setProfitLoss(pl);
         holding.setCurrency("TRY");
-        holding.setChange(bond.getDailyChange());
-        holding.setChangePercent(bond.getDailyChangePercent());
+        holding.setChange(change);
+        holding.setChangePercent(changePercent);
+        holding.setAsOf(lu != null ? lu.atStartOfDay()
+                : fallbackDate != null ? fallbackDate.atStartOfDay()
+                : LocalDateTime.now());
 
-        LocalDate lu = bond.getLastUpdated();
-        holding.setAsOf(lu != null ? lu.atStartOfDay() : LocalDateTime.now());
-
-        if (bond.getType() != null && !bond.getType().isBlank()) {
-            holding.setName(code + " · " + bond.getType());
+        if (type != null && !type.isBlank()) {
+            String suffix = usedHistoryFallback ? " · " + type + " (vadesi geçti)" : " · " + type;
+            holding.setName(code + suffix);
+        } else if (usedHistoryFallback) {
+            holding.setName(code + " (vadesi geçti)");
         }
 
-        try {
-            List<EvdsBondHistoryPoint> hist = evdsBondService.getEvdsBondHistory(code, BondPeriod.ONE_YEAR);
-            if (hist != null && !hist.isEmpty()) {
-                List<BigDecimal> closes = hist.stream()
-                        .map(EvdsBondHistoryPoint::getIndicatorValue)
-                        .filter(Objects::nonNull)
-                        .collect(Collectors.toList());
-                if (!closes.isEmpty()) {
-                    holding.setFiftyTwoWeekHigh(closes.stream().max(BigDecimal::compareTo).orElse(null));
-                    holding.setFiftyTwoWeekLow(closes.stream().min(BigDecimal::compareTo).orElse(null));
-                    holding.setMa20(PortfolioMovingAverage.simpleMa(closes, 20));
-                    holding.setMa50(PortfolioMovingAverage.simpleMa(closes, 50));
-                }
+        if (hist != null && !hist.isEmpty()) {
+            List<BigDecimal> closes = hist.stream()
+                    .map(EvdsBondHistoryPoint::getIndicatorValue)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+            if (!closes.isEmpty()) {
+                holding.setFiftyTwoWeekHigh(closes.stream().max(BigDecimal::compareTo).orElse(null));
+                holding.setFiftyTwoWeekLow(closes.stream().min(BigDecimal::compareTo).orElse(null));
+                holding.setMa20(PortfolioMovingAverage.simpleMa(closes, 20));
+                holding.setMa50(PortfolioMovingAverage.simpleMa(closes, 50));
             }
-        } catch (Exception e) {
-            log.debug("Bond history / MA unavailable for {}: {}", code, e.getMessage());
         }
     }
 
