@@ -29,8 +29,18 @@ public class EurobondController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<EurobondSummary>>> list() {
+    public ResponseEntity<ApiResponse<List<EurobondSummary>>> list(
+            @org.springframework.web.bind.annotation.RequestParam(value = "tradeable",
+                    required = false, defaultValue = "false") boolean tradeable) {
         List<EurobondSummary> list = eurobondService.list();
+        if (tradeable) {
+            // BI verisi olmayan eurobondlar işlem modalı için filtrelenir — fiyat olmadan
+            // alış/satış K/Z hesaplanamaz, kullanıcı yanlış data girer.
+            list = list.stream()
+                    .filter(EurobondSummary::hasDetail)
+                    .filter(s -> s.lastPrice() != null && s.lastPrice().signum() > 0)
+                    .toList();
+        }
         return ResponseEntity.ok(ApiResponse.success(list,
                 "Eurobond listesi. Kaynak: HMB (ISIN) + Business Insider (canlı)"));
     }
