@@ -166,16 +166,18 @@ export default function AddTransactionModal({
   }
 
   // İşlem tarihine göre fiyatı otomatik doldur (geçmiş tarihte tarihsel kapanış).
-  // Bugün/ileri tarihte güncel spot fiyat (instrument-based) korunur.
+  // Bugün/ileri tarihte güncel spot fiyat (instrument-based) korunur, AMA spot fiyat
+  // arama listesinde yoksa (PLATINUM/PALLADIUM gibi) bugün için de /price-at çağrılır.
   // Eurobond: backend /price-at TL FX-converted değer döndürür (Model 1: kote × o günün TCMB kuru) →
   // hem geçmiş hem bugün için autofill TL olarak çalışır (USD/EUR fark etmez, backend FX'i bulur).
   useEffect(() => {
     if (step !== 'form' || !instrument) return undefined;
     const dateOnly = (form.transactionDate || '').slice(0, 10);
     if (!dateOnly) return undefined;
-    // Eurobond bugün/ileri için de /price-at çağrılır (TL döner). Diğer enstrümanlarda eski davranış:
-    // bugün → spot fiyat zaten instrument'tan geliyor.
-    if (dateOnly >= todayStr && !isEurobond) {
+    // Bugün/ileri tarih: spot fiyatı instrument'tan geliyorsa erken çık (eski davranış).
+    // Aksi halde (eurobond ya da spot fiyat yok ise) /price-at fallback'ine düşeriz.
+    const hasSpotPrice = instrument.price != null && Number(instrument.price) > 0;
+    if (dateOnly >= todayStr && !isEurobond && hasSpotPrice) {
       setPriceNotFound(false);
       setPriceLoading(false);
       return undefined;
