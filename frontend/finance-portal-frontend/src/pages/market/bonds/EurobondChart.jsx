@@ -119,6 +119,8 @@ export default function EurobondChart({ isin }) {
   const paneIds = useRef({});
   const [rangeIdx, setRangeIdx] = useState(3); // 1Y
   const [mode, setMode] = useState('line');    // varsayılan çizgi grafik; candle | line
+  const modeRef = useRef('line');
+  useEffect(() => { modeRef.current = mode; }, [mode]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [activeMAs, setActiveMAs] = useState([]);
@@ -157,15 +159,44 @@ export default function EurobondChart({ isin }) {
     const chart = klineInit(id);
     chartRef.current = chart;
     paneIds.current = {};
-    // Hover tooltip aç (klinecharts crosshair + candle.tooltip): kullanıcı çizgi
-    // grafiğe mouse getirince tarih + fiyat görsün.
+    // Hover tooltip — mouse'un yanında floating kutu (BondEvdsHistoryChart ile aynı stil).
     chart.setStyles({
       candle: {
         type: mode === 'line' ? 'area' : 'candle_solid',
         tooltip: {
-          showRule: 'always',
-          showType: 'standard',
+          showRule: 'follow_cross',
+          showType: 'rect',
+          text: { size: 12, marginTop: 4, marginBottom: 4, marginLeft: 8, marginRight: 8 },
+          rect: {
+            offsetLeft: 8, offsetTop: 8, offsetRight: 8,
+            paddingLeft: 10, paddingRight: 10, paddingTop: 8, paddingBottom: 8,
+            borderRadius: 8, borderSize: 1, borderColor: '#e5e7eb',
+            color: 'rgba(255,255,255,0.94)',
+          },
+          custom: (data) => {
+            const d = data?.current ?? {};
+            const dateStr = d.timestamp
+              ? new Date(d.timestamp).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' })
+              : '';
+            const fmt = (v) => v == null ? '—' : Number(v).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+            if (modeRef.current === 'line') {
+              return [
+                { title: '', value: { text: dateStr, color: '#6b7280' } },
+                { title: { text: 'Fiyat:', color: '#1677ff' }, value: { text: fmt(d.close), color: '#1677ff' } },
+              ];
+            }
+            return [
+              { title: '', value: { text: dateStr, color: '#6b7280' } },
+              { title: { text: 'Açılış:', color: '#6b7280' }, value: { text: fmt(d.open), color: '#111' } },
+              { title: { text: 'Yüksek:', color: '#6b7280' }, value: { text: fmt(d.high), color: '#16a34a' } },
+              { title: { text: 'Düşük:', color: '#6b7280' }, value: { text: fmt(d.low), color: '#dc2626' } },
+              { title: { text: 'Kapanış:', color: '#6b7280' }, value: { text: fmt(d.close), color: '#111' } },
+            ];
+          },
         },
+      },
+      indicator: {
+        tooltip: { showRule: 'follow_cross', showType: 'rect', showName: false, showParams: false, defaultValue: '—', text: { size: 12, marginTop: 4, marginBottom: 4, marginLeft: 8, marginRight: 8 } },
       },
       crosshair: {
         show: true,
