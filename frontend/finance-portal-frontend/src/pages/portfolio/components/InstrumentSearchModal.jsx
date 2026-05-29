@@ -346,12 +346,14 @@ async function fetchAll(type) {
 
       let euro = [];
       try {
-        const r = await client.get('/api/market/bonds/global');
+        // tradeable=true → BI verisi olmayan eurobondlar listeden hariç tutulur
+        // (fiyat yok → alış/satış K/Z hesaplanamaz, kullanıcıyı yanıltmasın).
+        const r = await client.get('/api/market/bonds/global?tradeable=true');
         euro = (r.data?.data ?? []).map(b => ({
           symbol: b.isin ?? '',
           name: b.name || b.issuer || b.isin || '',
           type: 'Eurobond',
-          subType: 'EUROBOND', // modal otomatik fiyatı kapatıp TL elle girişe yönlendirir
+          subType: 'EUROBOND',
           indicatorValue: b.lastPrice != null ? Number(b.lastPrice) : null,
         })).filter(b => b.symbol);
       } catch { /* eurobond yoksa yalnız EVDS */ }
