@@ -159,19 +159,13 @@ export default function AddTransactionModal({
 
   // İşlem tarihine göre fiyatı otomatik doldur (geçmiş tarihte tarihsel kapanış).
   // Bugün/ileri tarihte güncel spot fiyat (instrument-based) korunur.
+  // Eurobond: backend /price-at TL FX-converted değer döndürür (Model 1) → autofill TL olarak çalışır.
   useEffect(() => {
     if (step !== 'form' || !instrument) return undefined;
-    // Eurobond: tarihsel fiyat döviz cinsinden → otomatik doldurma yok, TL elle girilir.
-    if (isEurobond) {
-      setPriceNotFound(false);
-      setPriceLoading(false);
-      setPriceAuto(false);
-      return undefined;
-    }
     const dateOnly = (form.transactionDate || '').slice(0, 10);
     if (!dateOnly) return undefined;
     if (dateOnly >= todayStr) {
-      // Bugün/ileri: spot fiyat geçerli; tarihsel çekim yok
+      // Bugün/ileri: spot fiyat geçerli; tarihsel çekim yok. Eurobondda kullanıcı TL elle girer.
       setPriceNotFound(false);
       setPriceLoading(false);
       return undefined;
