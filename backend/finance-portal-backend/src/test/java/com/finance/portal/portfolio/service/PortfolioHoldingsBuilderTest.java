@@ -220,6 +220,76 @@ class PortfolioHoldingsBuilderTest {
     }
 
     // ============================================================================
+    // Kapatılmış pozisyonların realized K/Z toplamı (buildWithClosed)
+    // ============================================================================
+
+    @Test
+    @DisplayName("buildWithClosed: tam kapanış → holding yok ama closedRealized=5000")
+    void buildWithClosed_fullClose_capturesRealizedInClosedList() {
+        // BUY 100 × 250 + SELL 100 × 300 → realized = 100 × (300 - 250) = 5000
+        PortfolioTransaction buy = tx(BUY("THYAO.IS", AssetType.STOCK,
+                "100", "250", "0", "2025-01-01T10:00:00"));
+        PortfolioTransaction sell = tx(SELL("THYAO.IS", AssetType.STOCK,
+                "100", "300", "0", "2025-02-01T10:00:00"));
+
+        PortfolioHoldingsBuilder.BuildResult res = builder.buildWithClosed(List.of(buy, sell));
+
+        // Açık holding listesi davranışı bozulmadı: kapatılmış pozisyon listede yok.
+        assertThat(res.holdings()).isEmpty();
+        verifyNoInteractions(enrichmentPort);
+
+        // Closed realized listesinde tam kapanan pozisyonun K/Z'si yakalanmış.
+        assertThat(res.closedRealized()).hasSize(1);
+        PortfolioHoldingsBuilder.ClosedPositionRealized closed = res.closedRealized().get(0);
+        assertThat(closed.symbol()).isEqualTo("THYAO.IS");
+        assertThat(closed.assetType()).isEqualTo(AssetType.STOCK);
+        assertThat(closed.realizedGainLoss()).isEqualByComparingTo("5000");
+        assertThat(closed.currency()).isEqualTo("TRY"); // .IS → TRY
+    }
+
+    @Test
+    @DisplayName("buildWithClosed: kısmi SELL → açık holding kalır, closedRealized boş")
+    void buildWithClosed_partialSell_holdingKeepsRealizedClosedListEmpty() {
+        // BUY 100 × 250 + SELL 40 × 300 → kalan 60, realized = 40 × (300 - 250) = 2000
+        PortfolioTransaction buy = tx(BUY("THYAO.IS", AssetType.STOCK,
+                "100", "250", "0", "2025-01-01T10:00:00"));
+        PortfolioTransaction sell = tx(SELL("THYAO.IS", AssetType.STOCK,
+                "40", "300", "0", "2025-02-01T10:00:00"));
+
+        PortfolioHoldingsBuilder.BuildResult res = builder.buildWithClosed(List.of(buy, sell));
+
+        // Açık holding mevcut.
+        assertThat(res.holdings()).hasSize(1);
+        PortfolioHoldingResponse h = res.holdings().get(0);
+        assertThat(h.getTotalQuantity()).isEqualByComparingTo("60");
+        assertThat(h.getTotalCost()).isEqualByComparingTo("15000");      // 60 × 250
+        assertThat(h.getAverageCost()).isEqualByComparingTo("250");
+        assertThat(h.getRealizedGainLoss()).isEqualByComparingTo("2000"); // holding satırında korunur
+
+        // Kapatılmış pozisyon yok.
+        assertThat(res.closedRealized()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("buildWithClosed: komisyonlu tam kapanış → realized net (komisyon dahil)")
+    void buildWithClosed_fullCloseWithCommission_realizedHonoursCommission() {
+        // BUY 100 × 250 (comm 10) → cost = 25.010
+        // SELL 100 × 300 (comm 8)  → proceeds = 30.000 - 8 = 29.992
+        // realized = 29.992 - 25.010 = 4982
+        PortfolioTransaction buy = tx(BUY("THYAO.IS", AssetType.STOCK,
+                "100", "250", "10", "2025-01-01T10:00:00"));
+        PortfolioTransaction sell = tx(SELL("THYAO.IS", AssetType.STOCK,
+                "100", "300", "8", "2025-02-01T10:00:00"));
+
+        PortfolioHoldingsBuilder.BuildResult res = builder.buildWithClosed(List.of(buy, sell));
+
+        assertThat(res.holdings()).isEmpty();
+        assertThat(res.closedRealized()).hasSize(1);
+        assertThat(res.closedRealized().get(0).realizedGainLoss())
+                .isEqualByComparingTo("4982");
+    }
+
+    // ============================================================================
     // Helper'lar — readable test fixtures
     // ============================================================================
 

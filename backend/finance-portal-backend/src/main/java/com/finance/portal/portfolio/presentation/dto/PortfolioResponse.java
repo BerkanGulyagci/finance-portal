@@ -28,6 +28,14 @@ public class PortfolioResponse {
     private BigDecimal totalMarketValue;
     private BigDecimal totalProfitLoss;
 
+    /**
+     * Toplam gerçekleşmiş K/Z (TL): hem açık holding'lerin satışlarından gelen
+     * realizedGainLoss hem de tamamen kapatılmış pozisyonların biriktirdiği realized
+     * K/Z dahildir. Açık pozisyonun realizedGainLoss alanı holding satırında ayrıca
+     * gösterilirken kapatılmış pozisyonlar yalnızca bu toplam içinde temsil edilir.
+     */
+    private BigDecimal totalRealizedProfitLoss;
+
     /** Enflasyona göre düzeltilmiş toplam reel K/Z (yalnızca TL pozisyonlar üzerinden). */
     private BigDecimal totalRealProfitLoss;
     /** Toplam reel getiri yüzdesi (reel K/Z / toplam reel maliyet × 100). */

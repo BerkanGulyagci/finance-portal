@@ -34,8 +34,18 @@ public class PortfolioHoldingsBuilder {
     }
 
     public List<PortfolioHoldingResponse> build(List<PortfolioTransaction> transactions) {
+        return buildWithClosed(transactions).holdings;
+    }
+
+    /**
+     * {@link #build(List)} ile aynı sonucu döndürür ama tamamen kapatılmış pozisyonların
+     * (openQuantity ≤ 0) realizedGainLoss toplamını da sembol×assetType bazlı sezgisel
+     * para biriminde ayrıca verir. Açık holding listesi davranışı değişmez — kapatılmış
+     * pozisyonlar yine sonuç listesinde gösterilmez.
+     */
+    public BuildResult buildWithClosed(List<PortfolioTransaction> transactions) {
         if (transactions == null || transactions.isEmpty()) {
-            return new ArrayList<>();
+            return new BuildResult(new ArrayList<>(), List.of());
         }
 
         Map<String, List<PortfolioTransaction>> byKey = new LinkedHashMap<>();
@@ -46,6 +56,7 @@ public class PortfolioHoldingsBuilder {
         }
 
         List<PortfolioHoldingResponse> result = new ArrayList<>();
+        List<ClosedPositionRealized> closed = new ArrayList<>();
 
         for (Map.Entry<String, List<PortfolioTransaction>> e : byKey.entrySet()) {
             List<PortfolioTransaction> txs = new ArrayList<>(e.getValue());
@@ -64,6 +75,14 @@ public class PortfolioHoldingsBuilder {
             }
 
             if (acc.openQuantity.compareTo(BigDecimal.ZERO) <= 0) {
+                // Tamamen kapatılmış pozisyon: holding satırı oluşturmuyoruz ama
+                // realizedGainLossSum portföy toplamına dahil edilmek üzere ayrı dönülür.
+                if (acc.anySell && acc.realizedGainLossSum.signum() != 0) {
+                    closed.add(new ClosedPositionRealized(
+                            acc.symbol, acc.assetType,
+                            acc.realizedGainLossSum.setScale(MONEY_SCALE, RoundingMode.HALF_UP),
+                            guessNativeCurrency(acc.symbol, acc.assetType)));
+                }
                 continue;
             }
 
@@ -94,7 +113,37 @@ public class PortfolioHoldingsBuilder {
             result.add(holding);
         }
 
-        return result;
+        return new BuildResult(result, closed);
+    }
+
+    /**
+     * {@link #buildWithClosed(List)} dönüş tipi. {@code holdings} eski davranışla aynı
+     * (yalnızca açık pozisyonlar); {@code closedRealized} tamamen kapatılmış pozisyonlar
+     * için sembol×assetType bazında gerçekleşmiş K/Z (varlık para biriminde) listesidir.
+     */
+    public record BuildResult(
+            List<PortfolioHoldingResponse> holdings,
+            List<ClosedPositionRealized> closedRealized
+    ) {}
+
+    /** Kapatılmış pozisyonun realized K/Z özetı — para birimi varlığa bağlıdır (örn. STOCK.IS → TRY). */
+    public record ClosedPositionRealized(
+            String symbol,
+            AssetType assetType,
+            BigDecimal realizedGainLoss,
+            String currency
+    ) {}
+
+    /**
+     * Kapanmış pozisyonda canlı enricher çalışmadığı için para birimini sembol/türden
+     * tahminliyoruz. STOCK ".IS" eki TRY, diğerleri USD; diğer tüm tipler TRY (uygulama
+     * kuralı: kripto/fon/altın/emtia/eurobond stored TL).
+     */
+    private static String guessNativeCurrency(String symbol, AssetType assetType) {
+        if (assetType == AssetType.STOCK) {
+            return symbol != null && symbol.toUpperCase().endsWith(".IS") ? "TRY" : "USD";
+        }
+        return "TRY";
     }
 
     private static String groupingKeyForTransaction(PortfolioTransaction tx) {

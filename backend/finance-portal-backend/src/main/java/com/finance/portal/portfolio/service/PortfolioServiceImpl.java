@@ -624,7 +624,8 @@ public class PortfolioServiceImpl implements PortfolioService {
                 .map(this::toTransactionResponse)
                 .collect(Collectors.toList());
 
-        List<PortfolioHoldingResponse> holdings = holdingsBuilder.build(portfolio.getTransactions());
+        PortfolioHoldingsBuilder.BuildResult built = holdingsBuilder.buildWithClosed(portfolio.getTransactions());
+        List<PortfolioHoldingResponse> holdings = built.holdings();
 
         // Para birimi-duyarlı toplamlar: her varlık TL'ye çevrilip toplanır (USD hisse vb.
         // doğrudan TL toplamına eklenmesin diye). Tümü TL ise çarpan 1 → davranış değişmez.
@@ -646,6 +647,20 @@ public class PortfolioServiceImpl implements PortfolioService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(MONEY_SCALE, RoundingMode.HALF_UP);
 
+        // Gerçekleşmiş K/Z toplamı: hem açık holding'lerin parça satışlarından gelen realized
+        // hem de tamamen kapatılmış pozisyonların biriktirdiği realized (artık holding satırı
+        // olmayan ama satışı yapılan pozisyonlar). Hepsi TL'ye çevrilir.
+        BigDecimal openRealized = holdings.stream()
+                .map(h -> currencyConverter.toTry(h.getRealizedGainLoss(), h.getCurrency()))
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal closedRealized = built.closedRealized().stream()
+                .map(c -> currencyConverter.toTry(c.realizedGainLoss(), c.currency()))
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalRealizedProfitLoss = openRealized.add(closedRealized)
+                .setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+
         PortfolioResponse response = new PortfolioResponse();
         response.setId(portfolio.getId());
         response.setName(portfolio.getName());
@@ -659,6 +674,7 @@ public class PortfolioServiceImpl implements PortfolioService {
         response.setTotalCost(totalCost);
         response.setTotalMarketValue(totalMarketValue);
         response.setTotalProfitLoss(totalProfitLoss);
+        response.setTotalRealizedProfitLoss(totalRealizedProfitLoss);
 
         // Enflasyona göre düzeltilmiş reel getiri alanlarını ekle (TL pozisyonlar)
         realReturnEnricher.apply(response);
