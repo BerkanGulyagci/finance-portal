@@ -61,6 +61,7 @@ public class PortfolioServiceImpl implements PortfolioService {
     private final PortfolioRealReturnEnricher realReturnEnricher;
     private final PortfolioCurrencyConverter currencyConverter;
     private final PortfolioWhatIfService whatIfService;
+    private final com.finance.portal.market.application.bond.eurobond.EurobondService eurobondService;
 
     public PortfolioServiceImpl(PortfolioPersistencePort portfolioPersistence,
                                 PortfolioCachePort portfolioCache,
@@ -72,7 +73,8 @@ public class PortfolioServiceImpl implements PortfolioService {
                                 CentralBusinessLogService centralBusinessLogService,
                                 PortfolioRealReturnEnricher realReturnEnricher,
                                 PortfolioCurrencyConverter currencyConverter,
-                                PortfolioWhatIfService whatIfService) {
+                                PortfolioWhatIfService whatIfService,
+                                com.finance.portal.market.application.bond.eurobond.EurobondService eurobondService) {
         this.portfolioPersistence           = portfolioPersistence;
         this.portfolioCache                 = portfolioCache;
         this.viopService                    = viopService;
@@ -84,6 +86,7 @@ public class PortfolioServiceImpl implements PortfolioService {
         this.realReturnEnricher             = realReturnEnricher;
         this.currencyConverter              = currencyConverter;
         this.whatIfService                  = whatIfService;
+        this.eurobondService                = eurobondService;
     }
 
     // ── HOLDINGS portföy işlemleri ────────────────────────────────────────────
@@ -191,6 +194,17 @@ public class PortfolioServiceImpl implements PortfolioService {
 
         String normalizedSymbol = normalizeSymbol(request.getAssetType(), request.getSymbol());
 
+        // Gelecek tarih kontrolü: bugünden sonraki tarihe işlem girilemez (alış da satış da).
+        // İstanbul saat dilimi ile gün başına göre yargılanır, saat ileri olabilir.
+        if (request.getTransactionDate() != null) {
+            java.time.LocalDate txDay = request.getTransactionDate().toLocalDate();
+            java.time.LocalDate today = java.time.LocalDate.now(java.time.ZoneId.of("Europe/Istanbul"));
+            if (txDay.isAfter(today)) {
+                throw new IllegalArgumentException(
+                        "İşlem tarihi bugünden ileri olamaz. Lütfen bugün veya geçmiş bir tarih seçin.");
+            }
+        }
+
         if (request.getTransactionType() == TransactionType.SELL) {
             validateSellQuantity(portfolio.getTransactions(), normalizedSymbol,
                     request.getAssetType(), request.getQuantity());
@@ -208,6 +222,21 @@ public class PortfolioServiceImpl implements PortfolioService {
                         "Bu VİOP kontratının vadesi " + maturity.get()
                                 + " tarihinde dolmuş. Vadesi geçmiş kontrata alım yapılamaz; "
                                 + "henüz vadesi gelmemiş bir kontrat seçin.");
+            }
+        }
+
+        // Eurobond alımları için ihraç tarihi kontrolü: ihraç öncesi alım fiziksel olarak imkânsız.
+        if (request.getAssetType() == AssetType.BOND
+                && request.getTransactionType() == TransactionType.BUY
+                && request.getTransactionDate() != null
+                && eurobondService.currentIsins().contains(normalizedSymbol)) {
+            java.util.Optional<java.time.LocalDate> issueDate = parseEurobondIssueDate(normalizedSymbol);
+            if (issueDate.isPresent()
+                    && request.getTransactionDate().toLocalDate().isBefore(issueDate.get())) {
+                throw new IllegalArgumentException(
+                        "Bu eurobondun ihraç tarihi " + issueDate.get()
+                                + ". Bu tarihten önce satın alınmış sayılamaz; "
+                                + "işlem tarihini ihraç tarihi veya sonrası olarak ayarlayın.");
             }
         }
 
@@ -706,6 +735,25 @@ public class PortfolioServiceImpl implements PortfolioService {
                         + shown + " var, " + stripTrailingZeros(sellQty) + " adet satmaya çalıştınız.";
             }
             throw new IllegalArgumentException(userMessage);
+        }
+    }
+
+    /**
+     * EurobondDetail.issueDate "M/d/yyyy" (Business Insider format) → LocalDate.
+     * Detail boş veya parse edilemezse empty döner (validasyon atlanır).
+     */
+    private java.util.Optional<java.time.LocalDate> parseEurobondIssueDate(String isin) {
+        try {
+            var d = eurobondService.detail(isin);
+            if (d == null || d.getIssueDate() == null || d.getIssueDate().isBlank()) {
+                return java.util.Optional.empty();
+            }
+            String raw = d.getIssueDate().trim();
+            // "7/17/2025" — M/d/yyyy (BI US format)
+            return java.util.Optional.of(java.time.LocalDate.parse(raw,
+                    java.time.format.DateTimeFormatter.ofPattern("M/d/yyyy")));
+        } catch (Exception ex) {
+            return java.util.Optional.empty();
         }
     }
 
