@@ -150,11 +150,13 @@ public class StockQueryService {
 
     @Cacheable(cacheNames = "market.stocks.chart", key = "#symbol + ':' + #range + ':' + #interval")
     public StockChartResponse getStockChartWithParams(String symbol, String range, String interval) {
-        return toChartResponse(symbol, yahooStockPort.fetchChartWithParams(symbol, range, interval));
+        String[] normalized = normalizeStockChartRange(range, interval);
+        return toChartResponse(symbol, yahooStockPort.fetchChartWithParams(symbol, normalized[0], normalized[1]));
     }
 
     public List<Map<String, Object>> getStockOhlc(String symbol, String range, String interval) {
-        YahooChartSnapshot snapshot = yahooStockPort.fetchChartWithParams(symbol, range, interval);
+        String[] normalized = normalizeStockChartRange(range, interval);
+        YahooChartSnapshot snapshot = yahooStockPort.fetchChartWithParams(symbol, normalized[0], normalized[1]);
         List<Long> timestamps = snapshot.getTimestamps();
         YahooQuoteSeries quote = snapshot.getQuote();
         if (timestamps == null || quote == null) {
@@ -184,6 +186,25 @@ public class StockQueryService {
             throw new ResourceNotFoundException("OHLC data not found for symbol: " + symbol);
         }
         return data;
+    }
+
+    /**
+     * Frontend "Tüm" düğmesi range=max ile geldiğinde Yahoo uzun-geçmişli hisselerde
+     * (ASELS, KCHOL gibi 20+ yıl) sessizce aylık döndürür (≈300 nokta). Bunun yerine
+     * 10y günlük (≈2540 nokta) tercih edilir; pre-10y noktalar erişilemez kalır.
+     * 1mo/1wk interval'ları da daily'ye çevrilir.
+     */
+    private static String[] normalizeStockChartRange(String range, String interval) {
+        String r = range == null ? "" : range.trim().toLowerCase(java.util.Locale.ROOT);
+        String i = interval == null ? "" : interval.trim().toLowerCase(java.util.Locale.ROOT);
+        boolean isAllAlias = "max".equals(r) || "all".equals(r) || "tum".equals(r) || "tüm".equals(r);
+        if (isAllAlias) {
+            return new String[]{"10y", "1d"};
+        }
+        return new String[]{
+                range == null || range.isBlank() ? "1d" : range,
+                interval == null || interval.isBlank() ? "1m" : interval
+        };
     }
 
     private StockChartResponse toChartResponse(String symbol, YahooChartSnapshot snapshot) {

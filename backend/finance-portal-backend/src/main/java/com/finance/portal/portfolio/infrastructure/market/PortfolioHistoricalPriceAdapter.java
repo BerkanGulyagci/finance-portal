@@ -908,14 +908,15 @@ public class PortfolioHistoricalPriceAdapter implements PortfolioHistoricalPrice
         return ChronoUnit.DAYS.between(from, LocalDate.now());
     }
 
-    /** Yahoo hisse aralığı: 1y / 2y / 5y / 10y / max. */
+    /** Yahoo hisse aralığı: 1y / 2y / 5y / 10y. "max" KULLANMIYORUZ: Yahoo max+1d
+     *  uzun geçmişli hisseler için sessizce aylık döner (ASELS max+1d → 313 nokta).
+     *  10y günlük tavandır; daha eski tarihler 10y+1d içindeki son geçerli güne floorEntry. */
     private static String yahooStockRange(LocalDate from) {
         long d = daysSince(from);
         if (d <= 370) return "1y";
         if (d <= 730) return "2y";
         if (d <= 1830) return "5y";
-        if (d <= 3660) return "10y";
-        return "max";
+        return "10y";
     }
 
     /** Yahoo emtia (frontend range): 1Y / 5Y (en fazla 5 yıl). */
