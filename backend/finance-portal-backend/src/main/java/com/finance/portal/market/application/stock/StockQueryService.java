@@ -189,17 +189,19 @@ public class StockQueryService {
     }
 
     /**
-     * Frontend "Tüm" düğmesi range=max ile geldiğinde Yahoo uzun-geçmişli hisselerde
-     * (ASELS, KCHOL gibi 20+ yıl) sessizce aylık döndürür (≈300 nokta). Bunun yerine
-     * 10y günlük (≈2540 nokta) tercih edilir; pre-10y noktalar erişilemez kalır.
-     * 1mo/1wk interval'ları da daily'ye çevrilir.
+     * Frontend "Tüm" düğmesi range=max ile gelirse: Yahoo "max" sessizce ~313 aylık-haftalık
+     * noktaya düşürür (aynı sayı her interval'da). Bunun yerine 30y + 1d kullanıyoruz —
+     * Yahoo bu kombinasyona uyar; hisse listing tarihinden (BIST 90'lar başı) bugüne kadar
+     * tam günlük nokta döner. Örnek ASELS (listing 2000): 30y/1d → ~6300 günlük nokta.
+     * Listing 30y'den eskiyse (nadir) o tarihten itibaren mevcut tüm günler döner.
+     * 1mo/1wk frontend interval default'u günlüğe çıkarılır.
      */
     private static String[] normalizeStockChartRange(String range, String interval) {
         String r = range == null ? "" : range.trim().toLowerCase(java.util.Locale.ROOT);
         String i = interval == null ? "" : interval.trim().toLowerCase(java.util.Locale.ROOT);
         boolean isAllAlias = "max".equals(r) || "all".equals(r) || "tum".equals(r) || "tüm".equals(r);
         if (isAllAlias) {
-            return new String[]{"10y", "1d"};
+            return new String[]{"30y", "1d"};
         }
         return new String[]{
                 range == null || range.isBlank() ? "1d" : range,
