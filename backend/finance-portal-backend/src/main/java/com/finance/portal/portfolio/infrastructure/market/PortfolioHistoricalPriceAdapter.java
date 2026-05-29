@@ -364,12 +364,20 @@ public class PortfolioHistoricalPriceAdapter implements PortfolioHistoricalPrice
         NavigableMap<LocalDate, BigDecimal> map = new TreeMap<>();
 
         if ("GOLD".equals(upper)) {
-            BigDecimal usdTry = fetchUsdTryRate();
-            if (usdTry == null) {
-                return map;
-            }
+            // ONS altın: USD kapanışı × o güne ait TCMB USD/TRY satış kuru.
+            // ÖNCEKİ DAVRANIŞ: tüm geçmiş USD'ler GÜNCEL USD/TRY ile çarpılıyordu →
+            // eski tarih price-at'i bugünkü kurla şişirilmiş TL veriyordu (ör. geçen
+            // sene bugünkü USD altın × bugünkü kur = yanlış TL).
             GoldHistoryResponse hist = goldMarketService.getGoldHistory(metalRange(from), "USD");
             if (hist == null || hist.getPoints() == null) {
+                return map;
+            }
+            NavigableMap<LocalDate, BigDecimal> usdTryByDay =
+                    CommodityHistoricalTryConversion.loadUsdTryHistory(
+                            tcmbFxHistoryPort, from.minusDays(10), LocalDate.now());
+            BigDecimal latestUsdTry = fetchUsdTryRate();
+            BigDecimal earliestUsdTry = usdTryByDay.isEmpty() ? null : usdTryByDay.firstEntry().getValue();
+            if (usdTryByDay.isEmpty() && latestUsdTry == null) {
                 return map;
             }
             for (GoldHistoryPoint pt : hist.getPoints()) {
@@ -378,8 +386,12 @@ public class PortfolioHistoricalPriceAdapter implements PortfolioHistoricalPrice
                 }
                 try {
                     LocalDate day = LocalDate.parse(pt.getDate().substring(0, 10));
-                    BigDecimal tryPrice = pt.getClose().multiply(usdTry).setScale(6, RoundingMode.HALF_UP);
-                    PortfolioHistoricalPriceSeriesSupport.putIfInRange(map, day, tryPrice, from, to);
+                    BigDecimal fallbackRate = earliestUsdTry != null ? earliestUsdTry : latestUsdTry;
+                    BigDecimal tryPrice = CommodityHistoricalTryConversion.convertUsdCloseToTry(
+                            pt.getClose(), day, usdTryByDay, fallbackRate);
+                    if (tryPrice != null) {
+                        PortfolioHistoricalPriceSeriesSupport.putIfInRange(map, day, tryPrice, from, to);
+                    }
                 } catch (Exception ignored) {
                     // skip
                 }
