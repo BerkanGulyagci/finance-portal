@@ -97,6 +97,7 @@ public class PortfolioHoldingsBuilder {
             holding.setTotalCost(acc.openCostBasis.setScale(moneyScale, RoundingMode.HALF_UP));
             holding.setFirstBuyDate(acc.firstBuyDate);
             holding.setLastTransactionDate(txs.get(txs.size() - 1).getTransactionDate());
+            holding.setOpenCostLots(acc.snapshotLots());
 
             if (acc.anySell) {
                 holding.setRealizedGainLoss(acc.realizedGainLossSum.setScale(moneyScale, RoundingMode.HALF_UP));
@@ -172,6 +173,13 @@ public class PortfolioHoldingsBuilder {
 
         LocalDateTime firstBuyDate = null;
 
+        /**
+         * Her BUY için (alış tarihi, kalan maliyet katkısı) mutable çift. SELL anında pre-sell
+         * openQty oranında her lot küçültülür → average-cost methoduyla birebir uyumlu
+         * (Σ lot.cost = openCostBasis invariant'ı korunur).
+         */
+        final List<MutableLot> lots = new ArrayList<>();
+
         HoldingAccumulator(String symbol, AssetType assetType) {
             this.symbol = symbol;
             this.assetType = assetType;
@@ -188,6 +196,8 @@ public class PortfolioHoldingsBuilder {
                 openCostBasis = openCostBasis.add(cost);
                 openQuantity = openQuantity.add(qty);
 
+                lots.add(new MutableLot(txDate != null ? txDate.toLocalDate() : null, cost));
+
                 if (txDate != null && (firstBuyDate == null || txDate.isBefore(firstBuyDate))) {
                     firstBuyDate = txDate;
                 }
@@ -197,8 +207,11 @@ public class PortfolioHoldingsBuilder {
                             "SELL with non-positive open quantity for " + symbol + " " + assetType);
                 }
 
+                BigDecimal preSellQty = openQuantity;
+
                 BigDecimal soldCostBasis;
-                if (qty.compareTo(openQuantity) >= 0) {
+                boolean fullClose = qty.compareTo(openQuantity) >= 0;
+                if (fullClose) {
                     soldCostBasis = openCostBasis;
                 } else {
                     BigDecimal unitCost = openCostBasis.divide(openQuantity, 12, RoundingMode.HALF_UP);
@@ -214,6 +227,18 @@ public class PortfolioHoldingsBuilder {
 
                 openCostBasis = openCostBasis.subtract(soldCostBasis);
                 openQuantity = openQuantity.subtract(qty);
+
+                // Lotları orantısal küçült: tam kapanışta hepsi sıfırlanır; aksi halde
+                // remainingFraction = (preSellQty - qty) / preSellQty ile çarpılır.
+                if (fullClose) {
+                    lots.clear();
+                } else {
+                    BigDecimal remainingFraction = preSellQty.subtract(qty)
+                            .divide(preSellQty, 12, RoundingMode.HALF_UP);
+                    for (MutableLot lot : lots) {
+                        lot.cost = lot.cost.multiply(remainingFraction);
+                    }
+                }
             }
         }
 
@@ -222,6 +247,29 @@ public class PortfolioHoldingsBuilder {
                 return BigDecimal.ZERO;
             }
             return openCostBasis.divide(openQuantity, 8, RoundingMode.HALF_UP);
+        }
+
+        /** Lot listesini DTO record'larına dönüştürür (sıfır maliyetliler atılır). */
+        List<PortfolioHoldingResponse.CostLot> snapshotLots() {
+            List<PortfolioHoldingResponse.CostLot> out = new ArrayList<>(lots.size());
+            for (MutableLot lot : lots) {
+                if (lot.cost == null || lot.cost.signum() <= 0 || lot.buyDate == null) {
+                    continue;
+                }
+                out.add(new PortfolioHoldingResponse.CostLot(lot.buyDate,
+                        lot.cost.setScale(MONEY_SCALE, RoundingMode.HALF_UP)));
+            }
+            return out;
+        }
+    }
+
+    /** Internal mutable lot — accumulator'da SELL oranında küçültülebilsin diye. */
+    private static class MutableLot {
+        final java.time.LocalDate buyDate;
+        BigDecimal cost;
+        MutableLot(java.time.LocalDate buyDate, BigDecimal cost) {
+            this.buyDate = buyDate;
+            this.cost = cost;
         }
     }
 }

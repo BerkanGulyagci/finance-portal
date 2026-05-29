@@ -1,12 +1,15 @@
 package com.finance.portal.portfolio.presentation.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.finance.portal.common.domain.AssetType;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -100,4 +103,17 @@ public class PortfolioHoldingResponse {
     private BigDecimal realProfitLossPercentTry;
     /** İlk alıştan bugüne birikimli TÜFE enflasyonu (%) — TL çerçevesi. */
     private BigDecimal inflationSinceTryPercent;
+
+    /**
+     * Açık pozisyona katkı veren BUY lotları (varlığın kendi para biriminde maliyet katkıları).
+     * Average-cost mantığıyla aynı: her SELL pre-sell openQty'ye göre tüm lotları orantısal
+     * şekilde küçültür. Reel K/Z ve What-if hesabı her lotu kendi alış tarihinden bugüne ayrı
+     * şekilde enflasyon/scenario faktörüyle çarpar (çoklu BUY'da firstBuyDate ile sapma giderilir).
+     * Sadece backend hesabı içindir → JSON çıktısına yansımaz.
+     */
+    @JsonIgnore
+    private List<CostLot> openCostLots;
+
+    /** {@link #openCostLots} elemanı: alış tarihi + maliyet katkısı (varlığın kendi para biriminde). */
+    public record CostLot(LocalDate buyDate, BigDecimal cost) {}
 }

@@ -290,6 +290,101 @@ class PortfolioHoldingsBuilderTest {
     }
 
     // ============================================================================
+    // Lot tracking — Reel K/Z + What-if için cost lot dağılımı
+    // ============================================================================
+
+    @Test
+    @DisplayName("build: çoklu BUY → her lot kendi alış tarihi+cost ile holding'de saklanır")
+    void build_multipleBuy_lotsTrackedSeparately() {
+        // BUY 100×250 (2024-01-01) → cost 25.000
+        // BUY  50×280 (2025-01-01) → cost 14.000
+        PortfolioTransaction b1 = tx(BUY("THYAO.IS", AssetType.STOCK,
+                "100", "250", "0", "2024-01-01T10:00:00"));
+        PortfolioTransaction b2 = tx(BUY("THYAO.IS", AssetType.STOCK,
+                "50", "280", "0", "2025-01-01T10:00:00"));
+
+        PortfolioHoldingResponse h = builder.build(List.of(b1, b2)).get(0);
+
+        // 2 lot olmalı
+        assertThat(h.getOpenCostLots()).hasSize(2);
+        // Lot 1: 2024-01-01, cost 25.000
+        assertThat(h.getOpenCostLots().get(0).buyDate())
+                .isEqualTo(java.time.LocalDate.of(2024, 1, 1));
+        assertThat(h.getOpenCostLots().get(0).cost()).isEqualByComparingTo("25000");
+        // Lot 2: 2025-01-01, cost 14.000
+        assertThat(h.getOpenCostLots().get(1).buyDate())
+                .isEqualTo(java.time.LocalDate.of(2025, 1, 1));
+        assertThat(h.getOpenCostLots().get(1).cost()).isEqualByComparingTo("14000");
+    }
+
+    @Test
+    @DisplayName("build: kısmi SELL → tüm lotlar pre-sell oranında orantısal küçülür")
+    void build_partialSell_lotsShrinkProportionally() {
+        // BUY 100×250 + BUY 50×280 → openQty=150, openCost=39.000, lots: [25.000, 14.000]
+        // SELL 30 → remainingFraction = (150-30)/150 = 0.8
+        //   Lot 1: 25.000 × 0.8 = 20.000
+        //   Lot 2: 14.000 × 0.8 = 11.200
+        //   Σ = 31.200 = openCost (39.000 × 0.8) ✓ invariant korunur
+        PortfolioTransaction b1 = tx(BUY("THYAO.IS", AssetType.STOCK,
+                "100", "250", "0", "2024-01-01T10:00:00"));
+        PortfolioTransaction b2 = tx(BUY("THYAO.IS", AssetType.STOCK,
+                "50", "280", "0", "2025-01-01T10:00:00"));
+        PortfolioTransaction s = tx(SELL("THYAO.IS", AssetType.STOCK,
+                "30", "300", "0", "2025-06-01T10:00:00"));
+
+        PortfolioHoldingResponse h = builder.build(List.of(b1, b2, s)).get(0);
+
+        assertThat(h.getTotalCost()).isEqualByComparingTo("31200"); // 39.000 × 0.8
+        assertThat(h.getOpenCostLots()).hasSize(2);
+        assertThat(h.getOpenCostLots().get(0).cost()).isEqualByComparingTo("20000");
+        assertThat(h.getOpenCostLots().get(1).cost()).isEqualByComparingTo("11200");
+        // average cost invariant: avgCost değişmedi
+        assertThat(h.getAverageCost()).isEqualByComparingTo("260"); // 31.200/120 = 260
+    }
+
+    @Test
+    @DisplayName("build: tam SELL → kapatılır, lot listesi boşalır (holding listesinde yok)")
+    void build_fullSell_lotsCleared() {
+        PortfolioTransaction b = tx(BUY("THYAO.IS", AssetType.STOCK,
+                "100", "250", "0", "2024-01-01T10:00:00"));
+        PortfolioTransaction s = tx(SELL("THYAO.IS", AssetType.STOCK,
+                "100", "300", "0", "2025-06-01T10:00:00"));
+
+        // Açık holding yok ama lot mantığı doğru çalıştığı için closedRealized kaydı var
+        PortfolioHoldingsBuilder.BuildResult res = builder.buildWithClosed(List.of(b, s));
+        assertThat(res.holdings()).isEmpty();
+        assertThat(res.closedRealized()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("build: SELL sonrası yeni BUY → eski lotlar küçülmüş, yeni lot tam fiyatla eklenir")
+    void build_sellThenBuy_newLotAddedFreshOldShrunk() {
+        // BUY 100×250 + SELL 40 + BUY 20×320
+        // SELL 40 → remainingFraction = 60/100 = 0.6
+        //   Lot 1: 25.000 × 0.6 = 15.000
+        // BUY 20×320 → cost 6.400 → Lot 2 (yeni)
+        // Toplam openCost = 15.000 + 6.400 = 21.400, qty=80, avg=267.5
+        PortfolioTransaction b1 = tx(BUY("THYAO.IS", AssetType.STOCK,
+                "100", "250", "0", "2024-01-01T10:00:00"));
+        PortfolioTransaction s = tx(SELL("THYAO.IS", AssetType.STOCK,
+                "40", "300", "0", "2025-01-01T10:00:00"));
+        PortfolioTransaction b2 = tx(BUY("THYAO.IS", AssetType.STOCK,
+                "20", "320", "0", "2025-06-01T10:00:00"));
+
+        PortfolioHoldingResponse h = builder.build(List.of(b1, s, b2)).get(0);
+
+        assertThat(h.getOpenCostLots()).hasSize(2);
+        // Lot 1 küçülmüş 15.000
+        assertThat(h.getOpenCostLots().get(0).buyDate())
+                .isEqualTo(java.time.LocalDate.of(2024, 1, 1));
+        assertThat(h.getOpenCostLots().get(0).cost()).isEqualByComparingTo("15000");
+        // Lot 2 tam fiyatla eklenmiş
+        assertThat(h.getOpenCostLots().get(1).buyDate())
+                .isEqualTo(java.time.LocalDate.of(2025, 6, 1));
+        assertThat(h.getOpenCostLots().get(1).cost()).isEqualByComparingTo("6400");
+    }
+
+    // ============================================================================
     // Helper'lar — readable test fixtures
     // ============================================================================
 

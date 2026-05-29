@@ -95,20 +95,22 @@ public class PortfolioRealReturnEnricher {
             boolean isUsd = isUsdCurrency(cur);
             LocalDate buyDate = h.getFirstBuyDate() != null ? h.getFirstBuyDate().toLocalDate() : null;
 
+            // Çoklu BUY'da firstBuyDate kullanmak en eski tarihten TÜM cost'u şişirir →
+            // gerçek dışı kayıp gösterir. Her açık BUY lotunu (SELL'lerce orantısal küçültülmüş
+            // halde) kendi alış tarihinden bugüne ayrı faktörle çarpıp toplarız.
+            List<PortfolioHoldingResponse.CostLot> lots = h.getOpenCostLots();
+
             // ── 1) Kendi para birimi çerçevesi (TL→TÜFE, USD→ABD CPI) — satır kolonları, kesin ──
-            if (buyDate != null) {
-                List<EconomySeriesPoint> nativeSeries = isTry ? tufe : (isUsd ? usCpi : null);
-                String nativeSource = isTry ? SRC_TUFE : (isUsd ? SRC_US_CPI : null);
-                if (nativeSeries != null && !nativeSeries.isEmpty()) {
-                    Optional<BigDecimal> f = deflator.cumulativeFactor(nativeSeries, buyDate);
-                    if (f.isPresent()) {
-                        BigDecimal factor = f.get();
-                        BigDecimal realCost = cost.multiply(factor);
-                        h.setRealProfitLoss(marketValue.subtract(realCost).setScale(MONEY_SCALE, RoundingMode.HALF_UP));
-                        h.setRealProfitLossPercent(pct(marketValue, realCost));
-                        h.setInflationSincePercent(factor.subtract(BigDecimal.ONE).multiply(HUNDRED).setScale(PCT_SCALE, RoundingMode.HALF_UP));
-                        h.setInflationSource(nativeSource);
-                    }
+            List<EconomySeriesPoint> nativeSeries = isTry ? tufe : (isUsd ? usCpi : null);
+            String nativeSource = isTry ? SRC_TUFE : (isUsd ? SRC_US_CPI : null);
+            if (nativeSeries != null && !nativeSeries.isEmpty()) {
+                LotInflation natFrame = computeLotInflation(lots, cost, buyDate, nativeSeries);
+                if (natFrame != null) {
+                    h.setRealProfitLoss(marketValue.subtract(natFrame.realCost).setScale(MONEY_SCALE, RoundingMode.HALF_UP));
+                    h.setRealProfitLossPercent(pct(marketValue, natFrame.realCost));
+                    h.setInflationSincePercent(natFrame.weightedFactor.subtract(BigDecimal.ONE)
+                            .multiply(HUNDRED).setScale(PCT_SCALE, RoundingMode.HALF_UP));
+                    h.setInflationSource(nativeSource);
                 }
             }
 
@@ -117,23 +119,20 @@ public class PortfolioRealReturnEnricher {
             BigDecimal mvTl = currencyConverter.toTry(marketValue, cur);
             if (costTl == null || mvTl == null || costTl.signum() <= 0) continue;
 
-            Optional<BigDecimal> ftOpt = buyDate != null
-                    ? deflator.cumulativeFactor(tufe, buyDate)
-                    : Optional.empty();
+            // TÜFE çerçevesinde lots'ı TL'ye çeviriyoruz (cost-bazında oran korunur).
+            LotInflation tlFrame = computeLotInflation(lots, costTl, buyDate, tufe);
 
             // 2a) Satır kolonları: yalnız hesaplanabilen enflasyon faktörüyle (yeni alımda "–").
-            if (ftOpt.isPresent()) {
-                BigDecimal factor = ftOpt.get();
-                BigDecimal realCostTl = costTl.multiply(factor);
-                h.setRealProfitLossTry(mvTl.subtract(realCostTl).setScale(MONEY_SCALE, RoundingMode.HALF_UP));
-                h.setRealProfitLossPercentTry(pct(mvTl, realCostTl));
-                h.setInflationSinceTryPercent(factor.subtract(BigDecimal.ONE).multiply(HUNDRED).setScale(PCT_SCALE, RoundingMode.HALF_UP));
+            if (tlFrame != null) {
+                h.setRealProfitLossTry(mvTl.subtract(tlFrame.realCost).setScale(MONEY_SCALE, RoundingMode.HALF_UP));
+                h.setRealProfitLossPercentTry(pct(mvTl, tlFrame.realCost));
+                h.setInflationSinceTryPercent(tlFrame.weightedFactor.subtract(BigDecimal.ONE)
+                        .multiply(HUNDRED).setScale(PCT_SCALE, RoundingMode.HALF_UP));
             }
 
             // 2b) Portföy toplamı: TÜM varlıklar dahil; enflasyon faktörü yoksa 1 (reel=nominal).
             // Böylece toplam Reel K/Z, nominal Açık K/Z ile AYNI varlık kümesini kapsar → karşılaştırılabilir.
-            BigDecimal totalFactor = ftOpt.orElse(BigDecimal.ONE);
-            BigDecimal realCostTlTotal = costTl.multiply(totalFactor);
+            BigDecimal realCostTlTotal = tlFrame != null ? tlFrame.realCost : costTl;
             sumRealCostTl = sumRealCostTl.add(realCostTlTotal);
             sumRealPlTl = sumRealPlTl.add(mvTl.subtract(realCostTlTotal));
             anyTl = true;
@@ -150,6 +149,65 @@ public class PortfolioRealReturnEnricher {
             response.setTotalRealProfitLoss(null);
             response.setTotalRealProfitLossPercent(null);
         }
+    }
+
+    /** Lot bazlı reel maliyet ve ağırlıklı enflasyon faktörü taşıyıcısı. */
+    private static final class LotInflation {
+        final BigDecimal realCost;
+        final BigDecimal weightedFactor;  // Σ(cost_i × factor_i) / Σ cost_i
+        LotInflation(BigDecimal realCost, BigDecimal weightedFactor) {
+            this.realCost = realCost;
+            this.weightedFactor = weightedFactor;
+        }
+    }
+
+    /**
+     * Lots boş veya null ise eski davranışa (firstBuyDate üzerinden tek faktör) düşer.
+     * Aksi halde her lot için kendi alış tarihinden bugüne enflasyon faktörü hesaplanır,
+     * realCost = Σ lot.cost × factor_lot şeklinde toplanır. Bir lot için faktör yoksa o lot
+     * 1 (reel=nominal) ile geçer — toplam bozulmasın diye.
+     * Geri dönüş null = TÜFE/CPI hiç hesaplanamadı (eski "factor yok → boşa geç" davranışı).
+     */
+    private LotInflation computeLotInflation(List<PortfolioHoldingResponse.CostLot> lots,
+                                             BigDecimal totalCost,
+                                             LocalDate fallbackBuyDate,
+                                             List<EconomySeriesPoint> series) {
+        if (lots == null || lots.isEmpty()) {
+            // Eski davranış — eski tx verisi henüz lot taşımıyor olabilir.
+            if (fallbackBuyDate == null) {
+                return null;
+            }
+            return deflator.cumulativeFactor(series, fallbackBuyDate)
+                    .map(f -> new LotInflation(totalCost.multiply(f), f))
+                    .orElse(null);
+        }
+        BigDecimal realCostSum = BigDecimal.ZERO;
+        BigDecimal costSum = BigDecimal.ZERO;
+        BigDecimal weightedFactorNum = BigDecimal.ZERO;
+        boolean anyFactor = false;
+        for (PortfolioHoldingResponse.CostLot lot : lots) {
+            BigDecimal c = lot.cost();
+            if (c == null || c.signum() <= 0 || lot.buyDate() == null) continue;
+            costSum = costSum.add(c);
+            Optional<BigDecimal> f = deflator.cumulativeFactor(series, lot.buyDate());
+            if (f.isPresent()) {
+                anyFactor = true;
+                realCostSum = realCostSum.add(c.multiply(f.get()));
+                weightedFactorNum = weightedFactorNum.add(c.multiply(f.get()));
+            } else {
+                // Bu lot için faktör yok → reel=nominal (Σ tutar bozulmasın).
+                realCostSum = realCostSum.add(c);
+                weightedFactorNum = weightedFactorNum.add(c);
+            }
+        }
+        if (!anyFactor || costSum.signum() <= 0) return null;
+        BigDecimal weighted = weightedFactorNum.divide(costSum, MathContext.DECIMAL64);
+        // realCost'u verilen toplam cost'la (kuruşçu yuvarlama farkı için) yeniden ölçekle
+        // ki frame'ler arası tutarlılık bozulmasın.
+        BigDecimal scaledRealCost = realCostSum
+                .multiply(totalCost)
+                .divide(costSum, MathContext.DECIMAL64);
+        return new LotInflation(scaledRealCost, weighted);
     }
 
     /** (mv / base − 1) × 100, yüzde olarak. */

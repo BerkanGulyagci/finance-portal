@@ -116,7 +116,35 @@ public class PortfolioWhatIfService {
                     mvTl = ratioMv;
                 }
             }
-            positions.add(new Pos(costTl, mvTl, date));
+            // Çoklu BUY'da her lot kendi alış tarihinden senaryo faktörüyle çarpılır.
+            // Tek lot ya da lot bilgisi yoksa eski tek-Pos davranışı korunur.
+            List<PortfolioHoldingResponse.CostLot> lots = h.getOpenCostLots();
+            if (lots == null || lots.isEmpty()) {
+                positions.add(new Pos(costTl, mvTl, date));
+            } else {
+                // MV proportional bölüştürme: lot.costTl × totalMv / totalCost
+                BigDecimal totalLotCostNative = BigDecimal.ZERO;
+                for (PortfolioHoldingResponse.CostLot lot : lots) {
+                    if (lot.cost() != null && lot.cost().signum() > 0) {
+                        totalLotCostNative = totalLotCostNative.add(lot.cost());
+                    }
+                }
+                if (totalLotCostNative.signum() <= 0) {
+                    positions.add(new Pos(costTl, mvTl, date));
+                } else {
+                    for (PortfolioHoldingResponse.CostLot lot : lots) {
+                        if (lot.cost() == null || lot.cost().signum() <= 0 || lot.buyDate() == null) continue;
+                        BigDecimal lotCostTl = currencyConverter.toTry(lot.cost(), h.getCurrency());
+                        if (lotCostTl == null || lotCostTl.signum() <= 0) continue;
+                        BigDecimal lotMvTl = mvTl.multiply(lotCostTl)
+                                .divide(costTl, MathContext.DECIMAL64);
+                        positions.add(new Pos(lotCostTl, lotMvTl, lot.buyDate()));
+                        if (lot.buyDate().isBefore(earliest)) {
+                            earliest = lot.buyDate();
+                        }
+                    }
+                }
+            }
             totalCost = totalCost.add(costTl);
             actualValue = actualValue.add(mvTl);
             if (date.isBefore(earliest)) {
@@ -289,14 +317,39 @@ public class PortfolioWhatIfService {
             if (costTl == null || costTl.signum() <= 0 || date == null) {
                 continue;
             }
+            // Asset series tüm holding için bir kez çekilir — lots aynı seriyi paylaşır.
+            // Earliest lot tarihi 10 gün geriden çekim penceresi başlangıcı olur.
+            LocalDate fetchFrom = date;
+            List<PortfolioHoldingResponse.CostLot> lots = h.getOpenCostLots();
+            if (lots != null && !lots.isEmpty()) {
+                for (PortfolioHoldingResponse.CostLot lot : lots) {
+                    if (lot.buyDate() != null && lot.buyDate().isBefore(fetchFrom)) {
+                        fetchFrom = lot.buyDate();
+                    }
+                }
+            }
             NavigableMap<LocalDate, BigDecimal> assetSeries;
             try {
                 assetSeries = pricePort.fetchDailyClosePrices(
-                        h.getAssetType(), h.getSymbol(), date.minusDays(10), today).orElse(null);
+                        h.getAssetType(), h.getSymbol(), fetchFrom.minusDays(10), today).orElse(null);
             } catch (Exception e) {
                 assetSeries = null;
             }
-            positions.add(new SeriesPos(costTl, date, assetSeries));
+            // Çoklu BUY → her lot ayrı SeriesPos (kendi alış tarihinden ratio). Tek lot ya da
+            // lot bilgisi yoksa eski tek-pos davranışı.
+            if (lots == null || lots.isEmpty()) {
+                positions.add(new SeriesPos(costTl, date, assetSeries));
+            } else {
+                for (PortfolioHoldingResponse.CostLot lot : lots) {
+                    if (lot.cost() == null || lot.cost().signum() <= 0 || lot.buyDate() == null) continue;
+                    BigDecimal lotCostTl = currencyConverter.toTry(lot.cost(), h.getCurrency());
+                    if (lotCostTl == null || lotCostTl.signum() <= 0) continue;
+                    positions.add(new SeriesPos(lotCostTl, lot.buyDate(), assetSeries));
+                    if (lot.buyDate().isBefore(earliest)) {
+                        earliest = lot.buyDate();
+                    }
+                }
+            }
             if (date.isBefore(earliest)) {
                 earliest = date;
             }

@@ -257,6 +257,101 @@ class PortfolioRealReturnEnricherTest {
         assertThat(r.getTotalRealProfitLossPercent()).isEqualByComparingTo("12.12");
     }
 
+    // ============================================================================
+    // Çoklu BUY (lot-bazlı) enflasyon hesabı — her lot kendi alış tarihinden
+    // ============================================================================
+
+    @Test
+    @DisplayName("apply: çoklu BUY — her lot kendi tarihinden enflasyonla şişer (firstBuyDate kullanmaz)")
+    void apply_multipleBuyLots_useEachLotDate() {
+        // Cost 1000 = lot1 (eski tarih, %50) + lot2 (yeni tarih, %10)
+        LocalDate oldDate = LocalDate.of(2024, 1, 1);
+        LocalDate newDate = LocalDate.of(2025, 6, 1);
+        PortfolioHoldingResponse h = holding("THYAO.IS", "1000", "1500", "TRY", oldDate);
+        h.setOpenCostLots(List.of(
+                new PortfolioHoldingResponse.CostLot(oldDate, new BigDecimal("400")),
+                new PortfolioHoldingResponse.CostLot(newDate, new BigDecimal("600"))
+        ));
+        PortfolioResponse r = new PortfolioResponse();
+        r.setHoldings(List.of(h));
+
+        when(deflator.cumulativeFactor(any(), eq(oldDate)))
+                .thenReturn(Optional.of(new BigDecimal("1.50"))); // eski lot: %50 enflasyon
+        when(deflator.cumulativeFactor(any(), eq(newDate)))
+                .thenReturn(Optional.of(new BigDecimal("1.10"))); // yeni lot: %10 enflasyon
+
+        enricher.apply(r);
+
+        // Beklenen realCost = 400×1.50 + 600×1.10 = 600 + 660 = 1260
+        // realPL = MV - realCost = 1500 - 1260 = 240
+        assertThat(h.getRealProfitLoss()).isEqualByComparingTo("240");
+        // realPL% = (1500/1260 - 1) × 100 ≈ 19.05
+        assertThat(h.getRealProfitLossPercent()).isEqualByComparingTo("19.05");
+        // weightedFactor = 1260/1000 = 1.26 → inflationSincePercent = 26.00
+        assertThat(h.getInflationSincePercent()).isEqualByComparingTo("26.00");
+    }
+
+    @Test
+    @DisplayName("apply: lots boş ise eski firstBuyDate davranışı korunur (geri uyumlu)")
+    void apply_noLots_fallbackToFirstBuyDate() {
+        PortfolioHoldingResponse h = holding("THYAO.IS", "1000", "1500", "TRY",
+                LocalDate.of(2026, 1, 1));
+        h.setOpenCostLots(null); // veya boş — eski tx data
+        PortfolioResponse r = new PortfolioResponse();
+        r.setHoldings(List.of(h));
+        when(deflator.cumulativeFactor(any(), eq(LocalDate.of(2026, 1, 1))))
+                .thenReturn(Optional.of(new BigDecimal("1.20")));
+
+        enricher.apply(r);
+
+        assertThat(h.getRealProfitLoss()).isEqualByComparingTo("300"); // 1500 − 1000×1.20
+        assertThat(h.getInflationSincePercent()).isEqualByComparingTo("20.00");
+    }
+
+    @Test
+    @DisplayName("apply: tek lot çoklu lot ile aynı sonuç verir (tek BUY senaryosu bozulmaz)")
+    void apply_singleLot_matchesNoLotsBehavior() {
+        LocalDate buyDate = LocalDate.of(2025, 6, 1);
+        PortfolioHoldingResponse h = holding("THYAO.IS", "1000", "1500", "TRY", buyDate);
+        h.setOpenCostLots(List.of(
+                new PortfolioHoldingResponse.CostLot(buyDate, new BigDecimal("1000"))
+        ));
+        PortfolioResponse r = new PortfolioResponse();
+        r.setHoldings(List.of(h));
+        when(deflator.cumulativeFactor(any(), eq(buyDate)))
+                .thenReturn(Optional.of(new BigDecimal("1.20")));
+
+        enricher.apply(r);
+
+        // Tek lot: realCost = 1000×1.20 = 1200, realPL = 1500−1200 = 300
+        assertThat(h.getRealProfitLoss()).isEqualByComparingTo("300");
+        assertThat(h.getInflationSincePercent()).isEqualByComparingTo("20.00");
+    }
+
+    @Test
+    @DisplayName("apply: lots içinden biri için faktör yoksa, o lot reel=nominal kabul edilir")
+    void apply_lotWithoutFactor_treatedAsNominal() {
+        LocalDate oldDate = LocalDate.of(2024, 1, 1);
+        LocalDate newDate = LocalDate.of(2025, 6, 1);
+        PortfolioHoldingResponse h = holding("THYAO.IS", "1000", "1500", "TRY", oldDate);
+        h.setOpenCostLots(List.of(
+                new PortfolioHoldingResponse.CostLot(oldDate, new BigDecimal("400")),
+                new PortfolioHoldingResponse.CostLot(newDate, new BigDecimal("600"))
+        ));
+        PortfolioResponse r = new PortfolioResponse();
+        r.setHoldings(List.of(h));
+
+        when(deflator.cumulativeFactor(any(), eq(oldDate)))
+                .thenReturn(Optional.of(new BigDecimal("1.50")));
+        when(deflator.cumulativeFactor(any(), eq(newDate)))
+                .thenReturn(Optional.empty()); // newDate için seri yok
+
+        enricher.apply(r);
+
+        // realCost = 400×1.50 + 600×1.00 (nominal fallback) = 1200
+        assertThat(h.getRealProfitLoss()).isEqualByComparingTo("300"); // 1500-1200
+    }
+
     // ------------------------------ helper ------------------------------
 
     private static PortfolioHoldingResponse holding(String symbol, String cost,
