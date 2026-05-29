@@ -196,6 +196,21 @@ public class PortfolioServiceImpl implements PortfolioService {
                     request.getAssetType(), request.getQuantity());
         }
 
+        // VIOP alımları için vade kontrolü: vadesi geçmiş kontrat satın alınamaz
+        // (mevcut kontrata SELL = pozisyon kapatma, izin verilir).
+        if (request.getAssetType() == AssetType.FUTURE
+                && request.getTransactionType() == TransactionType.BUY) {
+            java.util.Optional<java.time.LocalDate> maturity =
+                    com.finance.portal.market.application.viop.ViopService
+                            .parseContractMaturity(normalizedSymbol);
+            if (maturity.isPresent() && maturity.get().isBefore(java.time.LocalDate.now())) {
+                throw new IllegalArgumentException(
+                        "Bu VİOP kontratının vadesi " + maturity.get()
+                                + " tarihinde dolmuş. Vadesi geçmiş kontrata alım yapılamaz; "
+                                + "henüz vadesi gelmemiş bir kontrat seçin.");
+            }
+        }
+
         BigDecimal commission = request.getCommission() != null
                 ? request.getCommission()
                 : BigDecimal.ZERO;

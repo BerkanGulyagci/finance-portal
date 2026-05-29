@@ -110,6 +110,52 @@ public class ViopService {
     }
 
     /**
+     * VIOP kontrat adından vade tarihini parse eder. Örn. "USDTRY (30 HAZ 26) VADELI" → 2026-06-30.
+     * Türkçe ay kısaltmaları (3 harf) eşlenir. 2 haneli yıl 2000+ kabul edilir. Eşleşme yoksa {@code empty}.
+     */
+    public static Optional<java.time.LocalDate> parseContractMaturity(String contractName) {
+        if (contractName == null) {
+            return Optional.empty();
+        }
+        Matcher m = CONTRACT_NAME_PATTERN.matcher(contractName.trim());
+        if (!m.find()) {
+            return Optional.empty();
+        }
+        try {
+            int day = Integer.parseInt(m.group(2));
+            String monStr = m.group(3).toUpperCase(Locale.ROOT)
+                    .replace("İ", "I").replace("Ş", "S").replace("Ğ", "G");
+            int year = Integer.parseInt(m.group(4));
+            if (year < 100) {
+                year += 2000;
+            }
+            int month = TURKISH_MONTH_ABBREV.getOrDefault(monStr.length() >= 3 ? monStr.substring(0, 3) : monStr, 0);
+            if (month == 0) {
+                return Optional.empty();
+            }
+            return Optional.of(java.time.LocalDate.of(year, month, day));
+        } catch (Exception ex) {
+            return Optional.empty();
+        }
+    }
+
+    private static final Map<String, Integer> TURKISH_MONTH_ABBREV = new HashMap<>();
+    static {
+        TURKISH_MONTH_ABBREV.put("OCA", 1);
+        TURKISH_MONTH_ABBREV.put("SUB", 2);
+        TURKISH_MONTH_ABBREV.put("MAR", 3);
+        TURKISH_MONTH_ABBREV.put("NIS", 4);
+        TURKISH_MONTH_ABBREV.put("MAY", 5);
+        TURKISH_MONTH_ABBREV.put("HAZ", 6);
+        TURKISH_MONTH_ABBREV.put("TEM", 7);
+        TURKISH_MONTH_ABBREV.put("AGU", 8);
+        TURKISH_MONTH_ABBREV.put("EYL", 9);
+        TURKISH_MONTH_ABBREV.put("EKI", 10);
+        TURKISH_MONTH_ABBREV.put("KAS", 11);
+        TURKISH_MONTH_ABBREV.put("ARA", 12);
+    }
+
+    /**
      * İşlem kaydında saklanacak VIOP görünen adı: {@link Locale#ROOT} ile büyük harf (Türkçe locale tuzaklarından kaçınır).
      */
     public static String normalizeStoredFutureSymbol(String symbol) {
