@@ -59,6 +59,11 @@ export default function AddTransactionModal({
   const { t } = useTranslation();
   const [step, setStep] = useState(initialInstrument ? 'form' : 'search');
   const [instrument, setInstrument] = useState(initialInstrument);
+  // "Değiştir" ile arama ekranına dönünce son seçilen enstrüman türü hatırlanır
+  // (default STOCK'a düşmesin). initialInstrument varsa onun türü, yoksa STOCK.
+  const [lastUsedAssetType, setLastUsedAssetType] = useState(
+    initialInstrument?.assetType || 'STOCK'
+  );
 
   const now = new Date();
   const localNow = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
@@ -106,6 +111,9 @@ export default function AddTransactionModal({
 
   function handleInstrumentSelect(inst) {
     setInstrument(inst);
+    if (inst?.assetType) {
+      setLastUsedAssetType(inst.assetType);
+    }
     const eurobondSel = isEurobondInstrument(inst);
     setForm(f => {
       // Döviz: TCMB "Alış/Satış" kurum perspektifindedir →
@@ -159,13 +167,15 @@ export default function AddTransactionModal({
 
   // İşlem tarihine göre fiyatı otomatik doldur (geçmiş tarihte tarihsel kapanış).
   // Bugün/ileri tarihte güncel spot fiyat (instrument-based) korunur.
-  // Eurobond: backend /price-at TL FX-converted değer döndürür (Model 1) → autofill TL olarak çalışır.
+  // Eurobond: backend /price-at TL FX-converted değer döndürür (Model 1: kote × o günün TCMB kuru) →
+  // hem geçmiş hem bugün için autofill TL olarak çalışır (USD/EUR fark etmez, backend FX'i bulur).
   useEffect(() => {
     if (step !== 'form' || !instrument) return undefined;
     const dateOnly = (form.transactionDate || '').slice(0, 10);
     if (!dateOnly) return undefined;
-    if (dateOnly >= todayStr) {
-      // Bugün/ileri: spot fiyat geçerli; tarihsel çekim yok. Eurobondda kullanıcı TL elle girer.
+    // Eurobond bugün/ileri için de /price-at çağrılır (TL döner). Diğer enstrümanlarda eski davranış:
+    // bugün → spot fiyat zaten instrument'tan geliyor.
+    if (dateOnly >= todayStr && !isEurobond) {
       setPriceNotFound(false);
       setPriceLoading(false);
       return undefined;
@@ -235,8 +245,14 @@ export default function AddTransactionModal({
   const useQtyFloor = cfg.floor || (isGold && goldMeta?.floorQty);
 
   const currency = useMemo(
-    // Eurobond portföye TL olarak eklenir → modalda her zaman ₺/TRY göster.
-    () => (isEurobond ? 'TRY' : (instrument?.currency || guessCurrency(instrument?.assetType, instrument?.symbol))),
+    () => {
+      // Eurobond portföye TL olarak eklenir → modalda her zaman ₺/TRY.
+      if (isEurobond) return 'TRY';
+      // FX: fiyat alanı "1 foreign = X TRY" oranıdır (örn. EUR fiyatı = 53,21 ₺ per EUR).
+      // Toplam ödeme de TL. instrument.currency='EUR' gelse bile modal'da ₺ gösterilir.
+      if (instrument?.assetType === 'FX') return 'TRY';
+      return instrument?.currency || guessCurrency(instrument?.assetType, instrument?.symbol);
+    },
     [isEurobond, instrument?.currency, instrument?.assetType, instrument?.symbol],
   );
 
@@ -525,6 +541,7 @@ export default function AddTransactionModal({
         portfolioName={portfolioName}
         onSelect={handleInstrumentSelect}
         onClose={onClose}
+        initialType={lastUsedAssetType}
       />
     );
   }
