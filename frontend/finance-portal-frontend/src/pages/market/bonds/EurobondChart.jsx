@@ -157,7 +157,22 @@ export default function EurobondChart({ isin }) {
     const chart = klineInit(id);
     chartRef.current = chart;
     paneIds.current = {};
-    chart.setStyles({ candle: { type: mode === 'line' ? 'area' : 'candle_solid' } });
+    // Hover tooltip aç (klinecharts crosshair + candle.tooltip): kullanıcı çizgi
+    // grafiğe mouse getirince tarih + fiyat görsün.
+    chart.setStyles({
+      candle: {
+        type: mode === 'line' ? 'area' : 'candle_solid',
+        tooltip: {
+          showRule: 'always',
+          showType: 'standard',
+        },
+      },
+      crosshair: {
+        show: true,
+        horizontal: { show: true, line: { show: true, style: 'dashed', dashedValue: [4, 2], size: 1, color: '#888' } },
+        vertical: { show: true, line: { show: true, style: 'dashed', dashedValue: [4, 2], size: 1, color: '#888' } },
+      },
+    });
     setLoading(true); setError(false);
     getGlobalBondChart(isin, RANGES[rangeIdx].value)
       .then(pts => {
