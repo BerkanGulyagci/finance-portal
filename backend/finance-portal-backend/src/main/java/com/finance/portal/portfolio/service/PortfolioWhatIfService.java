@@ -106,6 +106,16 @@ public class PortfolioWhatIfService {
                 skipped++;
                 continue;
             }
+            // BOND için actualValue düzeltmesi: eurobond stored cost (qty×kote%) ile MV (qty×kote×FX×face)
+            // birimleri farklı → returnPercent gerçek olmayan değerde çıkıyor. Series ile uyumlu olmak
+            // için actualValue katkısını ratio-based hesaplıyoruz: costTl × (price_today/price_at_buy).
+            // EVDS bondları (pure TL) ratio ~ MV/Cost olduğu için aynı sonuç döner.
+            if (h.getAssetType() == com.finance.portal.common.domain.AssetType.BOND) {
+                BigDecimal ratioMv = computeBondRatioMv(h, costTl, date, today);
+                if (ratioMv != null) {
+                    mvTl = ratioMv;
+                }
+            }
             positions.add(new Pos(costTl, mvTl, date));
             totalCost = totalCost.add(costTl);
             actualValue = actualValue.add(mvTl);
@@ -187,6 +197,36 @@ public class PortfolioWhatIfService {
         r.setScope("SIM");
         r.setLabel(h.getSymbol());
         return r;
+    }
+
+    /**
+     * BOND holding için actualValue katkısını ratio-based hesaplar: costTl × (price_today/price_at_buy).
+     * Eurobondlarda stored cost (qty×kote%) ile current MV (qty×kote×FX) birimleri farklı olduğundan
+     * ham MV summary'de unrealistic returnPercent verir. Series ile uyumlu olmak için bu yöntem
+     * kullanılır. Veri yoksa veya tek nokta varsa null döner → çağıran fallback olarak ham MV'yi kullanır.
+     */
+    private BigDecimal computeBondRatioMv(PortfolioHoldingResponse h, BigDecimal costTl,
+                                          LocalDate buyDate, LocalDate today) {
+        if (h.getSymbol() == null || h.getSymbol().isBlank()) {
+            return null;
+        }
+        try {
+            NavigableMap<LocalDate, BigDecimal> series = pricePort
+                    .fetchDailyClosePrices(h.getAssetType(), h.getSymbol(),
+                            buyDate.minusDays(10), today)
+                    .orElse(null);
+            if (series == null || series.isEmpty()) {
+                return null;
+            }
+            BigDecimal base = floorVal(series, buyDate);
+            BigDecimal latest = series.lastEntry().getValue();
+            if (base == null || base.signum() <= 0 || latest == null || latest.signum() <= 0) {
+                return null;
+            }
+            return ratio(costTl, latest, base);
+        } catch (Exception ex) {
+            return null;
+        }
     }
 
     // ── Zaman serisi ("Ne Olurdu?" çizgi grafiği) ──────────────────────────────
