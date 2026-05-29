@@ -448,7 +448,19 @@ function renderCell(key, h, commoditySpots, valuesHidden, t) {
       }
       const mv = positionMarketValue(h);
       const s = fmtMoneyTwoDecimals(mv, cur);
-      return <span className="text-sm font-semibold">{s ?? <Dash />}</span>;
+      const isViop = h.assetType === 'FUTURE';
+      return (
+        <span className="text-sm font-semibold inline-flex items-center gap-1">
+          {s ?? <Dash />}
+          {isViop && s != null && (
+            <span
+              title={t('VİOP değerleri kontrat adedi × fiyat mantığıyla basitleştirilmiş olarak hesaplanır. Gerçek nominal değer sözleşme büyüklüğüne göre farklı olabilir.')}
+              className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-amber-100 text-amber-700 text-[9px] font-bold cursor-help"
+              aria-label="VIOP bilgi"
+            >i</span>
+          )}
+        </span>
+      );
     }
 
     case 'totalCost':

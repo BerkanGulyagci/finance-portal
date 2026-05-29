@@ -716,6 +716,11 @@ export default function AddTransactionModal({
                     placeholder={isFuture || (isGold && goldMeta?.floorQty) ? '1' : '0,00'}
                     className="w-full bg-[#f3f3fc] border border-[#e2e1eb] rounded-xl px-4 py-2.5 text-sm text-[#1a1b22] placeholder-[#747684] focus:outline-none focus:border-[#002a7d] focus:ring-1 focus:ring-[#002a7d]"
                   />
+                  {isFuture && (
+                    <p className="mt-1 text-[11px] text-[#747684] leading-snug">
+                      {t('Kontrat adedi, almak/satmak istediğiniz VİOP sözleşmesi sayısıdır. Her sözleşmenin gerçek büyüklüğü ürüne göre değişebilir.')}
+                    </p>
+                  )}
                 </>
               )}
             </div>
@@ -758,6 +763,11 @@ export default function AddTransactionModal({
               {priceNotFound && !isEurobond && (
                 <p className="mt-1 text-[11px] text-amber-600 leading-snug">
                   {t('Bu tarih için fiyat bulunamadı, lütfen elle girin.')}
+                </p>
+              )}
+              {isFuture && !priceNotFound && (
+                <p className="mt-1 text-[11px] text-[#747684] leading-snug">
+                  {t('Fiyat, kontratın piyasa fiyatıdır. Toplam değer, gerçek sözleşme büyüklüğüne göre değişebilir.')}
                 </p>
               )}
               {instrument?.assetType === 'COMMODITY'
@@ -815,6 +825,20 @@ export default function AddTransactionModal({
               </p>
             )}
           </div>
+
+          {/* VIOP kontrat büyüklüğü bilgilendirmesi */}
+          {isFuture && (
+            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              <svg className="w-4 h-4 text-amber-600 mt-[1px] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4a2 2 0 00-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z" />
+              </svg>
+              <p className="text-[11px] text-amber-800 leading-snug">
+                <span className="font-semibold">{t('Not:')}</span>{' '}
+                {t('VİOP\'ta 1 kontratın temsil ettiği büyüklük ürüne göre değişir. Bu ekrandaki değerler basitleştirilmiş portföy takibi içindir.')}
+              </p>
+            </div>
+          )}
 
           {/* ── Özet kutusu ── */}
           <TransactionSummary
