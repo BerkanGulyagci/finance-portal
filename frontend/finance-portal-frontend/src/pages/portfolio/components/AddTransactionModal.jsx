@@ -6,6 +6,7 @@ import InstrumentSearchModal from './InstrumentSearchModal';
 import CommodityPriceHint from './CommodityPriceHint';
 import DateTimeField from './DateTimeField';
 import { isYahooCommoditySymbol } from '../../../utils/commodityPriceUtils';
+import { getCommodityUnit } from '../utils/commodityUnit';
 import {
   isGoldAssetType,
   getGoldTransactionMeta,
@@ -240,6 +241,11 @@ export default function AddTransactionModal({
   const isBond = isBondAssetType(instrument?.assetType);
   const isFuture = isFutureAssetType(instrument?.assetType);
   const isGold = isGoldAssetType(instrument?.assetType);
+  const isCommodity = instrument?.assetType === 'COMMODITY';
+  const commodityUnit = useMemo(
+    () => (isCommodity ? getCommodityUnit(instrument?.symbol, instrument?.commoditySpot) : null),
+    [isCommodity, instrument?.symbol, instrument?.commoditySpot],
+  );
   const goldMeta = useMemo(
     () => (isGold ? getGoldTransactionMeta(instrument?.symbol) : null),
     [isGold, instrument?.symbol],
@@ -698,7 +704,9 @@ export default function AddTransactionModal({
                         ? `${t('Kontrat Adedi')} *`
                         : isGold && goldMeta
                           ? `${t(goldMeta.quantityLabel)} *`
-                          : `${t('Miktar')} *`}
+                          : isCommodity && commodityUnit
+                            ? `${t('Miktar')} (${commodityUnit}) *`
+                            : `${t('Miktar')} *`}
                   </label>
                   <input
                     type="text" inputMode="decimal"
@@ -719,6 +727,11 @@ export default function AddTransactionModal({
                   {isFuture && (
                     <p className="mt-1 text-[11px] text-[#747684] leading-snug">
                       {t('Kontrat adedi, almak/satmak istediğiniz VİOP sözleşmesi sayısıdır. Her sözleşmenin gerçek büyüklüğü ürüne göre değişebilir.')}
+                    </p>
+                  )}
+                  {isCommodity && commodityUnit && (
+                    <p className="mt-1 text-[11px] text-[#747684] leading-snug">
+                      {t('Bu ürün için miktar birimi: {unit}', { unit: commodityUnit })}
                     </p>
                   )}
                 </>
@@ -768,6 +781,11 @@ export default function AddTransactionModal({
               {isFuture && !priceNotFound && (
                 <p className="mt-1 text-[11px] text-[#747684] leading-snug">
                   {t('Fiyat, kontratın piyasa fiyatıdır. Toplam değer, gerçek sözleşme büyüklüğüne göre değişebilir.')}
+                </p>
+              )}
+              {isCommodity && commodityUnit && !priceNotFound && (
+                <p className="mt-1 text-[11px] text-[#747684] leading-snug">
+                  {t('Fiyat, {unit} başına TL değeridir.', { unit: commodityUnit.toLowerCase() })}
                 </p>
               )}
               {instrument?.assetType === 'COMMODITY'

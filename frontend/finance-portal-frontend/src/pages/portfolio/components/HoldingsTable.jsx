@@ -5,6 +5,7 @@ import TrendBadge from '../../../components/common/TrendBadge';
 import { computeTrend } from '../../../utils/trendUtils';
 import { getWatchlistDetailPath } from '../constants/watchlistMarketRoutes';
 import { MASK_MONEY, MASK_PERCENT, MASK_QTY } from '../utils/portfolioFormatUtils';
+import { getCommodityUnit } from '../utils/commodityUnit';
 import { useTranslation } from '../../../i18n/LanguageContext';
 
 // ── Sabitler ─────────────────────────────────────────────────────────────────
@@ -412,15 +413,24 @@ function renderCell(key, h, commoditySpots, valuesHidden, t) {
         </span>
       );
 
-    case 'qty':
+    case 'qty': {
       if (valuesHidden) {
         return <span className="text-sm text-gray-500 tracking-widest">{MASK_QTY}</span>;
       }
+      const qtyText = isFund ? fmtQtyFund(h.totalQuantity) : fmtQty(h.totalQuantity);
+      if (qtyText == null) return <Dash />;
+      const commodityUnit = h.assetType === 'COMMODITY'
+        ? getCommodityUnit(h.symbol, null)
+        : null;
       return (
         <span className="text-sm font-mono">
-          {(isFund ? fmtQtyFund(h.totalQuantity) : fmtQty(h.totalQuantity)) ?? <Dash />}
+          {qtyText}
+          {commodityUnit && (
+            <span className="ml-1 text-[11px] text-gray-500 font-sans">{commodityUnit}</span>
+          )}
         </span>
       );
+    }
 
     case 'avgCost':
       if (valuesHidden) {
