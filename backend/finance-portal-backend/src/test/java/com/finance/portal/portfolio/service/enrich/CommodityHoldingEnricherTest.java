@@ -31,12 +31,14 @@ class CommodityHoldingEnricherTest {
     @Mock SilverMarketService silverMarketService;
     @Mock YahooCommodityService yahooCommodityService;
     @Mock MarketFxService marketFxService;
+    @Mock com.finance.portal.market.application.precious.PreciousMetalService preciousMetalService;
 
     private CommodityHoldingEnricher enricher;
 
     @BeforeEach
     void setUp() {
-        enricher = new CommodityHoldingEnricher(silverMarketService, yahooCommodityService, marketFxService);
+        enricher = new CommodityHoldingEnricher(silverMarketService, yahooCommodityService,
+                marketFxService, preciousMetalService);
     }
 
     private static PortfolioHoldingResponse holding(String symbol, BigDecimal qty, BigDecimal cost) {
