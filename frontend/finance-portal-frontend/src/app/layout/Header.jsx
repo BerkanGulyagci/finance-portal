@@ -263,6 +263,7 @@ export function Header() {
           title: 'Genel',
           items: [
             { label: 'Türkiye Ekonomisi', path: '/market/economy', desc: 'Makro göstergeler: enflasyon, faiz, büyüme' },
+            { label: 'Ekonomik Takvim', path: '/market/economic-calendar', desc: 'Küresel makro veri açıklamaları (Finnhub)' },
           ],
         },
         {

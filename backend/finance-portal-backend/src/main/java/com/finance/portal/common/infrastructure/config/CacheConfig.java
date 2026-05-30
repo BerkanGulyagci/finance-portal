@@ -78,6 +78,9 @@ public class CacheConfig {
     @Value("${cache.market.economy.ttl-seconds:21600}")
     private long marketEconomyTtlSeconds;
 
+    @Value("${cache.market.calendar.ttl-seconds:3600}")
+    private long marketCalendarTtlSeconds;
+
     @Value("${cache.market.eurobond.list-ttl-seconds:1800}")
     private long eurobondListTtlSeconds;
 
@@ -275,6 +278,11 @@ public class CacheConfig {
                 .withCacheConfiguration("market.economy",
                         RedisCacheConfiguration.defaultCacheConfig()
                                 .entryTtl(Duration.ofSeconds(marketEconomyTtlSeconds))
+                                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(
+                                        new GenericJackson2JsonRedisSerializer())))
+                .withCacheConfiguration("market.calendar",
+                        RedisCacheConfiguration.defaultCacheConfig()
+                                .entryTtl(Duration.ofSeconds(marketCalendarTtlSeconds))
                                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(
                                         new GenericJackson2JsonRedisSerializer())))
                 .withCacheConfiguration("market.eurobond.list",

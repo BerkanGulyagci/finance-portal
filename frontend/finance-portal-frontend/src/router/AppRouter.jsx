@@ -25,6 +25,7 @@ import BondsPage from '../features/market/bonds/BondsPage';
 import BondDetailPage from '../features/market/bonds/BondDetailPage';
 import EurobondDetailPage from '../features/market/bonds/EurobondDetailPage';
 import EconomyPage from '../features/market/economy/EconomyPage';
+import EconomicCalendarPage from '../features/market/economy/EconomicCalendarPage';
 import LoanCalculatorPage from '../features/market/economy/LoanCalculatorPage';
 import DepositCalculatorPage from '../features/market/economy/DepositCalculatorPage';
 import GoldPage from '../features/market/gold/GoldPage';
@@ -78,6 +79,7 @@ export default function AppRouter() {
           <Route path="/market/bonds/global/:isin" element={<EurobondDetailPage />} />
           <Route path="/market/bonds/:symbol"  element={<BondDetailPage />} />
           <Route path="/market/economy"       element={<EconomyPage />} />
+          <Route path="/market/economic-calendar" element={<EconomicCalendarPage />} />
           <Route path="/market/kredi-hesaplama" element={<LoanCalculatorPage />} />
           <Route path="/market/mevduat-hesaplama" element={<DepositCalculatorPage />} />
           <Route path="/market/gold"       element={<GoldPage />} />

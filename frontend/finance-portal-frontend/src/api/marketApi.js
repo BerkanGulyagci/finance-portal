@@ -421,6 +421,19 @@ export async function getDepositRates() {
   return data.data ?? { upTo1Month: null, upTo3Months: null, upTo6Months: null, upTo1Year: null, inflationYoy: null, period: null, source: '' };
 }
 
+/**
+ * Ekonomik takvim olayları (Finnhub). Tarih aralığı ISO YYYY-MM-DD; backend max 400 gün.
+ * GET /api/market/economy/calendar?from=2025-05-31&to=2026-05-31
+ *
+ * Dönen liste: [{ time, country, currency, event, impact, actual, estimate, prev, unit }, ...]
+ *  - time: "YYYY-MM-DD HH:mm:ss" UTC
+ *  - impact: "low" | "medium" | "high" | "holiday" | null
+ */
+export async function getEconomicCalendar(from, to) {
+  const { data } = await client.get('/api/market/economy/calendar', { params: { from, to } });
+  return data.data ?? [];
+}
+
 export async function getGoldSpot() {
   const { data } = await client.get('/api/gold/spot');
   return data.data ?? null;
