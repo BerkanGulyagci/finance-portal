@@ -1,7 +1,7 @@
 import { Activity, Percent, DollarSign, BarChart3 } from 'lucide-react';
 import DashCard, { CardLink } from './DashCard';
-import { fmtMoney, fmtPct, pctClass, num } from './dashUtils';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { fmtMoney, fmtPct, pctClass, num } from '../utils/dashUtils';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 function IndicatorRow({ icon: Icon, tone, label, value, changePct }) {
   return (

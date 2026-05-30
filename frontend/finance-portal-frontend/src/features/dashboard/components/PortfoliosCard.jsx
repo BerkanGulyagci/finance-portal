@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
 import { Briefcase, X, RotateCcw } from 'lucide-react';
 import DashCard, { CardLink } from './DashCard';
-import { fmtMoney, pctClass, num } from './dashUtils';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { fmtMoney, pctClass, num } from '../utils/dashUtils';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 /**
  * Portföy listesi — her satır panodan gizlenebilir (gerçek portföy silinmez).

@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
 import { Star, Plus, X, Mail } from 'lucide-react';
 import DashCard from './DashCard';
-import { fmtMoney, fmtPct, pctClass, num, ASSET_LABEL } from './dashUtils';
-import { getWatchlistDetailPath } from '../portfolio';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { fmtMoney, fmtPct, pctClass, num, ASSET_LABEL } from '../utils/dashUtils';
+import { getWatchlistDetailPath } from '../../portfolio';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 /**
  * Favoriler — izleme listesindeki varlıklar; ekleme/çıkarma yapılabilir.

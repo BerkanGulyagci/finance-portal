@@ -1,6 +1,6 @@
 import { Wallet, TrendingUp, TrendingDown, PieChart } from 'lucide-react';
-import { fmtMoney, fmtPct, pctClass, num, ASSET_LABEL } from './dashUtils';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { fmtMoney, fmtPct, pctClass, num, ASSET_LABEL } from '../utils/dashUtils';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 function Tile({ icon: Icon, tone, label, value, valueClass = 'text-gray-900', sub, subClass = 'text-gray-400' }) {
   return (

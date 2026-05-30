@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getStockMidasDetail } from '../../api/marketApi';
+import { getStockMidasDetail } from '../../../api/marketApi';
 
 // Sembol → logo URL (oturum boyu önbellek; her sembol en fazla bir kez çekilir).
 const cache = new Map();

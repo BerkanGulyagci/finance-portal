@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { X, TrendingUp, TrendingDown } from 'lucide-react';
-import { getMarketPriceHistory } from '../../api/marketApi';
-import { getWatchlistDetailPath } from '../portfolio';
+import { getMarketPriceHistory } from '../../../api/marketApi';
+import { getWatchlistDetailPath } from '../../portfolio';
 import { CardLink } from './DashCard';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 const ASSET_LABEL = {
   STOCK: 'Hisse', FUND: 'Fon', FX: 'Döviz', FUTURE: 'Vadeli',

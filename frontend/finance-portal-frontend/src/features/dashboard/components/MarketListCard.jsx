@@ -3,12 +3,12 @@ import { Link } from 'react-router-dom';
 import { Plus, X } from 'lucide-react';
 import DashCard from './DashCard';
 import StockLogo from './StockLogo';
-import { getWatchlistDetailPath } from '../portfolio';
-import InstrumentSearchModal from '../../components/instrument/InstrumentSearchModal';
-import { getMarketPriceHistory } from '../../api/marketApi';
-import { fmtMoney, fmtPct, pctClass, num } from './dashUtils';
-import { useTranslation } from '../../i18n/LanguageContext';
-import { prefGet, prefSet } from '../../api/prefs';
+import { getWatchlistDetailPath } from '../../portfolio';
+import InstrumentSearchModal from '../../../components/instrument/InstrumentSearchModal';
+import { getMarketPriceHistory } from '../../../api/marketApi';
+import { fmtMoney, fmtPct, pctClass, num } from '../utils/dashUtils';
+import { useTranslation } from '../../../i18n/LanguageContext';
+import { prefGet, prefSet } from '../../../api/prefs';
 
 function readList(key) {
   const v = prefGet(key, []);

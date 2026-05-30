@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { PieChart as PieIcon, X } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import DashCard, { CardLink } from './DashCard';
-import { calculateAllocationByType, CHART_DONUT_COLORS, formatSharePercent } from '../portfolio';
-import { fmtMoney } from './dashUtils';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { calculateAllocationByType, CHART_DONUT_COLORS, formatSharePercent } from '../../portfolio';
+import { fmtMoney } from '../utils/dashUtils';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 /**
  * Tüm portföylerin (ya da pano üstüne sürüklenen tek portföyün) birleşik varlık türü

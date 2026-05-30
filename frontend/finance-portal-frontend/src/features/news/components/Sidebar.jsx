@@ -4,7 +4,7 @@ import { BarChart3, TrendingUp, ArrowUpDown, CalendarDays, ChevronDown } from 'l
 import { getFxTcmb, getEconomicIndicators, getEconomy } from '../../../api/marketApi';
 import { getNews } from '../../../api/newsApi';
 import { getIpos } from '../../../api/ipoApi';
-import StockLogo from '../../dashboard/StockLogo';
+import StockLogo from '../../dashboard/components/StockLogo';
 import { useTranslation } from '../../../i18n/LanguageContext';
 
 /** Site tasarımına uygun, tarayıcı select'i yerine özel açılır menü. */

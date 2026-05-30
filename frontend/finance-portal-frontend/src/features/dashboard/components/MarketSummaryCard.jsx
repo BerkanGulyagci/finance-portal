@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
 import { LineChart } from 'lucide-react';
 import DashCard from './DashCard';
-import { fmtMoney, fmtPct, pctClass, num } from './dashUtils';
-import { getWatchlistDetailPath } from '../portfolio';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { fmtMoney, fmtPct, pctClass, num } from '../utils/dashUtils';
+import { getWatchlistDetailPath } from '../../portfolio';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 function MarketRow({ label, sub, value, changePct, to }) {
   const inner = (

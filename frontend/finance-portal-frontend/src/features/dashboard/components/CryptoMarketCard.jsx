@@ -1,7 +1,7 @@
 import { Bitcoin } from 'lucide-react';
 import DashCard from './DashCard';
-import { fmtMoney, fmtPct, pctClass, num } from './dashUtils';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { fmtMoney, fmtPct, pctClass, num } from '../utils/dashUtils';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 /**
  * Kripto piyasası — kompakt ilk N coin (ikon, sembol, fiyat, 24s %).
