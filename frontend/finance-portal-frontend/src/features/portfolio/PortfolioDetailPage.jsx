@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Download, Pencil } from 'lucide-react';
+import { ArrowLeft, FileSpreadsheet, FileText, Pencil } from 'lucide-react';
 import { getPortfolioById } from '../../api/portfolioApi';
-import { downloadPortfolioCsv } from './utils/portfolioCsvExport';
+import { downloadPortfolioExcel, downloadPortfolioPdf } from './utils/portfolioReportExport';
 import PortfolioTypeBadge from './components/PortfolioTypeBadge';
 import EditPortfolioModal from './components/EditPortfolioModal';
 import HoldingsDetail from './components/HoldingsDetail';
@@ -73,12 +73,23 @@ export default function PortfolioDetailPage() {
     setSearchParams(next, { replace: true });
   }
 
-  async function handleExportCsv() {
+  async function handleExportExcel() {
     setExporting(true);
     try {
-      downloadPortfolioCsv(portfolio);
+      downloadPortfolioExcel(portfolio);
     } catch {
-      alert(t('Dışa aktarılamadı. Bağlantınızı kontrol edip tekrar deneyin.'));
+      alert(t('Excel dışa aktarılamadı.'));
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function handleExportPdf() {
+    setExporting(true);
+    try {
+      downloadPortfolioPdf(portfolio);
+    } catch {
+      alert(t('PDF dışa aktarılamadı.'));
     } finally {
       setExporting(false);
     }
@@ -121,15 +132,28 @@ export default function PortfolioDetailPage() {
             {t('Düzenle')}
           </button>
           {!isWatchlist && (
-            <button
-              type="button"
-              onClick={handleExportCsv}
-              disabled={exporting}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors disabled:opacity-50"
-            >
-              <Download className="w-4 h-4" />
-              {exporting ? t('Dışa aktarılıyor…') : t('Dışa aktar')}
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={handleExportExcel}
+                disabled={exporting}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 bg-white text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 transition-colors disabled:opacity-50"
+                title={t('Excel (.xlsx) olarak indir')}
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                {t('Excel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleExportPdf}
+                disabled={exporting}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 bg-white text-rose-700 hover:bg-rose-50 hover:border-rose-300 transition-colors disabled:opacity-50"
+                title={t('PDF rapor olarak indir')}
+              >
+                <FileText className="w-4 h-4" />
+                {t('PDF')}
+              </button>
+            </>
           )}
         </div>
       </div>

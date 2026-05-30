@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, X, FileDown, ChevronDown } from 'lucide-react';
+import { Plus, X, FileSpreadsheet, FileText, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import WatchlistTable from './WatchlistTable';
 import WatchlistCharts from './WatchlistCharts';
 import AddWatchlistItemModal from './AddWatchlistItemModal';
 import { getWatchlistItems, deleteWatchlistItem, getMyPortfolios } from '../../../api/portfolioApi';
-import { downloadWatchlistCsv } from '../utils/exportWatchlistCsv';
+import { downloadPortfolioExcel, downloadPortfolioPdf } from '../utils/portfolioReportExport';
 import { getWatchlistDetailPath } from '../constants/watchlistMarketRoutes';
 import { computeTrend, TREND_SIGNAL } from '../../../utils/trendUtils';
 import { useTranslation } from '../../../context/LanguageContext';
@@ -92,11 +92,21 @@ export default function WatchlistDetail({ portfolio }) {
     [],
   );
 
-  function handleExportWatchlistCsv() {
+  /** Profesyonel Excel raporu (portföy export utility'siyle aynı) */
+  function handleExportExcel() {
     try {
-      downloadWatchlistCsv(portfolio.name, items);
+      downloadPortfolioExcel({ ...portfolio, watchlistItems: items });
     } catch {
-      alert(t('CSV oluşturulamadı.'));
+      alert(t('Excel dışa aktarılamadı.'));
+    }
+  }
+
+  /** Native jsPDF ile stilize PDF rapor */
+  function handleExportPdf() {
+    try {
+      downloadPortfolioPdf({ ...portfolio, watchlistItems: items });
+    } catch {
+      alert(t('PDF dışa aktarılamadı.'));
     }
   }
 
@@ -235,12 +245,23 @@ export default function WatchlistDetail({ portfolio }) {
         <div className="flex items-center gap-2 flex-wrap shrink-0">
           <button
             type="button"
-            onClick={handleExportWatchlistCsv}
+            onClick={handleExportExcel}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 bg-white text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 transition-all disabled:opacity-50"
+            title={t('Excel (.xlsx) olarak indir')}
           >
-            <FileDown className="w-4 h-4" />
-            {t("CSV'ye Aktar")}
+            <FileSpreadsheet className="w-4 h-4" />
+            {t('Excel')}
+          </button>
+          <button
+            type="button"
+            onClick={handleExportPdf}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 bg-white text-rose-700 hover:bg-rose-50 hover:border-rose-300 transition-all disabled:opacity-50"
+            title={t('PDF rapor olarak indir')}
+          >
+            <FileText className="w-4 h-4" />
+            {t('PDF')}
           </button>
           <button
             type="button"
