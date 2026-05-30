@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Mail } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { useTranslation } from '../i18n/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 export default function VerifyEmailPage() {
   const { t } = useTranslation();
