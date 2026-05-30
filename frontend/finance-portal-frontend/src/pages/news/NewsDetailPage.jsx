@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, Newspaper, Clock, User, Link2 } from 'lucide-react';
 import { getNewsDetail, proxyImageUrl } from '../../api/newsApi';
-import { Sidebar } from '../../components/finans/Sidebar';
+import { Sidebar } from './components/Sidebar';
 import { useTranslation } from '../../i18n/LanguageContext';
 import { categoryBadgeClass, formatNewsDate, formatNewsTime } from '../../utils/newsUtils';
 

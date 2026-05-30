@@ -1,11 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Clock, TrendingUp, Send } from 'lucide-react';
-import { getNews, proxyImageUrl } from '../../api/newsApi';
-import { useAuth } from '../../context/AuthContext';
-import { useTranslation } from '../../i18n/LanguageContext';
-import { formatNewsTime } from '../../utils/newsUtils';
-import NewsletterModal from './NewsletterModal';
+import { getNews, proxyImageUrl } from '../../../api/newsApi';
+import { useAuth } from '../../../context/AuthContext';
+import { useTranslation } from '../../../i18n/LanguageContext';
+import { formatNewsTime } from '../../../utils/newsUtils';
+import NewsletterModal from '../../../components/finans/NewsletterModal';
 
 const SLIDE_COUNT = 10;
 const AUTO_MS = 6000;

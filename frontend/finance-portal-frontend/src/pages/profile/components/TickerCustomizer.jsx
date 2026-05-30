@@ -3,9 +3,9 @@ import { LineChart, Plus, X } from 'lucide-react';
 import {
   TICKER_CATALOG, readTickerPrefs, saveTickerPrefs,
   readCustomTickerItems, saveCustomTickerItems,
-} from '../../utils/tickerPrefs';
-import { useTranslation } from '../../i18n/LanguageContext';
-import { InstrumentSearchModal } from '../../pages/portfolio';
+} from '../../../utils/tickerPrefs';
+import { useTranslation } from '../../../i18n/LanguageContext';
+import { InstrumentSearchModal } from '../../portfolio';
 
 const ASSET_LABEL = {
   STOCK: 'Hisse', FUND: 'Fon', FX: 'Döviz', FUTURE: 'Vadeli',

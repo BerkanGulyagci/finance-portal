@@ -9,7 +9,7 @@ import {
   ProfileNameModal,
   ProfilePasswordModal,
 } from './profile/ProfileAccountModals';
-import TickerCustomizer from '../components/finans/TickerCustomizer';
+import TickerCustomizer from './profile/components/TickerCustomizer';
 import NewsletterModal from '../components/finans/NewsletterModal';
 import SupportTicketsCard from './profile/SupportTicketsCard';
 import { getNewsletter } from '../api/newsletterApi';

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { RefreshCw, Newspaper } from 'lucide-react';
-import { getNews, proxyImageUrl } from '../../api/newsApi';
-import { useTranslation } from '../../i18n/LanguageContext';
-import { categoryBadgeClass, formatNewsTime } from '../../utils/newsUtils';
+import { getNews, proxyImageUrl } from '../../../api/newsApi';
+import { useTranslation } from '../../../i18n/LanguageContext';
+import { categoryBadgeClass, formatNewsTime } from '../../../utils/newsUtils';
 
 const PAGE_SIZE = 12;
 

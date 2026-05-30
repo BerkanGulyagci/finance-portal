@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Search, X } from 'lucide-react';
-import { HeroSection } from '../components/finans/HeroSection';
-import { NewsFeed } from '../components/finans/NewsFeed';
-import { NewsFilterBar } from '../components/finans/NewsFilterBar';
-import { PersonalNewsStrip } from '../components/finans/PersonalNewsStrip';
-import { Sidebar } from '../components/finans/Sidebar';
+import { HeroSection } from './news/components/HeroSection';
+import { NewsFeed } from './news/components/NewsFeed';
+import { NewsFilterBar } from './news/components/NewsFilterBar';
+import { PersonalNewsStrip } from './news/components/PersonalNewsStrip';
+import { Sidebar } from './news/components/Sidebar';
 import { useTranslation } from '../i18n/LanguageContext';
 
 const FILTERS_KEY = 'news_filters_v1';

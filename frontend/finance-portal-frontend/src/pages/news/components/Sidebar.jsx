@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { BarChart3, TrendingUp, ArrowUpDown, CalendarDays, ChevronDown } from 'lucide-react';
-import { getFxTcmb, getEconomicIndicators, getEconomy } from '../../api/marketApi';
-import { getNews } from '../../api/newsApi';
-import { getIpos } from '../../api/ipoApi';
-import StockLogo from '../../pages/dashboard/StockLogo';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { getFxTcmb, getEconomicIndicators, getEconomy } from '../../../api/marketApi';
+import { getNews } from '../../../api/newsApi';
+import { getIpos } from '../../../api/ipoApi';
+import StockLogo from '../../dashboard/StockLogo';
+import { useTranslation } from '../../../i18n/LanguageContext';
 
 /** Site tasarımına uygun, tarayıcı select'i yerine özel açılır menü. */
 function CurrencyDropdown({ value, options, onChange }) {

@@ -1,7 +1,7 @@
 import { SlidersHorizontal } from 'lucide-react';
-import { useTranslation } from '../../i18n/LanguageContext';
-import { Dropdown } from './Dropdown';
-import { groupSources } from '../../utils/newsUtils';
+import { useTranslation } from '../../../i18n/LanguageContext';
+import { Dropdown } from '../../../components/finans/Dropdown';
+import { groupSources } from '../../../utils/newsUtils';
 
 const REGIONS = [
   { value: 'TR', label: 'Türkiye' },
