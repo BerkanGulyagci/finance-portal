@@ -191,15 +191,12 @@ function lastPriceWithinTolerance(prices, currentPrice) {
 export async function fetchYahooCryptoLineChart(symbol, uiCurrency, yahooRange, yahooInterval, coinId, currentPrice) {
   const ui = String(uiCurrency ?? '').trim().toUpperCase();
 
-  // "5Y" + "Tüm" + TL: Yahoo USD × USD/TRY ile TL'ye çevrilmiş seri. Binance {SYMBOL}TRY pair'i
-  // olmayan coinlerde (ör. stablecoin DAI) veya Binance ~2019 / CoinGecko TRY ~1 yıl sınırına
-  // takıldığında TL grafiği ancak böyle gösterilebilir. Backend her iki aralığı da destekler
-  // (getTryLineViaUsd → shouldUseYahoo "sadece 5y/max"). Önceden bu yol yalnız "Tüm" için
-  // çağrıldığından "5Y"de TL yokken "Tüm"de vardı (tutarsızlık) — artık ikisi de TL döner.
+  // "Tüm" (max) + TL: Yahoo USD × USD/TRY çevrimi ÖNCE denenir — Binance {SYMBOL}TRY ~2019,
+  // CoinGecko TRY ~1 yıl ile sınırlıyken Yahoo tam geçmişi (2014+) TL'ye çevirebilir.
   let yahooTokenSuspect = false; // Yahoo ticker çakışması tespit edilirse Yahoo'yu tamamen atla
-  if (ui === 'TRY' && (yahooRange === 'max' || yahooRange === '5y')) {
+  if (ui === 'TRY' && yahooRange === 'max') {
     try {
-      const res = await getCryptoYahooTryChart(symbol, yahooRange);
+      const res = await getCryptoYahooTryChart(symbol, 'max');
       const prices = stockChartToLinePrices(res);
       if (isAdequateRemoteLinePrices(prices)) {
         // currentPrice (TL) ile tutarlılık kontrolü — Yahoo ticker çakışmasını ayıklar.
@@ -220,6 +217,8 @@ export async function fetchYahooCryptoLineChart(symbol, uiCurrency, yahooRange, 
     }
   }
 
+  // Binance native TL — 5Y için ÖNCELİKLİ (gerçek TL piyasası, FX çevrimi DEĞİL; günlük 5y veri).
+  // {SYMBOL}TRY pair'i olan coinler (BTC/ETH/…) burada doğru/canlı TL serisini alır.
   const binance = await fetchBinanceTryCryptoChart(symbol, uiCurrency, yahooRange);
   if (binance?.prices?.length && isAdequateRemoteLinePrices(binance.prices)) {
     return {
@@ -230,6 +229,29 @@ export async function fetchYahooCryptoLineChart(symbol, uiCurrency, yahooRange, 
       sourceNote: binance.sourceNote,
       tryFallbackWarning: null,
     };
+  }
+
+  // "5Y" + TL: Binance'te {SYMBOL}TRY pair'i YOK (ör. stablecoin DAI) → USD'ye düşmeden önce
+  // Yahoo USD × USD/TRY çevrimine düş. "Tüm"de TL varken "5Y"de olmaması tutarsızlığını giderir;
+  // Binance pair'i olan coinler yukarıda zaten native TL aldığından (BTC/ETH) bu yalnız pair'siz
+  // coinlere çalışır — native 5Y TL serisini BOZMAZ.
+  if (ui === 'TRY' && yahooRange === '5y' && !yahooTokenSuspect) {
+    try {
+      const res = await getCryptoYahooTryChart(symbol, '5y');
+      const prices = stockChartToLinePrices(res);
+      if (isAdequateRemoteLinePrices(prices) && lastPriceWithinTolerance(prices, currentPrice)) {
+        return {
+          prices,
+          total_volumes: [],
+          yahooSymbol: res?.symbol ?? null,
+          quoteCurrency: 'TRY',
+          sourceNote: "Yahoo Finance · USD fiyat × USD/TRY ile TL'ye çevrildi",
+          tryFallbackWarning: null,
+        };
+      }
+    } catch {
+      /* Yahoo USD akışına düş */
+    }
   }
 
   const range = yahooRangeToBinanceRange(yahooRange) ?? yahooRange;
