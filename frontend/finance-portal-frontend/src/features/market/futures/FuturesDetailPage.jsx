@@ -56,7 +56,7 @@ export default function FuturesDetailPage() {
         <Link to="/market/futures" className="inline-flex items-center gap-1.5 text-sm text-[#093eaa] font-semibold hover:underline">
           <ArrowLeft className="w-4 h-4" /> {t('Vadeli İşlemler')}
         </Link>
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-12 flex items-center justify-center">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-12 flex items-center justify-center">
           <div className="flex gap-2">
             <div className="w-3 h-3 bg-[#093eaa] rounded-full animate-bounce" />
             <div className="w-3 h-3 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
@@ -73,7 +73,7 @@ export default function FuturesDetailPage() {
         <Link to="/market/futures" className="inline-flex items-center gap-1.5 text-sm text-[#093eaa] font-semibold hover:underline">
           <ArrowLeft className="w-4 h-4" /> {t('Vadeli İşlemler')}
         </Link>
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-12">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-12">
           <div className="text-center">
             <p className="text-rose-600 font-semibold mb-2">{error}</p>
             <p className="text-sm text-gray-500">
@@ -95,7 +95,7 @@ export default function FuturesDetailPage() {
         <Link to="/market/futures" className="inline-flex items-center gap-1.5 text-sm text-[#093eaa] font-semibold hover:underline">
           <ArrowLeft className="w-4 h-4" /> {t('Vadeli İşlemler')}
         </Link>
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-12">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-12">
           <div className="text-center">
             <p className="text-rose-600 font-semibold mb-2">{t('Sözleşme verisi bulunamadı.')}</p>
             <p className="text-sm text-gray-500">
@@ -132,8 +132,8 @@ export default function FuturesDetailPage() {
           sol (2/3) → grafik + açık pozisyon + gün içi aralık
           sağ (1/3) → fiyat bilgileri + sözleşme bilgileri
           Böylece her şey tek ekranda, kaydırmadan görünür. */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
-        <div className="lg:col-span-2 space-y-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-5 items-start">
+        <div className="lg:col-span-2 space-y-3 sm:space-y-5">
           <ViopPriceChart contractName={contract.name} />
           <ViopOpenPositions contract={contract} />
           <ViopPriceRange contract={contract} />

@@ -64,7 +64,7 @@ export default function RegisterPage() {
           </h1>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-8">
           <h2 className="text-xl font-bold text-gray-900 mb-2">{t('Hesap Oluşturun')}</h2>
           <p className="text-sm text-gray-500 mb-6">{t('Portföyünüzü yönetmek için ücretsiz kayıt olun.')}</p>
 
@@ -112,7 +112,7 @@ export default function RegisterPage() {
                   required placeholder={t('En az 6 karakter')} disabled={loading}
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#093eaa] focus:border-transparent pr-12" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  className="absolute right-1 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-2 sm:p-0">
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>

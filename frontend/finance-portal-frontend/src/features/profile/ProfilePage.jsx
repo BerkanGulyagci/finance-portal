@@ -131,7 +131,7 @@ export default function ProfilePage() {
       .join('') || '?';
 
   return (
-    <div className="max-w-6xl mx-auto py-8 px-4">
+    <div className="max-w-6xl mx-auto py-4 sm:py-8 px-4">
       <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">{t('Profilim')}</p>
 
       {successMessage && (
@@ -155,9 +155,9 @@ export default function ProfilePage() {
       )}
 
       {!loading && !error && profile && (
-        <div className="space-y-5">
+        <div className="space-y-3 sm:space-y-5">
           {/* ── Üst kimlik kartı (hero): avatar + isim + rozetler + eylemler ── */}
-          <section className="m3-card p-6">
+          <section className="m3-card p-3 sm:p-6">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-center">
               <div className="flex items-center gap-4 min-w-0">
                 <div className="w-16 h-16 rounded-full bg-[#e7eefb] text-[#093eaa] flex items-center justify-center text-xl font-bold shrink-0">
@@ -216,10 +216,10 @@ export default function ProfilePage() {
           </section>
 
           {/* ── İçerik ızgarası ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-5 items-start">
             {/* Sol — hesap bilgileri + destek talepleri */}
             <div className="lg:col-span-2 space-y-5 min-w-0">
-              <section className="m3-card p-6">
+              <section className="m3-card p-3 sm:p-6">
                 <CardHeader
                   icon={IdCard}
                   title={t('Hesap Bilgileri')}
@@ -266,7 +266,7 @@ export default function ProfilePage() {
             <div className="lg:col-span-1 min-w-0 space-y-5">
               <TickerCustomizer />
 
-              <section className="m3-card p-6">
+              <section className="m3-card p-3 sm:p-6">
                 <CardHeader
                   icon={Mail}
                   title={t('Bülten Aboneliği')}

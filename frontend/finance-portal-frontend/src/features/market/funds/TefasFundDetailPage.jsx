@@ -153,7 +153,7 @@ export default function TefasFundDetailPage() {
       </Link>
 
       {/* ── Header ── */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-6">
         <div className="flex items-start justify-between flex-wrap gap-4">
           <div>
             <div className="flex items-center gap-3 mb-1">
@@ -168,7 +168,7 @@ export default function TefasFundDetailPage() {
             )}
           </div>
           <div className="text-right">
-            <p className="text-3xl font-bold text-gray-900 font-mono">{fmt(price, 6)}</p>
+            <p className="text-2xl sm:text-3xl font-bold text-gray-900 font-mono">{fmt(price, 6)}</p>
             <p className="text-xs text-gray-400 mt-0.5">TL</p>
             {ret1m != null && (
               <p className={`text-sm font-semibold flex items-center justify-end gap-1 mt-1 ${ret1mColor}`}>
@@ -242,7 +242,7 @@ export default function TefasFundDetailPage() {
 
               {/* Aylık getiri grafiği */}
               {d.monthlyReturns && d.monthlyReturns.length > 0 && (
-                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-6">
                   <h2 className="font-bold text-gray-900 mb-4">{t('Aylık Getiri (Son 24 Ay)')}</h2>
                   <MonthlyReturnChart monthlyReturns={d.monthlyReturns} />
                 </div>
@@ -250,7 +250,7 @@ export default function TefasFundDetailPage() {
 
               {/* Risk bilgileri */}
               {(d.riskBest || d.riskWorst || d.riskPositiveRateOfReturn) && (
-                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-6">
                   <h2 className="font-bold text-gray-900 mb-4">{t('Risk ve Performans')}</h2>
                   <div className="grid grid-cols-3 gap-4">
                     <div className="bg-emerald-50 rounded-xl p-4 text-center">
@@ -278,7 +278,7 @@ export default function TefasFundDetailPage() {
           {/* ── Grafik tab ── */}
           {activeTab === 'chart' && (
             <div className="space-y-5">
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-6">
                 <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
                   <h2 className="font-bold text-gray-900">{t('Fiyat Grafiği')}</h2>
                   <div className="flex items-center gap-2">
@@ -302,7 +302,7 @@ export default function TefasFundDetailPage() {
               </div>
 
               {d.assetAllocation && d.assetAllocation.length > 0 && (
-                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-6">
                   <h2 className="font-bold text-gray-900 mb-4">{t('Varlık Dağılımı')}</h2>
                   <AssetAllocationChart assetAllocation={d.assetAllocation} />
                 </div>
@@ -314,7 +314,7 @@ export default function TefasFundDetailPage() {
           {activeTab === 'info' && (
             <div className="space-y-5">
               {/* Temel bilgiler */}
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-6">
                 <h2 className="font-bold text-gray-900 mb-4">{t('Fon Temel Bilgileri')}</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-0">
                   {[
@@ -342,7 +342,7 @@ export default function TefasFundDetailPage() {
 
               {/* Strateji */}
               {d.strategy && (
-                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-6">
                   <h2 className="font-bold text-gray-900 mb-3">{t('Yatırım Stratejisi')}</h2>
                   <p className="text-sm text-gray-700 leading-relaxed">{d.strategy}</p>
                 </div>

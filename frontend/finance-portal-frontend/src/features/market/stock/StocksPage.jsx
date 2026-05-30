@@ -159,7 +159,7 @@ function IndexChart({ symbol, label }) {
     : null;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 mb-6">
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-5 mb-6">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <h2 className="text-base font-bold text-gray-900">{label} {t('Endeksi')}</h2>
         <div className="flex gap-1">
@@ -287,7 +287,7 @@ export default function StocksPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <h1 className="text-2xl font-bold text-gray-900 border-l-4 border-[#093eaa] pl-4">{t('Hisse Senetleri')}</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 border-l-4 border-[#093eaa] pl-4">{t('Hisse Senetleri')}</h1>
         <Link
           to="/market/stocks/compare"
           className="flex items-center gap-1.5 px-4 py-2 bg-[#093eaa] text-white text-sm font-bold rounded-xl hover:bg-[#0730a0] transition-all"
@@ -328,7 +328,7 @@ export default function StocksPage() {
             placeholder={t('Sembol veya şirket ara...')}
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#093eaa] min-w-[240px]"
+            className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#093eaa] w-full sm:w-auto sm:min-w-[240px]"
           />
           {search && (
             <button onClick={() => setSearch('')}
@@ -340,7 +340,7 @@ export default function StocksPage() {
         </div>
 
         {loading && (
-          <div className="p-8 text-center">
+          <div className="p-4 sm:p-8 text-center">
             <div className="flex items-center justify-center gap-2 mb-2">
               <div className="w-2 h-2 bg-[#093eaa] rounded-full animate-bounce" />
               <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />

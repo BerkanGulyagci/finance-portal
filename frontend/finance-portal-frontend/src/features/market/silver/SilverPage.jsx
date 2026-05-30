@@ -267,7 +267,7 @@ export default function SilverPage() {
           ))}
         </div>
 
-        <div className="p-6">
+        <div className="p-3 sm:p-6">
           {loadingSpot ? (
             <GoldLoadingState />
           ) : error ? (
@@ -292,7 +292,7 @@ export default function SilverPage() {
                   )}
                 </div>
                 <div className="flex items-baseline gap-3 flex-wrap">
-                  <span className={`text-4xl font-black ${isDown ? 'text-rose-600' : 'text-emerald-600'}`}>
+                  <span className={`text-3xl sm:text-4xl font-black ${isDown ? 'text-rose-600' : 'text-emerald-600'}`}>
                     {sym}{fmt(displayPrice)}
                   </span>
                   {changePct != null && (
@@ -308,7 +308,7 @@ export default function SilverPage() {
               </div>
 
               {/* İstatistikler */}
-              <div className="grid grid-cols-2 gap-x-8 gap-y-0 border-t border-gray-100 pt-4 mb-6">
+              <div className="grid grid-cols-2 gap-x-3 sm:gap-x-8 gap-y-0 border-t border-gray-100 pt-4 mb-6">
                 <StatRow label="Güncel Fiyat (Kapanış)" value={displayPrice != null ? `${sym}${fmt(displayPrice)}` : '-'} />
                 <StatRow label="En Yüksek"              value={stats?.high != null ? `${sym}${fmt(stats.high)}` : '-'} />
                 <StatRow label="En Düşük"               value={stats?.low  != null ? `${sym}${fmt(stats.low)}`  : '-'} />
@@ -406,9 +406,9 @@ export default function SilverPage() {
             { label: 'Kg Gümüş (₺)',   value: spot.closeTryKg ?? spot.weightedAverageTryKg, sym: '₺', dec: 0 },
             { label: 'Ons Gümüş ($)',  value: spot.silverUsdOns,                            sym: '$' },
           ].map(card => (
-            <div key={card.label} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 text-center">
+            <div key={card.label} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-5 text-center">
               <p className="text-xs text-gray-500 font-semibold mb-2">{t(card.label)}</p>
-              <p className="text-2xl font-black text-gray-900">
+              <p className="text-xl sm:text-2xl font-black text-gray-900">
                 {card.value != null ? `${card.sym}${fmt(card.value, card.dec ?? 2)}` : '-'}
               </p>
               <p className="text-xs text-gray-400 mt-1">{t('Borsa İstanbul')}</p>

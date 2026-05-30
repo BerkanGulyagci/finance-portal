@@ -91,7 +91,7 @@ function FundTable({ funds, accentColor, loading, error, showFounder = false }) 
   return (
     <>
       {/* Filtreler */}
-      <div className="p-4 border-b border-gray-100 flex items-center gap-3 flex-wrap">
+      <div className="p-3 sm:p-4 border-b border-gray-100 flex items-center gap-2 sm:gap-3 flex-wrap">
         <input type="text" placeholder={t('Fon kodu, adı veya yönetici ara...')}
           value={search} onChange={e => { setSearch(e.target.value); setPage(0); }}
           className="w-full sm:w-auto sm:min-w-[260px] px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2"
@@ -168,7 +168,7 @@ function FundTable({ funds, accentColor, loading, error, showFounder = false }) 
                 <td className="px-4 py-3 text-sm text-right">{fmtPct(r.returnThreeYears)}</td>
                 <td className="px-2 py-3">
                   <Link to={`/market/tefas/compare?codes=${r.code}`} onClick={e => e.stopPropagation()} title={t('Karşılaştır')}
-                    className="p-1.5 rounded-lg bg-gray-100 text-gray-400 transition-all inline-flex hover:text-white"
+                    className="p-2 sm:p-1.5 rounded-lg bg-gray-100 text-gray-400 transition-all inline-flex hover:text-white"
                     onMouseEnter={e => { e.currentTarget.style.backgroundColor = accentColor; e.currentTarget.style.color = 'white'; }}
                     onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; e.currentTarget.style.color = ''; }}>
                     <BarChart2 className="w-3.5 h-3.5" />
@@ -230,7 +230,7 @@ function OsmanliBulletinTable({ funds, loading, error }) {
 
   return (
     <>
-      <div className="p-4 border-b border-gray-100 flex items-center gap-3 flex-wrap">
+      <div className="p-3 sm:p-4 border-b border-gray-100 flex items-center gap-2 sm:gap-3 flex-wrap">
         <input type="text" placeholder={t('Fon kodu, adı veya grup ara...')}
           value={search} onChange={e => setSearch(e.target.value)}
           className="w-full sm:w-auto sm:min-w-[240px] px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none" />
@@ -298,7 +298,7 @@ function OsmanliBulletinTable({ funds, loading, error }) {
                 <td className="px-2 py-3">
                   <Link to={`/market/tefas/compare?codes=${r.code}`}
                     onClick={e => e.stopPropagation()} title={t('Karşılaştır')}
-                    className="p-1.5 rounded-lg bg-gray-100 text-gray-400 transition-all inline-flex hover:text-white"
+                    className="p-2 sm:p-1.5 rounded-lg bg-gray-100 text-gray-400 transition-all inline-flex hover:text-white"
                     onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#d97706'; e.currentTarget.style.color = 'white'; }}
                     onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; e.currentTarget.style.color = ''; }}>
                     <BarChart2 className="w-3.5 h-3.5" />
@@ -353,19 +353,19 @@ export default function TefasPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-1 border-l-4 pl-4" style={{ borderColor: tab.color }}>
+      <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1 border-l-4 pl-3 sm:pl-4" style={{ borderColor: tab.color }}>
         {t('Yatırım Fonları')}
       </h1>
       <p className="text-sm text-gray-500 mb-5 pl-5">{t('Kaynak: Rasyonet / YatırımDirekt')}</p>
 
       {/* Tab butonları — Material 3: aktif "filled" (yükseltili), pasif "outlined" + state-layer hover */}
-      <div className="flex gap-2.5 mb-4 flex-wrap">
+      <div className="flex gap-2 sm:gap-2.5 mb-4 flex-wrap">
         {TABS.map(tb => {
           const count = data[tb.key]?.length;
           const isActive = activeTab === tb.key;
           return (
             <button key={tb.key} onClick={() => handleTab(tb.key)}
-              className={`flex flex-col items-start px-5 py-2.5 rounded-xl text-left transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+              className={`flex flex-col items-start px-3 py-2 sm:px-5 sm:py-2.5 rounded-xl text-left transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
                 isActive ? 'shadow-md hover:shadow-lg' : 'bg-white border border-gray-300 hover:shadow-sm'
               }`}
               style={isActive

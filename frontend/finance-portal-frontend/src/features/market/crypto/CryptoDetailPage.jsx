@@ -512,7 +512,7 @@ export default function CryptoDetailPage() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 sm:gap-6">
         {/* Sol kolon */}
         <div className="space-y-4">
           {/* Skeleton SADECE ilk yüklemede (henüz coin yokken). coin varsa kart kalır,
@@ -524,7 +524,7 @@ export default function CryptoDetailPage() {
               <div className="w-2 h-2 bg-[#093eaa]/30 rounded-full animate-bounce [animation-delay:200ms]" />
             </div>
           ) : coin && (
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-5">
               <div className="flex items-center gap-3 mb-4">
                 {coin.image && <img src={coin.image} alt={coin.name} className="w-10 h-10 rounded-full" />}
                 <div>
@@ -545,7 +545,7 @@ export default function CryptoDetailPage() {
               </div>
               {/* Para birimi değişiminde kart durur; bu rakamlar güncellenirken hafif soluklaşır */}
               <div className={`transition-opacity duration-300 ${loading ? 'opacity-40' : 'opacity-100'}`}>
-                <p className="text-3xl font-black text-gray-900 mb-1">{fmtPrice(coin.currentPrice, currency)}</p>
+                <p className="text-2xl sm:text-3xl font-black text-gray-900 mb-1">{fmtPrice(coin.currentPrice, currency)}</p>
                 <span className={`flex items-center gap-1 text-sm font-bold ${pos24h ? 'text-emerald-600' : 'text-rose-600'}`}>
                   {pos24h ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                   {pos24h ? '+' : ''}{fmt(change24h)}% ({t('24s')})
@@ -691,7 +691,7 @@ export default function CryptoDetailPage() {
         <div className="lg:col-span-3 space-y-4">
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             {/* Grafik toolbar */}
-            <div className="flex items-center gap-2 px-6 pt-5 pb-3 flex-wrap">
+            <div className="flex items-center gap-2 px-3 sm:px-6 pt-3 sm:pt-5 pb-3 flex-wrap">
               {/* Grafik modu */}
               <div className="flex gap-1">
                 {[{ key: 'line', label: '〰 Çizgi' }, { key: 'candle', label: '🕯 Mum' }].map(m => (
@@ -754,7 +754,7 @@ export default function CryptoDetailPage() {
             )}
 
             {/* Grafik */}
-            <div className="px-6 pb-6">
+            <div className="px-2 sm:px-6 pb-3 sm:pb-6">
               {/* Karşılaştırma modu: CryptoLineChart ile normalize % grafik */}
               {chartMode === 'line' && isComparing ? (
                 <>
@@ -804,7 +804,7 @@ export default function CryptoDetailPage() {
           </div>
 
           {shortDesc && (
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-5">
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">{coin?.name} {t('Hakkında')}</p>
               <p className="text-sm text-gray-700 leading-relaxed">
                 {showDesc ? description.replace(/<[^>]+>/g, '') : shortDesc}
@@ -820,7 +820,7 @@ export default function CryptoDetailPage() {
 
           {/* Benzer Coinler */}
           {similarCoins.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-5">
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">{t('Benzer Coinler')}</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {similarCoins.map(c => {

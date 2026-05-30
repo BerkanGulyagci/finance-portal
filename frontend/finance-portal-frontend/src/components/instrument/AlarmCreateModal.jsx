@@ -115,17 +115,17 @@ export default function AlarmCreateModal({ instrument, alarm, onClose, onSaved, 
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1a1b22]/30 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl border border-[#e2e1eb] w-full max-w-md overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-3 py-3 sm:px-6 sm:py-4 border-b border-gray-100">
           <h2 className="font-bold text-gray-900 flex items-center gap-2 min-w-0">
             <Bell className="w-4 h-4 text-[#093eaa] flex-shrink-0" />
             <span className="truncate">{displayName} {editMode ? t('— Alarmı Düzenle') : t('İçin Alarm')}</span>
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 rounded-full p-1 hover:bg-gray-50 flex-shrink-0">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 rounded-full p-2 sm:p-1 hover:bg-gray-50 flex-shrink-0">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="p-3 sm:p-6 space-y-4 sm:space-y-5">
           {/* Yön + eşik */}
           <div className="grid grid-cols-2 gap-3">
             <div>

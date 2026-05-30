@@ -63,7 +63,7 @@ export default function InstrumentActionButtons({ assetType, symbol, name, price
         <button
           onClick={() => setTargetOpen(true)}
           title={added ? t('Portföyde — düzenle / yeni işlem ekle') : t('Portföye Ekle')}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#093eaa] text-white hover:bg-[#0a2966] transition-all"
+          className="inline-flex items-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold bg-[#093eaa] text-white hover:bg-[#0a2966] transition-all"
         >
           <Star className={`w-3.5 h-3.5 ${added ? 'fill-amber-400 text-amber-400' : ''}`} />
           {added ? t('Eklendi') : t('Portföye Ekle')}
@@ -77,7 +77,7 @@ export default function InstrumentActionButtons({ assetType, symbol, name, price
         <button
           onClick={() => setAlarmOpen(true)}
           title={t('Alarm Oluştur')}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-[#093eaa]/25 text-[#093eaa] bg-[#093eaa]/5 hover:bg-[#093eaa]/10 transition-all"
+          className="inline-flex items-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold border border-[#093eaa]/25 text-[#093eaa] bg-[#093eaa]/5 hover:bg-[#093eaa]/10 transition-all"
         >
           <Bell className="w-3.5 h-3.5" /> {t('Alarm')}
         </button>

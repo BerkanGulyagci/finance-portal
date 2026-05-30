@@ -142,16 +142,16 @@ export default function AlarmsManager({ compact = false }) {
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
                 <button onClick={() => setEditAlarm(a)} disabled={busyId === a.id}
-                  title={t('Düzenle')} className="p-1.5 rounded-lg text-gray-400 hover:text-[#093eaa] hover:bg-[#093eaa]/5 transition-colors disabled:opacity-40">
+                  title={t('Düzenle')} className="p-2 sm:p-1.5 rounded-lg text-gray-400 hover:text-[#093eaa] hover:bg-[#093eaa]/5 transition-colors disabled:opacity-40">
                   <Pencil className="w-4 h-4" />
                 </button>
                 <button onClick={() => togglePause(a)} disabled={busyId === a.id || a.status === 'TRIGGERED'}
                   title={a.status === 'DISABLED' ? t('Devam Et') : t('Duraklat')}
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50 transition-colors disabled:opacity-40">
+                  className="p-2 sm:p-1.5 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50 transition-colors disabled:opacity-40">
                   {a.status === 'DISABLED' ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
                 </button>
                 <button onClick={() => remove(a)} disabled={busyId === a.id}
-                  title={t('Sil')} className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors disabled:opacity-40">
+                  title={t('Sil')} className="p-2 sm:p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors disabled:opacity-40">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>

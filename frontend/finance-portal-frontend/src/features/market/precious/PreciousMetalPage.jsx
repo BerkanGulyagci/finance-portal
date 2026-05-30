@@ -179,7 +179,7 @@ export default function PreciousMetalPage({ metal, metalName }) {
         <div className="flex overflow-x-auto border-b border-gray-200">
           {METAL_TABS.map(tab => (
             <button key={tab.key} onClick={() => setActiveTabKey(tab.key)}
-              className={`px-5 py-3 text-sm font-semibold whitespace-nowrap transition-all border-b-2 ${
+              className={`px-3 sm:px-5 py-3 text-sm font-semibold whitespace-nowrap transition-all border-b-2 ${
                 activeTabKey === tab.key
                   ? 'border-[#093eaa] text-[#093eaa] bg-blue-50'
                   : 'border-transparent text-gray-600 hover:text-[#093eaa] hover:bg-gray-50'
@@ -189,7 +189,7 @@ export default function PreciousMetalPage({ metal, metalName }) {
           ))}
         </div>
 
-        <div className="p-6">
+        <div className="p-3 sm:p-6">
           {loadingSpot ? (
             <GoldLoadingState />
           ) : error ? (
@@ -214,7 +214,7 @@ export default function PreciousMetalPage({ metal, metalName }) {
                   )}
                 </div>
                 <div className="flex items-baseline gap-3 flex-wrap">
-                  <span className={`text-4xl font-black ${isDown ? 'text-rose-600' : 'text-emerald-600'}`}>
+                  <span className={`text-3xl sm:text-4xl font-black ${isDown ? 'text-rose-600' : 'text-emerald-600'}`}>
                     {sym}{fmt(currentPrice)}
                   </span>
                   {changePct != null && (
@@ -230,7 +230,7 @@ export default function PreciousMetalPage({ metal, metalName }) {
               </div>
 
               {/* İstatistikler */}
-              <div className="grid grid-cols-2 gap-x-8 gap-y-0 border-t border-gray-100 pt-4 mb-6">
+              <div className="grid grid-cols-2 gap-x-3 sm:gap-x-8 gap-y-0 border-t border-gray-100 pt-4 mb-6">
                 <StatRow label="Güncel Fiyat"  value={currentPrice != null ? `${sym}${fmt(currentPrice)}` : '-'} />
                 <StatRow label="En Yüksek"     value={stats?.high != null ? `${sym}${fmt(stats.high)}` : '-'} />
                 <StatRow label="En Düşük"      value={stats?.low  != null ? `${sym}${fmt(stats.low)}`  : '-'} />

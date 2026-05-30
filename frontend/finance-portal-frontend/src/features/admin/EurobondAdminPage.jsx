@@ -54,7 +54,7 @@ export default function EurobondAdminPage() {
         </span>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 mb-5">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-5 mb-5">
         <h2 className="font-bold text-gray-900 mb-1">{t('Aylık listeyi güncelle')}</h2>
         <p className="text-xs text-gray-500 mb-3">
           {t('HMB sayfasındaki "Merkezi Yönetim Dış Borç Stoku Tahvil Listesi" Excel ikonuna sağ tık → bağlantıyı kopyala → buraya yapıştır.')}{' '}
@@ -81,7 +81,7 @@ export default function EurobondAdminPage() {
         )}
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-5">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-bold text-gray-900">{t('Güncel ISIN Listesi')}</h2>
           <span className="text-xs text-gray-400">{isins.length} ISIN</span>

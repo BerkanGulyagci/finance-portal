@@ -104,8 +104,8 @@ export default function FuturesPage() {
       <p className="text-sm text-gray-500 mb-6 pl-5">{t('Türkiye VİOP kontratları')}</p>
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        {loading && <div className="p-8 text-center text-gray-400 text-sm">{t('Yükleniyor...')}</div>}
-        {error && <div className="p-6 text-rose-500 text-sm">{error}</div>}
+        {loading && <div className="p-4 sm:p-8 text-center text-gray-400 text-sm">{t('Yükleniyor...')}</div>}
+        {error && <div className="p-3 sm:p-6 text-rose-500 text-sm">{error}</div>}
 
         {/* VIOP Tab */}
         {!loading && !error && activeTab === 'viop' && (
@@ -123,7 +123,7 @@ export default function FuturesPage() {
             </div>
 
             {viopItems.length === 0
-              ? <p className="p-6 text-gray-400 text-sm">{t('VİOP verisi bulunamadı.')}</p>
+              ? <p className="p-3 sm:p-6 text-gray-400 text-sm">{t('VİOP verisi bulunamadı.')}</p>
               : (
                 <>
                   <div className="px-4 py-1.5 bg-gray-50 border-b border-gray-100 text-xs text-gray-400">

@@ -40,15 +40,15 @@ export default function Pagination({
   const showTail = hasPager && nums.length > 0 && nums[nums.length - 1] < totalPages - 1;
 
   const navBtn =
-    'px-2 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors';
+    'px-2.5 py-2 sm:px-2 sm:py-1.5 rounded-lg border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors';
   const pageBtn = (active) =>
     `min-w-[2.1rem] px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${
       active ? 'bg-[#093eaa] text-white border-[#093eaa]' : 'border-gray-200 text-gray-700 hover:bg-gray-50'
     }`;
 
   return (
-    <div className={`p-4 flex items-center justify-between border-t border-gray-100 flex-wrap gap-3 ${className}`}>
-      <div className="flex items-center gap-4 flex-wrap">
+    <div className={`p-3 sm:p-4 flex items-center justify-between border-t border-gray-100 flex-wrap gap-2 sm:gap-3 ${className}`}>
+      <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
         {totalElements != null && (
           <span className="text-xs text-gray-500">
             {t('Toplam')} {totalElements}{unitLabel ? ` ${t(unitLabel)}` : ''}

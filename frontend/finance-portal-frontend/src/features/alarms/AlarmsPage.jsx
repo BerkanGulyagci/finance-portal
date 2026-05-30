@@ -22,7 +22,7 @@ export default function AlarmsPage() {
         </p>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-6">
         <AlarmsManager />
       </div>
     </div>

@@ -86,11 +86,11 @@ export default function LoanCalculatorPage() {
     <div className="max-w-5xl mx-auto">
       {/* Başlık */}
       <div className="mb-6">
-        <h1 className="text-3xl font-black tracking-tight text-[#093eaa] mb-2">{t('Kredi Hesaplama')}</h1>
+        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#093eaa] mb-2">{t('Kredi Hesaplama')}</h1>
         <p className="text-sm text-[#434653]">{t('Aylık taksit, faiz ve toplam ödeme tutarınızı görmek için kredi hesaplama aracını kullanın.')}</p>
       </div>
 
-      <div className="bg-white border border-[#c4c5d5] rounded-2xl p-6 sm:p-8 shadow-sm flex flex-col gap-6">
+      <div className="bg-white border border-[#c4c5d5] rounded-2xl p-3 sm:p-8 shadow-sm flex flex-col gap-4 sm:gap-6">
         {/* Sekmeler */}
         <div className="bg-[#eeedf7] border border-[#c4c5d5] rounded-xl p-1.5 flex gap-1 w-full max-w-2xl mx-auto">
           {LOAN_TYPES.map(lt => (
@@ -162,17 +162,17 @@ export default function LoanCalculatorPage() {
           <>
             {/* Sonuç kartları */}
             <div className="pt-6 border-t border-[#e2e1eb] grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-[#f3f3fc] border border-[#e2e1eb] rounded-xl p-5 text-center">
+              <div className="bg-[#f3f3fc] border border-[#e2e1eb] rounded-xl p-3 sm:p-5 text-center">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-[#505f76] mb-2">{t('Aylık Taksit')}</p>
-                <p className="text-2xl font-black text-[#093eaa]">{fmtTL(result.installment)}</p>
+                <p className="text-xl sm:text-2xl font-black text-[#093eaa]">{fmtTL(result.installment)}</p>
               </div>
-              <div className="bg-[#f3f3fc] border border-[#e2e1eb] rounded-xl p-5 text-center">
+              <div className="bg-[#f3f3fc] border border-[#e2e1eb] rounded-xl p-3 sm:p-5 text-center">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-[#505f76] mb-2">{t('Toplam Geri Ödeme')}</p>
-                <p className="text-2xl font-black text-gray-900">{fmtTL(result.total)}</p>
+                <p className="text-xl sm:text-2xl font-black text-gray-900">{fmtTL(result.total)}</p>
               </div>
-              <div className="bg-[#f3f3fc] border border-[#e2e1eb] rounded-xl p-5 text-center">
+              <div className="bg-[#f3f3fc] border border-[#e2e1eb] rounded-xl p-3 sm:p-5 text-center">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-[#505f76] mb-2">{t('Toplam Faiz')}</p>
-                <p className="text-2xl font-black text-rose-600">{fmtTL(result.interest)}</p>
+                <p className="text-xl sm:text-2xl font-black text-rose-600">{fmtTL(result.interest)}</p>
               </div>
             </div>
 
@@ -231,7 +231,7 @@ export default function LoanCalculatorPage() {
       {/* Ödeme planı */}
       {result && showSchedule && (
         <div className="mt-6 space-y-4">
-          <div className="bg-white rounded-2xl border border-[#c4c5d5] shadow-sm p-4 sm:p-6">
+          <div className="bg-white rounded-2xl border border-[#c4c5d5] shadow-sm p-3 sm:p-6">
             <p className="text-sm font-bold text-gray-800 mb-4">{t('Kalan Borç (Ay Ay)')}</p>
             <ResponsiveContainer width="100%" height={220}>
               <AreaChart data={result.schedule.map(s => ({ ay: s.i, kalan: s.balance }))} margin={{ top: 5, right: 12, left: 0, bottom: 4 }}>

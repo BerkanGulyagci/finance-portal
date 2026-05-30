@@ -293,10 +293,10 @@ export default function PortfolioPage() {
       )}
 
       {/* Başlık */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-6">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900 border-l-4 border-[#093eaa] pl-4">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 border-l-4 border-[#093eaa] pl-4">
               {t('Portföylerim')}
             </h1>
             <button
@@ -355,7 +355,7 @@ export default function PortfolioPage() {
 
       {/* Genel özet — metrik kartları */}
       {!loading && !error && summary.count > 0 && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-6">
           <MetricCard
             icon={Wallet}
             label={t('Toplam Değer')}
@@ -414,7 +414,7 @@ export default function PortfolioPage() {
 
       {/* Loading */}
       {loading && (
-        <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-8 text-center">
           <div className="flex items-center justify-center gap-2">
             <div className="w-2 h-2 bg-[#093eaa] rounded-full animate-bounce" />
             <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
@@ -433,7 +433,7 @@ export default function PortfolioPage() {
 
       {/* Boş durum */}
       {!loading && !error && portfolios.length === 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+        <div className="bg-white rounded-lg border border-gray-200 p-6 sm:p-12 text-center">
           <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
             <TrendingUp className="w-8 h-8 text-[#093eaa]" />
           </div>
@@ -452,7 +452,7 @@ export default function PortfolioPage() {
 
       {/* Kart grid */}
       {!loading && !error && portfolios.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
           {portfolios.map((p, idx) => {
             const isWatchlist = p.portfolioType === 'WATCHLIST';
             const pnl    = parseFloat(p.totalProfitLoss ?? 0);
@@ -467,7 +467,7 @@ export default function PortfolioPage() {
               <Link
                 key={p.id}
                 to={`/portfolio/${p.id}`}
-                className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 hover:shadow-lg hover:border-[#093eaa]/30 hover:-translate-y-1 transition-all duration-200 group fp-fade-up"
+                className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 sm:p-6 hover:shadow-lg hover:border-[#093eaa]/30 hover:-translate-y-1 transition-all duration-200 group fp-fade-up"
                 style={{ animationDelay: `${idx * 50}ms` }}
               >
                 {/* Kart başlığı */}
@@ -566,7 +566,7 @@ export default function PortfolioPage() {
       )}
 
       {/* Alarmlarım */}
-      <div className="mt-8 bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+      <div className="mt-8 bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-6">
         <AlarmsManager compact />
       </div>
     </div>

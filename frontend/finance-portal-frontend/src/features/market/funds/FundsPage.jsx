@@ -42,13 +42,13 @@ export default function FundsPage() {
       <p className="text-sm text-gray-500 mb-6 pl-5">{t('Küresel ETF ve yatırım fonları')}</p>
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-gray-100 flex items-center gap-3 flex-wrap">
+        <div className="p-3 sm:p-4 border-b border-gray-100 flex items-center gap-3 flex-wrap">
           <input
             type="text"
             placeholder={t('Sembol veya isim ara...')}
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(0); }}
-            className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#093eaa] min-w-[240px]"
+            className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#093eaa] w-full sm:w-auto sm:min-w-[240px]"
           />
           {search && (
             <button onClick={() => setSearch('')} className="px-3 py-2 border border-gray-200 rounded-xl text-sm hover:bg-gray-50">✕</button>
@@ -56,7 +56,7 @@ export default function FundsPage() {
           <span className="text-xs text-gray-400 ml-auto">{filtered.length} {t('fon')}</span>
         </div>
 
-        {loading && <div className="p-8 text-center text-gray-400 text-sm">{t('Yükleniyor...')}</div>}
+        {loading && <div className="p-4 sm:p-8 text-center text-gray-400 text-sm">{t('Yükleniyor...')}</div>}
         {error && <div className="p-6 text-rose-500 text-sm">{error}</div>}
         {!loading && !error && (
           <div className="overflow-x-auto">

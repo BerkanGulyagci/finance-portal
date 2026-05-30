@@ -71,14 +71,14 @@ export default function NotificationsPage() {
           </h1>
           {unread > 0 && (
             <button onClick={onReadAll}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+              className="inline-flex items-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-lg text-xs font-bold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
               <CheckCheck className="w-3.5 h-3.5" /> {t('Tümünü Okundu İşaretle')}
             </button>
           )}
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-4">
         {loading ? (
           <p className="text-sm text-gray-400 py-8 text-center">{t('Yükleniyor...')}</p>
         ) : items.length === 0 ? (
@@ -113,7 +113,7 @@ export default function NotificationsPage() {
                     )}
                   </div>
                   <button onClick={() => onDelete(n)} title={t('Sil')}
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors flex-shrink-0">
+                    className="p-2 sm:p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors flex-shrink-0">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>

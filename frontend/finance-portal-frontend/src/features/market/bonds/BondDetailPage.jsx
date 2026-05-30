@@ -65,7 +65,7 @@ export default function BondDetailPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-5">
+    <div className="max-w-5xl mx-auto space-y-3 sm:space-y-5">
 
       {/* 1. Header — kıymet kodu, tür, tarihler, kaynak */}
       <BondDetailHeader bond={bond} />
@@ -84,7 +84,7 @@ export default function BondDetailPage() {
       <MetricBar bond={bond} />
 
       {/* 3. Göstergeler (sol) + Kıymet Bilgileri (sağ) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-5 items-start">
         <BondIndicators
           bond={bond}
           historyPoints={historyPoints}
@@ -156,12 +156,12 @@ function MetricBar({ bond }) {
       {metrics.map((m, i) => (
         <div
           key={i}
-          className={`bg-white rounded-2xl border shadow-sm p-5 ${m.accent ? 'border-[#093eaa]/25' : 'border-gray-200'}`}
+          className={`bg-white rounded-2xl border shadow-sm p-3 sm:p-5 ${m.accent ? 'border-[#093eaa]/25' : 'border-gray-200'}`}
         >
           <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-2 leading-tight">
             {t(m.label)}
           </p>
-          <p className={`text-2xl font-bold font-mono leading-none ${m.valueColor ?? (m.accent ? 'text-[#093eaa]' : 'text-gray-900')}`}>
+          <p className={`text-xl sm:text-2xl font-bold font-mono leading-none ${m.valueColor ?? (m.accent ? 'text-[#093eaa]' : 'text-gray-900')}`}>
             {m.value}
           </p>
           {m.sub && (

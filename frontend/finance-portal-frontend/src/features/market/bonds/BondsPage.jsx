@@ -211,7 +211,7 @@ export default function BondsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-2 border-l-4 border-[#093eaa] pl-4">
+      <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 border-l-4 border-[#093eaa] pl-3 sm:pl-4">
         {t('Tahvil / Bono')}
       </h1>
       {/* ── Sekmeler ── */}
@@ -242,8 +242,8 @@ export default function BondsPage() {
       </p>
 
       {/* ── Filtre paneli ── */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-5">
-        <div className="flex flex-wrap gap-3 items-end">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-4 mb-5">
+        <div className="flex flex-wrap gap-2 sm:gap-3 items-end">
           {/* Arama */}
           <div className="flex-1 min-w-[180px] max-w-xs">
             <label className="block text-xs font-semibold text-gray-500 mb-1">{t('Kıymet Kodu Ara')}</label>
@@ -301,7 +301,7 @@ export default function BondsPage() {
           </div>
 
           {/* Sayfa boyutu */}
-          <div className="ml-auto">
+          <div className="sm:ml-auto">
             <label className="block text-xs font-semibold text-gray-500 mb-1">{t('Sayfa Boyutu')}</label>
             <select
               value={size}
@@ -339,7 +339,7 @@ export default function BondsPage() {
       {/* ── Tablo ── */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         {loading && (
-          <div className="p-8 text-center">
+          <div className="p-4 sm:p-8 text-center">
             <div className="flex items-center justify-center gap-2 mb-2">
               <div className="w-2 h-2 bg-[#093eaa] rounded-full animate-bounce" />
               <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
@@ -439,7 +439,7 @@ export default function BondsPage() {
               onChange={p => setPage(p)}
             />
 
-            <div className="px-4 py-2 bg-gray-50 border-t border-gray-100 text-xs text-gray-400">
+            <div className="px-3 sm:px-4 py-2 bg-gray-50 border-t border-gray-100 text-xs text-gray-400">
               {t('* Gösterge değerleri TCMB EVDS kaynaklıdır. Alış/satış fiyatı değildir. Yatırım tavsiyesi niteliği taşımaz.')}
             </div>
           </>

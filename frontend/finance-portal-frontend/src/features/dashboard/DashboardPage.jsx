@@ -315,7 +315,7 @@ export default function DashboardPage() {
               {pc.portfolioName || pf.name}
             </Link>
             <button onClick={() => removePfChart(pc.portfolioId, pc.chartKey)} title={t('Kaldır')}
-              className="p-1 rounded-md text-gray-300 hover:text-rose-500 hover:bg-rose-50 transition-colors">
+              className="p-2 sm:p-1 rounded-md text-gray-300 hover:text-rose-500 hover:bg-rose-50 transition-colors">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -344,7 +344,7 @@ export default function DashboardPage() {
               type="button"
               onClick={() => removeWlChart(wc.watchlistId, wc.chartKind)}
               title={t('Kaldır')}
-              className="gb-no-drag p-1 rounded-md text-gray-300 hover:text-rose-500 hover:bg-rose-50 transition-colors"
+              className="gb-no-drag p-2 sm:p-1 rounded-md text-gray-300 hover:text-rose-500 hover:bg-rose-50 transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -368,16 +368,16 @@ export default function DashboardPage() {
         <div className="flex items-center gap-2 shrink-0">
           {isAuthenticated && (
             <button onClick={() => setSearchMode('alarm')}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full border border-gray-200 text-gray-700 text-sm font-bold hover:bg-gray-50 transition-colors">
+              className="inline-flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-full border border-gray-200 text-gray-700 text-xs sm:text-sm font-bold hover:bg-gray-50 transition-colors">
               <BellPlus className="w-4 h-4" /> {t('Alarm Kur')}
             </button>
           )}
           <Link to="/market/stocks/compare"
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full border border-[#093eaa]/30 text-[#093eaa] text-sm font-bold hover:bg-[#093eaa]/5 transition-colors">
+            className="inline-flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-full border border-[#093eaa]/30 text-[#093eaa] text-xs sm:text-sm font-bold hover:bg-[#093eaa]/5 transition-colors">
             <ArrowLeftRight className="w-4 h-4" /> {t('Karşılaştır')}
           </Link>
           <button onClick={() => setSearchMode('chart')}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-[#093eaa] text-white text-sm font-bold hover:bg-[#0a2966] transition-colors shadow-sm">
+            className="inline-flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-full bg-[#093eaa] text-white text-xs sm:text-sm font-bold hover:bg-[#0a2966] transition-colors shadow-sm">
             <Plus className="w-4 h-4" /> {t('Grafik Ekle')}
           </button>
         </div>

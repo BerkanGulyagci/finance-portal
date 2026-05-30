@@ -177,7 +177,7 @@ export default function StockDetailPage() {
   const isPos = midas?.dailyChangePercent && !midas.dailyChangePercent.startsWith('-');
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-3 sm:space-y-6">
       {/* Back + Title */}
       <div className="flex items-center gap-3">
         <Link to="/market/stocks" className="text-gray-400 hover:text-[#093eaa] transition-colors">
@@ -194,7 +194,7 @@ export default function StockDetailPage() {
           )}
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
                 {ticker} {t('Hisse')} {midas?.name ? `- ${midas.name}` : ''}
               </h1>
               {trendItem && <TrendBadge item={trendItem} size="sm" />}
@@ -221,13 +221,13 @@ export default function StockDetailPage() {
           {/* ── Price + Volume + Chart ── */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 <p className="text-3xl sm:text-4xl font-bold text-gray-900">
                   {midas?.currentPrice ?? '-'}
                 </p>
                 <p className="text-sm text-gray-400 mt-1">{t('Güncel Fiyat')}</p>
               </div>
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 <p className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
                   {midas?.dailyVolume ?? '-'}
                 </p>
@@ -279,7 +279,7 @@ export default function StockDetailPage() {
           </div>
 
           {/* ── Financial Metrics Table ── */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-6">
             <h2 className="text-base font-bold text-gray-900 mb-4">{ticker} Hisse ve Finansal Bilgileri</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
               <MetricCard label="Son İşlem Fiyatı"     value={midas?.currentPrice} highlight />
@@ -309,7 +309,7 @@ export default function StockDetailPage() {
 
           {/* ── Ortaklık Yapısı ── */}
           {midas?.shareholders?.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-6">
               <h2 className="text-base font-bold text-gray-900 mb-6">{ticker} {t('Ortaklık Yapısı')}</h2>
               <table className="w-full">
                 <thead className="bg-gray-50">
@@ -331,7 +331,7 @@ export default function StockDetailPage() {
           )}
 
           {/* ── Şirket Hakkında ── */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-6">
             <h2 className="text-base font-bold text-gray-900 mb-1">{ticker} - {t('Şirket Hakkında')}</h2>
             {midas?.name && (
               <p className="text-sm text-gray-400 mb-6">
@@ -352,7 +352,7 @@ export default function StockDetailPage() {
 
           {/* ── Şirket Açıklaması ── */}
           {(midas?.description || midas?.logoUrl) && (
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-6">
               {/* Logo + Name header */}
               <div className="flex items-center gap-4 mb-6">
                 {midas.logoUrl && (

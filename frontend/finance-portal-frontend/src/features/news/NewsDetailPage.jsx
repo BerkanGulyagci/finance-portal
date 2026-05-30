@@ -89,7 +89,7 @@ export default function NewsDetailPage() {
   const paragraphs = content ? content.split(/\n\n+/).filter(p => p.trim()) : [];
 
   return (
-    <div className="max-w-[1180px] mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8">
+    <div className="max-w-[1180px] mx-auto grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-8">
       <div className="lg:col-span-3">
         <Link to="/news" className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-[#093eaa] mb-4">
           <ArrowLeft className="w-4 h-4" /> {t('Haberlere dön')}
@@ -163,7 +163,7 @@ export default function NewsDetailPage() {
                   href={article.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-md bg-[#093eaa] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#072f80] transition-colors"
+                  className="inline-flex items-center gap-2 rounded-md bg-[#093eaa] px-4 sm:px-5 py-2.5 text-sm font-bold text-white hover:bg-[#072f80] transition-colors"
                 >
                   {t('Haberin devamını kaynakta oku')} <ExternalLink className="w-4 h-4" />
                 </a>

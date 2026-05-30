@@ -247,13 +247,13 @@ export default function CommodityComparePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900 border-l-4 border-[#093eaa] pl-4">
+      <h1 className="text-xl sm:text-2xl font-bold text-gray-900 border-l-4 border-[#093eaa] pl-4">
         {t('Emtia Karşılaştırma')}
       </h1>
 
       {/* Seçim kartı */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-        <div className="flex flex-wrap gap-6 items-start">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-5">
+        <div className="flex flex-wrap gap-3 sm:gap-6 items-start">
           {/* Metal seçimi */}
           <div>
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t('Emtia')}</p>
@@ -333,7 +333,7 @@ export default function CommodityComparePage() {
       </div>
 
       {/* Normalize performans grafiği */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="font-bold text-gray-900">{t('Normalize Performans')}</h2>
@@ -384,7 +384,7 @@ export default function CommodityComparePage() {
 
       {/* Tablo 1: Dönem Getirileri */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100">
+        <div className="px-3 sm:px-6 py-4 border-b border-gray-100">
           <h2 className="font-bold text-gray-900">{t('Dönem Getirileri')}</h2>
         </div>
         <div className="overflow-x-auto">
@@ -431,7 +431,7 @@ export default function CommodityComparePage() {
 
       {/* Tablo 2: Risk / Dalgalanma */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100">
+        <div className="px-3 sm:px-6 py-4 border-b border-gray-100">
           <h2 className="font-bold text-gray-900">{t('Risk / Dalgalanma')}</h2>
         </div>
         <div className="overflow-x-auto">
@@ -479,7 +479,7 @@ export default function CommodityComparePage() {
 
       {/* Tablo 3: Güncel Fiyatlar */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div className="px-3 sm:px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
           <h2 className="font-bold text-gray-900">{t('Güncel Fiyatlar')}</h2>
           <span className="text-xs text-gray-400 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">
             {t('Kaynak: Borsa İstanbul')}

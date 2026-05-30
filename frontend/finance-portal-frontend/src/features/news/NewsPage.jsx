@@ -51,7 +51,7 @@ export default function NewsPage() {
       />
 
       {/* Arama — hero altında, belirgin */}
-      <div className="relative mb-6">
+      <div className="relative mb-4 sm:mb-6">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
         <input
           value={search}
@@ -60,13 +60,13 @@ export default function NewsPage() {
           className="w-full rounded-md border border-gray-200 bg-white pl-12 pr-10 py-3.5 text-[15px] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30 focus:border-[#093eaa]/40"
         />
         {search && (
-          <button onClick={() => setSearch('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+          <button onClick={() => setSearch('')} className="absolute right-2 sm:right-3.5 top-1/2 -translate-y-1/2 p-2 sm:p-0 text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
           </button>
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-8">
         <div className="lg:col-span-3">
           <PersonalNewsStrip />
           <NewsFeed filters={filters} onFacets={setFacets} />

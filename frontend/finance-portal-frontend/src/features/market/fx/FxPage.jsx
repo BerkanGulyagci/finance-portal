@@ -220,7 +220,7 @@ export default function FxPage() {
       )}
 
       {/* ── Sekmeler (Material 3 segmented) + ince arama ─────────────────────── */}
-      <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:flex-wrap">
         <div className="inline-flex items-center gap-1 p-1 rounded-full bg-[#eef2f8] border border-[#e2e8f0] flex-wrap">
           {tabs.map(tab => {
             const Icon = tab.icon;
@@ -250,7 +250,7 @@ export default function FxPage() {
           {query && (
             <button
               onClick={() => setQuery('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded-full text-[#9aa6b6] hover:bg-[#eef2f8] transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 sm:p-0.5 rounded-full text-[#9aa6b6] hover:bg-[#eef2f8] transition-colors"
               aria-label={t('Temizle')}
             >
               <X className="w-3.5 h-3.5" />
@@ -296,7 +296,7 @@ export default function FxPage() {
       <div className="bg-white rounded-3xl border border-[#e2e8f0] shadow-[0_1px_3px_rgba(15,23,42,0.06)] overflow-hidden">
         {/* Meta info */}
         {!loading && !error && (
-          <div className="px-6 py-3 border-b border-[#eef2f8] bg-[#f6f8fc] text-xs text-[#5a6472] flex items-center justify-between flex-wrap gap-2">
+          <div className="px-3 sm:px-6 py-3 border-b border-[#eef2f8] bg-[#f6f8fc] text-xs text-[#5a6472] flex items-center justify-between flex-wrap gap-2">
             {activeTab === 'tcmb' && tcmbData && (
               <>
                 <span>{t('Kaynak:')} TCMB · {t('Baz:')} TRY · {activeCount} {t('döviz')}{q ? ` · "${query}"` : ''}</span>
@@ -316,7 +316,7 @@ export default function FxPage() {
         )}
 
         {loading && <Dots />}
-        {error && <div className="p-6 text-rose-500 text-sm">{error}</div>}
+        {error && <div className="p-3 sm:p-6 text-rose-500 text-sm">{error}</div>}
 
         {/* TCMB Table */}
         {!loading && !error && activeTab === 'tcmb' && tcmbData?.rates && (
@@ -374,7 +374,7 @@ export default function FxPage() {
                           to={`/market/compare?symbols=${r.symbol}`}
                           onClick={e => e.stopPropagation()}
                           title={t('Karşılaştır')}
-                          className="m3-state p-1.5 rounded-full bg-[#eef2f8] hover:bg-[#093eaa] hover:text-white text-[#5a6472] transition-all inline-flex text-[#5a6472]"
+                          className="m3-state p-2 sm:p-1.5 rounded-full bg-[#eef2f8] hover:bg-[#093eaa] hover:text-white text-[#5a6472] transition-all inline-flex text-[#5a6472]"
                         >
                           <BarChart2 className="w-3.5 h-3.5" />
                         </Link>
@@ -509,7 +509,7 @@ export default function FxPage() {
 // Boş sonuç durumu (Material 3)
 function EmptyState({ query, t }) {
   return (
-    <div className="p-12 flex flex-col items-center justify-center text-center m3-fade-in">
+    <div className="p-6 sm:p-12 flex flex-col items-center justify-center text-center m3-fade-in">
       <div className="w-14 h-14 rounded-full bg-[#eef2f8] flex items-center justify-center mb-3">
         <Search className="w-6 h-6 text-[#9aa6b6]" />
       </div>

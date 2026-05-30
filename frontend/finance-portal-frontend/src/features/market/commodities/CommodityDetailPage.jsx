@@ -109,7 +109,7 @@ export default function CommodityDetailPage() {
     <div className="space-y-5 max-w-6xl mx-auto">
       {/* Header: başlık + fiyat + 52H */}
       {loadingSpot ? (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-6">
           <div className="space-y-3">
             <div className="h-6 bg-gray-200 rounded animate-pulse w-48" />
             <div className="h-10 bg-gray-100 rounded animate-pulse w-64" />
@@ -132,7 +132,7 @@ export default function CommodityDetailPage() {
       )}
 
       {/* Grafik kartı */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-5">
         <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
           <h3 className="text-sm font-bold text-gray-700">{t('Fiyat Grafiği')}</h3>
           <div className="flex items-center gap-2 flex-wrap">

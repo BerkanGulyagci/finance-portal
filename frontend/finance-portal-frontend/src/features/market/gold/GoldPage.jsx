@@ -188,7 +188,7 @@ export default function GoldPage() {
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         <GoldTabs activeTab={activeTabKey} onTabChange={handleTabChange} />
 
-        <div className="p-6">
+        <div className="p-3 sm:p-6">
           {loadingSpot ? (
             <GoldLoadingState />
           ) : error ? (
@@ -203,7 +203,7 @@ export default function GoldPage() {
               />
 
               {/* Bilgiler (geniş) + Çevirici (dar) */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-5 items-start">
                 <div className="lg:col-span-2 min-w-0">
                   <GoldPriceStats
                     spot={spot}

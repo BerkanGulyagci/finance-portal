@@ -509,7 +509,7 @@ export default function StockComparePage() {
       </div>
 
       {/* ── Hisse Seçici ── */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5">
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3 sm:p-5">
         <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Hisse Ekle</p>
 
         {/* Hızlı ekle: endeksler + faiz/enflasyon benchmark'ları */}
@@ -568,7 +568,7 @@ export default function StockComparePage() {
                 {displayLabel}
                 <button
                   onClick={() => removeSymbol(sym)}
-                  className="ml-0.5 hover:opacity-70 transition-opacity"
+                  className="ml-0.5 p-1.5 -m-1.5 sm:p-0 sm:m-0 sm:ml-0.5 hover:opacity-70 transition-opacity"
                   aria-label={`${sym} ${t('kaldır')}`}
                 >
                   <X className="w-3.5 h-3.5" />
@@ -591,7 +591,7 @@ export default function StockComparePage() {
                 <span className="opacity-70 text-xs">· {typeLabel}</span>
                 <button
                   onClick={() => removeExtra(it.key)}
-                  className="ml-0.5 hover:opacity-70 transition-opacity"
+                  className="ml-0.5 p-1.5 -m-1.5 sm:p-0 sm:m-0 sm:ml-0.5 hover:opacity-70 transition-opacity"
                   aria-label={`${it.symbol} ${t('kaldır')}`}
                 >
                   <X className="w-3.5 h-3.5" />
@@ -612,7 +612,7 @@ export default function StockComparePage() {
         </div>
 
         {/* Aralık seçici + Karşılaştır butonu */}
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:flex-wrap">
           <div className="inline-flex items-center gap-0.5 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
             {RANGES.map((r, i) => (
               <button
@@ -632,7 +632,7 @@ export default function StockComparePage() {
           <button
             onClick={handleCompare}
             disabled={totalCount < 2 || chartLoading}
-            className="ml-auto px-5 py-2 bg-[#093eaa] text-white rounded-lg text-sm font-bold hover:bg-[#0730a0] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="sm:ml-auto px-5 py-2 bg-[#093eaa] text-white rounded-lg text-sm font-bold hover:bg-[#0730a0] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             <BarChart2 className="w-4 h-4" />
             {chartLoading ? t('Yükleniyor...') : t('Karşılaştır')}
@@ -653,14 +653,14 @@ export default function StockComparePage() {
 
       {/* ── Grafik Yükleniyor ── */}
       {chartLoading && (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-16 flex items-center justify-center">
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-8 sm:p-16 flex items-center justify-center">
           <BounceDots />
         </div>
       )}
 
       {/* ── Normalize Grafik ── */}
       {compared && !chartLoading && chartData.length > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3 sm:p-6">
           <div className="mb-4">
             <h2 className="font-bold text-gray-900">{t('Göreceli Performans (%)')}</h2>
             <p className="text-xs text-gray-400 mt-0.5">
@@ -935,7 +935,7 @@ export default function StockComparePage() {
         );
       })()}
       {!compared && !chartLoading && (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-14 text-center">
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 sm:p-14 text-center">
           <BarChart2 className="w-12 h-12 text-gray-200 mx-auto mb-3" />
           <p className="text-gray-500 font-semibold">
             {selectedSymbols.length === 0

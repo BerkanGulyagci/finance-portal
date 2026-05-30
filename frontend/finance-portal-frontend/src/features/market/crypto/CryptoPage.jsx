@@ -110,15 +110,15 @@ export default function CryptoPage() {
       <p className="text-sm text-gray-500 mb-6 pl-5">{t('CoinGecko verilerine göre TRY bazlı kripto para fiyatları')}</p>
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        {loading && <div className="p-8 text-center text-gray-400 text-sm">{t('Yükleniyor...')}</div>}
-        {error && <div className="p-6 text-rose-500 text-sm">{error}</div>}
+        {loading && <div className="p-4 sm:p-8 text-center text-gray-400 text-sm">{t('Yükleniyor...')}</div>}
+        {error && <div className="p-3 sm:p-6 text-rose-500 text-sm">{error}</div>}
 
         {!loading && !error && (
           <>
-            <div className="p-4 border-b border-gray-100 flex items-center gap-3">
+            <div className="p-3 sm:p-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
               <input type="text" placeholder={t('Coin adı veya sembol ara...')}
                 value={search} onChange={e => { setSearch(e.target.value); setPage(0); }}
-                className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#093eaa] min-w-[240px]" />
+                className="w-full sm:w-auto px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#093eaa] sm:min-w-[240px]" />
               <span className="text-xs text-gray-400">{sorted.length} {t('coin')}</span>
               {loadingMore && <span className="text-xs text-[#093eaa] animate-pulse">{t('daha fazla yükleniyor...')}</span>}
             </div>

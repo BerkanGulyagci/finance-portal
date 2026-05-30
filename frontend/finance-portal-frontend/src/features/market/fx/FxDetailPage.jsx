@@ -138,7 +138,7 @@ export default function FxDetailPage() {
   ];
 
   return (
-    <div className="space-y-6 m3-fade-in">
+    <div className="space-y-3 sm:space-y-6 m3-fade-in">
       {/* Üst aksiyon çubuğu */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <Link to="/market/fx" className="m3-state inline-flex items-center gap-1.5 text-sm text-[#093eaa] font-semibold hover:underline rounded-full px-2 py-1 -ml-2">
@@ -155,8 +155,8 @@ export default function FxDetailPage() {
       </div>
 
       {/* Başlık kartı — sol: kimlik+fiyat+istatistik · sağ: döviz çevirici */}
-      <div className="bg-white rounded-3xl border border-[#e2e8f0] shadow-[0_1px_3px_rgba(15,23,42,0.06)] p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="bg-white rounded-3xl border border-[#e2e8f0] shadow-[0_1px_3px_rgba(15,23,42,0.06)] p-3 sm:p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
           {/* Sol */}
           <div className="flex flex-col">
             <div className="flex items-center gap-4">
@@ -221,8 +221,8 @@ export default function FxDetailPage() {
       </div>
 
       {/* Grafik (sol) + yan panel (sağ) — kolonlar üstten hizalı (grafik kartı esnemesin) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:items-start">
-        <div className="lg:col-span-2 bg-white rounded-3xl border border-[#e2e8f0] shadow-[0_1px_3px_rgba(15,23,42,0.06)] p-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-6 lg:items-start">
+        <div className="lg:col-span-2 bg-white rounded-3xl border border-[#e2e8f0] shadow-[0_1px_3px_rgba(15,23,42,0.06)] p-3 sm:p-5">
           {/* Grafik başlığı + karşılaştır butonları (grafiğin içine alındı) */}
           <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
             <span className="font-bold text-[#1a1c1e] text-sm flex items-center gap-2">
@@ -251,7 +251,7 @@ export default function FxDetailPage() {
           />
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-3 sm:space-y-6">
           <OpenRateCard sym={sym} tryPerUnit={openTryPerUnit} />
           <BankRatesCard rates={bankRows} loading={loadingBanks} />
         </div>

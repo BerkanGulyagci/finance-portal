@@ -347,7 +347,7 @@ export default function ComparePage() {
       </div>
 
       {/* Enstrüman seçici */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-5">
         <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">{t('Enstrüman Ekle')}</p>
         <div className="flex flex-wrap gap-2 mb-3">
           {instruments.map((inst, idx) => (
@@ -358,7 +358,7 @@ export default function ComparePage() {
             >
               <FlagImg cc={FX_META[inst.key]?.cc} size={16} />
               {inst.label}
-              <button onClick={() => removeInstrument(inst.key)} className="ml-1 hover:opacity-70">
+              <button onClick={() => removeInstrument(inst.key)} className="ml-1 p-1 sm:p-0 hover:opacity-70">
                 <X className="w-3.5 h-3.5" />
               </button>
             </span>
@@ -430,7 +430,7 @@ export default function ComparePage() {
 
       {/* Grafik */}
       {loaded && chartData.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="font-bold text-gray-900">{t('Göreceli Performans (%)')}</h2>
@@ -448,7 +448,7 @@ export default function ComparePage() {
       {/* Performans Metrikleri */}
       {loaded && (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
+          <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
             <h2 className="font-bold text-gray-900">{t('Performans Metrikleri')}</h2>
             {topPerformer && (
               <div className="flex items-center gap-2 text-sm">
@@ -527,15 +527,15 @@ export default function ComparePage() {
       {/* TL Yatırım Simülasyonu */}
       {loaded && (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-4 flex-wrap">
+          <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 sm:flex-wrap">
             <h2 className="font-bold text-gray-900">{t('TL Yatırım Simülasyonu')}</h2>
-            <div className="flex items-center gap-2 ml-auto">
+            <div className="flex items-center gap-2 sm:ml-auto">
               <span className="text-sm text-gray-500">{t('Yatırım tutarı:')}</span>
               <input
                 type="number"
                 value={investment}
                 onChange={e => setInvestment(e.target.value)}
-                className="w-32 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30 text-right"
+                className="flex-1 sm:flex-none w-full sm:w-32 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30 text-right"
                 placeholder="1000"
               />
               <span className="text-sm font-semibold text-gray-600">₺</span>
@@ -598,7 +598,7 @@ export default function ComparePage() {
 
       {/* Boş durum */}
       {!loaded && !loading && (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-12 text-center">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-12 text-center">
           <BarChart2 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
           <p className="text-gray-500 font-semibold">{t('Enstrümanları seçip "Karşılaştır" butonuna tıkla')}</p>
           <p className="text-gray-400 text-sm mt-1">{t('En fazla 7 enstrüman karşılaştırabilirsin')}</p>

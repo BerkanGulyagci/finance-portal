@@ -138,13 +138,13 @@ export default function PortfolioDetailPage() {
       )}
 
       {/* Header — M3 kart */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5 flex flex-col sm:flex-row items-stretch sm:items-start gap-3">
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3 sm:p-5 flex flex-col sm:flex-row items-stretch sm:items-start gap-3">
         <Link to="/portfolio" className="text-gray-400 hover:text-[#093eaa] transition-colors mt-1 shrink-0">
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-2xl font-bold text-gray-900 truncate">{portfolio.name}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">{portfolio.name}</h1>
             <PortfolioTypeBadge type={portfolio.portfolioType} />
             <span className="text-xs font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-md">
               {portfolio.currency}

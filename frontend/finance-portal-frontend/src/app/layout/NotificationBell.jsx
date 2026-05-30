@@ -75,7 +75,7 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-80 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50">
+        <div className="absolute right-0 top-full mt-1 w-[calc(100vw-1rem)] max-w-[20rem] sm:w-80 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50">
           <div className="px-4 py-2 flex items-center justify-between border-b border-gray-100">
             <span className="text-sm font-bold text-gray-900">{t('Bildirimler')}</span>
             {count > 0 && <span className="text-xs font-semibold text-[#093eaa]">{count} {t('yeni')}</span>}

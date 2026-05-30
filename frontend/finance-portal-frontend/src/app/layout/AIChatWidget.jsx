@@ -164,7 +164,7 @@ export function AIChatWidget() {
             <button
               onClick={e => { e.stopPropagation(); setTeaser(false); }}
               aria-label={t('Kapat')}
-              className="absolute top-2 right-2 text-[#9a9bab] hover:text-[#434653]"
+              className="absolute top-2 right-2 p-2 sm:p-0 text-[#9a9bab] hover:text-[#434653]"
             >
               <X className="w-3.5 h-3.5" />
             </button>

@@ -88,7 +88,7 @@ export default function DepositCalculatorPage() {
   return (
     <div className="max-w-5xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-3xl font-black tracking-tight text-[#093eaa] mb-2">{t('Mevduat Hesaplama')}</h1>
+        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#093eaa] mb-2">{t('Mevduat Hesaplama')}</h1>
         <p className="text-sm text-[#434653]">{t('Vade sonu net getirinizi ve enflasyona göre reel getirinizi görmek için mevduat hesaplama aracını kullanın.')}</p>
       </div>
 
@@ -141,22 +141,22 @@ export default function DepositCalculatorPage() {
           <>
             {/* Sonuç kartları */}
             <div className="pt-6 border-t border-[#e2e1eb] grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-[#f3f3fc] border border-[#e2e1eb] rounded-xl p-5 text-center">
+              <div className="bg-[#f3f3fc] border border-[#e2e1eb] rounded-xl p-3 sm:p-5 text-center">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-[#505f76] mb-2">{t('Vade Sonu (Net)')}</p>
-                <p className="text-2xl font-black text-[#093eaa]">{fmtTL(result.endTotal)}</p>
+                <p className="text-xl sm:text-2xl font-black text-[#093eaa] break-words">{fmtTL(result.endTotal)}</p>
               </div>
-              <div className="bg-[#f3f3fc] border border-[#e2e1eb] rounded-xl p-5 text-center">
+              <div className="bg-[#f3f3fc] border border-[#e2e1eb] rounded-xl p-3 sm:p-5 text-center">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-[#505f76] mb-2">{t('Net Faiz')}</p>
-                <p className="text-2xl font-black text-emerald-600">{fmtTL(result.netInterest)}</p>
+                <p className="text-xl sm:text-2xl font-black text-emerald-600 break-words">{fmtTL(result.netInterest)}</p>
               </div>
-              <div className="bg-[#f3f3fc] border border-[#e2e1eb] rounded-xl p-5 text-center">
+              <div className="bg-[#f3f3fc] border border-[#e2e1eb] rounded-xl p-3 sm:p-5 text-center">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-[#505f76] mb-2">{t('Net Getiri')}</p>
-                <p className="text-2xl font-black text-gray-900">{fmtPct(result.netReturnPct)}</p>
+                <p className="text-xl sm:text-2xl font-black text-gray-900 break-words">{fmtPct(result.netReturnPct)}</p>
               </div>
             </div>
 
             {/* Donut + detay */}
-            <div className="flex items-center justify-center gap-6 flex-wrap">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 flex-wrap">
               <div className="relative w-[150px] h-[150px] shrink-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>

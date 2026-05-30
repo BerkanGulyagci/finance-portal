@@ -834,9 +834,9 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
       >
 
         {/* Header */}
-        <div className="px-6 pt-6 pb-4 border-b border-[#e2e1eb] flex justify-between items-start shrink-0">
+        <div className="px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4 border-b border-[#e2e1eb] flex justify-between items-start shrink-0">
           <div>
-            <h2 className="text-2xl font-bold text-[#1a1b22] mb-1">{t('Enstrüman Seç')}</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-[#1a1b22] mb-1">{t('Enstrüman Seç')}</h2>
             <p className="text-sm text-[#434653]">
               {portfolioName
                 ? t('{name} portföyüne ekle', { name: portfolioName })
@@ -847,14 +847,14 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
             type="button"
             onClick={onClose}
             aria-label={t('Kapat')}
-            className="text-[#434653] hover:text-[#1a1b22] transition-colors rounded-full p-1 hover:bg-[#f3f3fc]"
+            className="text-[#434653] hover:text-[#1a1b22] transition-colors rounded-full p-2 sm:p-1 hover:bg-[#f3f3fc]"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tip sekmeleri — alt çizgili (M3) */}
-        <div className="px-6 pt-2 bg-[#f3f3fc]/60 border-b border-[#e2e1eb] flex gap-1 overflow-x-auto shrink-0 [&::-webkit-scrollbar]:hidden">
+        <div className="px-3 pt-2 sm:px-6 bg-[#f3f3fc]/60 border-b border-[#e2e1eb] flex gap-1 overflow-x-auto shrink-0 [&::-webkit-scrollbar]:hidden">
           {ASSET_TYPES.map(at => (
             <button
               key={at.value}
@@ -872,7 +872,7 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
         </div>
 
         {/* Arama */}
-        <div className="p-6 pb-4 border-b border-[#e2e1eb] shrink-0">
+        <div className="p-4 pb-3 sm:p-6 sm:pb-4 border-b border-[#e2e1eb] shrink-0">
           <div className="relative flex items-center w-full h-12 rounded-lg bg-[#f3f3fc] border border-[#c4c5d5] overflow-hidden focus-within:border-[#093eaa] focus-within:ring-1 focus-within:ring-[#093eaa] transition-all">
             <Search className="w-5 h-5 text-[#747684] ml-4 mr-2 shrink-0" />
             <input
@@ -983,7 +983,7 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
 
         {/* Alt link */}
         {seeAll && (
-          <div className="p-4 bg-white border-t border-[#e2e1eb] flex justify-center shrink-0">
+          <div className="p-3 sm:p-4 bg-white border-t border-[#e2e1eb] flex justify-center shrink-0">
             <a
               href={seeAll.path}
               target="_blank"

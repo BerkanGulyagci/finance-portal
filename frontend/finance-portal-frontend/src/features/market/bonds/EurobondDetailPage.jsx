@@ -56,10 +56,10 @@ export default function EurobondDetailPage() {
       {!loading && !error && d && (
         <div className="space-y-5">
           {/* Üst kart: isim + canlı fiyat + işlem butonları */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-5">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div className="min-w-0">
-                <h1 className="text-xl font-bold text-gray-900">{d.name || d.isin}</h1>
+                <h1 className="text-lg sm:text-xl font-bold text-gray-900">{d.name || d.isin}</h1>
                 <p className="text-sm text-gray-500 mt-0.5">
                   {d.issuer} · <span className="font-mono">{d.isin}</span>
                   {d.currency ? <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700">{d.currency}</span> : null}
@@ -85,7 +85,7 @@ export default function EurobondDetailPage() {
                     type="button"
                     onClick={() => hasTry && setShowTry(s => !s)}
                     title={hasTry ? t('TL ⇄ döviz çevir') : undefined}
-                    className={`text-3xl font-black text-gray-900 inline-flex items-center gap-1.5 ${hasTry ? 'cursor-pointer hover:text-[#093eaa] transition-colors' : 'cursor-default'}`}
+                    className={`text-2xl sm:text-3xl font-black text-gray-900 inline-flex items-center gap-1.5 ${hasTry ? 'cursor-pointer hover:text-[#093eaa] transition-colors' : 'cursor-default'}`}
                   >
                     {fmtPrice(showingTry ? d.lastPriceTry : d.lastPrice, showingTry ? 'TRY' : d.currency)}
                     {hasTry && <Repeat className="w-4 h-4 text-gray-300" />}
@@ -109,7 +109,7 @@ export default function EurobondDetailPage() {
           </div>
 
           {/* Fiyat grafiği (klinecharts) */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-5">
             <h2 className="text-base font-bold text-gray-900 mb-3">{t('Fiyat Grafiği')}</h2>
             <EurobondChart isin={d.isin} />
             <p className="text-xs text-gray-400 mt-2">{t('Kaynak: Business Insider · OHLC verisi')}</p>
