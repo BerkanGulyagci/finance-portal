@@ -244,14 +244,14 @@ export async function downloadPortfolioPdf(portfolio, opts = {}) {
   const txs      = opts.transactions ?? portfolio.transactions ?? [];
   const visibleCols = Array.isArray(opts.visibleCols) ? opts.visibleCols : null;
 
-  // Off-screen container — layout'a katılır (visibility:hidden) ama görünmez ve
-  // sayfayı genişletmez. left:-10000px yaklaşımı html-to-image clone'unda
-  // sıfır-genişlik sorun yaratıyordu; layout'a dahil etmek doğru çözüm.
+  // Off-screen container — görünür ama ekran dışında (left: -99999px).
+  // KRİTİK: visibility:hidden veya opacity:0 KULLANMA — html-to-image
+  // clone'un da hidden olur ve boş PNG üretir.
   const root = document.createElement('div');
   root.style.cssText = `
-    position: fixed;
+    position: absolute;
     top: 0;
-    left: 0;
+    left: -99999px;
     width: 794px;
     background: #ffffff;
     color: #111827;
@@ -260,21 +260,25 @@ export async function downloadPortfolioPdf(portfolio, opts = {}) {
     line-height: 1.4;
     padding: 0;
     box-sizing: border-box;
-    visibility: hidden;
     pointer-events: none;
-    z-index: -9999;
-    contain: layout paint;
+    z-index: -1;
   `;
   root.innerHTML = buildPdfHtml(portfolio, holdings, txs, visibleCols);
   document.body.appendChild(root);
 
   try {
-    // Fontlar yüklenmeden render olursa clone'da yazı sıfır boyutta kalır.
+    // 1) Fontlar yüklensin (yüklenmeden render → 0 boyut)
     if (document.fonts?.ready) {
       await document.fonts.ready.catch(() => {});
     }
-    // Layout'un settle olması için iki RAF tick.
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    // 2) Üç RAF tick + 100ms — layout, fontlar ve images stabilize olsun
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r))));
+    await new Promise((r) => setTimeout(r, 100));
+
+    // 3) Capture öncesi sanity check — boyut yoksa erken hata
+    if (root.scrollHeight < 50 || root.scrollWidth < 50) {
+      throw new Error(`PDF içeriği render edilemedi (boyut: ${root.scrollWidth}x${root.scrollHeight}).`);
+    }
 
     await exportElementToPdf(root, {
       fileName: `${safeFilenameBase(portfolio?.name)}_${stampNow()}`,
