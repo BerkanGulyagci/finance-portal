@@ -5,7 +5,7 @@ import {
   getCryptoYahooChart,
   getCryptoYahooOhlc,
   getCryptoYahooTryChart,
-} from '../../../api/marketApi';
+} from '../../../../api/marketApi';
 
 /**
  * Kripto grafikleri — CoinGecko days + interval eşlemeleri.

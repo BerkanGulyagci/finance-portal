@@ -1,4 +1,4 @@
-import { GOLD_TABS, fmt } from './goldConstants';
+import { GOLD_TABS, fmt } from '../utils/goldConstants';
 import { useTranslation } from '../../../../context/LanguageContext';
 
 const TABLE_ROWS = [

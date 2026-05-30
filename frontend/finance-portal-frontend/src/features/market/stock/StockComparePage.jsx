@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, X, Plus, BarChart2, Search, TrendingUp, TrendingDown } from 'lucide-react';
 import { getStockChart, getStockMidasDetail, getAllStocks, getMarketPriceHistory } from '../../../api/marketApi';
-import { STOCK_CHART_RANGES } from './stockChartRanges';
+import { STOCK_CHART_RANGES } from './utils/stockChartRanges';
 import { useTranslation } from '../../../context/LanguageContext';
 import InstrumentSearchModal from '../../../components/instrument/InstrumentSearchModal';
 

@@ -7,7 +7,7 @@ import BondInfoTable        from './components/BondInfoTable';
 import BondAnalysisCard     from './components/BondAnalysisCard';
 import BondEvdsHistoryChart from './components/BondEvdsHistoryChart';
 import InstrumentActionButtons from '../../../components/instrument/InstrumentActionButtons';
-import { fmtPct } from './components/bondChartUtils';
+import { fmtPct } from './utils/bondChartUtils';
 import { useTranslation } from '../../../context/LanguageContext';
 
 export default function BondDetailPage() {

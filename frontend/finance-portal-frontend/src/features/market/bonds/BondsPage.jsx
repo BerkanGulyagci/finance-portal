@@ -5,7 +5,7 @@ import { getEvdsBonds, getEvdsBondCategoryCounts } from '../../../api/marketApi'
 import { useTranslation } from '../../../context/LanguageContext';
 import Pagination from '../../../components/common/Pagination';
 import WatchlistStar from '../../../components/instrument/WatchlistStar';
-import EurobondList from './EurobondList';
+import EurobondList from './components/EurobondList';
 
 // ── Format yardımcıları ───────────────────────────────────────────────────────
 

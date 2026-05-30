@@ -1,5 +1,5 @@
 import { RefreshCw } from 'lucide-react';
-import { RANGES, RANGE_LABELS, CANDLE_DISCLAIMER } from './goldConstants';
+import { RANGES, RANGE_LABELS, CANDLE_DISCLAIMER } from '../utils/goldConstants';
 import { useTranslation } from '../../../../context/LanguageContext';
 
 export default function GoldChartToolbar({

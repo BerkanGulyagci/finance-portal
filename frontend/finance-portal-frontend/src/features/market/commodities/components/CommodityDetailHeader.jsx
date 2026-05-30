@@ -8,7 +8,7 @@ import {
   getPrimarySpotPrice,
   getTrySpotPrice,
   canToggleTry,
-} from './commodityConstants';
+} from '../utils/commodityConstants';
 import { useTranslation } from '../../../../context/LanguageContext';
 
 function formatOhlcValue(value, spot, usdTryRate) {

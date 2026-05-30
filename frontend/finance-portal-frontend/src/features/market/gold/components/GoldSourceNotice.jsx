@@ -1,4 +1,4 @@
-import { THEORETICAL_DISCLAIMER } from './goldConstants';
+import { THEORETICAL_DISCLAIMER } from '../utils/goldConstants';
 import { useTranslation } from '../../../../context/LanguageContext';
 
 export default function GoldSourceNotice({ source, official, fallback, disclaimer }) {

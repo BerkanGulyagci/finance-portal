@@ -1,4 +1,4 @@
-import { fmt } from './commodityConstants';
+import { fmt } from '../utils/commodityConstants';
 import { useTranslation } from '../../../../context/LanguageContext';
 
 function fmtVolume(v) {

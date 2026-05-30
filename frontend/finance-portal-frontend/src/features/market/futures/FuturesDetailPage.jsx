@@ -8,7 +8,7 @@ import ViopOpenPositions from './components/ViopOpenPositions';
 import ViopContractInfo from './components/ViopContractInfo';
 import ViopPriceChart from './components/ViopPriceChart';
 import { getViopContracts } from '../../../api/marketApi';
-import { fixViopContractName, viopContractNamesMatch } from './viopContractNameFix';
+import { fixViopContractName, viopContractNamesMatch } from './utils/viopContractNameFix';
 import { useTranslation } from '../../../context/LanguageContext';
 
 export default function FuturesDetailPage() {

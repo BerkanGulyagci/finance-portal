@@ -15,7 +15,7 @@ import {
   prepareBondLineChartPoints,
   filterBondHistoryByDays,
   fmtNum, fmtPct,
-} from './bondChartUtils';
+} from '../utils/bondChartUtils';
 import { useTranslation } from '../../../../context/LanguageContext';
 
 const PERIODS = BOND_CHART_PERIODS;

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { fmtPct } from './bondChartUtils';
+import { fmtPct } from '../utils/bondChartUtils';
 import { useTranslation } from '../../../../context/LanguageContext';
 
 // ── Yardımcılar ───────────────────────────────────────────────────────────────

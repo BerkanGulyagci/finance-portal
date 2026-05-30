@@ -6,7 +6,7 @@ import SortableTh from '../../../components/common/SortableTh';
 import WatchlistStar from '../../../components/instrument/WatchlistStar';
 import InstrumentLogo from '../../../components/instrument/InstrumentLogo';
 import Pagination from '../../../components/common/Pagination';
-import { STOCK_CHART_RANGES, formatStockChartTimeLabel } from './stockChartRanges';
+import { STOCK_CHART_RANGES, formatStockChartTimeLabel } from './utils/stockChartRanges';
 import { useTranslation } from '../../../context/LanguageContext';
 
 const PAGE_SIZE = 20;

@@ -3,7 +3,7 @@ import { useParams, useLocation, Link } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown, ChevronDown, BarChart2 } from 'lucide-react';
 import { init as klineInit, dispose as klineDispose } from 'klinecharts';
 import { getRasyonetFundDetail, getFundPriceHistory } from '../../../api/marketApi';
-import { FUND_CHART_RANGES, buildFundChartSeries } from './fundChartSeries';
+import { FUND_CHART_RANGES, buildFundChartSeries } from './utils/fundChartSeries';
 import { useTranslation } from '../../../context/LanguageContext';
 import TrendBadge from '../../../components/common/TrendBadge';
 import UniversalCompareButton from '../../../components/common/UniversalCompareButton';

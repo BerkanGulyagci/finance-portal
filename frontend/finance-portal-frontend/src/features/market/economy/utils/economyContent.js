@@ -1,4 +1,4 @@
-import { NAVY, ROSE, EMERALD, AMBER } from './EconomyChart';
+import { NAVY, ROSE, EMERALD, AMBER } from '../components/EconomyChart';
 
 /**
  * Türkiye Ekonomisi bülteni — sıralı konu listesi (doğrulukpayı tarzı).

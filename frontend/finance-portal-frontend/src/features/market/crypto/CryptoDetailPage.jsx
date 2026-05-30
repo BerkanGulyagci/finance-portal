@@ -28,7 +28,7 @@ import {
   parseMarketChartPrices,
   alignVolumesToPrices,
   formatYahooChartSourceNote,
-} from './cryptoChartRanges';
+} from './utils/cryptoChartRanges';
 import { getCryptoChart, getCryptoOhlc } from '../../../api/marketApi';
 import { useTranslation } from '../../../context/LanguageContext';
 

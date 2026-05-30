@@ -11,7 +11,7 @@ import InstrumentActionButtons from '../../../components/instrument/InstrumentAc
 import { buildTrendItem } from '../../../utils/trendUtils';
 import { init as klineInit, dispose as klineDispose, registerOverlay } from 'klinecharts';
 import RelatedViopContracts from './components/RelatedViopContracts';
-import { STOCK_CHART_RANGES } from './stockChartRanges';
+import { STOCK_CHART_RANGES } from './utils/stockChartRanges';
 import { useTranslation } from '../../../context/LanguageContext';
 
 // ── Custom Overlay Kayıtları (uygulama başında bir kez çalışır) ──────────────

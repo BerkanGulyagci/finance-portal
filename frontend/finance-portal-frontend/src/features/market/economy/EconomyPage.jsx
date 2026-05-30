@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { getEconomyCharts } from '../../../api/marketApi.js';
 import { useTranslation } from '../../../context/LanguageContext';
-import EconomyChart from './EconomyChart';
-import { ECONOMY_TOPICS } from './economyContent';
+import EconomyChart from './components/EconomyChart';
+import { ECONOMY_TOPICS } from './utils/economyContent';
 
 export default function EconomyPage() {
   const { t } = useTranslation();

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { fmt, getSpotPrice } from './goldConstants';
+import { fmt, getSpotPrice } from '../utils/goldConstants';
 import { useTranslation } from '../../../../context/LanguageContext';
 
 /**

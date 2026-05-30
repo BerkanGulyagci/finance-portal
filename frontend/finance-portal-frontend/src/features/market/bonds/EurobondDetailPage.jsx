@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, TrendingUp, TrendingDown, BarChart2, Repeat } from 'lucide-react';
 import { getGlobalBondDetail } from '../../../api/marketApi';
 import InstrumentActionButtons from '../../../components/instrument/InstrumentActionButtons';
-import EurobondChart from './EurobondChart';
+import EurobondChart from './components/EurobondChart';
 import { useTranslation } from '../../../context/LanguageContext';
 
 function fmtPrice(v, currency) {

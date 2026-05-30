@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getCommodityList, getCommoditySpot, getFxTcmb } from '../../../api/marketApi';
-import { CATEGORY_ORDER, CATEGORY_META } from './components/commodityConstants';
+import { CATEGORY_ORDER, CATEGORY_META } from './utils/commodityConstants';
 import CommoditiesHeader from './components/CommoditiesHeader';
 import CommoditiesSourceNotice from './components/CommoditiesSourceNotice';
 import CommodityCard from './components/CommodityCard';

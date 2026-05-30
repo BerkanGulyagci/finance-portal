@@ -1,4 +1,4 @@
-import { fmtNum, fmtPct, calculatePeriodChangePercent } from './bondChartUtils';
+import { fmtNum, fmtPct, calculatePeriodChangePercent } from '../utils/bondChartUtils';
 import { useTranslation } from '../../../../context/LanguageContext';
 
 /**

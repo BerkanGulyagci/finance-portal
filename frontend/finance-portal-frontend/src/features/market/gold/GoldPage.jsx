@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getGoldSpot, getGoldHistory } from '../../../api/marketApi';
 
-import { GOLD_TABS, calcTheoreticalPrice } from './components/goldConstants';
+import { GOLD_TABS, calcTheoreticalPrice } from './utils/goldConstants';
 import GoldTabs                   from './components/GoldTabs';
 import GoldLoadingState           from './components/GoldLoadingState';
 import GoldErrorState             from './components/GoldErrorState';
