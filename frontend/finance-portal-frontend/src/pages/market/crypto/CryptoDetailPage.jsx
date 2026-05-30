@@ -887,7 +887,9 @@ export default function CryptoDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Sol kolon */}
         <div className="space-y-4">
-          {loading ? (
+          {/* Skeleton SADECE ilk yüklemede (henüz coin yokken). coin varsa kart kalır,
+              para birimi (TRY/USD/EUR) değiştirilince rakamlar YERİNDE güncellenir — kart kaybolmaz. */}
+          {loading && !coin ? (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex gap-1.5">
               <div className="w-2 h-2 bg-[#093eaa] rounded-full animate-bounce" />
               <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
@@ -913,11 +915,14 @@ export default function CryptoDetailPage() {
                   </button>
                 ))}
               </div>
-              <p className="text-3xl font-black text-gray-900 mb-1">{fmtPrice(coin.currentPrice, currency)}</p>
-              <span className={`flex items-center gap-1 text-sm font-bold ${pos24h ? 'text-emerald-600' : 'text-rose-600'}`}>
-                {pos24h ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                {pos24h ? '+' : ''}{fmt(change24h)}% ({t('24s')})
-              </span>
+              {/* Para birimi değişiminde kart durur; bu rakamlar güncellenirken hafif soluklaşır */}
+              <div className={`transition-opacity duration-300 ${loading ? 'opacity-40' : 'opacity-100'}`}>
+                <p className="text-3xl font-black text-gray-900 mb-1">{fmtPrice(coin.currentPrice, currency)}</p>
+                <span className={`flex items-center gap-1 text-sm font-bold ${pos24h ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  {pos24h ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                  {pos24h ? '+' : ''}{fmt(change24h)}% ({t('24s')})
+                </span>
+              </div>
               {trendItem && <div className="mt-2"><TrendBadge item={trendItem} size="sm" /></div>}
               <div className="mt-3">
                 <InstrumentActionButtons
