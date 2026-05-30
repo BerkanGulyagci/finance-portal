@@ -191,12 +191,15 @@ function lastPriceWithinTolerance(prices, currentPrice) {
 export async function fetchYahooCryptoLineChart(symbol, uiCurrency, yahooRange, yahooInterval, coinId, currentPrice) {
   const ui = String(uiCurrency ?? '').trim().toUpperCase();
 
-  // "Tüm" + TL: tam geçmiş (2014+) için Yahoo USD × USD/TRY ile TL'ye çevrilmiş seri.
-  // Binance BTCTRY ~2019, CoinGecko TRY ~1 yıl ile sınırlı olduğundan eski TL veriyi ancak böyle gösterebiliyoruz.
+  // "5Y" + "Tüm" + TL: Yahoo USD × USD/TRY ile TL'ye çevrilmiş seri. Binance {SYMBOL}TRY pair'i
+  // olmayan coinlerde (ör. stablecoin DAI) veya Binance ~2019 / CoinGecko TRY ~1 yıl sınırına
+  // takıldığında TL grafiği ancak böyle gösterilebilir. Backend her iki aralığı da destekler
+  // (getTryLineViaUsd → shouldUseYahoo "sadece 5y/max"). Önceden bu yol yalnız "Tüm" için
+  // çağrıldığından "5Y"de TL yokken "Tüm"de vardı (tutarsızlık) — artık ikisi de TL döner.
   let yahooTokenSuspect = false; // Yahoo ticker çakışması tespit edilirse Yahoo'yu tamamen atla
-  if (ui === 'TRY' && yahooRange === 'max') {
+  if (ui === 'TRY' && (yahooRange === 'max' || yahooRange === '5y')) {
     try {
-      const res = await getCryptoYahooTryChart(symbol, 'max');
+      const res = await getCryptoYahooTryChart(symbol, yahooRange);
       const prices = stockChartToLinePrices(res);
       if (isAdequateRemoteLinePrices(prices)) {
         // currentPrice (TL) ile tutarlılık kontrolü — Yahoo ticker çakışmasını ayıklar.
