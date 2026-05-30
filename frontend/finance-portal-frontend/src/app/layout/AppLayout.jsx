@@ -1,8 +1,8 @@
 import { Outlet } from 'react-router-dom';
-import { Header } from '../finans/Header';
-import { MarketTicker } from '../finans/MarketTicker';
-import { Footer } from '../finans/Footer';
-import { AIChatWidget } from '../finans/AIChatWidget';
+import { Header } from '../../components/finans/Header';
+import { MarketTicker } from '../../components/finans/MarketTicker';
+import { Footer } from '../../components/finans/Footer';
+import { AIChatWidget } from '../../components/finans/AIChatWidget';
 
 export default function AppLayout() {
   return (
