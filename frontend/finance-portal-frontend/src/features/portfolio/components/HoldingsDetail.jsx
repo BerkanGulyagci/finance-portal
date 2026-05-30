@@ -96,9 +96,14 @@ function SummaryRow({ label, value, subValue, positive, dotColor, tooltip }) {
 /**
  * HOLDINGS portföy detay ekranı.
  */
-export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialInstrument, onInitialInstrumentConsumed }) {
+export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialInstrument, onInitialInstrumentConsumed, onActiveTabChange }) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('holdings');
+
+  // Active tab değişimini parent'a bildir (export butonları "ekranda seçili" sekmeye göre filtrelemek için)
+  useEffect(() => {
+    onActiveTabChange?.(activeTab);
+  }, [activeTab, onActiveTabChange]);
   const [showAddTx, setShowAddTx] = useState(false);
   const [deletingTxId, setDeletingTxId] = useState(null);
   const [valuesHidden, setValuesHidden] = useState(false);

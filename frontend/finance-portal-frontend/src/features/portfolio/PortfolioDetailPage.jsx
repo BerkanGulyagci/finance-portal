@@ -18,6 +18,7 @@ export default function PortfolioDetailPage() {
   const [error, setError]           = useState('');
   const [exporting, setExporting]   = useState(false);
   const [showEdit, setShowEdit]     = useState(false);
+  const [holdingsTab, setHoldingsTab] = useState('holdings'); // HoldingsDetail aktif tab — export "ekranda seçili"
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -73,10 +74,26 @@ export default function PortfolioDetailPage() {
     setSearchParams(next, { replace: true });
   }
 
+  /**
+   * Ekrandaki seçili sekmeye göre export verisini hazırla:
+   * - "holdings" sekmesi → sadece varlıklar
+   * - "transactions" sekmesi → sadece işlemler
+   * - charts/stats sekmeleri → her ikisi (varsayılan)
+   */
+  function buildExportOpts() {
+    if (holdingsTab === 'holdings') {
+      return { holdings: portfolio.holdings ?? [], transactions: [] };
+    }
+    if (holdingsTab === 'transactions') {
+      return { holdings: [], transactions: portfolio.transactions ?? [] };
+    }
+    return { holdings: portfolio.holdings ?? [], transactions: portfolio.transactions ?? [] };
+  }
+
   async function handleExportExcel() {
     setExporting(true);
     try {
-      downloadPortfolioExcel(portfolio);
+      downloadPortfolioExcel(portfolio, buildExportOpts());
     } catch {
       alert(t('Excel dışa aktarılamadı.'));
     } finally {
@@ -87,7 +104,7 @@ export default function PortfolioDetailPage() {
   async function handleExportPdf() {
     setExporting(true);
     try {
-      downloadPortfolioPdf(portfolio);
+      await downloadPortfolioPdf(portfolio, buildExportOpts());
     } catch {
       alert(t('PDF dışa aktarılamadı.'));
     } finally {
@@ -167,6 +184,7 @@ export default function PortfolioDetailPage() {
           onPortfolioUpdate={setPortfolio}
           initialInstrument={initialInstrument}
           onInitialInstrumentConsumed={consumeInitialInstrument}
+          onActiveTabChange={setHoldingsTab}
         />
       )}
     </div>
