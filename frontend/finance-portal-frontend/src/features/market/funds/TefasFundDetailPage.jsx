@@ -228,7 +228,7 @@ export default function TefasFundDetailPage() {
           {/* ── Performans tab ── */}
           {activeTab === 'performance' && (
             <div className="space-y-5">
-              <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-9 gap-2">
                 <ReturnCard label={t('Günlük')} value={d.returnOneDay} />
                 <ReturnCard label={t('Haftalık')} value={d.returnOneWeek} />
                 <ReturnCard label={t('1 Ay')} value={d.returnOneMonth} />
@@ -333,7 +333,7 @@ export default function TefasFundDetailPage() {
                     ['Kurucu', d.founderName ?? '-'],
                   ].map(([label, value]) => (
                     <div key={label} className="flex justify-between items-start py-3 border-b border-gray-100 px-1">
-                      <span className="text-sm text-gray-500 w-44 shrink-0">{t(label)}</span>
+                      <span className="text-sm text-gray-500 w-32 sm:w-44 shrink-0">{t(label)}</span>
                       <span className="text-sm text-gray-900 font-medium text-right">{value}</span>
                     </div>
                   ))}

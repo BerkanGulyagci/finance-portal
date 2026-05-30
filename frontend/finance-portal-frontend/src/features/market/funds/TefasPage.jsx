@@ -94,11 +94,11 @@ function FundTable({ funds, accentColor, loading, error, showFounder = false }) 
       <div className="p-4 border-b border-gray-100 flex items-center gap-3 flex-wrap">
         <input type="text" placeholder={t('Fon kodu, adı veya yönetici ara...')}
           value={search} onChange={e => { setSearch(e.target.value); setPage(0); }}
-          className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 min-w-[260px]"
+          className="w-full sm:w-auto sm:min-w-[260px] px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2"
           style={{ '--tw-ring-color': accentColor + '50' }} />
         {showFounder && founders.length > 0 && (
           <Dropdown
-            className="w-52" menuWidth="w-64"
+            className="w-full sm:w-52" menuWidth="w-64"
             value={founderFilter}
             options={[{ label: t('Tüm Şirketler'), value: '' }, ...founders.map(f => ({ label: f, value: f }))]}
             onChange={v => { setFounderFilter(v); setPage(0); }}
@@ -107,7 +107,7 @@ function FundTable({ funds, accentColor, loading, error, showFounder = false }) 
         )}
         {fundTypes.length > 0 && (
           <Dropdown
-            className="w-44" menuWidth="w-56"
+            className="w-full sm:w-44" menuWidth="w-56"
             value={typeFilter}
             options={[{ label: t('Tüm Tipler'), value: '' }, ...fundTypes.map(ft => ({ label: ft, value: ft }))]}
             onChange={v => { setTypeFilter(v); setPage(0); }}
@@ -233,10 +233,10 @@ function OsmanliBulletinTable({ funds, loading, error }) {
       <div className="p-4 border-b border-gray-100 flex items-center gap-3 flex-wrap">
         <input type="text" placeholder={t('Fon kodu, adı veya grup ara...')}
           value={search} onChange={e => setSearch(e.target.value)}
-          className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none min-w-[240px]" />
+          className="w-full sm:w-auto sm:min-w-[240px] px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none" />
         {types.length > 0 && (
           <Dropdown
-            className="w-44" menuWidth="w-56"
+            className="w-full sm:w-44" menuWidth="w-56"
             value={typeFilter}
             options={[{ label: t('Tüm Tipler'), value: '' }, ...types.map(ty => ({ label: ty, value: ty }))]}
             onChange={v => setTypeFilter(v)}
@@ -245,7 +245,7 @@ function OsmanliBulletinTable({ funds, loading, error }) {
         )}
         {groups.length > 0 && (
           <Dropdown
-            className="w-52" menuWidth="w-64"
+            className="w-full sm:w-52" menuWidth="w-64"
             value={groupFilter}
             options={[{ label: t('Tüm Gruplar'), value: '' }, ...groups.map(g => ({ label: g, value: g }))]}
             onChange={v => setGroupFilter(v)}

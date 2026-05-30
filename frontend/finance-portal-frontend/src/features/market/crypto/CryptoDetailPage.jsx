@@ -155,7 +155,7 @@ function TradingViewChart({ coinId, symbol }) {
   const src = `https://www.tradingview.com/widgetembed/?frameElementId=tv_chart&symbol=${encodeURIComponent(tvSymbol)}&interval=60&hidesidetoolbar=0&hidetoptoolbar=0&symboledit=1&saveimage=0&toolbarbg=f1f3f6&studies=[]&theme=light&style=1&timezone=Europe%2FIstanbul&withdateranges=1&showpopupbutton=1&locale=tr`;
   return (
     <div>
-      <iframe src={src} style={{ width: '100%', height: '620px', border: 'none' }}
+      <iframe src={src} className="w-full h-[400px] sm:h-[620px]" style={{ border: 'none' }}
         allowTransparency allowFullScreen title="TradingView Chart" />
       <p className="text-xs text-gray-400 px-6 pb-3">{t('Grafik Kaynağı:')} {exchange}</p>
     </div>
@@ -759,7 +759,7 @@ export default function CryptoDetailPage() {
               {chartMode === 'line' && isComparing ? (
                 <>
                   {(chartLoading || compareLoading) && (
-                    <div className="flex items-center justify-center h-[520px] bg-white/70">
+                    <div className="flex items-center justify-center h-[320px] sm:h-[520px] bg-white/70">
                       <div className="flex gap-1.5">
                         <div className="w-2 h-2 bg-[#093eaa] rounded-full animate-bounce" />
                         <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />

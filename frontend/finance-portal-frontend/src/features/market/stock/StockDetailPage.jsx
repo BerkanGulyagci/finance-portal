@@ -125,7 +125,7 @@ function MetricCard({ label, value, highlight }) {
   const { t } = useTranslation();
   if (!value) return null;
   return (
-    <div className="bg-gray-50 rounded-xl p-4">
+    <div className="bg-gray-50 rounded-xl p-3 sm:p-4">
       <p className="text-xs text-gray-400 mb-1">{t(label)}</p>
       <p className={`text-sm font-bold ${highlight ? 'text-[#093eaa]' : 'text-gray-900'}`}>{value}</p>
     </div>
@@ -138,7 +138,7 @@ function InfoRow({ label, value }) {
   if (!value) return null;
   return (
     <div className="flex justify-between items-start py-3.5 border-b border-gray-100 last:border-0">
-      <span className="text-sm text-gray-500 w-44 shrink-0">{t(label)}</span>
+      <span className="text-sm text-gray-500 w-32 sm:w-44 shrink-0">{t(label)}</span>
       <span className="text-sm text-gray-900 font-medium text-right max-w-xs">{value}</span>
     </div>
   );
@@ -220,15 +220,15 @@ export default function StockDetailPage() {
         <>
           {/* ── Price + Volume + Chart ── */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="grid grid-cols-2 divide-x divide-gray-100">
+            <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
               <div className="p-6">
-                <p className="text-4xl font-bold text-gray-900">
+                <p className="text-3xl sm:text-4xl font-bold text-gray-900">
                   {midas?.currentPrice ?? '-'}
                 </p>
                 <p className="text-sm text-gray-400 mt-1">{t('Güncel Fiyat')}</p>
               </div>
               <div className="p-6">
-                <p className="text-2xl font-bold text-gray-900 truncate">
+                <p className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
                   {midas?.dailyVolume ?? '-'}
                 </p>
                 <p className="text-sm text-gray-400 mt-1">{t('Günlük İşlem Hacmi')}</p>
@@ -281,7 +281,7 @@ export default function StockDetailPage() {
           {/* ── Financial Metrics Table ── */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
             <h2 className="text-base font-bold text-gray-900 mb-4">{ticker} Hisse ve Finansal Bilgileri</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
               <MetricCard label="Son İşlem Fiyatı"     value={midas?.currentPrice} highlight />
               <MetricCard label="Alış"                 value={midas?.bid} />
               <MetricCard label="Satış"                value={midas?.ask} />

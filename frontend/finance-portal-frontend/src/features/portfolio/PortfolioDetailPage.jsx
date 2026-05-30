@@ -138,7 +138,7 @@ export default function PortfolioDetailPage() {
       )}
 
       {/* Header — M3 kart */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5 flex items-start gap-3">
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5 flex flex-col sm:flex-row items-stretch sm:items-start gap-3">
         <Link to="/portfolio" className="text-gray-400 hover:text-[#093eaa] transition-colors mt-1 shrink-0">
           <ArrowLeft className="w-5 h-5" />
         </Link>
@@ -154,7 +154,7 @@ export default function PortfolioDetailPage() {
             <p className="text-sm text-gray-400 mt-0.5">{portfolio.description}</p>
           )}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap sm:shrink-0">
           <button
             type="button"
             onClick={() => setShowEdit(true)}

@@ -371,7 +371,7 @@ export default function ComparePage() {
                 {t('Ekle')}
               </div>
               {showSuggestions && (
-                <div className="absolute top-10 left-0 z-20 bg-white border border-gray-200 rounded-xl shadow-xl w-64 p-2">
+                <div className="absolute top-10 left-0 z-20 bg-white border border-gray-200 rounded-xl shadow-xl w-[calc(100vw-2rem)] max-w-[16rem] sm:w-64 p-2">
                   <input
                     autoFocus
                     value={search}
@@ -474,8 +474,8 @@ export default function ComparePage() {
                     'Dönem Getirisi',
                     'Drawdown',
                     'Volatilite',
-                  ].map(h => (
-                    <th key={h} className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap">
+                  ].map((h, i) => (
+                    <th key={h} className={`text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap ${i === 0 ? 'sticky left-0 bg-gray-50 z-10' : ''}`}>
                       {t(h)}
                     </th>
                   ))}
@@ -487,7 +487,7 @@ export default function ComparePage() {
                   const pos = (m?.periodReturn ?? 0) >= 0;
                   return (
                     <tr key={inst.key} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 sticky left-0 bg-white z-10">
                         <div className="flex items-center gap-2">
                           <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: COLORS[idx % COLORS.length] }} />
                           <FlagImg cc={FX_META[inst.key]?.cc} size={18} />

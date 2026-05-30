@@ -100,7 +100,7 @@ export default function FuturesPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-2 border-l-4 border-[#093eaa] pl-4">{t('Vadeli İşlemler')}</h1>
+      <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 border-l-4 border-[#093eaa] pl-4">{t('Vadeli İşlemler')}</h1>
       <p className="text-sm text-gray-500 mb-6 pl-5">{t('Türkiye VİOP kontratları')}</p>
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
@@ -110,7 +110,7 @@ export default function FuturesPage() {
         {/* VIOP Tab */}
         {!loading && !error && activeTab === 'viop' && (
           <>
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-3">
+            <div className="px-4 py-3 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center gap-3">
               <div className="relative flex-1 max-w-sm">
                 <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -191,7 +191,7 @@ export default function FuturesPage() {
         {/* Global Futures Tab */}
         {!loading && !error && activeTab === 'global' && (
           <>
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-3">
+            <div className="px-4 py-3 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center gap-3">
               <div className="relative flex-1 max-w-sm">
                 <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />

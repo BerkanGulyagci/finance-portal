@@ -66,7 +66,7 @@ export default function EurobondAdminPage() {
             value={url}
             onChange={e => setUrl(e.target.value)}
             placeholder="https://ms.hmb.gov.tr/uploads/2026/05/Merkezi_Yonetim_Dis_Borc_Stoku_Tahvil_Listesi-....xlsx"
-            className="flex-1 min-w-[280px] px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30"
+            className="w-full sm:flex-1 sm:w-auto sm:min-w-[280px] px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30"
           />
           <button type="submit" disabled={busy || !url.trim()}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-white bg-[#093eaa] hover:bg-[#0b347f] disabled:opacity-50">
