@@ -5,7 +5,7 @@ import { getNews, proxyImageUrl } from '../../../api/newsApi';
 import { useAuth } from '../../../context/AuthContext';
 import { useTranslation } from '../../../i18n/LanguageContext';
 import { formatNewsTime } from '../../../utils/newsUtils';
-import NewsletterModal from '../../../components/finans/NewsletterModal';
+import NewsletterModal from '../../../components/shared/NewsletterModal';
 
 const SLIDE_COUNT = 10;
 const AUTO_MS = 6000;

@@ -10,7 +10,7 @@ import {
   ProfilePasswordModal,
 } from './ProfileAccountModals';
 import TickerCustomizer from './components/TickerCustomizer';
-import NewsletterModal from '../../components/finans/NewsletterModal';
+import NewsletterModal from '../../components/shared/NewsletterModal';
 import SupportTicketsCard from './SupportTicketsCard';
 import { getNewsletter } from '../../api/newsletterApi';
 

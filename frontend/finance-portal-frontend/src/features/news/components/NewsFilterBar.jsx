@@ -1,6 +1,6 @@
 import { SlidersHorizontal } from 'lucide-react';
 import { useTranslation } from '../../../i18n/LanguageContext';
-import { Dropdown } from '../../../components/finans/Dropdown';
+import { Dropdown } from '../../../components/shared/Dropdown';
 import { groupSources } from '../../../utils/newsUtils';
 
 const REGIONS = [

@@ -4,7 +4,7 @@ import { getGlobalBonds } from '../../../api/marketApi';
 import { useSortable } from '../../../hooks/useSortable';
 import SortableTh from '../../../components/common/SortableTh';
 import Pagination from '../../../components/common/Pagination';
-import { Dropdown } from '../../../components/finans/Dropdown';
+import { Dropdown } from '../../../components/shared/Dropdown';
 import { useTranslation } from '../../../i18n/LanguageContext';
 
 const PAGE_SIZE = 20;
