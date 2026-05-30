@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Search, X } from 'lucide-react';
-import { HeroSection } from './news/components/HeroSection';
-import { NewsFeed } from './news/components/NewsFeed';
-import { NewsFilterBar } from './news/components/NewsFilterBar';
-import { PersonalNewsStrip } from './news/components/PersonalNewsStrip';
-import { Sidebar } from './news/components/Sidebar';
-import { useTranslation } from '../i18n/LanguageContext';
+import { HeroSection } from './components/HeroSection';
+import { NewsFeed } from './components/NewsFeed';
+import { NewsFilterBar } from './components/NewsFilterBar';
+import { PersonalNewsStrip } from './components/PersonalNewsStrip';
+import { Sidebar } from './components/Sidebar';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 const FILTERS_KEY = 'news_filters_v1';
 const DEFAULT_FILTERS = { category: '', source: '', q: '', region: 'TR' };

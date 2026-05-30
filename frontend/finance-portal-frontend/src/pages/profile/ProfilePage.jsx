@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Mail, Pencil, RefreshCw, KeyRound, BadgeCheck, AlertCircle, IdCard } from 'lucide-react';
-import { getMe } from '../api/meApi';
-import { useAuth } from '../context/AuthContext';
-import { useTranslation } from '../i18n/LanguageContext';
+import { getMe } from '../../api/meApi';
+import { useAuth } from '../../context/AuthContext';
+import { useTranslation } from '../../i18n/LanguageContext';
 import {
   ProfileEmailModal,
   ProfileNameModal,
   ProfilePasswordModal,
-} from './profile/ProfileAccountModals';
-import TickerCustomizer from './profile/components/TickerCustomizer';
-import NewsletterModal from '../components/finans/NewsletterModal';
-import SupportTicketsCard from './profile/SupportTicketsCard';
-import { getNewsletter } from '../api/newsletterApi';
+} from './ProfileAccountModals';
+import TickerCustomizer from './components/TickerCustomizer';
+import NewsletterModal from '../../components/finans/NewsletterModal';
+import SupportTicketsCard from './SupportTicketsCard';
+import { getNewsletter } from '../../api/newsletterApi';
 
 function Field({ label, value }) {
   return (

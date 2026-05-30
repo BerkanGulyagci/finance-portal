@@ -3,34 +3,34 @@ import { Link } from 'react-router-dom';
 import { Plus, X, Bitcoin, LineChart, Layers, ArrowLeftRight, BellPlus } from 'lucide-react';
 import {
   getMyPortfolios, getWatchlistItems, addWatchlistItem, deleteWatchlistItem, createPortfolio,
-} from '../api/portfolioApi';
+} from '../../api/portfolioApi';
 import {
   getCryptos, getStocks, getAllTefasFunds, getFxTcmb, getEconomy, getEconomicIndicators,
-} from '../api/marketApi';
+} from '../../api/marketApi';
 import {
   calculateAllocationByType,
   ANALYTICS_BY_KEY,
   WL_CHART_BY_KEY,
   InstrumentSearchModal,
-} from './portfolio';
-import { readPfCharts, removePfChart, DASH_PF_EVENT } from '../utils/dashboardCharts';
-import { readWlCharts, removeWlChart, DASH_WL_EVENT } from '../utils/watchlistDashCharts';
-import { prefGet, prefSet } from '../api/prefs';
-import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
-import { useTranslation } from '../i18n/LanguageContext';
-import GridBoard from '../components/common/GridBoard';
-import AlarmCreateModal from '../components/instrument/AlarmCreateModal';
-import MiniAssetChart from './dashboard/MiniAssetChart';
-import StatTiles from './dashboard/StatTiles';
-import PortfolioDistributionCard from './dashboard/PortfolioDistributionCard';
-import PortfoliosCard from './dashboard/PortfoliosCard';
-import RecentTransactionsCard from './dashboard/RecentTransactionsCard';
-import PersonalNewsCard from './dashboard/PersonalNewsCard';
-import MarketListCard from './dashboard/MarketListCard';
-import EconomyCard from './dashboard/EconomyCard';
-import FavoritesCard from './dashboard/FavoritesCard';
-import { num } from './dashboard/dashUtils';
+} from '../portfolio';
+import { readPfCharts, removePfChart, DASH_PF_EVENT } from '../../utils/dashboardCharts';
+import { readWlCharts, removeWlChart, DASH_WL_EVENT } from '../../utils/watchlistDashCharts';
+import { prefGet, prefSet } from '../../api/prefs';
+import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
+import { useTranslation } from '../../i18n/LanguageContext';
+import GridBoard from '../../components/common/GridBoard';
+import AlarmCreateModal from '../../components/instrument/AlarmCreateModal';
+import MiniAssetChart from './MiniAssetChart';
+import StatTiles from './StatTiles';
+import PortfolioDistributionCard from './PortfolioDistributionCard';
+import PortfoliosCard from './PortfoliosCard';
+import RecentTransactionsCard from './RecentTransactionsCard';
+import PersonalNewsCard from './PersonalNewsCard';
+import MarketListCard from './MarketListCard';
+import EconomyCard from './EconomyCard';
+import FavoritesCard from './FavoritesCard';
+import { num } from './dashUtils';
 
 const CHARTS_KEY = 'fp-dashboard-charts';
 const HIDDEN_PF_KEY = 'fp-dashboard-hidden-portfolios';
