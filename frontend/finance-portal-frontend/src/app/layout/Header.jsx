@@ -424,8 +424,8 @@ export function Header() {
         {/* Mobile Menu */}
         {mobileOpen && (
           <div className="lg:hidden py-3 border-t border-gray-200 space-y-1">
-            {/* Mobile language toggle */}
-            <div className="px-4 py-2 flex items-center justify-between border-b border-gray-100 mb-2">
+            {/* Mobile language toggle — only below sm; ≥sm uses the top-bar LanguageToggle */}
+            <div className="sm:hidden px-4 py-2 flex items-center justify-between border-b border-gray-100 mb-2">
               <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('Dil')}</span>
               <LanguageToggle />
             </div>

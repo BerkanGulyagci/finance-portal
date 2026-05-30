@@ -61,15 +61,34 @@ const en = {
 
   // Profile / auth
   'Portföyüm': 'My Portfolio',
+  'Portföylerim': 'My Portfolios',
+  'Tüm Portföyler': 'All Portfolios',
+  'Henüz portföyünüz yok.': 'No portfolios yet.',
   'Profilim': 'My Profile',
   'Hesap Ayarları': 'Account Settings',
   'Taleplerim': 'My Tickets',
+  'Alarmlarım': 'My Alarms',
+  'Bildirimler': 'Notifications',
   'Şifre Değiştir': 'Change Password',
   'Çıkış Yap': 'Log Out',
   'Hesabım': 'My Account',
   'Giriş Yap': 'Log In',
   'Kayıt Ol': 'Sign Up',
   'Hesap': 'Account',
+
+  // Ekonomi (Economy) — dropdown labels & descs
+  'Ekonomi': 'Economy',
+  'Genel': 'General',
+  'Hesaplama Araçları': 'Calculators',
+  'Türkiye Ekonomisi': 'Turkish Economy',
+  'Makro göstergeler: enflasyon, faiz, büyüme': 'Macro indicators: inflation, interest, growth',
+  'Kredi Hesaplama': 'Loan Calculator',
+  'Taksit, toplam geri ödeme, faiz hesabı': 'Installment, total repayment, interest calc',
+  'Mevduat Hesaplama': 'Deposit Calculator',
+  'Vade sonu net + enflasyona göre reel getiri': 'Net at maturity + inflation-adjusted real return',
+
+  // Funds top-level
+  'Fonlar': 'Funds',
 
   // Search / misc
   'Ara...': 'Search...',

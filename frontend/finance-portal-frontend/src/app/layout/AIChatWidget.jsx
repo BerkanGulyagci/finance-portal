@@ -159,7 +159,7 @@ export function AIChatWidget() {
         {teaser && (
           <div
             onClick={openChat}
-            className="fixed bottom-24 right-6 z-50 w-[252px] bg-white rounded-2xl shadow-xl shadow-black/10 border border-[#e2e1eb] p-3.5 pr-7 flex items-start gap-2.5 cursor-pointer hover:border-[#093eaa]/30 transition-colors"
+            className="fixed bottom-24 right-6 z-40 w-[252px] bg-white rounded-2xl shadow-xl shadow-black/10 border border-[#e2e1eb] p-3.5 pr-7 flex items-start gap-2.5 cursor-pointer hover:border-[#093eaa]/30 transition-colors"
           >
             <button
               onClick={e => { e.stopPropagation(); setTeaser(false); }}
@@ -178,7 +178,7 @@ export function AIChatWidget() {
           </div>
         )}
         <button onClick={openChat} aria-label="Porti"
-          className={`fixed bottom-6 right-6 z-50 inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#2b5cd1] text-white shadow-md shadow-[#2b5cd1]/25 hover:bg-[#2350c0] hover:shadow-lg transition-all ${bounce ? 'animate-bounce' : ''}`}>
+          className={`fixed bottom-6 right-6 z-40 inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#2b5cd1] text-white shadow-md shadow-[#2b5cd1]/25 hover:bg-[#2350c0] hover:shadow-lg transition-all ${bounce ? 'animate-bounce' : ''}`}>
           <Bot className="w-6 h-6" />
         </button>
       </>
@@ -187,7 +187,7 @@ export function AIChatWidget() {
 
   // ── Açık: M3 sohbet paneli ──
   return (
-    <div className={`fixed bottom-6 right-6 z-50 bg-white rounded-3xl shadow-2xl shadow-black/15 border border-[#e2e1eb] overflow-hidden flex flex-col transition-all duration-200 ${
+    <div className={`fixed bottom-6 right-6 z-40 bg-white rounded-3xl shadow-2xl shadow-black/15 border border-[#e2e1eb] overflow-hidden flex flex-col transition-all duration-200 ${
       expanded ? 'w-[440px] max-w-[92vw] h-[600px] max-h-[85vh]' : 'w-[360px] max-w-[92vw] h-[520px]'
     }`}>
       {/* Başlık — beyaz yüzey, tonal avatar (lacivert app-bar yok) */}
