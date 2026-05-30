@@ -85,6 +85,34 @@ public class EvdsSeriesInfo {
     }
 
     /**
+     * SERIE_NAME'in son parantezindeki TCMB (CBRT) kodunu çıkarır.
+     * {@link BondCategory} sınıflandırması için kullanılır (örn. 121T2K → kupon stripi,
+     * 61T4DK → TÜFE-endeksli).
+     *
+     * <p>Format örnekleri:
+     * <pre>
+     *   "TRD070727K10 ( 07.01.2026 07.07.2027 ) Değer (24D2K3050128)" → "24D2K3050128"
+     *   "TRT030626K26 ( 08.03.2023 03.06.2026 ) Değer (61T4DK13010328)" → "61T4DK13010328"
+     *   "TRT240227T17 ( ... ) Değer (121T2)" → "121T2"
+     * </pre>
+     * Parse edilemezse {@code null} döner.
+     */
+    public String parseCbrtCode() {
+        if (seriesName == null) return null;
+        // Tüm parantezli grupları bul, sonuncusu CBRT kodudur (öncekiler tarih bloğu).
+        Pattern p = Pattern.compile("\\(([^()]+)\\)");
+        Matcher m = p.matcher(seriesName);
+        String last = null;
+        while (m.find()) {
+            last = m.group(1).trim();
+        }
+        if (last == null || last.isEmpty()) return null;
+        // Tarih bloğu kalıbı atlanır ("07.01.2026 07.07.2027").
+        if (last.matches(".*\\d{2}\\.\\d{2}\\.\\d{4}.*")) return null;
+        return last;
+    }
+
+    /**
      * SERIE_NAME alanından ihraç tarihini parse eder.
      * Format: "TRD070727K10 ( 07.01.2026 07.07.2027 )  Değer ..."
      *                          ^^^^^^^^^^

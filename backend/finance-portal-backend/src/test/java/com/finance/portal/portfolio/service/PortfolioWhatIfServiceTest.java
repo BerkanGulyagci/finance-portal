@@ -313,6 +313,39 @@ class PortfolioWhatIfServiceTest {
         assertThat(val).isBetween(1199.0, 1201.0);
     }
 
+    @Test
+    @DisplayName("computeSeries: BOND 'Gerçek' = qty × fiyat / 100 (gerçek MV) — seri alış fiyatından bağımsız")
+    void computeSeries_bondActualUsesRealQty_notSeriesBase() {
+        java.time.ZoneId tr = java.time.ZoneId.of("Europe/Istanbul");
+        LocalDate today = LocalDate.now(tr);
+        LocalDate buyDate = today.minusMonths(6);
+        PortfolioHoldingResponse h = holding("TRT070727T13", AssetType.BOND,
+                new BigDecimal("9000"), new BigDecimal("10000"), "TRY",
+                buyDate.atStartOfDay());
+        h.setTotalQuantity(new BigDecimal("10000"));   // category null → parScale 100 (non-gold bond)
+        h.setOpenCostLots(List.of(
+                new PortfolioHoldingResponse.CostLot(buyDate, new BigDecimal("9000"), new BigDecimal("10000"))
+        ));
+
+        // Bond serisi: alış-tarihi seri fiyatı (80) ≠ gerçek alış fiyatı (90 = 9000/10000×100).
+        // Eski ratio: 9000 × 100/80 = 11250 (YANLIŞ). effQty: (10000/100) × 100 = 10000 (gerçek MV). ✓
+        TreeMap<LocalDate, BigDecimal> bondSeries = new TreeMap<>();
+        bondSeries.put(buyDate, new BigDecimal("80"));
+        bondSeries.put(today, new BigDecimal("100"));
+        when(pricePort.fetchDailyClosePrices(eq(AssetType.BOND), eq("TRT070727T13"), any(), any()))
+                .thenReturn(Optional.of(bondSeries));
+
+        PortfolioResponse resp = new PortfolioResponse();
+        resp.setHoldings(List.of(h));
+
+        WhatIfSeriesResult r = service.computeSeries(resp, "BOND", "TRT070727T13", List.of());
+
+        assertThat(r.getPoints()).isNotEmpty();
+        var last = r.getPoints().get(r.getPoints().size() - 1);
+        // Gerçek MV = 10.000 (= qty 10.000 × 100 / 100), eski ratio 11.250 DEĞİL → Holdings ile tutarlı.
+        assertThat(last.getActual()).isEqualByComparingTo("10000.00");
+    }
+
     // ============================================================================
     // helpers
     // ============================================================================

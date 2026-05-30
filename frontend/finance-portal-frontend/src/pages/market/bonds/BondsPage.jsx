@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
-import { getEvdsBonds } from '../../../api/marketApi';
+import { getEvdsBonds, getEvdsBondCategoryCounts } from '../../../api/marketApi';
 import { useTranslation } from '../../../i18n/LanguageContext';
 import Pagination from '../../../components/common/Pagination';
 import WatchlistStar from '../../../components/instrument/WatchlistStar';
@@ -88,6 +88,46 @@ const MATURITY_FILTERS = [
 const TYPE_OPTIONS = ['', 'DİBS', 'Devlet Tahvili', 'Hazine Bonosu'];
 const SIZE_OPTIONS = [25, 50, 100];
 
+// CBRT kod + ISIN suffix bazlı kategoriler (backend BondCategory ile birebir uyumlu)
+const CATEGORY_LABELS = {
+  ZERO_COUPON_BILL:              'Hazine Bonosu (Kuponsuz)',
+  ZERO_COUPON_BOND:              'Devlet Tahvili (Kuponsuz)',
+  FIXED_COUPON_BOND:             'Kuponlu Devlet Tahvili',
+  PRINCIPAL_STRIP:               'Ana Para Stripi',
+  COUPON_STRIP:                  'Kupon Stripi',
+  TLREF_INDEXED_BOND:            'TLREF-Endeksli',
+  INFLATION_INDEXED_BOND:        'TÜFE-Endeksli (Tam Bond)',
+  INFLATION_PRINCIPAL_STRIP:     'TÜFE-Endeksli Ana Para Stripi',
+  INFLATION_COUPON_STRIP:        'TÜFE-Endeksli Kupon Stripi',
+  GOLD_INDEXED_BOND:             'Altına Dayalı Senet',
+  FX_DENOMINATED_BOND:           'Yabancı Para Cinsli (EUR/USD)',
+  LEASE_CERTIFICATE:             'Kira Sertifikası',
+  INFLATION_INDEXED_LEASE_CERTIFICATE: 'TÜFE-Endeksli Kira Sertifikası',
+  GOLD_INDEXED_LEASE_CERTIFICATE:'Altına Dayalı Kira Sertifikası',
+  FX_LEASE_CERTIFICATE:          'Yabancı Para Cinsli Kira Sertifikası',
+  UNKNOWN:                       'Sınıflandırılmamış',
+};
+
+const CATEGORY_FILTER_OPTIONS = [
+  '',
+  'ZERO_COUPON_BILL',
+  'ZERO_COUPON_BOND',
+  'FIXED_COUPON_BOND',
+  'PRINCIPAL_STRIP',
+  'COUPON_STRIP',
+  'INFLATION_INDEXED_BOND',
+  'INFLATION_PRINCIPAL_STRIP',
+  'INFLATION_COUPON_STRIP',
+  'TLREF_INDEXED_BOND',
+  'GOLD_INDEXED_BOND',
+  'FX_DENOMINATED_BOND',
+  // Tier 3 — Kira Sertifikaları (Sukuk)
+  'LEASE_CERTIFICATE',
+  'INFLATION_INDEXED_LEASE_CERTIFICATE',
+  'GOLD_INDEXED_LEASE_CERTIFICATE',
+  'FX_LEASE_CERTIFICATE',
+];
+
 // ── Ana bileşen ───────────────────────────────────────────────────────────────
 
 export default function BondsPage() {
@@ -95,7 +135,7 @@ export default function BondsPage() {
   const [tab, setTab] = useState('evds');   // 'evds' (DİBS) | 'global' (Eurobond)
   // Filtre state'leri
   const [search,       setSearch]       = useState('');
-  const [type,         setType]         = useState('');
+  const [category,     setCategory]     = useState('');  // BondCategory frontend filtresi
   const [maturityIdx,  setMaturityIdx]  = useState(0);  // MATURITY_FILTERS index
   const [sortBy,       setSortBy]       = useState('maturityDate');
   const [sortDir,      setSortDir]      = useState('asc');
@@ -108,6 +148,12 @@ export default function BondsPage() {
   const [totalPages,   setTotalPages]   = useState(0);
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState('');
+  const [categoryCounts, setCategoryCounts] = useState({});  // { CATEGORY: count }
+
+  // Kategori sayımlarını tek seferlik çek (cache'den hızlı gelir)
+  useEffect(() => {
+    getEvdsBondCategoryCounts().then(setCategoryCounts).catch(() => setCategoryCounts({}));
+  }, []);
 
   // Arama debounce
   const searchTimer = useRef(null);
@@ -131,7 +177,7 @@ export default function BondsPage() {
       page,
       size,
       search: debouncedSearch,
-      type,
+      category,
       minRemainingDays: mf.min,
       maxRemainingDays: mf.max,
       sortBy,
@@ -144,7 +190,7 @@ export default function BondsPage() {
       })
       .catch(e => setError(!e.response ? t('TCMB EVDS verileri şu anda alınamadı.') : `${t('Hata')} (${e.response.status})`))
       .finally(() => setLoading(false));
-  }, [page, size, debouncedSearch, type, maturityIdx, sortBy, sortDir]);
+  }, [page, size, debouncedSearch, category, maturityIdx, sortBy, sortDir]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -215,17 +261,22 @@ export default function BondsPage() {
             </div>
           </div>
 
-          {/* Tür */}
+          {/* Kategori (CBRT kodu bazlı detaylı tasnif) */}
           <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1">{t('Tür')}</label>
+            <label className="block text-xs font-semibold text-gray-500 mb-1">{t('Kategori')}</label>
             <select
-              value={type}
-              onChange={e => { setType(e.target.value); setPage(0); }}
+              value={category}
+              onChange={e => { setCategory(e.target.value); setPage(0); }}
               className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30 bg-white"
             >
-              {TYPE_OPTIONS.map(opt => (
-                <option key={opt} value={opt}>{opt ? t(opt) : t('Tümü')}</option>
-              ))}
+              {CATEGORY_FILTER_OPTIONS.map(opt => {
+                const cnt = opt ? (categoryCounts[opt] ?? 0) : Object.values(categoryCounts).reduce((a, b) => a + b, 0);
+                return (
+                  <option key={opt || 'all'} value={opt} disabled={opt && cnt === 0}>
+                    {opt ? t(CATEGORY_LABELS[opt]) : t('Tüm Kategoriler')} ({cnt})
+                  </option>
+                );
+              })}
             </select>
           </div>
 
@@ -311,7 +362,7 @@ export default function BondsPage() {
                 <thead className="bg-gray-50">
                   <tr>
                     <SortTh {...thProps(t('Kıymet Kodu'), 'instrumentCode')} />
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('Tür')}</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('Kategori')}</th>
                     <SortTh {...thProps(t('Vade Tarihi'), 'maturityDate')} />
                     <SortTh {...thProps(t('Kalan Gün'), 'remainingDays', 'right')} />
                     <SortTh {...thProps(t('EVDS Gösterge Değeri'), 'indicatorValue', 'right')} />
@@ -322,13 +373,18 @@ export default function BondsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {items.length === 0 ? (
-                    <tr>
-                      <td colSpan={9} className="px-4 py-8 text-center text-gray-400 text-sm">
-                        {t('Gösterilecek EVDS tahvil/bono verisi bulunamadı.')}
-                      </td>
-                    </tr>
-                  ) : items.map((b, i) => (
+                  {(() => {
+                    const view = items; // backend zaten category ile filtreliyor
+                    if (view.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={9} className="px-4 py-8 text-center text-gray-400 text-sm">
+                            {t('Gösterilecek EVDS tahvil/bono verisi bulunamadı.')}
+                          </td>
+                        </tr>
+                      );
+                    }
+                    return view.map((b, i) => (
                     <tr key={i} className="border-t border-gray-100 hover:bg-blue-50 transition-colors">
                       <td className="px-4 py-3 font-bold text-[#093eaa] text-sm font-mono">
                         <Link
@@ -340,8 +396,13 @@ export default function BondsPage() {
                         </Link>
                       </td>
                       <td className="px-4 py-3 text-sm">
-                        <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full text-xs font-semibold">
-                          {b.type ?? '-'}
+                        <span
+                          className="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full text-xs font-semibold"
+                          title={b.cbrtCode ? `${t('CBRT kodu')}: ${b.cbrtCode}` : (b.type ?? '')}
+                        >
+                          {b.category && CATEGORY_LABELS[b.category]
+                            ? t(CATEGORY_LABELS[b.category])
+                            : (b.type ?? '-')}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{b.maturityDate ?? '-'}</td>
@@ -364,7 +425,8 @@ export default function BondsPage() {
                         <WatchlistStar assetType="BOND" symbol={b.instrumentCode} name={b.type} price={b.indicatorValue} />
                       </td>
                     </tr>
-                  ))}
+                    ));
+                  })()}
                 </tbody>
               </table>
             </div>

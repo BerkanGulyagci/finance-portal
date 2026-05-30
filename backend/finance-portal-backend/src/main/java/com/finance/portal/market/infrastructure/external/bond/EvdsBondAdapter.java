@@ -23,6 +23,11 @@ public class EvdsBondAdapter implements EvdsBondPort {
     }
 
     @Override
+    public List<EvdsSeriesInfo> fetchSeriesList(String dataGroup) {
+        return evdsBondClient.fetchSeriesList(dataGroup);
+    }
+
+    @Override
     public List<EvdsSeriesPoint> fetchIndicatorValues(String instrumentCode, LocalDate startDate, LocalDate endDate) {
         return evdsBondClient.fetchIndicatorValues(instrumentCode, startDate, endDate);
     }

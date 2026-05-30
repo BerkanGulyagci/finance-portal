@@ -123,6 +123,44 @@ class PortfolioPeriodGrowthCalculatorTest {
     }
 
     @Test
+    @DisplayName("netCashFlow BOND: qty*price/100 (TCMB konvansiyonu) — altın hariç")
+    void netCashFlow_bondParScaling() {
+        PortfolioTransaction bondBuy = bondTx(TransactionType.BUY, "TRT060127T10", "10000", "78.50");
+        PortfolioTransaction bondSell = bondTx(TransactionType.SELL, "TRT060127T10", "5000", "80.00");
+
+        assertThat(PortfolioPeriodGrowthCalculator.netCashFlowForTransaction(bondBuy))
+                .as("10000 * 78.50 / 100 = 7850")
+                .isEqualByComparingTo("7850");
+        assertThat(PortfolioPeriodGrowthCalculator.netCashFlowForTransaction(bondSell))
+                .as("-(5000 * 80.00 / 100) = -4000")
+                .isEqualByComparingTo("-4000");
+    }
+
+    @Test
+    @DisplayName("netCashFlow GOLD BOND: /100 uygulanmaz")
+    void netCashFlow_goldBondNoScaling() {
+        PortfolioTransaction goldBuy = bondTx(TransactionType.BUY, "TRT270127T15", "100", "6500.00");
+        java.util.function.Predicate<String> isGold = "TRT270127T15"::equals;
+
+        assertThat(PortfolioPeriodGrowthCalculator.netCashFlowForTransaction(goldBuy, isGold))
+                .as("Altın bond: 100 * 6500 = 650000 (NO /100)")
+                .isEqualByComparingTo("650000");
+    }
+
+    private static PortfolioTransaction bondTx(TransactionType side, String symbol, String qty, String price) {
+        PortfolioTransaction t = new PortfolioTransaction();
+        t.setId(UUID.randomUUID());
+        t.setSymbol(symbol);
+        t.setAssetType(AssetType.BOND);
+        t.setTransactionType(side);
+        t.setQuantity(new BigDecimal(qty));
+        t.setPrice(new BigDecimal(price));
+        t.setCommission(BigDecimal.ZERO);
+        t.setTransactionDate(LocalDate.of(2026, 1, 1).atStartOfDay());
+        return t;
+    }
+
+    @Test
     @DisplayName("dailyReturn: önceki MV 0 ise 0")
     void dailyReturn_zeroPrevious_isZero() {
         assertThat(PortfolioPeriodGrowthCalculator.computeDailyReturn(
@@ -135,7 +173,8 @@ class PortfolioPeriodGrowthCalculatorTest {
     void integration_calculatorWithPeriodGrowth() {
         LocalDate d1 = LocalDate.of(2026, 4, 1);
         LocalDate d2 = LocalDate.of(2026, 4, 2);
-        PortfolioPerformanceCalculator calc = new PortfolioPerformanceCalculator();
+        PortfolioPerformanceCalculator calc = new PortfolioPerformanceCalculator(
+                org.mockito.Mockito.mock(com.finance.portal.market.application.bond.evds.EvdsBondService.class));
 
         List<PortfolioTransaction> txs = List.of(
                 buyTx("THYAO", d1.atStartOfDay(), "10", "100"));

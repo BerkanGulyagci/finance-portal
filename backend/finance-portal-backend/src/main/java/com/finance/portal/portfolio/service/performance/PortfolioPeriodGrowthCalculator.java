@@ -1,5 +1,6 @@
 package com.finance.portal.portfolio.service.performance;
 
+import com.finance.portal.common.domain.AssetType;
 import com.finance.portal.portfolio.application.performance.PortfolioPerformancePoint;
 import com.finance.portal.portfolio.domain.PortfolioTransaction;
 import com.finance.portal.portfolio.domain.TransactionType;
@@ -7,11 +8,11 @@ import com.finance.portal.portfolio.domain.TransactionType;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * Seçilen aralıkta TWR-benzeri kümülatif dönem getirisi ({@code periodGrowthPercent}).
@@ -23,6 +24,11 @@ public final class PortfolioPeriodGrowthCalculator {
     private static final int RETURN_SCALE = 12;
     private static final int PCT_SCALE = 2;
 
+    /** BOND için TCMB konvansiyonu: fiyat 100 TL nominal üzerinden — etkin = price/100. */
+    private static final BigDecimal BOND_PAR_SCALE = new BigDecimal("100");
+
+    private static final Predicate<String> NO_GOLD = s -> false;
+
     private PortfolioPeriodGrowthCalculator() {
     }
 
@@ -30,12 +36,21 @@ public final class PortfolioPeriodGrowthCalculator {
             List<PortfolioPerformancePoint> points,
             List<PortfolioTransaction> transactions,
             Set<String> excludedPositionKeys) {
+        applyPeriodGrowth(points, transactions, excludedPositionKeys, NO_GOLD);
+    }
+
+    public static void applyPeriodGrowth(
+            List<PortfolioPerformancePoint> points,
+            List<PortfolioTransaction> transactions,
+            Set<String> excludedPositionKeys,
+            Predicate<String> isGoldBondSymbol) {
 
         if (points == null || points.isEmpty()) {
             return;
         }
 
-        Map<LocalDate, BigDecimal> cashFlowByDay = buildNetCashFlowByDay(transactions, excludedPositionKeys);
+        Predicate<String> goldCheck = isGoldBondSymbol != null ? isGoldBondSymbol : NO_GOLD;
+        Map<LocalDate, BigDecimal> cashFlowByDay = buildNetCashFlowByDay(transactions, excludedPositionKeys, goldCheck);
 
         BigDecimal cumulativeFactor = BigDecimal.ONE;
         BigDecimal previousMv = null;
@@ -73,6 +88,12 @@ public final class PortfolioPeriodGrowthCalculator {
         }
     }
 
+    /**
+     * Günlük getiri (Modified Dietz):
+     *   r = (MV_end − MV_start − netFlow) / (MV_start + netFlow_weighted)
+     * Nakit akışları gün başında varsayılır (weight = 1) → büyük BUY günleri "küçük previousMV"e
+     * bölünüp astronomik %'ye dönüşmez. Net flow=0 günlerde davranış aynı kalır.
+     */
     static BigDecimal computeDailyReturn(
             BigDecimal previousMarketValue,
             BigDecimal currentMarketValue,
@@ -89,17 +110,36 @@ public final class PortfolioPeriodGrowthCalculator {
         BigDecimal flows = netCashFlow != null ? netCashFlow : BigDecimal.ZERO;
 
         BigDecimal numerator = current.subtract(previousMarketValue).subtract(flows);
-        return numerator.divide(previousMarketValue, RETURN_SCALE, RoundingMode.HALF_UP);
+        BigDecimal denominator = previousMarketValue.add(flows);
+        if (denominator.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+        return numerator.divide(denominator, RETURN_SCALE, RoundingMode.HALF_UP);
     }
 
     static BigDecimal netCashFlowForTransaction(PortfolioTransaction tx) {
+        return netCashFlowForTransaction(tx, NO_GOLD);
+    }
+
+    static BigDecimal netCashFlowForTransaction(PortfolioTransaction tx, Predicate<String> isGoldBondSymbol) {
         if (tx == null || tx.getQuantity() == null || tx.getPrice() == null) {
             return BigDecimal.ZERO;
         }
         BigDecimal qty = tx.getQuantity();
         BigDecimal price = tx.getPrice();
         BigDecimal commission = tx.getCommission() != null ? tx.getCommission() : BigDecimal.ZERO;
-        BigDecimal gross = qty.multiply(price).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+
+        // BOND: TCMB konvansiyonu — fiyat 100 TL nominal üzerinden, etkin = price/100.
+        // Altın bond istisnası: birim adet/gram → /100 uygulanmaz.
+        boolean isBond = tx.getAssetType() == AssetType.BOND;
+        boolean isGoldBond = isBond
+                && isGoldBondSymbol != null
+                && tx.getSymbol() != null
+                && isGoldBondSymbol.test(tx.getSymbol());
+        BigDecimal effectivePrice = (isBond && !isGoldBond)
+                ? price.divide(BOND_PAR_SCALE, 12, RoundingMode.HALF_UP)
+                : price;
+        BigDecimal gross = qty.multiply(effectivePrice).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
 
         if (tx.getTransactionType() == TransactionType.BUY) {
             return gross.add(commission);
@@ -112,7 +152,8 @@ public final class PortfolioPeriodGrowthCalculator {
 
     private static Map<LocalDate, BigDecimal> buildNetCashFlowByDay(
             List<PortfolioTransaction> transactions,
-            Set<String> excludedPositionKeys) {
+            Set<String> excludedPositionKeys,
+            Predicate<String> isGoldBondSymbol) {
 
         Map<LocalDate, BigDecimal> byDay = new HashMap<>();
         if (transactions == null) {
@@ -128,7 +169,7 @@ public final class PortfolioPeriodGrowthCalculator {
                 continue;
             }
             LocalDate day = tx.getTransactionDate().toLocalDate();
-            BigDecimal flow = netCashFlowForTransaction(tx);
+            BigDecimal flow = netCashFlowForTransaction(tx, isGoldBondSymbol);
             byDay.merge(day, flow, (a, b) -> a.add(b).setScale(MONEY_SCALE, RoundingMode.HALF_UP));
         }
         return byDay;

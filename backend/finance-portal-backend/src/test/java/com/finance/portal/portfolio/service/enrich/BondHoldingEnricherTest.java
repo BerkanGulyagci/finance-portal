@@ -4,6 +4,7 @@ import com.finance.portal.market.application.bond.evds.BondPeriod;
 import com.finance.portal.market.application.bond.evds.EvdsBondHistoryPoint;
 import com.finance.portal.market.application.bond.evds.EvdsBondInstrument;
 import com.finance.portal.market.application.bond.evds.EvdsBondService;
+import com.finance.portal.market.application.bond.evds.model.BondCategory;
 import com.finance.portal.market.application.bond.eurobond.EurobondService;
 import com.finance.portal.market.application.bond.eurobond.model.EurobondChartPoint;
 import com.finance.portal.market.application.bond.eurobond.model.EurobondDetail;
@@ -35,12 +36,15 @@ class BondHoldingEnricherTest {
 
     @Mock EvdsBondService evdsBondService;
     @Mock EurobondService eurobondService;
+    @Mock com.finance.portal.market.application.service.MarketFxService marketFxService;
+    @Mock com.finance.portal.market.application.gold.GoldMarketService goldMarketService;
 
     private BondHoldingEnricher enricher;
 
     @BeforeEach
     void setUp() {
-        enricher = new BondHoldingEnricher(evdsBondService, eurobondService);
+        enricher = new BondHoldingEnricher(evdsBondService, eurobondService,
+                marketFxService, goldMarketService);
     }
 
     private PortfolioHoldingResponse holding(String symbol, BigDecimal qty, BigDecimal cost) {
@@ -76,14 +80,16 @@ class BondHoldingEnricherTest {
         }
         when(evdsBondService.getEvdsBondHistory("TRD070727K10", BondPeriod.ONE_YEAR)).thenReturn(hist);
 
-        PortfolioHoldingResponse h = holding("TRD070727K10", new BigDecimal("10"), new BigDecimal("1000"));
+        // TCMB konvansiyonu: 10.000 TL nominal kuponlu DT alış (price 100 girilmiş)
+        // → cost = 10.000 × 100/100 = 10.000 TL (HoldingsBuilder hesabı; burada doğrudan veriliyor)
+        PortfolioHoldingResponse h = holding("TRD070727K10", new BigDecimal("10000"), new BigDecimal("10000"));
         enricher.enrich(h);
 
         assertThat(h.getCurrentPrice()).isEqualByComparingTo("105.50");
-        // 105.50 × 10 = 1055.0000
-        assertThat(h.getMarketValue()).isEqualByComparingTo("1055.0000");
-        // 1055.0000 − 1000 = 55.0000
-        assertThat(h.getProfitLoss()).isEqualByComparingTo("55.0000");
+        // mv = 10.000 nominal × 105.50/100 = 10.550 TL
+        assertThat(h.getMarketValue()).isEqualByComparingTo("10550.0000");
+        // 10.550 − 10.000 = 550
+        assertThat(h.getProfitLoss()).isEqualByComparingTo("550.0000");
         assertThat(h.getCurrency()).isEqualTo("TRY");
         assertThat(h.getChange()).isEqualByComparingTo("0.50");
         assertThat(h.getChangePercent()).isEqualByComparingTo("0.47");
@@ -94,15 +100,19 @@ class BondHoldingEnricherTest {
     }
 
     @Test
-    @DisplayName("evds: indicator yoksa IllegalStateException fırlatır")
-    void evds_missingIndicator_throws() {
+    @DisplayName("evds: indicator yoksa fail-soft — mv/pl null, currency=TRY")
+    void evds_missingIndicator_failSoft() {
         when(eurobondService.currentIsins()).thenReturn(List.of());
         EvdsBondInstrument bond = new EvdsBondInstrument();   // indicatorValue null
         when(evdsBondService.getEvdsBondDetail("X")).thenReturn(bond);
 
-        assertThatThrownBy(() -> enricher.enrich(holding("X", BigDecimal.ONE, BigDecimal.ZERO)))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Bond EVDS indicator unavailable");
+        PortfolioHoldingResponse h = holding("X", BigDecimal.ONE, BigDecimal.ZERO);
+        enricher.enrich(h);
+
+        assertThat(h.getCurrentPrice()).isNull();
+        assertThat(h.getMarketValue()).isNull();
+        assertThat(h.getProfitLoss()).isNull();
+        assertThat(h.getCurrency()).isEqualTo("TRY");
     }
 
     @Test
@@ -145,11 +155,12 @@ class BondHoldingEnricherTest {
         }
         when(eurobondService.chart("US900123AL40", "1Y")).thenReturn(chart);
 
-        PortfolioHoldingResponse h = holding("us900123al40", new BigDecimal("2"), new BigDecimal("6000"));
+        // Eurobond BI quote'u da % nominal — 200 nominal × 3500.25/100 = 7.000,50 TL
+        PortfolioHoldingResponse h = holding("us900123al40", new BigDecimal("200"), new BigDecimal("6000"));
         enricher.enrich(h);
 
         assertThat(h.getCurrentPrice()).isEqualByComparingTo("3500.25");
-        // 3500.25 × 2 = 7000.5000
+        // mv = 200 × 3500.25 / 100 = 7000.5000
         assertThat(h.getMarketValue()).isEqualByComparingTo("7000.5000");
         // 7000.5000 − 6000 = 1000.5000
         assertThat(h.getProfitLoss()).isEqualByComparingTo("1000.5000");
@@ -209,4 +220,121 @@ class BondHoldingEnricherTest {
         assertThat(h.getCurrentPrice()).isEqualByComparingTo("50");
     }
 
+    // =========================================================================
+    // Tier 2 — TÜFE-endeksli BOND zenginleştirmesi (nominal MV, ek çarpan YOK)
+    // =========================================================================
+
+    @Test
+    @DisplayName("evds TÜFE-endeksli: mv = qty × price / 100 — EVDS değeri zaten nominal, ek TÜFE çarpanı YOK")
+    void evds_inflationIndexed_usesNominalEvdsValueDirectly() {
+        when(eurobondService.currentIsins()).thenReturn(List.of());
+
+        EvdsBondInstrument bond = new EvdsBondInstrument();
+        // EVDS Gösterge Değeri zaten nominal/endeksli — ihraçtan bugüne enflasyonu içinde taşır.
+        bond.setIndicatorValue(new BigDecimal("1223.262"));
+        bond.setCategory(BondCategory.INFLATION_INDEXED_BOND);
+        bond.setType("Devlet Tahvili");
+        when(evdsBondService.getEvdsBondDetail("TRT070727T13")).thenReturn(bond);
+        when(evdsBondService.getEvdsBondHistory(any(), any())).thenReturn(null);
+
+        // 10.000 nominal alış, alış-dönemi nominal TL maliyet 110.063 (≈ 10000 × 1100.6/100).
+        PortfolioHoldingResponse h = holding("TRT070727T13",
+                new BigDecimal("10000"), new BigDecimal("110063"));
+        h.setFirstBuyDate(java.time.LocalDateTime.of(2026, 3, 1, 0, 0));
+        enricher.enrich(h);
+
+        assertThat(h.getCurrentPrice()).isEqualByComparingTo("1223.262");
+        // mv = 10000 × 1223.262 / 100 = 122.326,20 (ek çarpan YOK — çifte sayım olmaz)
+        assertThat(h.getMarketValue()).isEqualByComparingTo("122326.2000");
+        // K/Z = 122.326,20 − 110.063 = 12.263,20 (bondun kendi nominal getirisi)
+        assertThat(h.getProfitLoss()).isEqualByComparingTo("12263.2000");
+        assertThat(h.getCurrency()).isEqualTo("TRY");
+    }
+
+    @Test
+    @DisplayName("evds TÜFE-strip: deflator hiç çağrılmaz — mv düz nominal qty × price / 100")
+    void evds_inflationStrip_noDeflatorInteraction() {
+        when(eurobondService.currentIsins()).thenReturn(List.of());
+
+        EvdsBondInstrument bond = new EvdsBondInstrument();
+        bond.setIndicatorValue(new BigDecimal("95"));
+        bond.setCategory(BondCategory.INFLATION_COUPON_STRIP);
+        when(evdsBondService.getEvdsBondDetail("TRT030626K26")).thenReturn(bond);
+        when(evdsBondService.getEvdsBondHistory(any(), any())).thenReturn(null);
+
+        PortfolioHoldingResponse h = holding("TRT030626K26",
+                new BigDecimal("10000"), new BigDecimal("900"));
+        h.setFirstBuyDate(java.time.LocalDateTime.of(2023, 3, 8, 0, 0));
+        enricher.enrich(h);
+
+        // mv = 10.000 × 95 / 100 = 9.500 (deflator artık enjekte bile edilmiyor)
+        assertThat(h.getMarketValue()).isEqualByComparingTo("9500.0000");
+    }
+
+    // =========================================================================
+    // Tier 3 — Yabancı para / Altın cinsli bondlar
+    // =========================================================================
+
+    @Test
+    @DisplayName("evds FX cinsli bond: EVDS değeri TL — dış FX çevirisi YOK, currency=TRY")
+    void evds_fxBond_appliesUsdRate() {
+        when(eurobondService.currentIsins()).thenReturn(List.of());
+
+        EvdsBondInstrument bond = new EvdsBondInstrument();
+        bond.setIndicatorValue(new BigDecimal("95"));
+        bond.setCategory(BondCategory.FX_DENOMINATED_BOND);
+        when(evdsBondService.getEvdsBondDetail("TRT220726F11")).thenReturn(bond);
+        when(evdsBondService.getEvdsBondHistory(any(), any())).thenReturn(null);
+
+        PortfolioHoldingResponse h = holding("TRT220726F11",
+                new BigDecimal("10000"), new BigDecimal("9000"));
+        enricher.enrich(h);
+
+        // Kullanıcı tercihi: EVDS değeri zaten TL — mv = 10.000 × 95 / 100 = 9.500
+        assertThat(h.getMarketValue()).isEqualByComparingTo("9500.0000");
+        assertThat(h.getProfitLoss()).isEqualByComparingTo("500.0000");
+        assertThat(h.getCurrency()).isEqualTo("TRY");
+    }
+
+    @Test
+    @DisplayName("evds Altın bond: mv = adet × price (EVDS kendi fiyatı, gram spot YOK), /100 YOK")
+    void evds_goldBond_appliesGramRate() {
+        when(eurobondService.currentIsins()).thenReturn(List.of());
+
+        EvdsBondInstrument bond = new EvdsBondInstrument();
+        bond.setIndicatorValue(new BigDecimal("3500"));
+        bond.setCategory(BondCategory.GOLD_INDEXED_BOND);
+        when(evdsBondService.getEvdsBondDetail("TRT270127T15")).thenReturn(bond);
+        when(evdsBondService.getEvdsBondHistory(any(), any())).thenReturn(null);
+
+        // 100 adet (= 100 gram) altın senedi, maliyet 300.000 TL
+        PortfolioHoldingResponse h = holding("TRT270127T15",
+                new BigDecimal("100"), new BigDecimal("300000"));
+        enricher.enrich(h);
+
+        // Kullanıcı tercihi: gram altın spot ile çevirme — mv = 100 × 3500 = 350.000 (raw EVDS değer, /100 YOK)
+        assertThat(h.getMarketValue()).isEqualByComparingTo("350000.0000");
+        assertThat(h.getProfitLoss()).isEqualByComparingTo("50000.0000");
+    }
+
+    @Test
+    @DisplayName("evds TÜFE-endeksli olmayan bond: TÜFE çarpanı uygulanmaz (Tier 1 davranışı korunur)")
+    void evds_normalBond_doesNotApplyCpi() {
+        when(eurobondService.currentIsins()).thenReturn(List.of());
+
+        EvdsBondInstrument bond = new EvdsBondInstrument();
+        bond.setIndicatorValue(new BigDecimal("90"));
+        bond.setCategory(BondCategory.FIXED_COUPON_BOND);  // TÜFE'siz
+        when(evdsBondService.getEvdsBondDetail("TRT240227T17")).thenReturn(bond);
+        when(evdsBondService.getEvdsBondHistory(any(), any())).thenReturn(null);
+
+        PortfolioHoldingResponse h = holding("TRT240227T17",
+                new BigDecimal("10000"), new BigDecimal("8500"));
+        h.setFirstBuyDate(java.time.LocalDateTime.of(2024, 1, 1, 0, 0));
+        enricher.enrich(h);
+
+        // mv = 10.000 × 90 / 100 = 9.000 (TÜFE çarpanı YOK)
+        assertThat(h.getMarketValue()).isEqualByComparingTo("9000.0000");
+        // Deflator hiç çağrılmamış olmalı — mock zaten setup edilmedi
+    }
 }

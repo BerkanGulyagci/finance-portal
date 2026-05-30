@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateSerializer;
+import com.finance.portal.market.application.bond.evds.model.BondCategory;
+import com.finance.portal.market.application.bond.evds.model.BondCurrency;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -18,8 +20,25 @@ public class EvdsBondInstrument {
     /** Kıymet kodu — örn. TRD070727K10 */
     private String instrumentCode;
 
-    /** Tür — "Hazine Bonosu", "Devlet Tahvili", "DİBS" */
+    /** Tür — "Hazine Bonosu", "Devlet Tahvili", "DİBS" (legacy human-readable etiket). */
     private String type;
+
+    /**
+     * Finansal kategori — CBRT kodu + ISIN suffix'inden
+     * {@link com.finance.portal.market.application.bond.evds.model.BondClassifier} ile belirlenir.
+     * Hesap motorunda bu alan kullanılır.
+     */
+    private BondCategory category;
+
+    /** Nominal cinsi para birimi (TRY/USD/EUR/GOLD). */
+    private BondCurrency currency;
+
+    /**
+     * TCMB CBRT kodu — EVDS SERIE_NAME'nin son parantezinde
+     * (örn. {@code 121T2K19240227}, {@code 61T4DK13010328}).
+     * Sınıflandırma kaynağı; UI'da debug/tooltip için de gösterilebilir.
+     */
+    private String cbrtCode;
 
     /** İhraç tarihi (EVDS START_DATE) */
     @JsonSerialize(using = LocalDateSerializer.class)
@@ -69,6 +88,15 @@ public class EvdsBondInstrument {
 
     public String getType() { return type; }
     public void setType(String type) { this.type = type; }
+
+    public BondCategory getCategory() { return category; }
+    public void setCategory(BondCategory category) { this.category = category; }
+
+    public BondCurrency getCurrency() { return currency; }
+    public void setCurrency(BondCurrency currency) { this.currency = currency; }
+
+    public String getCbrtCode() { return cbrtCode; }
+    public void setCbrtCode(String cbrtCode) { this.cbrtCode = cbrtCode; }
 
     public LocalDate getIssueDate() { return issueDate; }
     public void setIssueDate(LocalDate issueDate) { this.issueDate = issueDate; }

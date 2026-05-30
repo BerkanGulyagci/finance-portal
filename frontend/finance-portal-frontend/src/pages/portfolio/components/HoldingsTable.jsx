@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Settings2, ChevronDown, ChevronUp, TrendingUp, TrendingDown } from 'lucide-react';
+import { Settings2, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Plus, Coins } from 'lucide-react';
 import TrendBadge from '../../../components/common/TrendBadge';
 import { computeTrend } from '../../../utils/trendUtils';
 import { getWatchlistDetailPath } from '../constants/watchlistMarketRoutes';
 import { MASK_MONEY, MASK_PERCENT, MASK_QTY } from '../utils/portfolioFormatUtils';
 import { getCommodityUnit } from '../utils/commodityUnit';
 import { useTranslation } from '../../../i18n/LanguageContext';
+import CouponIncomeModal from './CouponIncomeModal';
 
 // ── Sabitler ─────────────────────────────────────────────────────────────────
 
@@ -263,15 +264,23 @@ function unrealizedGainLoss(h) {
   return null;
 }
 
-/** Pozisyon günlük K/Z (TL): miktar × hisse başı günlük değişim; yoksa miktar × (fiyat − önceki kapanış). */
+/**
+ * Pozisyon günlük K/Z (TL): miktar × hisse başı günlük değişim; yoksa miktar × (fiyat − önceki kapanış).
+ * BOND için TCMB konvansiyonu: fiyat 100 nominal başına kote → /100 uygulanır.
+ * Altın bond (adet/gram bazlı) istisna: /100 YOK.
+ */
 function positionDailyGainLoss(h) {
   const qty = num(h, 'totalQuantity');
+  const isBond = h?.assetType === 'BOND';
+  const isGoldBond = h?.category === 'GOLD_INDEXED_BOND'
+    || h?.category === 'GOLD_INDEXED_LEASE_CERTIFICATE';
+  const scale = (isBond && !isGoldBond) ? 100 : 1;
   const perShare = num(h, 'dailyChangeAmount', 'change');
-  if (qty != null && perShare != null) return qty * perShare;
+  if (qty != null && perShare != null) return (qty * perShare) / scale;
 
   const pc = num(h, 'previousClose', 'regularMarketPreviousClose', 'prevClose');
   const cp = num(h, 'currentPrice');
-  if (qty != null && cp != null && pc != null) return qty * (cp - pc);
+  if (qty != null && cp != null && pc != null) return (qty * (cp - pc)) / scale;
   return null;
 }
 
@@ -406,12 +415,52 @@ function renderCell(key, h, commoditySpots, valuesHidden, t) {
     case 'symbol':
       return <span className="font-bold text-[#093eaa] text-sm whitespace-nowrap">{h.symbol}</span>;
 
-    case 'assetType':
+    case 'assetType': {
+      const cat = String(h.category ?? '');
+      const isInfBond = h.assetType === 'BOND' && cat.startsWith('INFLATION_');
+      const isFxBond = h.assetType === 'BOND' && (cat === 'FX_DENOMINATED_BOND' || cat === 'FX_LEASE_CERTIFICATE');
+      const isGoldBond = h.assetType === 'BOND' && (cat === 'GOLD_INDEXED_BOND' || cat === 'GOLD_INDEXED_LEASE_CERTIFICATE');
+      const isSukuk = h.assetType === 'BOND' && cat.includes('LEASE_CERTIFICATE');
       return (
-        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md font-semibold whitespace-nowrap">
-          {ASSET_LABELS[h.assetType] ? t(ASSET_LABELS[h.assetType]) : h.assetType}
-        </span>
+        <div className="inline-flex items-center gap-1 whitespace-nowrap">
+          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md font-semibold">
+            {ASSET_LABELS[h.assetType] ? t(ASSET_LABELS[h.assetType]) : h.assetType}
+          </span>
+          {isInfBond && (
+            <span
+              className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold"
+              title={t('TÜFE-endeksli — EVDS gösterge değeri zaten enflasyona endeksli; piyasa değeri kendiliğinden TÜFE ile büyür')}
+            >
+              {t('TÜFE')}
+            </span>
+          )}
+          {isFxBond && (
+            <span
+              className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-semibold"
+              title={t('Yabancı para cinsli — piyasa değeri TCMB satış kuruyla TL\'ye çevrilir')}
+            >
+              {h.currency ?? 'FX'}
+            </span>
+          )}
+          {isGoldBond && (
+            <span
+              className="text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded font-semibold"
+              title={t('Altına dayalı — piyasa değeri gram has altın TL fiyatı ile hesaplanır')}
+            >
+              {t('Altın')}
+            </span>
+          )}
+          {isSukuk && (
+            <span
+              className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-semibold"
+              title={t('Kira Sertifikası (Sukuk) — kira getirisi öder')}
+            >
+              {t('Sukuk')}
+            </span>
+          )}
+        </div>
       );
+    }
 
     case 'qty': {
       if (valuesHidden) {
@@ -432,15 +481,23 @@ function renderCell(key, h, commoditySpots, valuesHidden, t) {
       );
     }
 
-    case 'avgCost':
+    case 'avgCost': {
       if (valuesHidden) {
         return <span className="text-sm text-gray-500 tracking-widest">{MASK_MONEY}</span>;
       }
+      // BOND: averageCost = totalCost/qty (1 nominal başına). Mevcut Fiyat ve işlem "Birim Fiyat (/100)"
+      // 100 nominal başına kote olduğundan, tutarlılık için non-gold bondlarda ×100 gösterilir
+      // (altın bond adet/gram bazlı → /100 yok, olduğu gibi).
+      const isGoldBondRow = h.assetType === 'BOND'
+        && (h.category === 'GOLD_INDEXED_BOND' || h.category === 'GOLD_INDEXED_LEASE_CERTIFICATE');
+      const avgCostPar = (h.assetType === 'BOND' && !isGoldBondRow) ? 100 : 1;
+      const avgCostDisplay = h.averageCost != null ? h.averageCost * avgCostPar : h.averageCost;
       return (
         <span className="text-sm">
-          {(isFund ? fmtFundNavPrice(h.averageCost, cur) : fmtPrice(h.averageCost, cur)) ?? <Dash />}
+          {(isFund ? fmtFundNavPrice(h.averageCost, cur) : fmtPrice(avgCostDisplay, cur)) ?? <Dash />}
         </span>
       );
+    }
 
     case 'currentPrice':
       if (valuesHidden) {
@@ -757,10 +814,20 @@ function ColumnEditor({ open, onToggle, selected, onChange }) {
  * Props:
  *   holdings: PortfolioHoldingResponse[]
  */
-export default function HoldingsTable({ holdings = [], commoditySpots = {}, valuesHidden = false }) {
+export default function HoldingsTable({
+  holdings = [],
+  commoditySpots = {},
+  valuesHidden = false,
+  // Yeni props (opsiyonel — geriye uyumlu):
+  transactions = [],          // BOND expand'inde kupon listesi için
+  portfolioId = null,         // Kupon Ekle modalı için
+  onPortfolioChanged = null,  // Kupon eklendikten sonra çağrılır (parent'tan portfolio'yu reload eder)
+}) {
   const { t } = useTranslation();
   const [selectedKeys, setSelectedKeys] = useState(() => loadSavedColumns() ?? DEFAULT_KEYS);
   const [editorOpen, setEditorOpen]     = useState(false);
+  const [expandedKeys, setExpandedKeys] = useState(() => new Set());
+  const [couponModalSymbol, setCouponModalSymbol] = useState(null);
 
   // Seçim değişince tarayıcıya kaydet (sonraki girişte korunur).
   useEffect(() => {
@@ -773,12 +840,32 @@ export default function HoldingsTable({ holdings = [], commoditySpots = {}, valu
 
   const visibleCols = buildVisibleCols(selectedKeys);
 
+  // BOND için sembol başına COUPON_INCOME tx listesi — expand'de gösterilir
+  const couponsBySymbol = useMemo(() => {
+    const map = new Map();
+    (transactions || []).forEach(tx => {
+      if (tx?.transactionType === 'COUPON_INCOME' && tx?.symbol) {
+        const list = map.get(tx.symbol) || [];
+        list.push(tx);
+        map.set(tx.symbol, list);
+      }
+    });
+    // Tarihe göre yeni → eski
+    for (const list of map.values()) {
+      list.sort((a, b) => (b.transactionDate || '').localeCompare(a.transactionDate || ''));
+    }
+    return map;
+  }, [transactions]);
+
   // Mevcut varlıkların hiçbirinde verisi olmayan seçili kolonlar — başlıkta işaretlenir
   const emptyColKeys = new Set(
     visibleCols
       .filter(c => !holdings.some(h => columnHasValueForHolding(c.key, h)))
       .map(c => c.key),
   );
+
+  // Holding listesinde herhangi bir BOND varsa expand kolonu render edilir
+  const hasAnyBond = holdings.some(h => String(h.assetType ?? '').toUpperCase() === 'BOND');
 
   if (!holdings.length) {
     return (
@@ -787,6 +874,19 @@ export default function HoldingsTable({ holdings = [], commoditySpots = {}, valu
       </div>
     );
   }
+
+  function toggleExpand(key) {
+    setExpandedKeys(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  const couponHoldingForModal = couponModalSymbol
+    ? holdings.find(h => h.symbol === couponModalSymbol && String(h.assetType).toUpperCase() === 'BOND')
+    : null;
 
   return (
     <div>
@@ -802,6 +902,9 @@ export default function HoldingsTable({ holdings = [], commoditySpots = {}, valu
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
+              {hasAnyBond && (
+                <th className="w-8 px-2 py-3 border-b border-gray-200" aria-label="expand" />
+              )}
               {visibleCols.map(col => {
                 const isEmpty = emptyColKeys.has(col.key);
                 return (
@@ -824,18 +927,215 @@ export default function HoldingsTable({ holdings = [], commoditySpots = {}, valu
             </tr>
           </thead>
           <tbody>
-            {holdings.map(h => (
-              <tr key={`${h.assetType}-${h.symbol}`} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
-                {visibleCols.map(col => (
-                  <td key={col.key} className="px-4 py-3">
-                    {renderCell(col.key, h, commoditySpots, valuesHidden, t)}
-                  </td>
-                ))}
-              </tr>
-            ))}
+            {holdings.map(h => {
+              const rowKey = `${h.assetType}-${h.symbol}`;
+              const isBond = String(h.assetType ?? '').toUpperCase() === 'BOND';
+              const isClosed = !!h.closed;
+              const coupons = isBond ? (couponsBySymbol.get(h.symbol) || []) : [];
+              // Sadece kupon ödeyen kategorilerde expand + Kupon Ekle göster.
+              const COUPON_PAYING = new Set([
+                'FIXED_COUPON_BOND','TLREF_INDEXED_BOND','INFLATION_INDEXED_BOND',
+                'GOLD_INDEXED_BOND','FX_DENOMINATED_BOND',
+                'LEASE_CERTIFICATE','INFLATION_INDEXED_LEASE_CERTIFICATE',
+                'GOLD_INDEXED_LEASE_CERTIFICATE','FX_LEASE_CERTIFICATE',
+              ]);
+              const isCouponPaying = isBond && COUPON_PAYING.has(String(h.category ?? ''));
+              const canExpand = isBond && (coupons.length > 0 || (portfolioId && !isClosed && isCouponPaying));
+              const expanded = expandedKeys.has(rowKey);
+              const rowClass = isClosed
+                ? 'border-t border-gray-100 bg-gray-50/60 text-gray-500'
+                : 'border-t border-gray-100 hover:bg-gray-50 transition-colors';
+              return (
+                <Fragment key={rowKey}>
+                  <tr className={rowClass}>
+                    {hasAnyBond && (
+                      <td className="w-8 px-2 py-3 align-middle">
+                        {canExpand ? (
+                          <button
+                            type="button"
+                            onClick={() => toggleExpand(rowKey)}
+                            className="p-1 rounded hover:bg-gray-200 text-gray-500 hover:text-gray-700"
+                            title={expanded ? t('Daralt') : t('Genişlet — kupon ödemelerini gör')}
+                          >
+                            {expanded
+                              ? <ChevronUp className="w-3.5 h-3.5" />
+                              : <ChevronDown className="w-3.5 h-3.5" />}
+                          </button>
+                        ) : null}
+                      </td>
+                    )}
+                    {visibleCols.map(col => (
+                      <td key={col.key} className="px-4 py-3">
+                        {isClosed
+                          ? renderClosedBondCell(col.key, h, t)
+                          : renderCell(col.key, h, commoditySpots, valuesHidden, t)}
+                      </td>
+                    ))}
+                  </tr>
+                  {isBond && expanded && (() => {
+                    // Sadece periyodik kupon ÖDEYEN kategorilerde "Kupon Ekle" butonu görünür.
+                    // Kuponsuz bondlar (Hazine Bonosu, kuponsuz DT, stripler) periyodik ödeme yapmaz.
+                    const couponPayingCategories = new Set([
+                      'FIXED_COUPON_BOND',
+                      'TLREF_INDEXED_BOND',
+                      'INFLATION_INDEXED_BOND',
+                      'GOLD_INDEXED_BOND',
+                      'FX_DENOMINATED_BOND',
+                      'LEASE_CERTIFICATE',
+                      'INFLATION_INDEXED_LEASE_CERTIFICATE',
+                      'GOLD_INDEXED_LEASE_CERTIFICATE',
+                      'FX_LEASE_CERTIFICATE',
+                    ]);
+                    const isCouponPaying = couponPayingCategories.has(String(h.category ?? ''));
+                    return (
+                      <tr className="bg-gray-50/40">
+                        <td colSpan={(hasAnyBond ? 1 : 0) + visibleCols.length} className="px-4 py-3">
+                          <BondExpandPanel
+                            coupons={coupons}
+                            canAddCoupon={!!portfolioId && !isClosed && isCouponPaying}
+                            onAddCoupon={() => setCouponModalSymbol(h.symbol)}
+                            t={t}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })()}
+                </Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>
+
+      {couponHoldingForModal && (
+        <CouponIncomeModal
+          portfolioId={portfolioId}
+          holding={couponHoldingForModal}
+          onClose={() => setCouponModalSymbol(null)}
+          onAdded={(updated) => {
+            setCouponModalSymbol(null);
+            if (onPortfolioChanged) onPortfolioChanged(updated);
+          }}
+        />
+      )}
     </div>
   );
+}
+
+// ── BOND expand paneli (kupon ödemeleri + Kupon Ekle butonu) ──────────────────
+
+function BondExpandPanel({ coupons, canAddCoupon, onAddCoupon, t }) {
+  const total = coupons.reduce((acc, c) => acc + parseFloat(c.quantity || 0), 0);
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-xs font-semibold text-[#434653]">
+          <Coins className="w-4 h-4 text-[#093eaa]" />
+          {t('Kupon Ödemeleri')}
+          {coupons.length > 0 && (
+            <span className="text-[#747684] font-normal">
+              · {coupons.length} {t('kayıt')}
+              {' · '}
+              {t('Toplam')}: {total.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+            </span>
+          )}
+        </div>
+        {canAddCoupon && (
+          <button
+            type="button"
+            onClick={onAddCoupon}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#093eaa] hover:bg-[#072e80] text-white text-[11px] font-bold transition-colors"
+          >
+            <Plus className="w-3 h-3" /> {t('Kupon Ekle')}
+          </button>
+        )}
+      </div>
+      {coupons.length === 0 ? (
+        <p className="text-[11px] text-[#747684] italic">
+          {t('Henüz kupon ödemesi kaydedilmedi.')}
+          {canAddCoupon && ' ' + t('Bankanızdan kupon geldiğinde yukarıdaki butonla ekleyebilirsiniz.')}
+        </p>
+      ) : (
+        <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
+          <table className="w-full text-xs">
+            <thead className="bg-gray-50 text-[10px] uppercase text-gray-500">
+              <tr>
+                <th className="text-left px-3 py-1.5">{t('Tarih')}</th>
+                <th className="text-right px-3 py-1.5">{t('Tutar (TL)')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {coupons.map((c, idx) => (
+                <tr key={c.id ?? idx} className="border-t border-gray-100">
+                  <td className="px-3 py-1.5 text-gray-700">
+                    {(c.transactionDate || '').split('T')[0] || '-'}
+                  </td>
+                  <td className="px-3 py-1.5 text-right font-mono text-gray-900">
+                    {parseFloat(c.quantity || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Kapalı (vade itfası) BOND için sütun render ──────────────────────────────
+
+function renderClosedBondCell(colKey, h, t) {
+  const Dash = () => <span className="text-gray-300">—</span>;
+  switch (colKey) {
+    case 'name':
+      return (
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-500 line-through">
+            {h.name ?? h.symbol}
+          </span>
+          <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold whitespace-nowrap">
+            {t('İtfa edildi')}
+          </span>
+        </div>
+      );
+    case 'symbol':
+      return <span className="text-sm font-mono text-gray-500">{h.symbol}</span>;
+    case 'assetType':
+      return (
+        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md font-semibold">
+          {t('DİBS')}
+        </span>
+      );
+    case 'totalCost':
+      // Orijinal yatırılan toplam (initialCost) — kullanıcı "ne yatırdım"ı görür
+      if (h.initialCost == null) return <Dash />;
+      return (
+        <span className="text-sm text-gray-600">
+          {parseFloat(h.initialCost).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+        </span>
+      );
+    case 'realizedPnl': {
+      if (h.realizedGainLoss == null) return <Dash />;
+      const n = parseFloat(h.realizedGainLoss);
+      const cls = n > 0 ? 'text-emerald-600' : n < 0 ? 'text-rose-600' : 'text-gray-600';
+      return (
+        <span className={`text-sm font-semibold ${cls}`}>
+          {n > 0 ? '+' : ''}{n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL
+        </span>
+      );
+    }
+    case 'realizedPct': {
+      if (h.realizedGainLossPercent == null) return <Dash />;
+      const n = parseFloat(h.realizedGainLossPercent);
+      const cls = n > 0 ? 'text-emerald-600' : n < 0 ? 'text-rose-600' : 'text-gray-600';
+      return (
+        <span className={`text-sm font-semibold ${cls}`}>
+          {n > 0 ? '+' : ''}{n.toFixed(2).replace('.', ',')}%
+        </span>
+      );
+    }
+    default:
+      return <Dash />;
+  }
 }

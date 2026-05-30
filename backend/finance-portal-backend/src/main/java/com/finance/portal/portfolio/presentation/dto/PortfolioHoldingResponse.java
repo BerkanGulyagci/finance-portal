@@ -21,6 +21,26 @@ public class PortfolioHoldingResponse {
     private BigDecimal totalQuantity;
     private BigDecimal averageCost;
     private BigDecimal totalCost;
+
+    /**
+     * Pozisyon kapalı mı (openQty=0)? Şu an yalnız BOND için satır olarak kalıyor:
+     * vade itfası veya manuel tam-satıştan sonra holding listesinde realized K/Z görünür kalsın
+     * diye {@code closed=true} bayrakla emit edilir. Diğer asset tipleri kapanınca listeden düşer.
+     */
+    private boolean closed;
+
+    /**
+     * Pozisyon kapalıysa (BOND için): hiç SELL yapılmadan önce yatırılan toplam maliyet (TL).
+     * Toplam getiri yüzdesi {@code realizedGainLoss / initialCost × 100} ile hesaplanabilir.
+     */
+    private BigDecimal initialCost;
+
+    /**
+     * BOND için finansal kategori (TR sınıflandırma).
+     * {@link com.finance.portal.market.application.bond.evds.model.BondCategory} enum adı.
+     * Frontend bu alanı TÜFE-endeksli rozeti, strip uyarısı vb. için kullanır.
+     */
+    private String category;
     private BigDecimal currentPrice;
     private BigDecimal marketValue;
     private BigDecimal profitLoss;
@@ -114,6 +134,15 @@ public class PortfolioHoldingResponse {
     @JsonIgnore
     private List<CostLot> openCostLots;
 
-    /** {@link #openCostLots} elemanı: alış tarihi + maliyet katkısı (varlığın kendi para biriminde). */
-    public record CostLot(LocalDate buyDate, BigDecimal cost) {}
+    /**
+     * {@link #openCostLots} elemanı: alış tarihi + maliyet katkısı (varlığın kendi para biriminde)
+     * + kalan nominal/adet (SELL'de maliyetle aynı oranda küçülür). {@code qty}, What-if "Gerçek"
+     * çizgisinin gerçek piyasa değerini (qty × fiyat) hesaplaması için gerekir; eski/test verisinde
+     * bilinmiyorsa {@code null} (2-arg constructor) — çağıran eski ratio davranışına düşer.
+     */
+    public record CostLot(LocalDate buyDate, BigDecimal cost, BigDecimal qty) {
+        public CostLot(LocalDate buyDate, BigDecimal cost) {
+            this(buyDate, cost, null);
+        }
+    }
 }

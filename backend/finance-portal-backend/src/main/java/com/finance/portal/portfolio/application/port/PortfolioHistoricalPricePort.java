@@ -15,6 +15,9 @@ public interface PortfolioHistoricalPricePort {
     /**
      * {@code from}–{@code to} aralığında günlük kapanış fiyatları (tarih → fiyat).
      * Boş veya bulunamayan seri için {@link Optional#empty()}.
+     *
+     * <p>BOND için EVDS "Gösterge Değeri" doğrudan döner — TÜFE-endeksli bondlar dahil ek ölçekleme
+     * uygulanmaz (gösterge değeri zaten nominal/endekslidir). Reel getiri ayrı hesaplanır.
      */
     Optional<NavigableMap<LocalDate, BigDecimal>> fetchDailyClosePrices(
             AssetType assetType,

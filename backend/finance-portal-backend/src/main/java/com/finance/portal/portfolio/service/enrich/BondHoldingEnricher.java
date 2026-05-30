@@ -4,9 +4,15 @@ import com.finance.portal.market.application.bond.evds.BondPeriod;
 import com.finance.portal.market.application.bond.evds.EvdsBondHistoryPoint;
 import com.finance.portal.market.application.bond.evds.EvdsBondInstrument;
 import com.finance.portal.market.application.bond.evds.EvdsBondService;
+import com.finance.portal.market.application.bond.evds.model.BondCategory;
 import com.finance.portal.market.application.bond.eurobond.EurobondService;
 import com.finance.portal.market.application.bond.eurobond.model.EurobondChartPoint;
 import com.finance.portal.market.application.bond.eurobond.model.EurobondDetail;
+import com.finance.portal.market.application.fx.model.FxLatestRates;
+import com.finance.portal.market.application.fx.model.FxRateItem;
+import com.finance.portal.market.application.gold.GoldMarketService;
+import com.finance.portal.market.application.gold.GoldSpotResponse;
+import com.finance.portal.market.application.service.MarketFxService;
 import com.finance.portal.portfolio.presentation.dto.PortfolioHoldingResponse;
 import com.finance.portal.portfolio.service.support.PortfolioMovingAverage;
 import org.slf4j.Logger;
@@ -24,7 +30,6 @@ import java.util.stream.Collectors;
 
 import static com.finance.portal.portfolio.service.enrich.PortfolioEnrichmentMath.MONEY_SCALE;
 import static com.finance.portal.portfolio.service.enrich.PortfolioEnrichmentMath.applyMasFromCloses;
-import static com.finance.portal.portfolio.service.enrich.PortfolioEnrichmentMath.marketValue;
 import static com.finance.portal.portfolio.service.enrich.PortfolioEnrichmentMath.profitLoss;
 
 /**
@@ -43,12 +48,36 @@ public class BondHoldingEnricher {
 
     private static final Logger log = LoggerFactory.getLogger(BondHoldingEnricher.class);
 
+    /**
+     * TCMB konvansiyonu: DİBS "Bugünkü Değer" 100 TL nominal üzerinden kote edilir
+     * ({@code dibs1.txt} resmi başlığı). Piyasa değeri ve maliyet bu çarpan ile ölçeklenir:
+     * <pre>
+     *   marketValue = qty_nominal × price / 100
+     * </pre>
+     * Bu ölçek hem EVDS DİBS hem Eurobond (BI quote'u da 100 nominal üzerinden) için geçerli.
+     */
+    private static final BigDecimal PAR_SCALE = new BigDecimal("100");
+
     private final EvdsBondService evdsBondService;
     private final EurobondService eurobondService;
+    private final MarketFxService marketFxService;
+    private final GoldMarketService goldMarketService;
 
-    public BondHoldingEnricher(EvdsBondService evdsBondService, EurobondService eurobondService) {
+    /** {@code qty × price / 100} — DİBS/Eurobond piyasa değeri formülü, MONEY_SCALE'e yuvarlanmış. */
+    private static BigDecimal bondMarketValue(BigDecimal price, BigDecimal qty) {
+        if (price == null || qty == null) return null;
+        return price.multiply(qty)
+                .divide(PAR_SCALE, MONEY_SCALE, RoundingMode.HALF_UP);
+    }
+
+    public BondHoldingEnricher(EvdsBondService evdsBondService,
+                               EurobondService eurobondService,
+                               MarketFxService marketFxService,
+                               GoldMarketService goldMarketService) {
         this.evdsBondService = evdsBondService;
         this.eurobondService = eurobondService;
+        this.marketFxService = marketFxService;
+        this.goldMarketService = goldMarketService;
     }
 
     public void enrich(PortfolioHoldingResponse holding) {
@@ -116,15 +145,45 @@ public class BondHoldingEnricher {
             return;
         }
 
-        BigDecimal mv = marketValue(price, holding.getTotalQuantity());
+        // TCMB DİBS Bugünkü Değer 100 nominal üzerinden kote: mv = qty × price / 100
+        BigDecimal mv = bondMarketValue(price, holding.getTotalQuantity());
+
+        BondCategory category = bond != null ? bond.getCategory() : null;
+
+        // TÜFE-endeksli bondlarda EVDS "Gösterge Değeri" ZATEN nominal/endekslidir — ihraçtan bugüne
+        // kümülatif enflasyonu içinde taşır (ör. ~12× = 100 nominal × referans endeks oranı; seri 6 ayda
+        // ≈ enflasyon kadar büyür). Bu yüzden ek bir TÜFE çarpanı UYGULANMAZ; aksi halde enflasyon çifte
+        // sayılırdı. cost (alışta ödenen nominal TL) sabit, mv (bugünkü nominal değer) bondun kendi
+        // endekslenmiş fiyatından gelir → nominal K/Z doğrudan tutarlı. Reel (enflasyondan arındırılmış)
+        // getiri PortfolioRealReturnEnricher'da ayrı hesaplanır ("Reel K/Z %").
+
+        // Yabancı para cinsli DT (Section 5/6): EVDS "Değer" zaten TL bazlı kotasyon —
+        // dış FX çevirisi YAPILMAZ; currency etiketi de TRY kalır (değerler TL).
+        // (Kategori rozeti UI'da "EUR/USD" gösterir ama TL hesaba göre.)
+
+        // Altına dayalı senet (Section 4): EVDS "Değer/1 adet" — birim 1 gram has altın.
+        // qty (adet) × price (TL/adet) doğrudan TL piyasa değerini verir, /100 YOK.
+        // (Kullanıcı tercihi: harici gram altın spot ile değiştirme — bond'un kendi EVDS fiyatı kullanılsın.)
+        if (mv != null && category == BondCategory.GOLD_INDEXED_BOND) {
+            BigDecimal qty = holding.getTotalQuantity() != null
+                    ? holding.getTotalQuantity() : BigDecimal.ZERO;
+            mv = qty.multiply(price).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+        }
+
         BigDecimal pl = profitLoss(mv, holding.getTotalCost());
 
         holding.setCurrentPrice(price);
         holding.setMarketValue(mv);
         holding.setProfitLoss(pl);
-        holding.setCurrency("TRY");
+        // FX-cinsli bondlarda yukarıda zaten setCurrency(fxCurrency) yapıldı; aksi takdirde TRY.
+        if (holding.getCurrency() == null || holding.getCurrency().isBlank()) {
+            holding.setCurrency("TRY");
+        }
         holding.setChange(change);
         holding.setChangePercent(changePercent);
+        if (category != null) {
+            holding.setCategory(category.name());
+        }
         holding.setAsOf(lu != null ? lu.atStartOfDay()
                 : fallbackDate != null ? fallbackDate.atStartOfDay()
                 : LocalDateTime.now());
@@ -165,7 +224,12 @@ public class BondHoldingEnricher {
         }
         BigDecimal priceTry = d.getLastPriceTry();
         BigDecimal qty = holding.getTotalQuantity() != null ? holding.getTotalQuantity() : BigDecimal.ZERO;
-        BigDecimal mv = priceTry.multiply(qty).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+        // BI eurobond kote'si % nominal — DİBS ile aynı 100-üzeri ölçek: mv = qty × priceTry / 100
+        BigDecimal mv = bondMarketValue(priceTry, qty);
+
+        // Maliyet builder tarafından ZATEN TL hesaplanır: eurobond fiyatı modal/autofill'de TL girilir
+        // (kote × o günün TCMB satış kuru — tarihsel FX fiyata gömülü). Bu yüzden burada ek FX çevirimi
+        // YAPILMAZ; aksi halde kur çifte sayılıp cost ~FX katı şişerdi (sahte dev zarar). currency = TRY.
         BigDecimal cost = holding.getTotalCost() != null ? holding.getTotalCost() : BigDecimal.ZERO;
         BigDecimal pl = mv.subtract(cost).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
 
@@ -191,5 +255,66 @@ public class BondHoldingEnricher {
         } catch (Exception e) {
             log.debug("Eurobond 52w/MA alınamadı {}: {}", isin, e.getMessage());
         }
+    }
+
+    // ── Tier 3 — yabancı para / altın yardımcıları ───────────────────────────
+
+    /**
+     * Yabancı para cinsli DİBS için para birimini tahmin et. TCMB Section 5 EUR, Section 6 USD;
+     * ISIN/CBRT kodundan kesin ayrım yapılamadığında varsayılan USD.
+     * <p>Gelecek iyileştirme: EVDS SERIE_NAME/CBRT kodu içeriğinden EUR/USD parsing.
+     */
+    private static String guessFxBondCurrency(String code, EvdsBondInstrument bond) {
+        // Bond name veya CBRT kodunda "EUR" ipucu varsa EUR; aksi takdirde USD.
+        if (bond != null) {
+            String[] hints = { bond.getType(), bond.getCbrtCode() };
+            for (String hint : hints) {
+                if (hint != null && hint.toUpperCase(Locale.ROOT).contains("EUR")) {
+                    return "EUR";
+                }
+            }
+        }
+        return "USD";
+    }
+
+    /** 1 birim {@code currency} → TL satış kuru (TCMB). Bulunamazsa null. */
+    private BigDecimal lookupFxRateToTry(String currency) {
+        if (currency == null || currency.isBlank()) return null;
+        try {
+            String cur = currency.trim().toUpperCase(Locale.ROOT);
+            FxLatestRates latest = marketFxService.getTcmbLatestRates(cur);
+            if (latest == null || latest.getRates() == null) return null;
+            FxRateItem rate = latest.getRates().stream()
+                    .filter(r -> cur.equalsIgnoreCase(r.getSymbol()))
+                    .findFirst().orElse(null);
+            if (rate == null) return null;
+            BigDecimal sell = rate.getSell() != null ? rate.getSell() : rate.getBuy();
+            if (sell == null) return null;
+            int unit = rate.getUnit() > 1 ? rate.getUnit() : 1;
+            return unit > 1
+                    ? sell.divide(BigDecimal.valueOf(unit), 8, RoundingMode.HALF_UP)
+                    : sell;
+        } catch (Exception e) {
+            log.debug("FX-cinsli bond için kur alınamadı ({}): {}", currency, e.getMessage());
+            return null;
+        }
+    }
+
+    /** Canlı has altın gram TL fiyatı (BIST üzerinden). Bulunamazsa null. */
+    private BigDecimal lookupGoldGramTry() {
+        try {
+            GoldSpotResponse spot = goldMarketService.getSpotGold();
+            if (spot != null) {
+                if (spot.getOfficialPureGoldGramTry() != null) {
+                    return spot.getOfficialPureGoldGramTry();
+                }
+                if (spot.getGramCloseTry() != null) {
+                    return spot.getGramCloseTry();
+                }
+            }
+        } catch (Exception e) {
+            log.debug("Altın gram TL alınamadı: {}", e.getMessage());
+        }
+        return null;
     }
 }

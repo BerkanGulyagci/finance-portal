@@ -30,7 +30,8 @@ class PortfolioPerformanceCalculatorTest {
 
     @BeforeEach
     void setUp() {
-        calculator = new PortfolioPerformanceCalculator();
+        calculator = new PortfolioPerformanceCalculator(
+                org.mockito.Mockito.mock(com.finance.portal.market.application.bond.evds.EvdsBondService.class));
     }
 
     @Test

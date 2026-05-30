@@ -297,6 +297,10 @@ export default function AddTransactionModal({
     if (!isAmountMode || !price) return null;
     const amt = parseFloat(form.tradeAmount);
     if (!amt || amt <= 0) return null;
+    // BOND için fiyat "100 TL nominal başına"; etkin fiyat = price/100 → nominal = amt / etkin_fiyat
+    // Altın bond istisnası (birim adet/gram, /100 yok)
+    const isGoldBondLocal = isBond && instrument?.category === 'GOLD_INDEXED_BOND';
+    const effectivePrice = isGoldBondLocal ? price : (isBond ? price / 100 : price);
 
     // Komisyon >= tutar kontrolü
     if (commission > 0 && commission >= amt) {
@@ -325,10 +329,10 @@ export default function AddTransactionModal({
       }
       // BUY: komisyon yatırım tutarından düşülür
       const investable = amt - commission;
-      const rawQty = investable / price;
+      const rawQty = investable / effectivePrice;
       if (useQtyFloor) {
         const qty = Math.floor(rawQty);
-        const used = qty * price;
+        const used = qty * effectivePrice;
         const remaining = investable - used;
         return {
           qty, rawQty, used, remaining,
@@ -340,7 +344,7 @@ export default function AddTransactionModal({
       }
       return {
         qty: rawQty, rawQty,
-        used: rawQty * price,
+        used: rawQty * effectivePrice,
         remaining: 0,
         totalPayment: amt,
         isZero: rawQty <= 0,
@@ -348,14 +352,14 @@ export default function AddTransactionModal({
         isBuy: true,
       };
     } else {
-      // SELL: quantity = tradeAmount / price (komisyon ayrı)
-      const rawQty = amt / price;
+      // SELL: quantity = tradeAmount / etkin_fiyat (komisyon ayrı)
+      const rawQty = amt / effectivePrice;
       const exceedsAvailable =
         availableQty != null && rawQty > availableQty + 1e-10;
 
       if (useQtyFloor) {
         const qty = Math.floor(rawQty);
-        const grossSell = qty * price;
+        const grossSell = qty * effectivePrice;
         const remaining = amt - grossSell;
         const netIncome = grossSell - commission;
         return {
@@ -381,7 +385,7 @@ export default function AddTransactionModal({
         isBuy: false,
       };
     }
-  }, [isAmountMode, form.tradeAmount, price, commission, isBuy, useQtyFloor, availableQty, isFund]);
+  }, [isAmountMode, form.tradeAmount, price, commission, isBuy, useQtyFloor, availableQty, isFund, isBond]);
 
   /** Altın adet bazlı: küsuratlı miktar */
   const goldPieceQtyInvalid = useMemo(() => {
@@ -415,16 +419,22 @@ export default function AddTransactionModal({
     return q > availableQty + 1e-10;
   }, [isFund, isBuy, isAmountMode, availableQty, form.quantity, price]);
 
-  /** "Miktar ile" modunda özet — BUY satır gelirleri veya SELL net geliri */
+  // BOND alt-türü: altın senedi (birim "adet/gram") — /100 uygulanmaz, doğrudan adet × gram-TL.
+  const isGoldBond = isBond && instrument?.category === 'GOLD_INDEXED_BOND';
+
+  /** "Miktar ile" modunda özet — BUY satır gelirleri veya SELL net geliri.
+   *  BOND: TCMB konvansiyonu — fiyat "100 TL nominal üzerinden" → etkin = price/100.
+   *  Altın bond istisnası: birim adet/gram — etkin fiyat = price doğrudan. */
   const quantityModeTotal = useMemo(() => {
     if (isAmountMode) return null;
     const qty = parseFloat(form.quantity);
     if (!qty || !price) return null;
-    const gross = qty * price;
+    const effectivePrice = isGoldBond ? price : (isBond ? price / 100 : price);
+    const gross = qty * effectivePrice;
     return isBuy
       ? { gross, total: gross + commission }
       : { gross, netIncome: gross - commission };
-  }, [isAmountMode, form.quantity, price, commission, isBuy]);
+  }, [isAmountMode, form.quantity, price, commission, isBuy, isBond, isGoldBond]);
 
   // ── submit ──────────────────────────────────────────────────────────────────
 
@@ -584,7 +594,14 @@ export default function AddTransactionModal({
       return unit ? `${formatGoldQuantity(qty, goldMeta)} ${unit}` : formatGoldQuantity(qty, goldMeta);
     }
     if (useQtyFloor) return `${fmtNum(qty, 0)} ${t('adet')}`;
-    return `${fmtNum(qty, 8).replace(/\.?0+$/, '')} ${symShort}`;
+    const num = fmtNum(qty, 8).replace(/\.?0+$/, '');
+    if (isCommodity && commodityUnit) {
+      return `${num} ${commodityUnit} (${symShort})`;
+    }
+    if (isBond) {
+      return `${num} ${t('TL nominal')} (${symShort})`;
+    }
+    return `${num} ${symShort}`;
   }
 
   return (
@@ -706,7 +723,11 @@ export default function AddTransactionModal({
                           ? `${t(goldMeta.quantityLabel)} *`
                           : isCommodity && commodityUnit
                             ? `${t('Miktar')} (${commodityUnit}) *`
-                            : `${t('Miktar')} *`}
+                            : isBond && instrument?.category === 'GOLD_INDEXED_BOND'
+                              ? `${t('Adet (gram altın)')} *`
+                              : isBond
+                                ? `${t('Nominal Tutar (TL)')} *`
+                                : `${t('Miktar')} *`}
                   </label>
                   <input
                     type="text" inputMode="decimal"
@@ -734,6 +755,26 @@ export default function AddTransactionModal({
                       {t('Bu ürün için miktar birimi: {unit}', { unit: commodityUnit })}
                     </p>
                   )}
+                  {isBond && (
+                    <p className="mt-1 text-[11px] text-[#747684] leading-snug">
+                      {t('Aldığınız nominal anaparayı TL olarak girin. Vade sonunda bu nominal kadar ödeme alırsınız.')}
+                    </p>
+                  )}
+                  {isBond && String(instrument?.category ?? '').startsWith('INFLATION_') && (
+                    <p className="mt-1 text-[11px] text-amber-700 leading-snug bg-amber-50 border border-amber-200 rounded-md px-2 py-1">
+                      {t('Bu TÜFE-endeksli bir senettir. Birim fiyat (EVDS gösterge değeri) zaten enflasyona endekslidir — değer TÜFE ile birlikte kendiliğinden büyür. Maliyetiniz alış tutarında sabit kalır; piyasa değeriniz senedin güncel endeksli fiyatından gelir.')}
+                    </p>
+                  )}
+                  {isBond && instrument?.category === 'FX_DENOMINATED_BOND' && (
+                    <p className="mt-1 text-[11px] text-blue-700 leading-snug bg-blue-50 border border-blue-200 rounded-md px-2 py-1">
+                      {t('Yabancı para (EUR/USD) cinsli senettir. Nominal anaparayı yabancı para olarak girin; TL piyasa değeri canlı TCMB satış kuruyla otomatik hesaplanır.')}
+                    </p>
+                  )}
+                  {isBond && instrument?.category === 'GOLD_INDEXED_BOND' && (
+                    <p className="mt-1 text-[11px] text-yellow-800 leading-snug bg-yellow-50 border border-yellow-200 rounded-md px-2 py-1">
+                      {t('Altına dayalı senettir. Birim "adet" = 1 gram has altın varsayılır; TL piyasa değeri canlı gram altın fiyatı ile otomatik hesaplanır.')}
+                    </p>
+                  )}
                 </>
               )}
             </div>
@@ -743,11 +784,13 @@ export default function AddTransactionModal({
               <label className="block text-xs font-semibold text-[#434653] mb-1.5">
                 {isFund
                   ? `${t('Birim Pay Değeri')} *`
-                  : isBond
-                    ? `${t('Gösterge Değeri')} *`
-                    : isGold && goldMeta
-                      ? `${t(goldMeta.priceLabel)} *`
-                      : `${t('Fiyat')} *`}
+                  : isBond && instrument?.category === 'GOLD_INDEXED_BOND'
+                    ? `${t('Bir Adet Fiyatı (gram altın TL)')} *`
+                    : isBond
+                      ? `${t('Birim Fiyat (100 TL nominal başına)')} *`
+                      : isGold && goldMeta
+                        ? `${t(goldMeta.priceLabel)} *`
+                        : `${t('Fiyat')} *`}
                 {priceLoading
                   ? <span className="ml-1 text-[#747684] font-normal">{t('yükleniyor...')}</span>
                   : priceAuto && <span className="ml-1 text-[#10b981] font-normal">{t('otomatik')}</span>}
@@ -786,6 +829,16 @@ export default function AddTransactionModal({
               {isCommodity && commodityUnit && !priceNotFound && (
                 <p className="mt-1 text-[11px] text-[#747684] leading-snug">
                   {t('Fiyat, {unit} başına TL değeridir.', { unit: commodityUnit.toLowerCase() })}
+                </p>
+              )}
+              {isBond && instrument?.category === 'GOLD_INDEXED_BOND' && !priceNotFound && (
+                <p className="mt-1 text-[11px] text-[#747684] leading-snug">
+                  {t('Birim "1 adet = 1 gram has altın" varsayılır. Toplam ödeme = adet × bugünkü gram altın TL.')}
+                </p>
+              )}
+              {isBond && !isEurobond && instrument?.category !== 'GOLD_INDEXED_BOND' && !priceNotFound && (
+                <p className="mt-1 text-[11px] text-[#747684] leading-snug">
+                  {t('TCMB EVDS "Bugünkü Değer" — 100 TL nominal üzerinden kote. Toplam ödeme = nominal × fiyat / 100.')}
                 </p>
               )}
               {instrument?.assetType === 'COMMODITY'

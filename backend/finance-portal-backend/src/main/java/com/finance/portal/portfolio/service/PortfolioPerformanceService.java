@@ -132,7 +132,7 @@ public class PortfolioPerformanceService {
         points = trimLeadingZeroValuePoints(points);
 
         alignLastPointWithLiveHoldings(points, endDate, transactions);
-        PortfolioPeriodGrowthCalculator.applyPeriodGrowth(points, transactions, excludedKeys);
+        PortfolioPeriodGrowthCalculator.applyPeriodGrowth(points, transactions, excludedKeys, calculator::isGoldBondSymbol);
         applyInflationBaseline(points);
 
         PortfolioPerformanceResult result = new PortfolioPerformanceResult();

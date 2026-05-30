@@ -6,6 +6,7 @@ import com.finance.portal.portfolio.application.performance.PortfolioPerformance
 import com.finance.portal.portfolio.application.port.PortfolioHistoricalPricePort;
 import com.finance.portal.portfolio.application.whatif.PortfolioWhatIfResult;
 import com.finance.portal.portfolio.application.whatif.WhatIfSeriesResult;
+import com.finance.portal.portfolio.presentation.dto.AddCouponIncomeRequest;
 import com.finance.portal.portfolio.presentation.dto.AddTransactionRequest;
 import com.finance.portal.portfolio.presentation.dto.AddWatchlistItemRequest;
 import com.finance.portal.portfolio.presentation.dto.CreatePortfolioRequest;
@@ -179,6 +180,21 @@ public class PortfolioController {
         String userId = jwt.getSubject();
         PortfolioResponse portfolio = portfolioService.addTransaction(userId, portfolioId, request);
         return ResponseEntity.ok(ApiResponse.success(portfolio, "Transaction added successfully"));
+    }
+
+    /**
+     * Manuel DİBS/Kira Sertifikası kupon ödeme kaydı. Realized gelir olarak yansır.
+     * Açık pozisyon (nominal/cost) etkilenmez.
+     */
+    @PostMapping("/{portfolioId}/coupon-income")
+    public ResponseEntity<ApiResponse<PortfolioResponse>> addCouponIncome(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID portfolioId,
+            @Valid @RequestBody AddCouponIncomeRequest request
+    ) {
+        String userId = jwt.getSubject();
+        PortfolioResponse portfolio = portfolioService.addCouponIncome(userId, portfolioId, request);
+        return ResponseEntity.ok(ApiResponse.success(portfolio, "Coupon income added successfully"));
     }
 
     @PatchMapping("/{portfolioId}")

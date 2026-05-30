@@ -23,12 +23,14 @@ import static org.mockito.Mockito.*;
 class PortfolioHoldingsBuilderTest {
 
     private HoldingMarketEnrichmentPort enrichmentPort;
+    private com.finance.portal.market.application.bond.evds.EvdsBondService evdsBondService;
     private PortfolioHoldingsBuilder builder;
 
     @BeforeEach
     void setUp() {
         enrichmentPort = mock(HoldingMarketEnrichmentPort.class);
-        builder = new PortfolioHoldingsBuilder(enrichmentPort);
+        evdsBondService = mock(com.finance.portal.market.application.bond.evds.EvdsBondService.class);
+        builder = new PortfolioHoldingsBuilder(enrichmentPort, evdsBondService);
     }
 
     // ------------------------------ boş / null girdi ------------------------------

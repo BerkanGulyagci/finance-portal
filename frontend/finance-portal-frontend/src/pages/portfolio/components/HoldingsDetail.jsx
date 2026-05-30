@@ -30,11 +30,17 @@ function num(h, ...keys) {
 
 function positionDailyGainLoss(h) {
   const qty = num(h, 'totalQuantity');
+  // BOND: TCMB konvansiyonu — fiyat 100 nominal başına kote → günlük TL K/Z = qty × change / 100.
+  // Altın bond (adet/gram) istisna: /100 yok.
+  const isBond = h?.assetType === 'BOND';
+  const isGoldBond = h?.category === 'GOLD_INDEXED_BOND'
+    || h?.category === 'GOLD_INDEXED_LEASE_CERTIFICATE';
+  const scale = (isBond && !isGoldBond) ? 100 : 1;
   const perShare = num(h, 'dailyChangeAmount', 'change');
-  if (qty != null && perShare != null) return qty * perShare;
+  if (qty != null && perShare != null) return (qty * perShare) / scale;
   const pc = num(h, 'previousClose', 'regularMarketPreviousClose', 'prevClose');
   const cp = num(h, 'currentPrice');
-  if (qty != null && cp != null && pc != null) return qty * (cp - pc);
+  if (qty != null && cp != null && pc != null) return (qty * (cp - pc)) / scale;
   return null;
 }
 
@@ -419,6 +425,9 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
             holdings={holdingsRows}
             commoditySpots={commoditySpots}
             valuesHidden={valuesHidden}
+            transactions={portfolio.transactions ?? []}
+            portfolioId={portfolio.id}
+            onPortfolioChanged={onPortfolioUpdate}
           />
         )}
         {activeTab === 'transactions' && (

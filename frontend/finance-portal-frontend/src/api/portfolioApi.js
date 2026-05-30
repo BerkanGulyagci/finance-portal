@@ -57,6 +57,19 @@ export async function deleteTransaction(portfolioId, transactionId) {
   return wrapper.data;
 }
 
+/**
+ * Manuel DİBS/Kira Sertifikası kupon ödeme kaydı.
+ * payload: { symbol, amount, paymentDate (ISO string) }
+ * Realized gelir olarak portföye yansır; açık pozisyon (nominal/cost) dokunulmaz.
+ */
+export async function addCouponIncome(portfolioId, payload) {
+  const { data: wrapper } = await client.post(
+    `/api/portfolios/${portfolioId}/coupon-income`,
+    payload
+  );
+  return wrapper.data;
+}
+
 // ── Performance chart ───────────────────────────────────────────────────────
 
 export async function getPortfolioPerformance(portfolioId, range, metric) {

@@ -1,6 +1,9 @@
 package com.finance.portal.portfolio.service.performance;
 
 import com.finance.portal.common.domain.AssetType;
+import com.finance.portal.market.application.bond.evds.EvdsBondInstrument;
+import com.finance.portal.market.application.bond.evds.EvdsBondService;
+import com.finance.portal.market.application.bond.evds.model.BondCategory;
 import com.finance.portal.market.application.viop.ViopService;
 import com.finance.portal.portfolio.application.performance.ExcludedPerformanceAsset;
 import com.finance.portal.portfolio.application.performance.PortfolioPerformancePoint;
@@ -31,6 +34,26 @@ public class PortfolioPerformanceCalculator {
 
     private static final int MONEY_SCALE = 4;
     private static final int PCT_SCALE = 2;
+
+    /** BOND için TCMB konvansiyonu: fiyat 100 TL nominal üzerinden — etkin = price/100. */
+    private static final BigDecimal BOND_PAR_SCALE = new BigDecimal("100");
+
+    private final EvdsBondService evdsBondService;
+
+    public PortfolioPerformanceCalculator(EvdsBondService evdsBondService) {
+        this.evdsBondService = evdsBondService;
+    }
+
+    /** Altın bond? Birim "adet/gram" — /100 uygulanmaz. */
+    public boolean isGoldBondSymbol(String symbol) {
+        if (symbol == null || symbol.isBlank()) return false;
+        try {
+            EvdsBondInstrument b = evdsBondService.getEvdsBondDetail(symbol);
+            return b != null && b.getCategory() == BondCategory.GOLD_INDEXED_BOND;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
     public List<PortfolioPerformancePoint> calculate(
             List<PortfolioTransaction> transactions,
@@ -64,8 +87,10 @@ public class PortfolioPerformanceCalculator {
                 }
                 String key = positionKey(tx);
                 if (!excludedPositionKeys.contains(key)) {
+                    final String dsym = displaySymbol(tx);
+                    final boolean isGold = tx.getAssetType() == AssetType.BOND && isGoldBondSymbol(dsym);
                     openPositions.computeIfAbsent(key, k -> new HoldingAccumulator(
-                            key, displaySymbol(tx), tx.getAssetType())).apply(tx);
+                            key, dsym, tx.getAssetType(), isGold)).apply(tx);
                     HoldingAccumulator acc = openPositions.get(key);
                     if (acc.openQuantity.compareTo(BigDecimal.ZERO) <= 0) {
                         openPositions.remove(key);
@@ -96,7 +121,12 @@ public class PortfolioPerformanceCalculator {
                     continue;
                 }
                 contributedKeys.add(key);
-                BigDecimal mv = unitPrice.multiply(acc.openQuantity).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+                // BOND için fiyat 100 nominal üzerinden — etkin = unitPrice/100.
+                // Altın bond istisnası: birim adet/gram → /100 uygulanmaz.
+                BigDecimal effectivePrice = (acc.assetType == AssetType.BOND && !acc.isGoldBond)
+                        ? unitPrice.divide(BOND_PAR_SCALE, 12, RoundingMode.HALF_UP)
+                        : unitPrice;
+                BigDecimal mv = effectivePrice.multiply(acc.openQuantity).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
                 totalMarketValue = totalMarketValue.add(mv);
                 totalCost = totalCost.add(acc.openCostBasis.setScale(MONEY_SCALE, RoundingMode.HALF_UP));
             }
@@ -176,14 +206,16 @@ public class PortfolioPerformanceCalculator {
         final String positionKey;
         final String symbol;
         final AssetType assetType;
+        final boolean isGoldBond;
 
         BigDecimal openQuantity = BigDecimal.ZERO;
         BigDecimal openCostBasis = BigDecimal.ZERO;
 
-        HoldingAccumulator(String positionKey, String symbol, AssetType assetType) {
+        HoldingAccumulator(String positionKey, String symbol, AssetType assetType, boolean isGoldBond) {
             this.positionKey = positionKey;
             this.symbol = symbol;
             this.assetType = assetType;
+            this.isGoldBond = isGoldBond;
         }
 
         void apply(PortfolioTransaction tx) {
@@ -191,8 +223,19 @@ public class PortfolioPerformanceCalculator {
             BigDecimal price = tx.getPrice();
             BigDecimal commission = tx.getCommission() != null ? tx.getCommission() : BigDecimal.ZERO;
 
+            // COUPON_INCOME: replay'de pozisyon değiştirmez (sadece realized gelir; performance MV'yi etkilemez).
+            if (tx.getTransactionType() == TransactionType.COUPON_INCOME) {
+                return;
+            }
+
+            // BOND: TCMB konvansiyonu — fiyat "100 TL nominal üzerinden".
+            // Altın bond istisnası: birim adet/gram → /100 uygulanmaz.
+            BigDecimal effectivePrice = (assetType == AssetType.BOND && !isGoldBond)
+                    ? price.divide(BOND_PAR_SCALE, 12, RoundingMode.HALF_UP)
+                    : price;
+
             if (tx.getTransactionType() == TransactionType.BUY) {
-                BigDecimal cost = qty.multiply(price).add(commission);
+                BigDecimal cost = qty.multiply(effectivePrice).add(commission);
                 openCostBasis = openCostBasis.add(cost);
                 openQuantity = openQuantity.add(qty);
             } else {

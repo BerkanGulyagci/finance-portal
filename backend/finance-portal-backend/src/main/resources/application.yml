@@ -417,7 +417,10 @@ evds:
   api-key: ${EVDS_API_KEY:}
   data-group: bie_pydibs
   use-whitelist: false          # true → sadece bond-instruments çalışır; false → aktif tüm seriler
-  active-bonds-limit: 300       # güvenlik limiti; 0 = limitsiz (tüm aktif seriler — yavaş olabilir)
+  active-bonds-limit: 0         # 0 = limitsiz (tüm aktif DİBS Değer serileri — ~537 enstrüman)
+  # Kira Sertifikası data group'u (Sukuk) — ek olarak DİBS yanında çekilir
+  lease-cert-data-group: bie_pyks
+  include-lease-certs: true     # false → kira sertifikaları yüklenmez
   # EVDS liste toplu çekiminde eşzamanlı HTTP sayısı (TCMB'yi aşırı yüklememek için 4–16 arası önerilir)
   bond-fetch-parallelism: 8
   bond-instruments:

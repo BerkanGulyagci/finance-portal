@@ -305,6 +305,7 @@ export async function getEvdsBonds({
   size = 50,
   search = '',
   type = '',
+  category = '',
   minRemainingDays = null,
   maxRemainingDays = null,
   sortBy = 'maturityDate',
@@ -313,10 +314,17 @@ export async function getEvdsBonds({
   const params = { page, size, sortBy, sortDir };
   if (search)              params.search = search;
   if (type)                params.type   = type;
+  if (category)            params.category = category;
   if (minRemainingDays != null) params.minRemainingDays = minRemainingDays;
   if (maxRemainingDays != null) params.maxRemainingDays = maxRemainingDays;
   const { data } = await client.get('/api/market/bonds/evds', { params, timeout: 240_000 });
   return data.data ?? { items: [], totalItems: 0, totalPages: 0, page: 0, size, hasNext: false, hasPrevious: false };
+}
+
+/** Backend'den her kategorinin enstrüman sayısını döner (dropdown sayım için). */
+export async function getEvdsBondCategoryCounts() {
+  const { data } = await client.get('/api/market/bonds/evds/categories', { timeout: 120_000 });
+  return data.data ?? {};
 }
 
 /**

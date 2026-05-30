@@ -1,6 +1,7 @@
 package com.finance.portal.portfolio.infrastructure.market;
 
 import com.finance.portal.common.domain.AssetType;
+import com.finance.portal.market.application.bond.evds.EvdsBondInstrument;
 import com.finance.portal.market.application.bond.evds.model.EvdsSeriesPoint;
 import com.finance.portal.market.application.bond.evds.port.EvdsBondPort;
 import com.finance.portal.market.application.bond.eurobond.EurobondService;
@@ -244,12 +245,81 @@ public class PortfolioHistoricalPriceAdapter implements PortfolioHistoricalPrice
         if (eurobondService.currentIsins().contains(code)) {
             return fetchEurobond(code, from, to);
         }
+        // EVDS "Gösterge Değeri" tüm DİBS tür­leri için doğrudan kullanılır — ek ölçekleme YOK.
+        // TÜFE-endeksli bondlarda bu değer zaten nominal/endeksli (ihraçtan bugüne kümülatif enflasyonu
+        // içinde taşır); FX/Altın bondlarda da EVDS değeri zaten TL bazlı. Dolayısıyla ne TÜFE çarpanı
+        // ne de dış FX/altın çevrimi uygulanır (yoksa enflasyon/kur çifte sayılırdı). Reel getiri
+        // PortfolioRealReturnEnricher'da nominal seriden ayrıca türetilir.
         List<EvdsSeriesPoint> points = evdsBondPort.fetchIndicatorValues(symbol, from, to);
         NavigableMap<LocalDate, BigDecimal> map = new TreeMap<>();
         for (EvdsSeriesPoint p : points) {
-            if (p.getDate() != null && p.getValue() != null) {
-                map.put(p.getDate(), p.getValue());
+            if (p.getDate() == null || p.getValue() == null) continue;
+            map.put(p.getDate(), p.getValue());
+        }
+        return map;
+    }
+
+    private String guessFxBondCurrency(EvdsBondInstrument bond) {
+        if (bond != null) {
+            String[] hints = { bond.getType(), bond.getCbrtCode() };
+            for (String hint : hints) {
+                if (hint != null && hint.toUpperCase(Locale.ROOT).contains("EUR")) return "EUR";
             }
+        }
+        return "USD";
+    }
+
+    private BigDecimal currentFxRate(String currency) {
+        try {
+            var latest = marketFxService.getTcmbLatestRates(currency);
+            if (latest == null || latest.getRates() == null) return null;
+            var rate = latest.getRates().stream()
+                    .filter(r -> currency.equalsIgnoreCase(r.getSymbol()))
+                    .findFirst().orElse(null);
+            if (rate == null) return null;
+            BigDecimal sell = rate.getSell() != null ? rate.getSell() : rate.getBuy();
+            if (sell == null) return null;
+            int unit = rate.getUnit() > 1 ? rate.getUnit() : 1;
+            return unit > 1
+                    ? sell.divide(BigDecimal.valueOf(unit), 8, RoundingMode.HALF_UP)
+                    : sell;
+        } catch (Exception ex) {
+            log.debug("FX rate snapshot failed for {}: {}", currency, ex.getMessage());
+            return null;
+        }
+    }
+
+    private BigDecimal currentGoldGramTry() {
+        try {
+            var spot = goldMarketService.getSpotGold();
+            if (spot != null) {
+                if (spot.getOfficialPureGoldGramTry() != null) return spot.getOfficialPureGoldGramTry();
+                if (spot.getGramCloseTry() != null) return spot.getGramCloseTry();
+            }
+        } catch (Exception ex) {
+            log.debug("Gold gram TL snapshot failed: {}", ex.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Günlük gram altın TL serisi — altına dayalı bondlar ve eski tarihli işlem için.
+     * BIST gold history (TRY range) → her gün kapanış. Pencereye kırpılır.
+     */
+    private NavigableMap<LocalDate, BigDecimal> loadGoldGramHistoryByDay(LocalDate from, LocalDate to) {
+        NavigableMap<LocalDate, BigDecimal> map = new TreeMap<>();
+        try {
+            GoldHistoryResponse hist = goldMarketService.getGoldHistory(metalRange(from), "TRY");
+            if (hist == null || hist.getPoints() == null) return map;
+            for (GoldHistoryPoint pt : hist.getPoints()) {
+                if (pt.getDate() == null || pt.getClose() == null) continue;
+                try {
+                    LocalDate day = LocalDate.parse(pt.getDate().substring(0, 10));
+                    PortfolioHistoricalPriceSeriesSupport.putIfInRange(map, day, pt.getClose(), from, to);
+                } catch (Exception ignored) { /* skip */ }
+            }
+        } catch (Exception ex) {
+            log.debug("Gold history series failed: {}", ex.getMessage());
         }
         return map;
     }

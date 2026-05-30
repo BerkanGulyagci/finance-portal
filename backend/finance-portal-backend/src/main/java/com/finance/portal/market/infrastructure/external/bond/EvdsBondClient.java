@@ -180,11 +180,19 @@ public class EvdsBondClient {
      * @return seri meta bilgileri listesi; hata durumunda boş liste
      */
     public List<EvdsSeriesInfo> fetchBondSeriesList() {
+        return fetchSeriesList(dataGroup);
+    }
+
+    /**
+     * Belirli bir EVDS data group'undan seri meta listesi çeker.
+     * Kira Sertifikaları için {@code bie_pyks}, DİBS için {@code bie_pydibs}.
+     */
+    public List<EvdsSeriesInfo> fetchSeriesList(String group) {
         validateApiKey();
 
-        String url = baseUrl.stripTrailing() + "/serieList/code=" + dataGroup + "&type=json";
+        String url = baseUrl.stripTrailing() + "/serieList/code=" + group + "&type=json";
 
-        log.info("[EVDS] fetchBondSeriesList → dataGroup={}", dataGroup);
+        log.info("[EVDS] fetchSeriesList → dataGroup={}", group);
         log.debug("[EVDS] Request URL: {}", url);
 
         String body = executeGet(url);
@@ -192,7 +200,7 @@ public class EvdsBondClient {
 
         List<EvdsSeriesInfo> series = parseSeriesListResponse(body);
 
-        log.info("[EVDS] fetchBondSeriesList ← itemCount={}", series.size());
+        log.info("[EVDS] fetchSeriesList ← dataGroup={} itemCount={}", group, series.size());
         return series;
     }
 

@@ -106,16 +106,9 @@ public class PortfolioWhatIfService {
                 skipped++;
                 continue;
             }
-            // BOND için actualValue düzeltmesi: eurobond stored cost (qty×kote%) ile MV (qty×kote×FX×face)
-            // birimleri farklı → returnPercent gerçek olmayan değerde çıkıyor. Series ile uyumlu olmak
-            // için actualValue katkısını ratio-based hesaplıyoruz: costTl × (price_today/price_at_buy).
-            // EVDS bondları (pure TL) ratio ~ MV/Cost olduğu için aynı sonuç döner.
-            if (h.getAssetType() == com.finance.portal.common.domain.AssetType.BOND) {
-                BigDecimal ratioMv = computeBondRatioMv(h, costTl, date, today);
-                if (ratioMv != null) {
-                    mvTl = ratioMv;
-                }
-            }
+            // "Gerçek" = pozisyonun gerçek piyasa değeri (mvTl = toTry(holding.marketValue)). BOND'larda
+            // da cost ve MV artık tutarlı TL (eurobond cost FX çevirimi kaldırıldı) → ekstra ratio
+            // düzeltmesine gerek yok; actualReturn = mvTl/costTl doğrudan Holdings getirisidir.
             // Çoklu BUY'da her lot kendi alış tarihinden senaryo faktörüyle çarpılır.
             // Tek lot ya da lot bilgisi yoksa eski tek-Pos davranışı korunur.
             List<PortfolioHoldingResponse.CostLot> lots = h.getOpenCostLots();
@@ -227,36 +220,6 @@ public class PortfolioWhatIfService {
         return r;
     }
 
-    /**
-     * BOND holding için actualValue katkısını ratio-based hesaplar: costTl × (price_today/price_at_buy).
-     * Eurobondlarda stored cost (qty×kote%) ile current MV (qty×kote×FX) birimleri farklı olduğundan
-     * ham MV summary'de unrealistic returnPercent verir. Series ile uyumlu olmak için bu yöntem
-     * kullanılır. Veri yoksa veya tek nokta varsa null döner → çağıran fallback olarak ham MV'yi kullanır.
-     */
-    private BigDecimal computeBondRatioMv(PortfolioHoldingResponse h, BigDecimal costTl,
-                                          LocalDate buyDate, LocalDate today) {
-        if (h.getSymbol() == null || h.getSymbol().isBlank()) {
-            return null;
-        }
-        try {
-            NavigableMap<LocalDate, BigDecimal> series = pricePort
-                    .fetchDailyClosePrices(h.getAssetType(), h.getSymbol(),
-                            buyDate.minusDays(10), today)
-                    .orElse(null);
-            if (series == null || series.isEmpty()) {
-                return null;
-            }
-            BigDecimal base = floorVal(series, buyDate);
-            BigDecimal latest = series.lastEntry().getValue();
-            if (base == null || base.signum() <= 0 || latest == null || latest.signum() <= 0) {
-                return null;
-            }
-            return ratio(costTl, latest, base);
-        } catch (Exception ex) {
-            return null;
-        }
-    }
-
     // ── Zaman serisi ("Ne Olurdu?" çizgi grafiği) ──────────────────────────────
 
     /** Tek bir pozisyonun seri hesabı için veri taşıyıcısı. */
@@ -264,6 +227,13 @@ public class PortfolioWhatIfService {
         final BigDecimal costTl;
         final LocalDate date;
         final NavigableMap<LocalDate, BigDecimal> assetSeries;
+        /**
+         * Bu lot'un fiyat-ölçeğine göre efektif adedi (= qty / parScale; bond /100, diğer 1).
+         * "Gerçek" çizgisi = Σ effQty × seriFiyatı[t] = pozisyonun gerçek piyasa değeri (alış-tarihi
+         * seri fiyatına bağlı oran DEĞİL → gerçek alış fiyatından sapmaz). Null ise (eski/qty'siz
+         * veri) çağıran eski ratio davranışına düşer.
+         */
+        BigDecimal effQty;
         BigDecimal assetBase;
         BigDecimal goldBase;
         BigDecimal usdBase;
@@ -335,16 +305,21 @@ public class PortfolioWhatIfService {
             } catch (Exception e) {
                 assetSeries = null;
             }
-            // Çoklu BUY → her lot ayrı SeriesPos (kendi alış tarihinden ratio). Tek lot ya da
-            // lot bilgisi yoksa eski tek-pos davranışı.
+            // Çoklu BUY → her lot ayrı SeriesPos (kendi alış tarihinden). Tek lot ya da lot bilgisi
+            // yoksa eski tek-pos davranışı. effQty (= qty/parScale) "Gerçek"in gerçek MV'sini verir.
+            BigDecimal parScale = bondParScale(h);
             if (lots == null || lots.isEmpty()) {
-                positions.add(new SeriesPos(costTl, date, assetSeries));
+                SeriesPos sp = new SeriesPos(costTl, date, assetSeries);
+                sp.effQty = effQtyOf(h.getTotalQuantity(), parScale);
+                positions.add(sp);
             } else {
                 for (PortfolioHoldingResponse.CostLot lot : lots) {
                     if (lot.cost() == null || lot.cost().signum() <= 0 || lot.buyDate() == null) continue;
                     BigDecimal lotCostTl = currencyConverter.toTry(lot.cost(), h.getCurrency());
                     if (lotCostTl == null || lotCostTl.signum() <= 0) continue;
-                    positions.add(new SeriesPos(lotCostTl, lot.buyDate(), assetSeries));
+                    SeriesPos sp = new SeriesPos(lotCostTl, lot.buyDate(), assetSeries);
+                    sp.effQty = effQtyOf(lot.qty(), parScale);
+                    positions.add(sp);
                     if (lot.buyDate().isBefore(earliest)) {
                         earliest = lot.buyDate();
                     }
@@ -358,6 +333,24 @@ public class PortfolioWhatIfService {
             }
         }
         return new PositionBundle(positions, earliest, singleLabel);
+    }
+
+    /** BOND (altın bond hariç) fiyatı 100 nominal üzerinden kote → parScale 100; diğer türler 1. */
+    private static BigDecimal bondParScale(PortfolioHoldingResponse h) {
+        if (h.getAssetType() != AssetType.BOND) {
+            return BigDecimal.ONE;
+        }
+        String cat = h.getCategory() != null ? h.getCategory() : "";
+        boolean goldBond = "GOLD_INDEXED_BOND".equals(cat) || "GOLD_INDEXED_LEASE_CERTIFICATE".equals(cat);
+        return goldBond ? BigDecimal.ONE : HUNDRED;
+    }
+
+    /** Efektif adet = qty / parScale; qty bilinmiyorsa null (çağıran eski ratio davranışına düşer). */
+    private static BigDecimal effQtyOf(BigDecimal qty, BigDecimal parScale) {
+        if (qty == null || qty.signum() <= 0) {
+            return null;
+        }
+        return qty.divide(parScale, MathContext.DECIMAL64);
     }
 
     /** Kullanıcı-eklemeli serbest kıyas tanımı. needsFx: USD cinsi enstrüman (×USD/TRY ile TL'ye çevrilir). */
@@ -528,7 +521,15 @@ public class PortfolioWhatIfService {
 
                 if (actualAvail && positive(p.assetBase)) {
                     BigDecimal v = floorVal(p.assetSeries, t);
-                    if (positive(v)) { actual = actual.add(ratio(p.costTl, v, p.assetBase)); anyA = true; }
+                    if (positive(v)) {
+                        // "Gerçek" = pozisyonun gerçek piyasa değeri. effQty (qty/parScale) varsa
+                        // qty × fiyat[t] (gerçek alış fiyatından bağımsız → Holdings ile tutarlı);
+                        // yoksa (qty'siz/eski veri) eski seri-oranı fallback'i.
+                        actual = actual.add(p.effQty != null
+                                ? v.multiply(p.effQty)
+                                : ratio(p.costTl, v, p.assetBase));
+                        anyA = true;
+                    }
                 }
                 if (goldAvail && positive(goldT) && positive(p.goldBase)) {
                     gold = gold.add(ratio(p.costTl, goldT, p.goldBase)); anyG = true;

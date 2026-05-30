@@ -55,6 +55,25 @@ const STATIC_GOLD = [
   { symbol: '22AYAR',  name: '22 Ayar Bilezik' },
 ];
 
+// BondCategory enum → Türkçe kullanıcı etiketi (search modal'da satır altında gözükür)
+const BOND_CATEGORY_LABELS = {
+  ZERO_COUPON_BILL:                    'Hazine Bonosu (Kuponsuz)',
+  ZERO_COUPON_BOND:                    'Devlet Tahvili (Kuponsuz)',
+  FIXED_COUPON_BOND:                   'Kuponlu Devlet Tahvili',
+  PRINCIPAL_STRIP:                     'Ana Para Stripi',
+  COUPON_STRIP:                        'Kupon Stripi',
+  TLREF_INDEXED_BOND:                  'TLREF-Endeksli',
+  INFLATION_INDEXED_BOND:              'TÜFE-Endeksli (Tam Bond)',
+  INFLATION_PRINCIPAL_STRIP:           'TÜFE-Endeksli Ana Para Stripi',
+  INFLATION_COUPON_STRIP:              'TÜFE-Endeksli Kupon Stripi',
+  GOLD_INDEXED_BOND:                   'Altına Dayalı Senet',
+  FX_DENOMINATED_BOND:                 'Yabancı Para Cinsli (EUR/USD)',
+  LEASE_CERTIFICATE:                   'Kira Sertifikası',
+  INFLATION_INDEXED_LEASE_CERTIFICATE: 'TÜFE-Endeksli Kira Sertifikası',
+  GOLD_INDEXED_LEASE_CERTIFICATE:      'Altına Dayalı Kira Sertifikası',
+  FX_LEASE_CERTIFICATE:                'Yabancı Para Cinsli Kira Sertifikası',
+};
+
 const STATIC_BOND = [
   { symbol: 'TRD070727K10', name: 'Devlet Tahvili 2027', type: 'Devlet Tahvili' },
   { symbol: 'TRB170626T13', name: 'Devlet Tahvili 2026', type: 'Devlet Tahvili' },
@@ -340,6 +359,11 @@ async function fetchAll(type) {
           symbol: b.instrumentCode ?? '',
           name: b.instrumentCode ?? '',
           type: b.type ?? null,
+          category: b.category ?? null,           // BondCategory (Tier 2/3 modal uyarıları için)
+          currency: b.currency ?? null,
+          cbrtCode: b.cbrtCode ?? null,
+          maturityDate: b.maturityDate ?? null,
+          couponRate: b.couponRate != null ? Number(b.couponRate) : null,
           indicatorValue: b.indicatorValue != null ? Number(b.indicatorValue) : null,
         })).filter(b => b.symbol);
       } catch { /* fallback */ }
@@ -714,6 +738,12 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
         fxSell,
         category: item.category,
         ...(item.subType ? { subType: item.subType } : {}),
+        // BOND için kategori-bazlı modal uyarıları + manuel kupon ekleme referansı
+        ...(activeType === 'BOND' ? {
+          cbrtCode: item.cbrtCode,
+          maturityDate: item.maturityDate,
+          couponRate: item.couponRate,
+        } : {}),
         commoditySpot: activeType === 'COMMODITY' && isYahooCommoditySymbol(item.symbol)
           ? commoditySpot
           : null,
@@ -759,9 +789,12 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
                   item.category === 'BES'     ? 'bg-emerald-50 text-emerald-700' :
                   item.category === 'OKS'     ? 'bg-purple-50 text-purple-700' :
                   item.category === 'Osmanlı' ? 'bg-orange-50 text-orange-700' :
+                  activeType === 'BOND'       ? 'bg-indigo-50 text-indigo-700' :
                                                 'bg-blue-50 text-blue-700'
                 }`}>
-                  {item.category}
+                  {activeType === 'BOND'
+                    ? (BOND_CATEGORY_LABELS[item.category] ? t(BOND_CATEGORY_LABELS[item.category]) : item.category)
+                    : item.category}
                 </span>
               )}
               {item.metal && (

@@ -3,6 +3,7 @@ package com.finance.portal.portfolio.service;
 import com.finance.portal.portfolio.application.performance.PortfolioPerformanceResult;
 import com.finance.portal.portfolio.application.whatif.PortfolioWhatIfResult;
 import com.finance.portal.portfolio.application.whatif.WhatIfSeriesResult;
+import com.finance.portal.portfolio.presentation.dto.AddCouponIncomeRequest;
 import com.finance.portal.portfolio.presentation.dto.AddTransactionRequest;
 import com.finance.portal.portfolio.presentation.dto.AddWatchlistItemRequest;
 import com.finance.portal.portfolio.presentation.dto.CreatePortfolioRequest;
@@ -22,6 +23,12 @@ public interface PortfolioService {
     PortfolioResponse createPortfolio(String userId, CreatePortfolioRequest request);
 
     PortfolioResponse addTransaction(String userId, UUID portfolioId, AddTransactionRequest request);
+
+    /**
+     * Manuel DİBS/Sukuk kupon ödemesi kaydeder. Realized gelir olarak portföye yansır;
+     * açık pozisyon (nominal/cost) etkilenmez.
+     */
+    PortfolioResponse addCouponIncome(String userId, UUID portfolioId, AddCouponIncomeRequest request);
 
     PortfolioResponse getPortfolioById(String userId, UUID portfolioId);
 

@@ -106,8 +106,8 @@ export function assetConfig(assetType) {
     case 'FUND':
     case 'GOLD':
     case 'COMMODITY':
-      return { supports: true, floor: false };
     case 'BOND':
+      return { supports: true, floor: false };
     case 'FUTURE':
     default:
       return { supports: false, floor: false };

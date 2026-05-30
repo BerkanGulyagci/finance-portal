@@ -141,7 +141,7 @@ export default function TransactionSummary({
                 <SummaryRow
                   label={
                     isBond
-                      ? t('Gösterge Değeri')
+                      ? t('Birim Fiyat (/100)')
                       : isGold && goldMeta
                         ? t(goldMeta.priceLabel.replace(' *', ''))
                         : t('Fiyat')
@@ -165,7 +165,7 @@ export default function TransactionSummary({
                 <SummaryRow
                   label={
                     isBond
-                      ? t('Gösterge Değeri')
+                      ? t('Birim Fiyat (/100)')
                       : isGold && goldMeta
                         ? t(goldMeta.priceLabel.replace(' *', ''))
                         : t('Fiyat')

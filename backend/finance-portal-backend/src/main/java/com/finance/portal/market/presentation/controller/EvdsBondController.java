@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -75,6 +76,7 @@ public class EvdsBondController {
             @RequestParam(defaultValue = "50")            int size,
             @RequestParam(defaultValue = "")              String search,
             @RequestParam(defaultValue = "")              String type,
+            @RequestParam(defaultValue = "")              String category,
             @RequestParam(required = false)               Integer minRemainingDays,
             @RequestParam(required = false)               Integer maxRemainingDays,
             @RequestParam(defaultValue = "maturityDate")  String sortBy,
@@ -99,7 +101,8 @@ public class EvdsBondController {
         List<EvdsBondInstrument> all = evdsBondService.getEvdsBondsAll();
 
         // Filtrele
-        List<EvdsBondInstrument> filtered = applyFilters(all, search, type, minRemainingDays, maxRemainingDays);
+        List<EvdsBondInstrument> filtered = applyFilters(all, search, type, category,
+                minRemainingDays, maxRemainingDays);
 
         // Sırala
         List<EvdsBondInstrument> sorted = applySort(filtered, sortBy, sortDir);
@@ -122,6 +125,22 @@ public class EvdsBondController {
 
         return ResponseEntity.ok(ApiResponse.success(response,
                 "EVDS bond list retrieved successfully. Source: TCMB EVDS"));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // GET /api/market/bonds/evds/categories — Kategori → sayım dağılımı
+    // ─────────────────────────────────────────────────────────────────────
+
+    @GetMapping("/categories")
+    public ResponseEntity<ApiResponse<Map<String, Long>>> getCategoryCounts() {
+        List<EvdsBondInstrument> all = evdsBondService.getEvdsBondsAll();
+        Map<String, Long> counts = new java.util.LinkedHashMap<>();
+        all.forEach(b -> {
+            String key = b.getCategory() != null ? b.getCategory().name() : "UNKNOWN";
+            counts.merge(key, 1L, Long::sum);
+        });
+        return ResponseEntity.ok(ApiResponse.success(counts,
+                "EVDS bond category distribution. Source: TCMB EVDS"));
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -176,7 +195,7 @@ public class EvdsBondController {
 
     private List<EvdsBondInstrument> applyFilters(
             List<EvdsBondInstrument> list,
-            String search, String type,
+            String search, String type, String category,
             Integer minDays, Integer maxDays) {
 
         return list.stream()
@@ -191,6 +210,12 @@ public class EvdsBondController {
                     // type filtresi
                     if (type != null && !type.isBlank()) {
                         if (!type.equalsIgnoreCase(b.getType())) return false;
+                    }
+                    // category filtresi (BondCategory enum adı)
+                    if (category != null && !category.isBlank()) {
+                        if (b.getCategory() == null || !category.equalsIgnoreCase(b.getCategory().name())) {
+                            return false;
+                        }
                     }
                     // kalan gün alt sınırı
                     if (minDays != null && b.getRemainingDays() < minDays) return false;

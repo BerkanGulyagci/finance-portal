@@ -12,6 +12,7 @@ import com.finance.portal.portfolio.domain.WatchlistItem;
 import com.finance.portal.portfolio.application.performance.PortfolioPerformanceResult;
 import com.finance.portal.portfolio.application.whatif.PortfolioWhatIfResult;
 import com.finance.portal.portfolio.application.whatif.WhatIfSeriesResult;
+import com.finance.portal.portfolio.presentation.dto.AddCouponIncomeRequest;
 import com.finance.portal.portfolio.presentation.dto.AddTransactionRequest;
 import com.finance.portal.portfolio.presentation.dto.AddWatchlistItemRequest;
 import com.finance.portal.portfolio.presentation.dto.CreatePortfolioRequest;
@@ -272,6 +273,91 @@ public class PortfolioServiceImpl implements PortfolioService {
                 BusinessLogSupport.EVENT_TRANSACTION_ADDED,
                 "INFO",
                 "Transaction added",
+                "PORTFOLIO",
+                portfolioId.toString(),
+                BusinessLogSupport.ACTION_CREATE,
+                BusinessLogSupport.RESULT_SUCCESS,
+                metadata,
+                userId,
+                PortfolioServiceImpl.class.getName()
+        );
+
+        PortfolioResponse response = toPortfolioResponse(portfolio);
+        portfolioCache.evictListAndDetail(userId, portfolioId);
+        return response;
+    }
+
+    @Override
+    @Transactional
+    @WithSpan("PortfolioService.addCouponIncome")
+    public PortfolioResponse addCouponIncome(@SpanAttribute("user.id") String userId,
+                                              @SpanAttribute("portfolio.id") UUID portfolioId,
+                                              AddCouponIncomeRequest request) {
+        if (userId == null || userId.isBlank()) {
+            throw new IllegalArgumentException("userId must not be blank");
+        }
+        if (request == null) {
+            throw new IllegalArgumentException("request must not be null");
+        }
+
+        Portfolio portfolio = portfolioPersistence.findByIdAndUserId(portfolioId, userId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Portfolio not found: id=" + portfolioId + " userId=" + userId));
+
+        if (portfolio.getPortfolioType() == PortfolioType.WATCHLIST) {
+            throw new IllegalArgumentException(
+                    "Watchlist portfolios cannot contain coupon income records.");
+        }
+
+        String normalizedSymbol = normalizeSymbol(AssetType.BOND, request.getSymbol());
+
+        // Gelecek tarih kontrolü.
+        if (request.getPaymentDate() != null) {
+            java.time.LocalDate payDay = request.getPaymentDate().toLocalDate();
+            java.time.LocalDate today = java.time.LocalDate.now(java.time.ZoneId.of("Europe/Istanbul"));
+            if (payDay.isAfter(today)) {
+                throw new IllegalArgumentException(
+                        "Kupon ödeme tarihi bugünden ileri olamaz.");
+            }
+        }
+
+        // Sembol gerçekten portföyde bir BOND holding'i olmalı (en az 1 BUY).
+        boolean hasBondHolding = portfolio.getTransactions().stream()
+                .anyMatch(t -> t.getAssetType() == AssetType.BOND
+                        && normalizedSymbol.equalsIgnoreCase(t.getSymbol()));
+        if (!hasBondHolding) {
+            throw new IllegalArgumentException(
+                    "Bu sembol için portföyünüzde bir BOND pozisyonu bulunamadı: " + normalizedSymbol);
+        }
+
+        // COUPON_INCOME konvansiyonu: quantity = TL kupon tutarı, price = 1.
+        PortfolioTransaction tx = new PortfolioTransaction();
+        tx.setSymbol(normalizedSymbol);
+        tx.setAssetType(AssetType.BOND);
+        tx.setTransactionType(TransactionType.COUPON_INCOME);
+        tx.setQuantity(request.getAmount());
+        tx.setPrice(BigDecimal.ONE);
+        tx.setCommission(BigDecimal.ZERO);
+        tx.setTransactionDate(request.getPaymentDate());
+
+        portfolio.addTransaction(tx);
+        portfolio = portfolioPersistence.savePortfolio(portfolio);
+        log.debug("Added coupon income symbol={} amount={} to portfolioId={}",
+                normalizedSymbol, request.getAmount(), portfolioId);
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("portfolioId", portfolioId.toString());
+        metadata.put("transactionType", TransactionType.COUPON_INCOME.name());
+        metadata.put("symbol", normalizedSymbol);
+        metadata.put("amount", request.getAmount());
+        metadata.put("paymentDate", request.getPaymentDate() != null
+                ? request.getPaymentDate().toString() : null);
+
+        centralBusinessLogService.publish(
+                BusinessLogSupport.CATEGORY_BUSINESS,
+                BusinessLogSupport.EVENT_TRANSACTION_ADDED,
+                "INFO",
+                "Coupon income added",
                 "PORTFOLIO",
                 portfolioId.toString(),
                 BusinessLogSupport.ACTION_CREATE,

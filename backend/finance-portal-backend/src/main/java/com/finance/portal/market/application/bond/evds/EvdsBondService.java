@@ -1,6 +1,9 @@
 package com.finance.portal.market.application.bond.evds;
 
 import com.finance.portal.market.application.bond.evds.port.EvdsBondPort;
+import com.finance.portal.market.application.bond.evds.model.BondCategory;
+import com.finance.portal.market.application.bond.evds.model.BondClassifier;
+import com.finance.portal.market.application.bond.evds.model.BondCurrency;
 import com.finance.portal.market.application.bond.evds.model.EvdsSeriesInfo;
 import com.finance.portal.market.application.bond.evds.model.EvdsSeriesPoint;
 import org.slf4j.Logger;
@@ -65,8 +68,14 @@ public class EvdsBondService {
     @Value("${evds.bond-instruments:}")
     private List<String> whitelistInstruments;
 
-    @Value("${evds.active-bonds-limit:300}")
+    @Value("${evds.active-bonds-limit:0}")
     private int activeBondsLimit;
+
+    @Value("${evds.lease-cert-data-group:bie_pyks}")
+    private String leaseCertDataGroup;
+
+    @Value("${evds.include-lease-certs:true}")
+    private boolean includeLeaseCerts;
 
     public EvdsBondService(EvdsBondPort evdsBondPort,
                            @Qualifier("evdsBondFetchExecutor") ExecutorService evdsBondFetchExecutor) {
@@ -85,9 +94,23 @@ public class EvdsBondService {
      */
     @Cacheable(cacheNames = "market.evds.bonds.list", key = "'all'")
     public List<EvdsBondInstrument> getEvdsBondsAll() {
-        log.info("[EvdsBondService] getEvdsBondsAll başlatıldı. useWhitelist={}", useWhitelist);
+        log.info("[EvdsBondService] getEvdsBondsAll başlatıldı. useWhitelist={} includeLeaseCerts={}",
+                useWhitelist, includeLeaseCerts);
 
-        List<EvdsSeriesInfo> allSeries = evdsBondPort.fetchBondSeriesList();
+        // 1) DİBS (bie_pydibs)
+        List<EvdsSeriesInfo> allSeries = new ArrayList<>(evdsBondPort.fetchBondSeriesList());
+
+        // 2) Kira Sertifikaları (bie_pyks) — opsiyonel, varsayılan açık
+        if (includeLeaseCerts && leaseCertDataGroup != null && !leaseCertDataGroup.isBlank()) {
+            try {
+                List<EvdsSeriesInfo> kiraSeries = evdsBondPort.fetchSeriesList(leaseCertDataGroup);
+                log.info("[EvdsBondService] Kira Sertifikası serisi yüklendi: {} kayıt", kiraSeries.size());
+                allSeries.addAll(kiraSeries);
+            } catch (Exception e) {
+                log.warn("[EvdsBondService] Kira Sertifikası seri listesi alınamadı ({}): {}",
+                        leaseCertDataGroup, e.getMessage());
+            }
+        }
 
         Map<String, EvdsSeriesInfo> seriesInfoMap = allSeries.stream()
                 .filter(EvdsSeriesInfo::isValueSeries)
@@ -268,16 +291,39 @@ public class EvdsBondService {
         BigDecimal dailyChange        = calculateDailyChange(indicatorValue, previousValue);
         BigDecimal dailyChangePercent = calculateDailyChangePercent(indicatorValue, previousValue);
 
-        // Kupon oranı — sadece kupon serisi varsa çek
-        BigDecimal couponRate = hasCoupon
+        // Finansal kategoriyi CBRT kodundan (yoksa ISIN suffix'inden) tespit et.
+        // Data group (bie_pydibs vs bie_pyks) Kira Sertifikası ayrımı için kuvvetli sinyal.
+        String cbrtCode = info != null ? info.parseCbrtCode() : null;
+        String dataGroupCode = info != null ? info.getDatagroupCode() : null;
+        BondCategory category = BondClassifier.classify(instrumentCode, cbrtCode, dataGroupCode);
+        BondCurrency currency = BondClassifier.currencyFor(category);
+
+        // Kupon oranı — sadece kupon ÖDEYEN kategoriler için çek. Kuponsuz bondların EVDS'teki
+        // .ORAN serisi yanıltıcı (örn. vadeye kalan gün sayısını içeriyor) — couponRate=null bırak.
+        boolean isZeroCoupon = category == BondCategory.ZERO_COUPON_BILL
+                || category == BondCategory.ZERO_COUPON_BOND
+                || category == BondCategory.PRINCIPAL_STRIP
+                || category == BondCategory.INFLATION_PRINCIPAL_STRIP;
+        BigDecimal couponRate = (hasCoupon && !isZeroCoupon)
                 ? fetchLatestCouponRate(instrumentCode, startDate, today)
                 : null;
 
         EvdsBondInstrument instrument = new EvdsBondInstrument();
         instrument.setInstrumentCode(instrumentCode);
-        instrument.setType(resolveType(instrumentCode));
-        instrument.setIssueDate(info != null ? info.parseIssueDateFromName() : null);
-        instrument.setMaturityDate(info != null ? info.parseMaturityDateFromName() : null);
+        // Kira sertifikası (sukuk) ise type'ı "Kira Sertifikası" yap (Tier 3 etiketi).
+        instrument.setType(category != null && category.isLeaseCertificate()
+                ? "Kira Sertifikası"
+                : resolveType(instrumentCode));
+        instrument.setCategory(category);
+        instrument.setCurrency(currency);
+        instrument.setCbrtCode(cbrtCode);
+        // SERIE_NAME'den parse edilemezse EVDS START_DATE / END_DATE fallback (remainingDays ile uyumlu)
+        LocalDate issueD = info != null ? info.parseIssueDateFromName() : null;
+        if (issueD == null && info != null) issueD = info.getStartDate();
+        instrument.setIssueDate(issueD);
+        LocalDate maturityD = info != null ? info.parseMaturityDateFromName() : null;
+        if (maturityD == null && info != null) maturityD = info.getEndDate();
+        instrument.setMaturityDate(maturityD);
         instrument.setRemainingDays(calculateRemainingDays(info, today));
         instrument.setIndicatorValue(indicatorValue);
         instrument.setPreviousValue(previousValue);
