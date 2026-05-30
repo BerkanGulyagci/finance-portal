@@ -9,7 +9,6 @@ import VerifyEmailPage from '../features/auth/VerifyEmailPage';
 import DashboardPage from '../features/dashboard/DashboardPage';
 import PortfolioPage from '../features/portfolio/PortfolioPage';
 import PortfolioDetailPage from '../features/portfolio/PortfolioDetailPage';
-import MarketPage from '../features/market/MarketPage';
 import StocksPage from '../features/market/stock/StocksPage';
 import StockDetailPage from '../features/market/stock/StockDetailPage';
 import CryptoPage from '../features/market/crypto/CryptoPage';
@@ -62,7 +61,6 @@ export default function AppRouter() {
           <Route path="/verify-email"      element={<VerifyEmailPage />} />
           <Route path="/news"              element={<NewsPage />} />
           <Route path="/news/:id"          element={<NewsDetailPage />} />
-          <Route path="/market"            element={<MarketPage />} />
           <Route path="/market/stocks"     element={<StocksPage />} />
           <Route path="/market/stocks/compare" element={<StockComparePage />} />
           <Route path="/market/stocks/:symbol" element={<StockDetailPage />} />

@@ -5,7 +5,7 @@ import { getFxTcmb, getFxOpen, getBankCurrencyRates, getBankCurrencyRatesByCurre
 import { useSortable } from '../../../hooks/useSortable.js';
 import SortableTh from '../../../components/common/SortableTh.jsx';
 import WatchlistStar from '../../../components/instrument/WatchlistStar';
-import { FX_META, FlagImg } from '../../../utils/fxMeta.jsx';
+import { FX_META, FlagImg } from './utils/fxMeta';
 import { useTranslation } from '../../../context/LanguageContext';
 
 function num(v, dec = 4) {

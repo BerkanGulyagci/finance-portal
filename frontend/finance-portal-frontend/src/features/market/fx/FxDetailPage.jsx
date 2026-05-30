@@ -5,7 +5,7 @@ import {
   ChevronDown, Trash2, X, SlidersHorizontal, Globe2, Landmark,
 } from 'lucide-react';
 import { getFxHistory, getFxTcmb, getFxOpen, getBankCurrencyRates } from '../../../api/marketApi.js';
-import { FX_META, FlagImg } from '../../../utils/fxMeta.jsx';
+import { FX_META, FlagImg } from './utils/fxMeta';
 import { init as klineInit, dispose as klineDispose, registerOverlay } from 'klinecharts';
 import { useTranslation } from '../../../context/LanguageContext';
 import UniversalCompareButton from '../../../components/common/UniversalCompareButton';

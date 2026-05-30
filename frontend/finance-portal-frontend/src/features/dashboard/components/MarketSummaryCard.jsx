@@ -43,7 +43,7 @@ export default function MarketSummaryCard({ fx, gold }) {
   }).filter(Boolean);
 
   return (
-    <DashCard title={t('Piyasa Özeti')} icon={LineChart} to="/market" toLabel={t('Tümü →')}>
+    <DashCard title={t('Piyasa Özeti')} icon={LineChart} to="/market/stocks" toLabel={t('Tümü →')}>
       <div className="divide-y divide-gray-50">
         {rows.map(r => <MarketRow key={r.label} {...r} />)}
         {gold?.price && (

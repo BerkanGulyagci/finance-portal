@@ -6,7 +6,7 @@ const QUICK_LINKS = [
   { to: '/news',      icon: Newspaper,  labelKey: 'Haberler' },
   { to: '/dashboard', icon: BarChart3,  labelKey: 'Panel' },
   { to: '/portfolio', icon: Wallet,     labelKey: 'Portföyüm' },
-  { to: '/market',    icon: TrendingUp, labelKey: 'Piyasalar' },
+  { to: '/market/stocks',    icon: TrendingUp, labelKey: 'Hisse Senetleri' },
 ];
 
 export default function NotFoundPage() {

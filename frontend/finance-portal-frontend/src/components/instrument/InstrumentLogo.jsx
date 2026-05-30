@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FX_META } from '../../utils/fxMeta.jsx';
+import { FX_META } from '../../features/market/fx/utils/fxMeta';
 import { getStockMidasDetail } from '../../api/marketApi';
 
 // Sembol → Midas logo URL (oturum boyu önbellek; her sembol en fazla bir kez çekilir, eşzamanlı istekler tekilleşir).

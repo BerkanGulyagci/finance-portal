@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { X, Plus, TrendingUp, TrendingDown, BarChart2 } from 'lucide-react';
 import { getFxHistory } from '../../../api/marketApi';
-import { FX_META, FlagImg } from '../../../utils/fxMeta.jsx';
+import { FX_META, FlagImg } from './utils/fxMeta';
 import { useTranslation } from '../../../context/LanguageContext';
 
 // ── Sabit renkler ─────────────────────────────────────────────────────────────
