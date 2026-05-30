@@ -270,6 +270,60 @@ public class YahooChartClient {
         }
     }
 
+    /**
+     * Yahoo arama ucu — bir kripto için DOĞRU Yahoo sembolünü bulmak için. Yahoo, ticker
+     * çakışmalarında sembolün sonuna sayısal ID ekler (ör. Global Dollar → {@code USDG33793-USD},
+     * Mantle → {@code MNT27075-USD}); naif {@code {TICKER}-USD} yanlış/uyumsuz bir kıymete gidebilir.
+     * Coin İSMİYLE aranır (ticker araması döviz çiftlerine takılıyor). CRYPTOCURRENCY tipli ve
+     * {@code -USD} ile biten semboller döndürülür. Hata/boş → boş liste (çağıran ticker'a düşer).
+     */
+    public List<String> searchCryptoUsdSymbols(String query) {
+        if (query == null || query.isBlank()) return List.of();
+        URI uri = UriComponentsBuilder
+                .fromUriString("https://query1.finance.yahoo.com/v1/finance/search")
+                .queryParam("q", query)
+                .queryParam("quotesCount", 15)
+                .queryParam("newsCount", 0)
+                .build()
+                .encode()
+                .toUri();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.USER_AGENT, USER_AGENT);
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(uri, HttpMethod.GET, entity, Map.class);
+            return parseSearchCryptoSymbols(response.getBody());
+        } catch (Exception ex) {
+            log.warn("Yahoo crypto symbol search failed for '{}': {}", query, ex.getMessage());
+            return List.of();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> parseSearchCryptoSymbols(Map<?, ?> body) {
+        List<String> out = new ArrayList<>();
+        if (body == null) return out;
+        try {
+            List<?> quotes = (List<?>) body.get("quotes");
+            if (quotes == null) return out;
+            for (Object q : quotes) {
+                Map<?, ?> quote = (Map<?, ?>) q;
+                String type = str(quote, "quoteType");
+                String symbol = str(quote, "symbol");
+                if (symbol != null && "CRYPTOCURRENCY".equalsIgnoreCase(type)
+                        && symbol.length() >= 4
+                        && symbol.substring(symbol.length() - 4).equalsIgnoreCase("-USD")) {
+                    out.add(symbol);
+                }
+            }
+        } catch (Exception ex) {
+            log.warn("Failed to parse Yahoo search response: {}", ex.getMessage());
+        }
+        return out;
+    }
+
     @SuppressWarnings("unchecked")
     private List<StockSummary> parseQuoteResponse(Map<?, ?> body) {
         List<StockSummary> result = new ArrayList<>();

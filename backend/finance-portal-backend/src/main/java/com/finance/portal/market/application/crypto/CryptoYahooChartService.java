@@ -1,5 +1,6 @@
 package com.finance.portal.market.application.crypto;
 
+import com.finance.portal.market.application.crypto.model.CryptoMarketItem;
 import com.finance.portal.market.application.stock.StockChartResponse;
 import com.finance.portal.market.application.stock.model.YahooChartSnapshot;
 import com.finance.portal.market.application.stock.model.YahooQuoteSeries;
@@ -21,6 +22,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Kripto 5Y / Tüm grafikleri — USD ve EUR için Yahoo Finance OHLC (BTC-USD, BTC-EUR).
@@ -31,9 +33,73 @@ public class CryptoYahooChartService {
     private static final Logger log = LoggerFactory.getLogger(CryptoYahooChartService.class);
 
     private final YahooStockPort yahooStockPort;
+    private final CryptoMarketService cryptoMarketService;
 
-    public CryptoYahooChartService(YahooStockPort yahooStockPort) {
+    /** Çözümlenmiş Yahoo sembol tabanları (ticker → "USDG33793" gibi). Eşleme stabil → kalıcı in-memory cache. */
+    private final ConcurrentHashMap<String, String> resolvedYahooBase = new ConcurrentHashMap<>();
+
+    public CryptoYahooChartService(YahooStockPort yahooStockPort,
+                                   CryptoMarketService cryptoMarketService) {
         this.yahooStockPort = yahooStockPort;
+        this.cryptoMarketService = cryptoMarketService;
+    }
+
+    /**
+     * Bir kripto ticker'ı için DOĞRU Yahoo sembol tabanını çözer. Yahoo, ticker çakışmalarında
+     * sembol sonuna sayısal ID ekler (ör. {@code USDG} → {@code USDG33793}, {@code MNT} → {@code MNT27075});
+     * naif {@code {TICKER}-USD} yanlış/uyumsuz bir kıymete gidebiliyor (ör. USDG-USD = $5.49, gerçek $1).
+     * Coin İSMİYLE (CoinGecko'dan) Yahoo araması yapıp ticker-prefix'i eşleşen CRYPTOCURRENCY sembolünü
+     * seçer. Bulunamaz/hata → ticker'ın kendisi (eski davranış; BTC/ETH/DAI gibi çakışmasız coinler etkilenmez).
+     * Başarılı çözüm kalıcı in-memory cache'lenir.
+     */
+    String resolveYahooBase(String baseSymbol) {
+        if (baseSymbol == null || baseSymbol.isBlank()) {
+            return baseSymbol;
+        }
+        String key = baseSymbol.trim().toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]", "");
+        if (key.isEmpty()) {
+            return baseSymbol;
+        }
+        String cached = resolvedYahooBase.get(key);
+        if (cached != null) {
+            return cached;
+        }
+        // Coin adını çöz — Yahoo ticker araması döviz çiftlerine takıldığından isimle aramak gerekir.
+        String query = key;
+        try {
+            CryptoMarketItem item = cryptoMarketService.findBySymbol(key);
+            if (item != null && item.getName() != null && !item.getName().isBlank()) {
+                query = item.getName();
+            }
+        } catch (Exception ignore) {
+            // CoinGecko'da bulunamadı → ticker ile dene
+        }
+        List<String> symbols;
+        try {
+            symbols = yahooStockPort.searchCryptoUsdSymbols(query);
+        } catch (Exception e) {
+            return key; // geçici hata → ticker'a düş, CACHE'LEME (sonra tekrar denenir)
+        }
+        if (symbols != null) {
+            for (String s : symbols) {
+                String full = s.toUpperCase(Locale.ROOT);
+                if (!full.endsWith("-USD")) {
+                    continue;
+                }
+                String resolvedBase = full.substring(0, full.length() - 4); // "-USD" ekini at
+                String prefix = resolvedBase.replaceAll("[0-9]+$", "");       // sondaki sayısal ID'yi at
+                if (prefix.equals(key)) {
+                    resolvedYahooBase.put(key, resolvedBase);
+                    if (!resolvedBase.equals(key)) {
+                        log.info("Yahoo kripto sembolü çözümlendi: {} -> {}", key, resolvedBase);
+                    }
+                    return resolvedBase;
+                }
+            }
+        }
+        // Yahoo yanıt verdi ama sayısal-sonekli eşleşme yok → {TICKER}-USD doğru kabul edilir (cache'le).
+        resolvedYahooBase.put(key, key);
+        return key;
     }
 
     public static boolean shouldUseYahoo(String currency, String range) {
@@ -92,7 +158,7 @@ public class CryptoYahooChartService {
 
         List<String> quoteCurrencies = quoteCurrencyFallbackOrder(currency);
         for (String quote : quoteCurrencies) {
-            String yahooSymbol = toYahooSymbol(baseSymbol, quote);
+            String yahooSymbol = toYahooSymbol(resolveYahooBase(baseSymbol), quote);
             if (yahooSymbol == null) {
                 continue;
             }
@@ -127,7 +193,7 @@ public class CryptoYahooChartService {
 
         List<String> quoteCurrencies = quoteCurrencyFallbackOrder(currency);
         for (String quote : quoteCurrencies) {
-            String yahooSymbol = toYahooSymbol(baseSymbol, quote);
+            String yahooSymbol = toYahooSymbol(resolveYahooBase(baseSymbol), quote);
             if (yahooSymbol == null) {
                 continue;
             }

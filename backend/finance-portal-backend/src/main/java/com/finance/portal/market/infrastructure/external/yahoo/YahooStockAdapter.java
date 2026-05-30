@@ -31,4 +31,9 @@ public class YahooStockAdapter implements YahooStockPort {
     public List<StockSummary> fetchQuoteBatch(List<String> symbols) {
         return yahooChartClient.fetchQuoteBatch(symbols);
     }
+
+    @Override
+    public List<String> searchCryptoUsdSymbols(String query) {
+        return yahooChartClient.searchCryptoUsdSymbols(query);
+    }
 }
