@@ -3,6 +3,8 @@ import { ChevronDown } from 'lucide-react';
 import { init as klineInit, dispose as klineDispose } from 'klinecharts';
 import { getFundPriceHistory } from '../../../../api/marketApi';
 import { FUND_CHART_RANGES, buildFundChartSeries } from '../utils/fundChartSeries';
+import { buildTrendItem } from '../../../../utils/trendUtils';
+import TrendBadge from '../../../../components/common/TrendBadge';
 import { useTranslation } from '../../../../context/LanguageContext';
 import IndicatorMenu from '../../../../components/common/IndicatorMenu';
 

@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
-  ArrowLeft, RefreshCw, TrendingUp, TrendingDown, Star, ArrowLeftRight, BarChart2,
+  ArrowLeft, RefreshCw, TrendingUp, TrendingDown, Star, BarChart2,
 } from 'lucide-react';
 import { getFxHistory, getFxTcmb, getFxOpen, getBankCurrencyRates } from '../../../api/marketApi.js';
 import { FX_META, FlagImg } from './utils/fxMeta';

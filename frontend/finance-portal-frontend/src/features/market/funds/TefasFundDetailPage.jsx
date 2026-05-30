@@ -1,15 +1,10 @@
-import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useLocation, Link } from 'react-router-dom';
-import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown, ChevronDown, BarChart2 } from 'lucide-react';
-import { init as klineInit, dispose as klineDispose } from 'klinecharts';
-import { getRasyonetFundDetail, getFundPriceHistory } from '../../../api/marketApi';
-import { FUND_CHART_RANGES, buildFundChartSeries } from './utils/fundChartSeries';
+import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown, BarChart2 } from 'lucide-react';
+import { getRasyonetFundDetail } from '../../../api/marketApi';
 import { useTranslation } from '../../../context/LanguageContext';
-import TrendBadge from '../../../components/common/TrendBadge';
 import UniversalCompareButton from '../../../components/common/UniversalCompareButton';
 import InstrumentActionButtons from '../../../components/instrument/InstrumentActionButtons';
-import IndicatorMenu from '../../../components/common/IndicatorMenu';
-import { buildTrendItem } from '../../../utils/trendUtils';
 import TefasPriceChart from './components/TefasPriceChart';
 import MonthlyReturnChart from './components/MonthlyReturnChart';
 import AssetAllocationChart from './components/AssetAllocationChart';

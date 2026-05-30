@@ -1,19 +1,13 @@
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, TrendingUp, TrendingDown, Globe, ChevronDown, ChevronUp, ExternalLink, X } from 'lucide-react';
 import UniversalCompareButton from '../../../components/common/UniversalCompareButton';
 import TrendBadge from '../../../components/common/TrendBadge';
 import InstrumentActionButtons from '../../../components/instrument/InstrumentActionButtons';
 import { buildTrendItem } from '../../../utils/trendUtils';
-import {
-  XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, LineChart, Line, Brush,
-  ComposedChart, Area, Bar,
-} from 'recharts';
 import { getCryptoDetail, getAllCryptos, getCryptoChart, getCryptoOhlc } from '../../../api/marketApi';
 import { useAuth } from '../../../context/AuthContext';
-import CommodityDetailChart   from '../commodities/components/CommodityDetailChart';
-import CommodityDetailToolbar from '../commodities/components/CommodityDetailToolbar';
+import CommodityDetailChart from '../commodities/components/CommodityDetailChart';
 import {
   CRYPTO_CHART_RANGES,
   coingeckoOhlcRowsToPoints,

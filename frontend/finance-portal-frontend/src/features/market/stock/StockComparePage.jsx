@@ -1,7 +1,7 @@
 import EChartsCompareChart from './components/EChartsCompareChart';
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, X, Plus, BarChart2, Search, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowLeft, X, Plus, BarChart2, TrendingUp, TrendingDown } from 'lucide-react';
 import { getStockChart, getStockMidasDetail, getAllStocks, getMarketPriceHistory } from '../../../api/marketApi';
 import { STOCK_CHART_RANGES } from './utils/stockChartRanges';
 import { useTranslation } from '../../../context/LanguageContext';

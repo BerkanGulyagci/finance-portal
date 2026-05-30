@@ -1,4 +1,7 @@
+import { useState } from 'react';
 import { useTranslation } from '../../../../context/LanguageContext';
+
+const PIE_COLORS = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16'];
 
 function toFloat(v) {
   if (v == null) return null;
