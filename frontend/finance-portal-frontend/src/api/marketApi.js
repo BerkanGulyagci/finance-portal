@@ -1,4 +1,4 @@
-import client from './client';
+import client from '../lib/http';
 
 function normalizeBistSymbol(symbol) {
   const raw = String(symbol ?? '').trim().toUpperCase();

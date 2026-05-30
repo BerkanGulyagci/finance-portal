@@ -1,5 +1,5 @@
 import axios from 'axios';
-import client from './client';
+import client from '../lib/http';
 
 const BASE_URL = 'http://localhost:8080';
 

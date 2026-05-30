@@ -1,4 +1,4 @@
-import client from './client';
+import client from '../lib/http';
 
 // ── Alarmlar ──────────────────────────────────────────────────────────────────
 // Alarm: kullanıcının bir enstrüman için kurduğu fiyat/değişim/hacim koşulu.

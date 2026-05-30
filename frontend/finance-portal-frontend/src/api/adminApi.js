@@ -1,4 +1,4 @@
-import client from './client';
+import client from '../lib/http';
 
 export async function getUsers({ search, first = 0, max = 20, status = 'ALL', withTickets = false } = {}) {
   const params = { first, max, status };

@@ -1,4 +1,4 @@
-import client from './client';
+import client from '../lib/http';
 
 // ── Bildirimler ───────────────────────────────────────────────────────────────
 // Alarm tetiklendiğinde üretilen uygulama-içi bildirimler + gönderilen e-posta kaydı.

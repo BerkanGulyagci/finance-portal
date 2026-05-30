@@ -1,4 +1,4 @@
-import client from './client';
+import client from '../lib/http';
 
 /**
  * Warren AI sohbet — geçmişi gönderir, asistan yanıtını döner.

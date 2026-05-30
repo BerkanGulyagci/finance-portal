@@ -1,4 +1,4 @@
-import client from './client';
+import client from '../lib/http';
 
 // ── Kullanıcı (kendi destek talepleri) ────────────────────────────────────────
 export async function getMyTickets() {

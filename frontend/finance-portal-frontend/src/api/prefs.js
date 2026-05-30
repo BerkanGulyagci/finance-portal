@@ -1,4 +1,4 @@
-import client from './client';
+import client from '../lib/http';
 
 // Kullanıcı arayüz tercihleri: localStorage (anında + anonim/çevrimdışı) + giriş yapılmışsa sunucu senkronu.
 // Yazma: localStorage'a hemen, sunucuya debounce'lu PUT. Okuma: localStorage (giriş sonrası hydrate ile dolu).

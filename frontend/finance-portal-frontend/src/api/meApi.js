@@ -1,4 +1,4 @@
-import client from './client';
+import client from '../lib/http';
 
 export async function getMe() {
   const { data } = await client.get('/api/me');

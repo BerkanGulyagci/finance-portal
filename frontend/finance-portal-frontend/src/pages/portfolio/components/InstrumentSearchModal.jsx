@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, X, Plus } from 'lucide-react';
-import client from '../../../api/client';
+import client from '../../../lib/http';
 import { parseTrNumber } from '../../../utils/numberFormat';
 import {
   pickCommoditySpotPriceTry,

@@ -1,4 +1,4 @@
-import client from './client';
+import client from '../lib/http';
 
 /** Mevcut bülten aboneliği: { subscribed, frequency, email } */
 export async function getNewsletter() {
