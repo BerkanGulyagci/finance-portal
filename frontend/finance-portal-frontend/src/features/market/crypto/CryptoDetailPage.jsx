@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, TrendingUp, TrendingDown, Globe, ChevronDown, ChevronUp, ExternalLink, Plus, X } from 'lucide-react';
+import { ArrowLeft, TrendingUp, TrendingDown, Globe, ChevronDown, ChevronUp, ExternalLink, X } from 'lucide-react';
 import UniversalCompareButton from '../../../components/common/UniversalCompareButton';
 import TrendBadge from '../../../components/common/TrendBadge';
 import InstrumentActionButtons from '../../../components/instrument/InstrumentActionButtons';
@@ -10,10 +10,8 @@ import {
   ResponsiveContainer, LineChart, Line, Brush,
   ComposedChart, Area, Bar,
 } from 'recharts';
-import { getCryptoDetail, getAllCryptos } from '../../../api/marketApi';
+import { getCryptoDetail, getAllCryptos, getCryptoChart, getCryptoOhlc } from '../../../api/marketApi';
 import { useAuth } from '../../../context/AuthContext';
-import { init as klineInit, dispose as klineDispose } from 'klinecharts';
-import { computeKlinePricePrecision, computeKlineVolumePrecision } from '../../../utils/numberFormat';
 import CommodityDetailChart   from '../commodities/components/CommodityDetailChart';
 import CommodityDetailToolbar from '../commodities/components/CommodityDetailToolbar';
 import {
@@ -29,26 +27,13 @@ import {
   alignVolumesToPrices,
   formatYahooChartSourceNote,
 } from './utils/cryptoChartRanges';
-import { getCryptoChart, getCryptoOhlc } from '../../../api/marketApi';
+import { COMPARE_COLORS, MA_OPTIONS } from './utils/cryptoChartConfig';
+import CryptoLineChart from './components/CryptoLineChart';
+import CompareDropdown from './components/CompareDropdown';
 import { useTranslation } from '../../../context/LanguageContext';
 
 const CURRENCIES = ['TRY', 'USD', 'EUR'];
 const CURRENCY_SYMBOLS = { TRY: '₺', USD: '$', EUR: '€' };
-
-// Karşılaştırma renkleri
-const COMPARE_COLORS = ['#093eaa', '#f97316', '#8b5cf6', '#10b981', '#ef4444'];
-
-// Popüler coinler (karşılaştırma dropdown'u için)
-const POPULAR_COINS = [
-  { id: 'bitcoin',  symbol: 'BTC', name: 'Bitcoin' },
-  { id: 'ethereum', symbol: 'ETH', name: 'Ethereum' },
-  { id: 'tether',   symbol: 'USDT', name: 'Tether' },
-  { id: 'binancecoin', symbol: 'BNB', name: 'BNB' },
-  { id: 'solana',   symbol: 'SOL', name: 'Solana' },
-  { id: 'ripple',   symbol: 'XRP', name: 'XRP' },
-  { id: 'dogecoin', symbol: 'DOGE', name: 'Dogecoin' },
-  { id: 'cardano',  symbol: 'ADA', name: 'Cardano' },
-];
 
 function fmtPrice(v, currency) {
   if (v == null) return '-';
@@ -143,13 +128,6 @@ function RSIBadge({ rsi }) {
   );
 }
 
-const MA_OPTIONS = [
-  { period: 20,  label: 'MA20',  color: '#f59e0b' },
-  { period: 50,  label: 'MA50',  color: '#8b5cf6' },
-  { period: 200, label: 'MA200', color: '#ef4444' },
-];
-
-// Range'e göre anlamlı MA periyotları
 const MA_FOR_RANGE = {
   1:   [7],
   7:   [7],
@@ -191,374 +169,6 @@ function TradingViewChart({ coinId, symbol }) {
 }
 
 /* ─── KlineCharts Çizgi Grafiği (Crypto için) ─── */
-function CryptoLineChart({ chartData, currency, compareCoins, compareData, coinId, mainCoinSymbol, activeMAs }) {
-  const { t } = useTranslation();
-  const chartId = useRef(`kline_crypto_${Date.now()}`);
-  const chartRef = useRef(null);
-  const isComparing = compareCoins && compareCoins.length > 0;
-
-  // Hover tooltip state
-  const [hoverData, setHoverData] = useState(null);
-
-  // Karşılaştırma için normalize edilmiş veri ref (tooltip'te kullanmak için)
-  const normalizedDataRef = useRef([]);
-  const compareOverlayRef = useRef({}); // {coinId: [{ts, value}]}
-
-  useEffect(() => {
-    if (!chartData || chartData.length === 0) return;
-
-    const id = chartId.current;
-    const chart = klineInit(id);
-    chartRef.current = chart;
-
-    if (isComparing) {
-      // Karşılaştırma modu: % bazlı normalize edilmiş veriler
-      const base0 = chartData[0]?.price;
-      if (!base0) return;
-
-      const normalizedData = chartData.map((point) => {
-        const pctChange = base0 > 0 ? ((point.price - base0) / base0) * 100 : 0;
-        
-        return {
-          timestamp: point.ts,
-          open: pctChange,
-          high: pctChange,
-          low: pctChange,
-          close: pctChange,
-          volume: 0,
-          turnover: 0,
-        };
-      }).filter(d => !isNaN(d.close)).sort((a, b) => a.timestamp - b.timestamp);
-
-      if (normalizedData.length === 0) return;
-
-      // Normalize data'yı ref'e kaydet (tooltip için)
-      normalizedDataRef.current = normalizedData;
-
-      // Ana coin için line style
-      chart.setStyles({
-        candle: {
-          type: 'area',
-          tooltip: {
-            showRule: 'none',   // OHLC satırını kapat
-          },
-          priceMark: {
-            last: { show: false },  // Sağdaki son fiyat etiketini kapat
-          },
-        },
-        indicator: {
-          lastValueMark: { show: false },
-          tooltip: { showRule: 'none' },
-        },
-        crosshair: {
-          horizontal: {
-            text: { show: false },
-          },
-        },
-      });
-
-      chart.applyNewData(normalizedData);
-
-      // Ana coin çizgisi (candle olarak)
-      chart.setStyles({
-        candle: {
-          type: 'area',
-          area: {
-            lineColor: COMPARE_COLORS[0],
-            lineSize: 2,
-            value: 'close',
-            smooth: true,
-            backgroundColor: [
-              { offset: 0, color: COMPARE_COLORS[0] + '15' },
-              { offset: 1, color: COMPARE_COLORS[0] + '00' },
-            ],
-          },
-        },
-      });
-
-      // Karşılaştırma coinleri için custom indicator ekle
-      compareCoins.forEach((c, i) => {
-        const prices = compareData[c.id] ?? [];
-        const base = prices[0]?.[1];
-        if (!base || base === 0) return;
-
-        // Her karşılaştırma coini için overlay line ekle
-        const overlayData = normalizedData.map(point => {
-          // Timestamp bazlı en yakın noktayı bul
-          let closest = prices[0];
-          let minDiff = Math.abs(prices[0][0] - point.timestamp);
-          for (let j = 1; j < prices.length; j++) {
-            const diff = Math.abs(prices[j][0] - point.timestamp);
-            if (diff < minDiff) { minDiff = diff; closest = prices[j]; }
-            else break;
-          }
-          
-          const pctChange = ((closest[1] - base) / base) * 100;
-          return { value: pctChange };
-        });
-
-        // Custom overlay olarak ekle
-        try {
-          chart.createIndicator({
-            name: 'MA',
-            calcParams: [1], // Dummy MA, sadece çizgi çizmek için
-            figures: [{
-              key: 'ma',
-              title: '',   // Grafik üzerindeki coin adı yazısını kapat
-              type: 'line',
-              baseValue: 0,
-              styles: (data, indicator, defaultStyles) => {
-                return {
-                  line: {
-                    style: 'solid',
-                    smooth: true,
-                    size: 2,
-                    color: COMPARE_COLORS[i + 1] || '#6b7280',
-                  }
-                };
-              }
-            }],
-            calc: (dataList) => {
-              return dataList.map((kLineData, i) => {
-                return { ma: overlayData[i]?.value ?? null };
-              });
-            },
-          }, false, { id: 'candle_pane' });
-        } catch (e) {
-          console.error('Error adding compare line:', e);
-        }
-
-        // Overlay data'yı ref'e kaydet (tooltip için)
-        compareOverlayRef.current[c.id] = overlayData;
-      });
-
-      // Crosshair hover event — floating tooltip için
-      try {
-        chart.subscribeAction('onCrosshairChange', (data) => {
-          if (!data || data.dataIndex == null || data.dataIndex < 0) {
-            setHoverData(null);
-            return;
-          }
-          const idx = data.dataIndex;
-          const mainPoint = normalizedDataRef.current[idx];
-          if (!mainPoint) { setHoverData(null); return; }
-
-          const date = new Date(mainPoint.timestamp).toLocaleString('tr-TR', {
-            month: '2-digit', day: '2-digit',
-            hour: '2-digit', minute: '2-digit',
-          });
-
-          const entries = [
-            {
-              symbol: mainCoinSymbol?.toUpperCase() ?? coinId,
-              value: mainPoint.close,
-              color: COMPARE_COLORS[0],
-            },
-            ...compareCoins.map((c, ci) => {
-              const overlay = compareOverlayRef.current[c.id] ?? [];
-              const pt = overlay[idx];
-              return {
-                symbol: c.symbol?.toUpperCase() ?? c.id,
-                value: pt?.value ?? null,
-                color: COMPARE_COLORS[ci + 1] || '#6b7280',
-              };
-            }),
-          ];
-
-          setHoverData({ date, entries });
-        });
-      } catch (_) {}
-
-    } else {
-      // Tek coin modu: Normal area chart + MA
-      chart.setStyles({ candle: { type: 'area' } });
-
-      const klineData = chartData
-        .map(d => ({
-          timestamp: d.ts,
-          open:  d.price ?? 0,
-          high:  d.price ?? 0,
-          low:   d.price ?? 0,
-          close: d.price ?? 0,
-          volume: d.volume ?? 0,
-          turnover: 0,
-        }))
-        .filter(d => !isNaN(d.close) && d.close > 0)
-        .sort((a, b) => a.timestamp - b.timestamp);
-
-      if (klineData.length === 0) return;
-
-      try {
-        chart.setPriceVolumePrecision(
-          computeKlinePricePrecision(klineData.map((d) => d.close)),
-          computeKlineVolumePrecision(klineData.map((d) => d.volume)),
-        );
-      } catch (_) { /* klinecharts sürümü */ }
-
-      const isUp = klineData[klineData.length - 1].close >= klineData[0].close;
-      const color = isUp ? '#10b981' : '#ef4444';
-
-      chart.setStyles({
-        candle: {
-          type: 'area',
-          area: {
-            lineColor: color,
-            lineSize: 2,
-            value: 'close',
-            smooth: true,
-            backgroundColor: [
-              { offset: 0, color: color + '33' },
-              { offset: 1, color: color + '00' },
-            ],
-          },
-        },
-      });
-
-      chart.applyNewData(klineData);
-
-      // MA ekle (varsa) - önce eski MA'yı temizle; çizgi rengi buton rengiyle aynı
-      chart.removeIndicator('candle_pane', 'MA');
-      if (activeMAs && activeMAs.length > 0) {
-        chart.createIndicator(
-          { name: 'MA', calcParams: activeMAs, styles: { lines: activeMAs.map(p => ({ color: MA_OPTIONS.find(m => m.period === p)?.color ?? '#888', size: 1.5 })) } },
-          false,
-          { id: 'candle_pane' }
-        );
-      }
-    }
-
-    return () => { klineDispose(id); };
-  }, [chartData, currency, isComparing, compareCoins, compareData, coinId, activeMAs]);
-
-  if (!chartData || chartData.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-[520px] text-gray-400 text-sm">
-        {t('Grafik verisi yüklenemedi.')}
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className="relative"
-      onMouseLeave={() => setHoverData(null)}
-    >
-      <div id={chartId.current} style={{ width: '100%', height: '520px' }} />
-
-      {/* Hover tooltip — sadece karşılaştırma modunda */}
-      {isComparing && hoverData && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gray-900/95 text-white rounded-xl px-4 py-3 shadow-xl text-xs min-w-[180px] pointer-events-none z-10">
-          <p className="text-gray-400 mb-2 font-medium">{hoverData.date}</p>
-          {hoverData.entries.map(entry => (
-            <div key={entry.symbol} className="flex justify-between gap-4 mb-1">
-              <span style={{ color: entry.color }} className="font-semibold">{entry.symbol}</span>
-              <span className={`font-bold ${
-                entry.value == null ? 'text-gray-400' :
-                entry.value >= 0 ? 'text-emerald-400' : 'text-rose-400'
-              }`}>
-                {entry.value == null ? '-' : `${entry.value >= 0 ? '+' : ''}${entry.value.toFixed(2)}%`}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <p className="text-xs text-gray-400 mt-2">
-        {t('Kaynak: CoinGecko ·')} {currency} {t('bazlı')}{isComparing ? t(' · % değişim bazlı karşılaştırma') : ''}
-      </p>
-    </div>
-  );
-}
-
-// Karşılaştırma dropdown bileşeni
-function CompareDropdown({ compareCoins, onAdd, onRemove, allCoins }) {
-  const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState('');
-  const ref = useRef(null);
-
-  useEffect(() => {
-    function handleClick(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, []);
-
-  const suggestions = search.trim()
-    ? (allCoins || POPULAR_COINS).filter(c =>
-        c.name?.toLowerCase().includes(search.toLowerCase()) ||
-        c.symbol?.toLowerCase().includes(search.toLowerCase())
-      ).slice(0, 8)
-    : POPULAR_COINS;
-
-  return (
-    <div className="relative" ref={ref}>
-      <button
-        onClick={() => setOpen(o => !o)}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-          compareCoins.length > 0
-            ? 'bg-[#093eaa] text-white border-[#093eaa]'
-            : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
-        }`}
-      >
-        <Plus className="w-3 h-3" />
-        {t('Karşılaştır')}
-        {compareCoins.length > 0 && <span className="bg-white/30 rounded-full px-1">{compareCoins.length}</span>}
-        <ChevronDown className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
-
-      {open && (
-        <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-xl shadow-xl z-50">
-          <div className="p-3 border-b border-gray-100">
-            <input
-              autoFocus
-              type="text"
-              placeholder={t('Coin ara...')}
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#093eaa]"
-            />
-          </div>
-
-          {compareCoins.length > 0 && (
-            <div className="px-3 pt-2 pb-1">
-              <p className="text-xs text-gray-400 mb-1.5">{t('Seçili')}</p>
-              <div className="flex flex-wrap gap-1">
-                {compareCoins.map((c, i) => (
-                  <span key={c.id} className="flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full text-white"
-                    style={{ backgroundColor: COMPARE_COLORS[i + 1] ?? '#6b7280' }}>
-                    {c.symbol?.toUpperCase()}
-                    <button onClick={() => onRemove(c.id)}><X className="w-2.5 h-2.5" /></button>
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="max-h-48 overflow-y-auto">
-            {!search && <p className="text-xs text-gray-400 px-3 pt-2 pb-1">{t('Popüler')}</p>}
-            {suggestions.map(c => {
-              const selected = compareCoins.some(x => x.id === c.id);
-              return (
-                <button key={c.id} onClick={() => selected ? onRemove(c.id) : onAdd(c)}
-                  className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-50 transition-colors ${selected ? 'bg-blue-50' : ''}`}>
-                  {c.image && <img src={c.image} alt="" className="w-5 h-5 rounded-full" />}
-                  <span className="text-sm font-semibold text-gray-800">{c.name}</span>
-                  <span className="text-xs text-gray-400 uppercase ml-auto">{c.symbol}</span>
-                  {selected && <span className="text-[#093eaa] text-xs">✓</span>}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="p-2 border-t border-gray-100">
-            <button onClick={() => setOpen(false)}
-              className="w-full text-xs text-gray-500 py-1 hover:text-gray-700">{t('Kapat')}</button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function CryptoDetailPage() {
   const { t } = useTranslation();
