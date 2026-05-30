@@ -245,57 +245,77 @@ export async function downloadPortfolioPdf(portfolio, opts = {}) {
   const txs      = opts.transactions ?? portfolio.transactions ?? [];
   const visibleCols = Array.isArray(opts.visibleCols) ? opts.visibleCols : null;
 
-  // Off-screen container — görünür ama ekran dışında.
-  // domToPdf.js'in expandAncestorsForCapture body/html'i değiştiriyor +
-  // scrollIntoView off-screen elementi şaşırtıyor — bu yüzden domToPdf.js
-  // bypass edilip html-to-image doğrudan çağrılıyor.
+  // İZOLE iframe ile render — sayfa CSS'leri (flag-icons CDN gibi) clone
+  // sırasında inline edilmeye çalışılınca CORS hatası atıyor ve boş PNG
+  // üretiyordu. iframe izole document'a sahip → dış stylesheet'ler yok.
   const PAGE_WIDTH_PX = 794;
-  const root = document.createElement('div');
-  root.style.cssText = `
+  const iframe = document.createElement('iframe');
+  iframe.setAttribute('aria-hidden', 'true');
+  iframe.style.cssText = `
     position: absolute;
     top: 0;
     left: -99999px;
     width: ${PAGE_WIDTH_PX}px;
+    height: 100px;
+    border: 0;
+    background: #ffffff;
+  `;
+  document.body.appendChild(iframe);
+
+  try {
+    const idoc = iframe.contentDocument;
+    if (!idoc) throw new Error('iframe document oluşturulamadı.');
+
+    // Tam-izole HTML — sadece bizim inline stillerimiz
+    idoc.open();
+    idoc.write(`<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
     background: #ffffff;
     color: #111827;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 11px;
     line-height: 1.4;
-    padding: 0;
-    box-sizing: border-box;
-    pointer-events: none;
-  `;
-  root.innerHTML = buildPdfHtml(portfolio, holdings, txs, visibleCols);
-  document.body.appendChild(root);
+    width: ${PAGE_WIDTH_PX}px;
+  }
+  table { border-collapse: collapse; }
+</style>
+</head>
+<body>${buildPdfHtml(portfolio, holdings, txs, visibleCols)}</body>
+</html>`);
+    idoc.close();
 
-  try {
-    // 1) Fontlar yüklensin (yüklenmeden render → 0 boyut)
-    if (document.fonts?.ready) {
-      await document.fonts.ready.catch(() => {});
+    // 1) iframe içindeki fontlar yüklensin
+    if (idoc.fonts?.ready) {
+      await idoc.fonts.ready.catch(() => {});
     }
-    // 2) Üç RAF tick + 120ms — layout, fontlar ve images stabilize olsun
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r))));
-    await new Promise((r) => setTimeout(r, 120));
+    // 2) Layout settle
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await new Promise((r) => setTimeout(r, 100));
 
-    // 3) Capture öncesi sanity check
-    const captureH = Math.max(root.scrollHeight, root.offsetHeight);
+    // 3) iframe yüksekliğini içeriğe göre ayarla
+    const root = idoc.body;
+    const captureH = Math.max(root.scrollHeight, root.offsetHeight, idoc.documentElement.scrollHeight);
     if (captureH < 50 || root.scrollWidth < 50) {
       throw new Error(`PDF içeriği render edilemedi (boyut: ${root.scrollWidth}x${captureH}).`);
     }
+    iframe.style.height = `${captureH}px`;
+    await new Promise((r) => requestAnimationFrame(r));
 
-    // 4) html-to-image ile direkt PNG'ye çevir (domToPdf.js bypass — body
-    //    style mutasyonu ve scrollIntoView yok)
+    // 4) iframe içindeki body'yi toPng ile PNG'ye çevir — izole context,
+    //    CORS hatası yok
     const dataUrl = await toPng(root, {
       pixelRatio: 2,
       backgroundColor: '#ffffff',
       width: PAGE_WIDTH_PX,
       height: captureH,
-      style: {
-        transform: 'none',
-        margin: '0',
-      },
       skipFonts: false,
-      cacheBust: true,
+      cacheBust: false,
     });
 
     if (!dataUrl || dataUrl === 'data:,' || dataUrl.length < 1000) {
@@ -348,7 +368,7 @@ export async function downloadPortfolioPdf(portfolio, opts = {}) {
 
     pdf.save(`${safeFilenameBase(portfolio?.name)}_${stampNow()}.pdf`);
   } finally {
-    document.body.removeChild(root);
+    document.body.removeChild(iframe);
     _pdfExporting = false;
   }
 }
