@@ -60,8 +60,12 @@ public class EconomyController {
      * {@code GET /api/market/economy/series?key=tufe}
      */
     @GetMapping("/series")
-    public ResponseEntity<ApiResponse<EconomyChartSeries>> getSeries(@RequestParam("key") String key) {
-        EconomyChartSeries series = economyChartService.getChartSeries(key);
+    public ResponseEntity<ApiResponse<EconomyChartSeries>> getSeries(
+            @RequestParam("key") String key,
+            @RequestParam(name = "full", defaultValue = "false") boolean full) {
+        EconomyChartSeries series = full
+                ? economyChartService.getFullChartSeries(key)
+                : economyChartService.getChartSeries(key);
         return ResponseEntity.ok(ApiResponse.success(series, "Gösterge zaman serisi"));
     }
 

@@ -34,6 +34,9 @@ public class EconomyChartService {
     private static final Logger log = LoggerFactory.getLogger(EconomyChartService.class);
 
     private static final String SOURCE = "TCMB EVDS";
+    /** "Tümünü Görüntüle" başlangıcı — kaynaktaki en eski tarihe kadar (EVDS/FRED erken tarihte
+     *  veriyi en eskiden başlatır, hata vermez). 1980 tüm serilerden eski. */
+    private static final LocalDate FULL_START = LocalDate.of(1980, 1, 1);
     private static final long ONE_YEAR_SECONDS = 31_557_600L;
     private static final long YOY_TOLERANCE_SECONDS = 3_888_000L; // ~45 gün
     private static final ZoneId TR_ZONE = ZoneId.of("Europe/Istanbul");
@@ -64,24 +67,42 @@ public class EconomyChartService {
      */
     @Cacheable(cacheNames = "market.economy", key = "'chart.' + #key")
     public EconomyChartSeries getChartSeries(String key) {
+        return resolveAndBuild(key, false);
+    }
+
+    /**
+     * Tek göstergenin TÜM mevcut geçmişi (kaynaktaki en eski tarihten bugüne) — frontend
+     * "Tümünü Görüntüle" butonu için. Nokta kapı yoktur; günlük seriler aylığa İNDİRGENMEZ
+     * (gün-gün gösterilir). Cache TTL: economy ile aynı (6 saat).
+     */
+    @Cacheable(cacheNames = "market.economy", key = "'chart.full.' + #key")
+    public EconomyChartSeries getFullChartSeries(String key) {
+        return resolveAndBuild(key, true);
+    }
+
+    private EconomyChartSeries resolveAndBuild(String key, boolean full) {
         EconomyIndicatorDef def = findByKey(key);
         if (def == null) {
             log.warn("[EconomyChart] bilinmeyen gösterge anahtarı: {}", key);
             return new EconomyChartSeries(key, key, "", "", "raw", SOURCE, List.of());
         }
-        return buildChartSeries(def);
+        return buildChartSeries(def, full);
     }
 
     // ── Çekirdek hesap ──────────────────────────────────────────────────────
 
     private EconomyChartSeries buildChartSeries(EconomyIndicatorDef def) {
+        return buildChartSeries(def, false);
+    }
+
+    private EconomyChartSeries buildChartSeries(EconomyIndicatorDef def, boolean full) {
         EconomyIndicatorDef.Frequency freq = def.getFrequency();
         boolean intraday = freq == EconomyIndicatorDef.Frequency.DAILY
                 || freq == EconomyIndicatorDef.Frequency.WEEKLY;
         boolean yoy = def.isYoyMeaningful();
 
         LocalDate end = LocalDate.now();
-        LocalDate start = end.minusMonths(fetchMonths(freq, yoy));
+        LocalDate start = full ? FULL_START : end.minusMonths(fetchMonths(freq, yoy));
         List<EconomySeriesPoint> raw = seriesGateway.fetch(def, start, end);
         String source = sourceLabel(def);
         if (raw.isEmpty()) {
@@ -89,7 +110,8 @@ public class EconomyChartService {
                     freq.name(), yoy ? "yoy" : "raw", source, List.of());
         }
 
-        List<EconomySeriesPoint> base = intraday ? downsampleMonthly(raw) : raw;
+        // "Tümünü görüntüle"de günlük/haftalık seriler aylığa İNDİRGENMEZ (gün-gün). Özet görünümde indirgenir.
+        List<EconomySeriesPoint> base = (intraday && !full) ? downsampleMonthly(raw) : raw;
 
         String transform;
         String unit;
@@ -107,7 +129,10 @@ public class EconomyChartService {
             }
         }
 
-        points = lastN(points, maxPoints(freq, yoy));
+        // Full modunda kap uygulanmaz (tüm geçmiş); özet görünümde son N nokta.
+        if (!full) {
+            points = lastN(points, maxPoints(freq, yoy));
+        }
         return new EconomyChartSeries(def.getKey(), def.getLabel(), unit, freq.name(),
                 transform, source, points);
     }

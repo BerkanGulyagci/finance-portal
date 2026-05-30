@@ -123,7 +123,7 @@ export default function EconomyChart({ series, type = 'line', color = NAVY, heig
       ) : (
         <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 4 }}>
           {common}
-          <Line type="monotone" dataKey="y" stroke={color} strokeWidth={2.5} dot={{ r: 2.5, fill: color }} activeDot={{ r: 4 }} />
+          <Line type="monotone" dataKey="y" stroke={color} strokeWidth={2.5} dot={data.length > 60 ? false : { r: 2.5, fill: color }} activeDot={{ r: 4 }} />
         </LineChart>
       )}
     </ResponsiveContainer>

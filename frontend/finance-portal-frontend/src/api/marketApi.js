@@ -386,10 +386,11 @@ export async function getEconomy() {
 
 /**
  * Tek bir ekonomi göstergesinin grafik zaman serisi.
- * GET /api/market/economy/series?key=tufe
+ * GET /api/market/economy/series?key=tufe[&full=true]
+ * full=true → kaynaktaki en eski tarihten bugüne TÜM geçmiş (günlük seriler gün-gün).
  */
-export async function getEconomySeries(key) {
-  const { data } = await client.get('/api/market/economy/series', { params: { key } });
+export async function getEconomySeries(key, full = false) {
+  const { data } = await client.get('/api/market/economy/series', { params: { key, full } });
   return data.data ?? { key, label: '', unit: '', frequency: '', transform: 'raw', source: '', points: [] };
 }
 

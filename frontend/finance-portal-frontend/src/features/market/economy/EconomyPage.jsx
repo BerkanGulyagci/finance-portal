@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { getEconomyCharts } from '../../../api/marketApi.js';
 import { useTranslation } from '../../../context/LanguageContext';
-import EconomyChart from './components/EconomyChart';
+import EconomyChartCard from './components/EconomyChartCard';
 import { ECONOMY_TOPICS } from './utils/economyContent';
 
 export default function EconomyPage() {
@@ -119,7 +119,7 @@ export default function EconomyPage() {
                   <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6">
                     <h3 className="text-center text-base font-bold text-gray-800 mb-4">{t(tp.chartTitle)}</h3>
                     {hasChart ? (
-                      <EconomyChart series={series} type={tp.chartType} color={tp.color} height={300} />
+                      <EconomyChartCard seriesKey={tp.key} defaultSeries={series} type={tp.chartType} color={tp.color} height={300} />
                     ) : (
                       <div className="h-40 flex items-center justify-center text-sm text-gray-400">
                         {t('Grafik verisi yok')}
