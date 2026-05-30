@@ -8,6 +8,7 @@ import com.finance.portal.market.application.currency.model.HesapkurduFxItem;
 import com.finance.portal.market.application.currency.port.BankCurrencyPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -33,8 +34,11 @@ public class BankCurrencyService {
     private static final Logger log = LoggerFactory.getLogger(BankCurrencyService.class);
 
     private static final String CACHE_KEY_ALL = "market:currency:banks:all";
-    private static final Duration CACHE_TTL   = Duration.ofMinutes(2);
     private static final String SOURCE        = "HESAPKURDU";
+
+    /** Cache TTL — application.yml'den config'lenebilir (cache.market.currency.banks.ttl-seconds, varsayılan 120sn). */
+    @Value("${cache.market.currency.banks.ttl-seconds:120}")
+    private long cacheTtlSeconds;
 
     private static final TypeReference<List<BankCurrencyRateDto>> LIST_TYPE =
             new TypeReference<>() {};
@@ -111,8 +115,9 @@ public class BankCurrencyService {
             // Redis'e JSON String olarak yaz
             try {
                 String json = objectMapper.writeValueAsString(rates);
-                redisTemplate.opsForValue().set(CACHE_KEY_ALL, json, CACHE_TTL);
-                log.info("Bank rates cached to Redis: {} records, TTL={}m", rates.size(), CACHE_TTL.toMinutes());
+                Duration cacheTtl = Duration.ofSeconds(cacheTtlSeconds);
+                redisTemplate.opsForValue().set(CACHE_KEY_ALL, json, cacheTtl);
+                log.info("Bank rates cached to Redis: {} records, TTL={}s", rates.size(), cacheTtlSeconds);
             } catch (Exception e) {
                 log.warn("Redis write failed for key {}: {}", CACHE_KEY_ALL, e.getMessage());
                 // Cache yazma hatası kritik değil — veriyi yine de döndür

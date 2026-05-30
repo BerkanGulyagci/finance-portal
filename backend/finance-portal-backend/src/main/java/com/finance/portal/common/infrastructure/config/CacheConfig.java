@@ -207,7 +207,12 @@ public class CacheConfig {
                 .withCacheConfiguration("market.stocks.chart", marketStocksCacheConfig)
                 .withCacheConfiguration("market.tefas.funds", marketFundsCacheConfig)
                 .withCacheConfiguration("market.ipo", marketFundsCacheConfig)
-                .withCacheConfiguration("market.viop", marketFundsCacheConfig)
+                // VİOP: ViopService gerçek cache isimleri "market.viop.contracts" + "market.viop.detail".
+                // (Eski "market.viop" ve "market.viop.chart" kayıtları ÖLÜYDÜ — hiçbir @Cacheable kullanmıyordu;
+                //  market.viop.chart ise artık ViopChartService'te bellek-içi LRU. Gerçek isimler kaydedilmezse
+                //  jsonDefault'a düşüp Redis'te HİÇ expire olmuyorlardı.)
+                .withCacheConfiguration("market.viop.contracts", marketFuturesCacheConfig)
+                .withCacheConfiguration("market.viop.detail", marketFuturesCacheConfig)
                 .withCacheConfiguration("market.indicators", marketFxTcmbCacheConfig)
                 .withCacheConfiguration("market.gold.spot", marketFxTcmbCacheConfig)
                 .withCacheConfiguration("market.gold.history", marketFundsCacheConfig)
@@ -221,7 +226,6 @@ public class CacheConfig {
                 .withCacheConfiguration("market.funds.detail", marketFundsCacheConfig)
                 .withCacheConfiguration("market.funds.chart", marketFundsCacheConfig)
                 .withCacheConfiguration("market.futures.page", marketFuturesCacheConfig)
-                .withCacheConfiguration("market.viop.chart", marketFuturesCacheConfig)
                 .withCacheConfiguration("market.commodity.spot", marketCommoditySpotCacheConfig)
                 .withCacheConfiguration("market.commodity.history", marketCommodityHistoryCacheConfig)
                 .withCacheConfiguration("cryptoMarketsCache", cryptoMarketsCacheConfig)

@@ -370,7 +370,7 @@ market:
       base-url: ${MARKET_FX_OPEN_BASE_URL:https://open.er-api.com/v6/latest}
   stocks:
     yahoo:
-      base-url: https://query1.finance.yahoo.com/v8/finance/chart
+      base-url: ${MARKET_STOCKS_YAHOO_BASE_URL:https://query1.finance.yahoo.com/v8/finance/chart}
   funds:
     rasyonet:
       filter-url: ${RASYONET_FILTER_URL:https://api.rasyonet.com/service-yatirimdirekt-home/web-fund/fund-filter}
@@ -439,12 +439,12 @@ deposit:
     over-1y: ${DEPOSIT_STOPAJ_OVER1Y:10}
 
 coingecko:
-  base-url: https://api.coingecko.com/api/v3
+  base-url: ${COINGECKO_BASE_URL:https://api.coingecko.com/api/v3}
   api-key: ${COINGECKO_API_KEY:CG-B1V3coqfjBN6Q5Ff8j6AnpZf}
   vs-currency: try
 
 binance:
-  base-url: https://api.binance.com
+  base-url: ${BINANCE_BASE_URL:https://api.binance.com}
 
 resilience4j:
   circuitbreaker:
