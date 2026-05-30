@@ -43,6 +43,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 @Service
@@ -50,6 +53,18 @@ public class PortfolioServiceImpl implements PortfolioService {
 
     private static final Logger log = LoggerFactory.getLogger(PortfolioServiceImpl.class);
     private static final int MONEY_SCALE = 4;
+
+    /**
+     * Holding canlı zenginleştirmesi I/O-bound'dur (EVDS/TEFAS/BI/Yahoo + Redis). Portföy detayında
+     * her holding ardışık (seri) zenginleştirildiği için N holding = N ardışık dış/cache çağrısıydı.
+     * Bu havuzla paralel çalıştırılır → duvar-saati toplam yerine en yavaş tek holding'e yaklaşır.
+     * Boyut 8: dış API'leri (TCMB/EVDS) aşırı yüklemeden makul paralellik. Daemon thread'ler.
+     */
+    private static final ExecutorService ENRICH_EXECUTOR = Executors.newFixedThreadPool(8, r -> {
+        Thread t = new Thread(r, "portfolio-enrich");
+        t.setDaemon(true);
+        return t;
+    });
 
     private final PortfolioPersistencePort portfolioPersistence;
     private final PortfolioCachePort portfolioCache;
@@ -392,11 +407,21 @@ public class PortfolioServiceImpl implements PortfolioService {
                     return toPortfolioResponse(portfolio);
                 });
         // Redis'teki anlık snapshot fiyatları eskitir; her GET'te canlı fiyatları yeniden uygula
-        // (FUTURE/VİOP gibi sonradan eklenen zenginleştirme de cache'te kalmış boş alanları giderir)
-        if (response.getHoldings() != null) {
+        // (FUTURE/VİOP gibi sonradan eklenen zenginleştirme de cache'te kalmış boş alanları giderir).
+        // Her holding bağımsız + DTO üzerinde çalışır (JPA session'a dokunmaz) → PARALEL zenginleştir:
+        // seri döngü N holding için N ardışık dış/cache çağrısıydı (portföy yavaş açılmasının ana nedeni).
+        if (response.getHoldings() != null && !response.getHoldings().isEmpty()) {
+            List<CompletableFuture<Void>> futures = new ArrayList<>(response.getHoldings().size());
             for (PortfolioHoldingResponse h : response.getHoldings()) {
-                holdingMarketEnrichment.enrich(h);
+                futures.add(CompletableFuture.runAsync(() -> {
+                    try {
+                        holdingMarketEnrichment.enrich(h);
+                    } catch (Exception e) {
+                        log.debug("Holding enrich failed for {}: {}", h.getSymbol(), e.getMessage());
+                    }
+                }, ENRICH_EXECUTOR));
             }
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
         }
         // Canlı fiyatlar yenilendikten sonra reel getiriyi de tazele
         realReturnEnricher.apply(response);
