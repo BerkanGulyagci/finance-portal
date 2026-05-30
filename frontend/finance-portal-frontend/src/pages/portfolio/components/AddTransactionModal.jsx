@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { X, ArrowLeftRight, TrendingUp, TrendingDown } from 'lucide-react';
 import { addTransaction, getPriceAtDate } from '../../../api/portfolioApi';
-import { getViopChart } from '../../../api/marketApi';
+import { getViopChart, getEvdsBondDetail, getGlobalBondDetail } from '../../../api/marketApi';
 import InstrumentSearchModal from './InstrumentSearchModal';
 import CommodityPriceHint from './CommodityPriceHint';
 import DateTimeField from './DateTimeField';
@@ -88,6 +88,7 @@ export default function AddTransactionModal({
   const [priceNotFound, setPriceNotFound] = useState(false); // seçilen tarih için veri yok
   const [priceAuto, setPriceAuto] = useState(initialInstrument?.price != null); // fiyat otomatik mi
   const [futureMinDate, setFutureMinDate] = useState(null); // VİOP kontratının ilk işlem günü (YYYY-MM-DD)
+  const [bondMinDate, setBondMinDate] = useState(null);     // Tahvil/Eurobond ihraç tarihi (YYYY-MM-DD)
 
   function set(key, val) {
     setForm(f => ({ ...f, [key]: val }));
@@ -231,6 +232,35 @@ export default function AddTransactionModal({
         setFutureMinDate(earliest);
       })
       .catch(() => { if (!cancelled) setFutureMinDate(null); });
+    return () => { cancelled = true; };
+  }, [instrument, step]);
+
+  // Tahvil/Eurobond: ihraç tarihini bul → o tarihten öncesi seçilemesin (ihraç öncesi alım imkânsız).
+  // VİOP'taki "ilk işlem günü" mantığının tahvil/bono karşılığı. instrument.issueDate varsa onu
+  // kullanır; yoksa detay çeker (EVDS: yyyy-MM-dd, Eurobond/BI: M/d/yyyy → yyyy-MM-dd'ye normalize).
+  useEffect(() => {
+    if (step !== 'form' || !instrument || !isBondAssetType(instrument.assetType)) {
+      setBondMinDate(null);
+      return undefined;
+    }
+    const norm = (raw) => {
+      if (!raw) return null;
+      const s = String(raw).trim();
+      let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+      m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+      return null;
+    };
+    const fromInst = norm(instrument.issueDate);
+    if (fromInst) { setBondMinDate(fromInst); return undefined; }
+    let cancelled = false;
+    const fetcher = isEurobondInstrument(instrument)
+      ? getGlobalBondDetail(instrument.symbol)
+      : getEvdsBondDetail(instrument.symbol);
+    fetcher
+      .then(d => { if (!cancelled) setBondMinDate(norm(d?.issueDate)); })
+      .catch(() => { if (!cancelled) setBondMinDate(null); });
     return () => { cancelled = true; };
   }, [instrument, step]);
 
@@ -448,6 +478,17 @@ export default function AddTransactionModal({
       if (dOnly && dOnly < futureMinDate) {
         setError(t('Bu kontrat {date} tarihinde işlem görmeye başladı; daha önceki bir tarih seçilemez.', {
           date: futureMinDate.split('-').reverse().join('.'),
+        }));
+        return;
+      }
+    }
+
+    // Tahvil/Eurobond: ihraç tarihinden öncesine işlem girilemez (ihraç öncesi alım imkânsız).
+    if (isBond && bondMinDate) {
+      const dOnly = (form.transactionDate || '').slice(0, 10);
+      if (dOnly && dOnly < bondMinDate) {
+        setError(t('Bu kıymet {date} tarihinde ihraç edildi; daha önceki bir tarih seçilemez.', {
+          date: bondMinDate.split('-').reverse().join('.'),
         }));
         return;
       }
@@ -886,12 +927,20 @@ export default function AddTransactionModal({
             <DateTimeField
               value={form.transactionDate}
               onChange={v => set('transactionDate', v)}
-              min={isFuture && futureMinDate ? futureMinDate : undefined}
+              min={(isFuture && futureMinDate) ? futureMinDate
+                : (isBond && bondMinDate) ? bondMinDate : undefined}
             />
             {isFuture && futureMinDate && (
               <p className="mt-1 text-[11px] text-[#747684] leading-snug">
                 {t('Bu kontrat {date} tarihinde işlem görmeye başladı; öncesi seçilemez.', {
                   date: futureMinDate.split('-').reverse().join('.'),
+                })}
+              </p>
+            )}
+            {!isFuture && isBond && bondMinDate && (
+              <p className="mt-1 text-[11px] text-[#747684] leading-snug">
+                {t('Bu kıymet {date} tarihinde ihraç edildi; öncesi seçilemez.', {
+                  date: bondMinDate.split('-').reverse().join('.'),
                 })}
               </p>
             )}

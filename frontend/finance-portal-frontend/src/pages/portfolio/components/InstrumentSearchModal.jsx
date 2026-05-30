@@ -362,6 +362,7 @@ async function fetchAll(type) {
           category: b.category ?? null,           // BondCategory (Tier 2/3 modal uyarıları için)
           currency: b.currency ?? null,
           cbrtCode: b.cbrtCode ?? null,
+          issueDate: b.issueDate ?? null,        // ihraç tarihi — modalda ihraç-öncesi alım engeli için
           maturityDate: b.maturityDate ?? null,
           couponRate: b.couponRate != null ? Number(b.couponRate) : null,
           indicatorValue: b.indicatorValue != null ? Number(b.indicatorValue) : null,

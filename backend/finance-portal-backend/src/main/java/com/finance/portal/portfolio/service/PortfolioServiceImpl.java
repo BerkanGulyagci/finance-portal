@@ -63,6 +63,7 @@ public class PortfolioServiceImpl implements PortfolioService {
     private final PortfolioCurrencyConverter currencyConverter;
     private final PortfolioWhatIfService whatIfService;
     private final com.finance.portal.market.application.bond.eurobond.EurobondService eurobondService;
+    private final com.finance.portal.market.application.bond.evds.EvdsBondService evdsBondService;
 
     public PortfolioServiceImpl(PortfolioPersistencePort portfolioPersistence,
                                 PortfolioCachePort portfolioCache,
@@ -75,7 +76,8 @@ public class PortfolioServiceImpl implements PortfolioService {
                                 PortfolioRealReturnEnricher realReturnEnricher,
                                 PortfolioCurrencyConverter currencyConverter,
                                 PortfolioWhatIfService whatIfService,
-                                com.finance.portal.market.application.bond.eurobond.EurobondService eurobondService) {
+                                com.finance.portal.market.application.bond.eurobond.EurobondService eurobondService,
+                                com.finance.portal.market.application.bond.evds.EvdsBondService evdsBondService) {
         this.portfolioPersistence           = portfolioPersistence;
         this.portfolioCache                 = portfolioCache;
         this.viopService                    = viopService;
@@ -88,6 +90,7 @@ public class PortfolioServiceImpl implements PortfolioService {
         this.currencyConverter              = currencyConverter;
         this.whatIfService                  = whatIfService;
         this.eurobondService                = eurobondService;
+        this.evdsBondService                = evdsBondService;
     }
 
     // ── HOLDINGS portföy işlemleri ────────────────────────────────────────────
@@ -226,16 +229,20 @@ public class PortfolioServiceImpl implements PortfolioService {
             }
         }
 
-        // Eurobond alımları için ihraç tarihi kontrolü: ihraç öncesi alım fiziksel olarak imkânsız.
+        // Tahvil/eurobond alımları için ihraç tarihi kontrolü: ihraç öncesi alım fiziksel olarak imkânsız.
+        // Eurobond ISIN ise BI ihraç tarihi, değilse EVDS DİBS ihraç tarihi kullanılır.
         if (request.getAssetType() == AssetType.BOND
                 && request.getTransactionType() == TransactionType.BUY
-                && request.getTransactionDate() != null
-                && eurobondService.currentIsins().contains(normalizedSymbol)) {
-            java.util.Optional<java.time.LocalDate> issueDate = parseEurobondIssueDate(normalizedSymbol);
+                && request.getTransactionDate() != null) {
+            boolean isEurobond = eurobondService.currentIsins().contains(normalizedSymbol);
+            java.util.Optional<java.time.LocalDate> issueDate = isEurobond
+                    ? parseEurobondIssueDate(normalizedSymbol)
+                    : parseEvdsBondIssueDate(normalizedSymbol);
             if (issueDate.isPresent()
                     && request.getTransactionDate().toLocalDate().isBefore(issueDate.get())) {
+                String kind = isEurobond ? "eurobondun" : "tahvilin";
                 throw new IllegalArgumentException(
-                        "Bu eurobondun ihraç tarihi " + issueDate.get()
+                        "Bu " + kind + " ihraç tarihi " + issueDate.get()
                                 + ". Bu tarihten önce satın alınmış sayılamaz; "
                                 + "işlem tarihini ihraç tarihi veya sonrası olarak ayarlayın.");
             }
@@ -855,6 +862,20 @@ public class PortfolioServiceImpl implements PortfolioService {
             return java.util.Optional.of(java.time.LocalDate.parse(raw,
                     java.time.format.DateTimeFormatter.ofPattern("M/d/yyyy")));
         } catch (Exception ex) {
+            return java.util.Optional.empty();
+        }
+    }
+
+    /**
+     * EVDS (iç piyasa) DİBS ihraç tarihi — {@code evdsBondService.getEvdsBondDetail(symbol).getIssueDate()}
+     * (zaten LocalDate). Kıymet bulunamaz/erişilemezse empty döner (validasyon atlanır, graceful).
+     */
+    private java.util.Optional<java.time.LocalDate> parseEvdsBondIssueDate(String symbol) {
+        try {
+            var bond = evdsBondService.getEvdsBondDetail(symbol);
+            return java.util.Optional.ofNullable(bond != null ? bond.getIssueDate() : null);
+        } catch (Exception ex) {
+            log.debug("EVDS bond issueDate lookup failed for {}: {}", symbol, ex.getMessage());
             return java.util.Optional.empty();
         }
     }
