@@ -39,7 +39,7 @@ import StockComparePage from '../features/market/stock/StockComparePage';
 import ComparePage from '../features/market/fx/ComparePage';
 import NewsPage from '../features/news/NewsPage';
 import NewsDetailPage from '../features/news/NewsDetailPage';
-import NotFoundPage from '../features/NotFoundPage';
+import NotFoundPage from '../app/NotFoundPage';
 import UnauthorizedPage from '../features/admin/UnauthorizedPage';
 import AdminUsersPage from '../features/admin/AdminUsersPage';
 import EurobondAdminPage from '../features/admin/EurobondAdminPage';
@@ -90,6 +90,9 @@ export default function AppRouter() {
           <Route path="/market/commodities" element={<CommoditiesPage />} />
           <Route path="/market/commodities/:symbol" element={<CommodityDetailPage />} />
           <Route path="/market/compare"    element={<ComparePage />} />
+
+          {/* 404 fallback (public layout içinde — header/footer ile sarılır) */}
+          <Route path="*" element={<NotFoundPage />} />
         </Route>
 
         {/* Authenticated (email verification optional) */}
@@ -113,7 +116,6 @@ export default function AppRouter() {
           <Route path="/admin/eurobonds" element={<EurobondAdminPage />} />
         </Route>
 
-        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   );

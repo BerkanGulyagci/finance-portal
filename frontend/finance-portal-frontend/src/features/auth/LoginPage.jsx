@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { ShieldCheck } from 'lucide-react';
 import { redirectToLogin } from '../../api/authApi';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../context/LanguageContext';
@@ -59,7 +60,9 @@ export default function LoginPage() {
           {/* 2FA info */}
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
             <div className="flex items-start gap-3">
-              <span className="text-2xl">🔐</span>
+              <span className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-4 h-4" />
+              </span>
               <div>
                 <p className="text-sm font-semibold text-blue-800">{t('2 Faktörlü Kimlik Doğrulama')}</p>
                 <p className="text-xs text-blue-600 mt-1">
