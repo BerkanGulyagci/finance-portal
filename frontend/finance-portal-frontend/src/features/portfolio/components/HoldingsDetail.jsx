@@ -96,7 +96,7 @@ function SummaryRow({ label, value, subValue, positive, dotColor, tooltip }) {
 /**
  * HOLDINGS portföy detay ekranı.
  */
-export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialInstrument, onInitialInstrumentConsumed, onActiveTabChange }) {
+export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialInstrument, onInitialInstrumentConsumed, onActiveTabChange, onHoldingsSelectedKeysChange }) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('holdings');
 
@@ -433,6 +433,7 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
             transactions={portfolio.transactions ?? []}
             portfolioId={portfolio.id}
             onPortfolioChanged={onPortfolioUpdate}
+            onSelectedKeysChange={onHoldingsSelectedKeysChange}
           />
         )}
         {activeTab === 'transactions' && (

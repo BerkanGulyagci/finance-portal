@@ -12,6 +12,7 @@
 
 import * as XLSX from 'xlsx';
 import { exportElementToPdf } from './domToPdf';
+import { renderCellForExport, ALL_COLS } from '../components/HoldingsTable';
 
 // ── Sabitler ────────────────────────────────────────────────────────────────
 const BRAND_NAVY_RGB = '093eaa';
@@ -87,6 +88,23 @@ function autoColWidths(rows) {
   return widths.map((w) => ({ wch: w }));
 }
 
+/** Cell tipini ALL_COLS.type'a göre Excel format'ına çevir. */
+function applyCellType(ws, addr, type) {
+  const cell = ws[addr];
+  if (!cell || cell.v == null) return;
+  if (type === 'number') {
+    cell.t = 'n';
+    cell.z = '#,##0.00';
+  } else if (type === 'percent') {
+    cell.t = 'n';
+    cell.z = '#,##0.00"%"';
+  } else if (type === 'date') {
+    cell.t = 's';
+  } else {
+    cell.t = 's';
+  }
+}
+
 /**
  * Varlık portföyünden Excel oluşturur. Sadece "Varlıklar" + "İşlemler" 2 sayfa.
  *
@@ -94,42 +112,81 @@ function autoColWidths(rows) {
  * @param {object} [opts]
  * @param {Array}  [opts.holdings]      — ekranda görünen varlıklar (filtre uygulanmış)
  * @param {Array}  [opts.transactions]  — ekranda görünen işlemler (filtre uygulanmış)
+ * @param {Array}  [opts.visibleCols]   — HoldingsTable'da seçili kolon listesi
+ *                                         (verilirse o kolonlar export; aksi takdirde fallback 12 kolon)
  */
 export function downloadPortfolioExcel(portfolio, opts = {}) {
   const wb = XLSX.utils.book_new();
 
   const holdings = opts.holdings ?? portfolio.holdings ?? [];
   const txs      = opts.transactions ?? portfolio.transactions ?? [];
+  const visibleCols = Array.isArray(opts.visibleCols) && opts.visibleCols.length > 0
+    ? opts.visibleCols
+    : null;
 
   // ── Sheet 1: Varlıklar ──────────────────────────────────────────────────
   if (holdings.length > 0) {
-    const headers = [
-      'Sembol', 'Ad', 'Tür', 'Miktar', 'Ortalama Alış', 'Güncel Fiyat',
-      'Toplam Maliyet', 'Piyasa Değeri', 'Kâr/Zarar', 'Kâr/Zarar %',
-      'Para Birimi', 'İlk Alış',
-    ];
-    const dataRows = holdings.map((h) => {
-      const cost = num(h.totalCost);
-      const pl   = num(h.profitLoss);
-      const pct  = cost && pl != null ? (pl / cost) * 100 : null;
-      return [
-        h.symbol ?? '',
-        h.name ?? h.symbol ?? '',
-        assetLabel(h.assetType),
-        num(h.totalQuantity),
-        num(h.averageCost),
-        num(h.currentPrice),
-        cost,
-        num(h.marketValue),
-        pl,
-        pct,
-        h.currency ?? 'TRY',
-        h.firstBuyDate ? String(h.firstBuyDate).slice(0, 10) : '',
+    let headers;
+    let dataRows;
+    let colTypes;
+
+    if (visibleCols) {
+      // Kullanıcının HoldingsTable'da seçtiği kolonlar
+      headers  = visibleCols.map((c) => c.label);
+      colTypes = visibleCols.map((c) => c.type || 'string');
+      dataRows = holdings.map((h) =>
+        visibleCols.map((c) => {
+          try {
+            return renderCellForExport(c.key, h);
+          } catch {
+            return '';
+          }
+        })
+      );
+    } else {
+      // Fallback: 12 kolonluk varsayılan (kolon seçici çağrısı yapılmamışsa)
+      headers = [
+        'Sembol', 'Ad', 'Tür', 'Miktar', 'Ortalama Alış', 'Güncel Fiyat',
+        'Toplam Maliyet', 'Piyasa Değeri', 'Kâr/Zarar', 'Kâr/Zarar %',
+        'Para Birimi', 'İlk Alış',
       ];
-    });
+      colTypes = [
+        'string', 'string', 'string', 'number', 'number', 'number',
+        'number', 'number', 'number', 'percent', 'string', 'date',
+      ];
+      dataRows = holdings.map((h) => {
+        const cost = num(h.totalCost);
+        const pl   = num(h.profitLoss);
+        const pct  = cost && pl != null ? (pl / cost) * 100 : null;
+        return [
+          h.symbol ?? '',
+          h.name ?? h.symbol ?? '',
+          assetLabel(h.assetType),
+          num(h.totalQuantity),
+          num(h.averageCost),
+          num(h.currentPrice),
+          cost,
+          num(h.marketValue),
+          pl,
+          pct,
+          h.currency ?? 'TRY',
+          h.firstBuyDate ? String(h.firstBuyDate).slice(0, 10) : '',
+        ];
+      });
+    }
+
     const ws = XLSX.utils.aoa_to_sheet([headers, ...dataRows]);
     ws['!cols'] = autoColWidths([headers, ...dataRows.map((r) => r.map((v) => v ?? ''))]);
     styleHeaderRow(ws, headers);
+
+    // Cell tiplerini uygula (Excel sayısal kolonları formül-uyumlu yapar)
+    dataRows.forEach((row, rIdx) => {
+      colTypes.forEach((type, cIdx) => {
+        const addr = XLSX.utils.encode_cell({ r: rIdx + 1, c: cIdx });
+        applyCellType(ws, addr, type);
+      });
+    });
+
     XLSX.utils.book_append_sheet(wb, ws, 'Varlıklar');
   }
 
@@ -171,17 +228,30 @@ export function downloadPortfolioExcel(portfolio, opts = {}) {
  * Türkçe karakter destekli profesyonel PDF rapor üretir.
  * Off-screen bir HTML template render eder, browser font'uyla PNG'ye çevirir,
  * sonra jsPDF ile A4'e basar (mevcut domToPdf.js utility'si kullanılır).
+ *
+ * @param {object} portfolio
+ * @param {object} [opts]
+ * @param {Array} [opts.holdings] — kullanıcının seçtiği visible holdings (tab filter)
+ * @param {Array} [opts.transactions] — kullanıcının seçtiği visible transactions
+ * @param {Array} [opts.visibleCols] — HoldingsTable'da seçili kolonlar (varsa export'a yansır)
  */
+let _pdfExporting = false;
 export async function downloadPortfolioPdf(portfolio, opts = {}) {
+  if (_pdfExporting) throw new Error('Önceki PDF işlemi devam ediyor.');
+  _pdfExporting = true;
+
   const holdings = opts.holdings ?? portfolio.holdings ?? [];
   const txs      = opts.transactions ?? portfolio.transactions ?? [];
+  const visibleCols = Array.isArray(opts.visibleCols) ? opts.visibleCols : null;
 
+  // Off-screen container — layout'a katılır (visibility:hidden) ama görünmez ve
+  // sayfayı genişletmez. left:-10000px yaklaşımı html-to-image clone'unda
+  // sıfır-genişlik sorun yaratıyordu; layout'a dahil etmek doğru çözüm.
   const root = document.createElement('div');
-  // Off-screen container — render edilir ama görünmez
   root.style.cssText = `
     position: fixed;
     top: 0;
-    left: -10000px;
+    left: 0;
     width: 794px;
     background: #ffffff;
     color: #111827;
@@ -190,13 +260,22 @@ export async function downloadPortfolioPdf(portfolio, opts = {}) {
     line-height: 1.4;
     padding: 0;
     box-sizing: border-box;
+    visibility: hidden;
+    pointer-events: none;
+    z-index: -9999;
+    contain: layout paint;
   `;
-  root.innerHTML = buildPdfHtml(portfolio, holdings, txs);
+  root.innerHTML = buildPdfHtml(portfolio, holdings, txs, visibleCols);
   document.body.appendChild(root);
 
   try {
-    // html-to-image render'ının fontları yükleyip layout'u stabilize etmesi için kısa bekleme
-    await new Promise((r) => setTimeout(r, 50));
+    // Fontlar yüklenmeden render olursa clone'da yazı sıfır boyutta kalır.
+    if (document.fonts?.ready) {
+      await document.fonts.ready.catch(() => {});
+    }
+    // Layout'un settle olması için iki RAF tick.
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
     await exportElementToPdf(root, {
       fileName: `${safeFilenameBase(portfolio?.name)}_${stampNow()}`,
       scale: 2,
@@ -205,10 +284,11 @@ export async function downloadPortfolioPdf(portfolio, opts = {}) {
     });
   } finally {
     document.body.removeChild(root);
+    _pdfExporting = false;
   }
 }
 
-function buildPdfHtml(portfolio, holdings, txs) {
+function buildPdfHtml(portfolio, holdings, txs, visibleCols = null) {
   const isWatchlist = portfolio.portfolioType === 'WATCHLIST';
   const subtitle = `${isWatchlist ? 'İzleme Listesi' : 'Varlık Portföyü'} · ${portfolio.currency ?? 'TRY'}`;
 
@@ -275,26 +355,53 @@ function buildPdfHtml(portfolio, holdings, txs) {
   // Holdings tablosu
   let holdingsTable = '';
   if (!isWatchlist && holdings.length > 0) {
-    const rows = holdings.map((h, i) => {
-      const cost = num(h.totalCost);
-      const pl   = num(h.profitLoss);
-      const pct  = cost && pl != null ? (pl / cost) * 100 : null;
-      const plColor = pl != null && pl >= 0 ? '#059669' : '#dc2626';
-      return tableRow([
-        escapeHtml(h.symbol ?? ''),
-        escapeHtml(assetLabel(h.assetType)),
-        { text: fmtTr(h.totalQuantity, 4), align: 'right' },
-        { text: fmtTr(h.averageCost, 4),   align: 'right' },
-        { text: fmtTr(h.currentPrice, 4),  align: 'right' },
-        { text: fmtTr(cost, 2),            align: 'right' },
-        { text: fmtTr(h.marketValue, 2),   align: 'right' },
-        { text: fmtTr(pl, 2),              align: 'right', color: plColor, bold: true },
-        { text: pct != null ? `${fmtTr(pct, 2)}%` : '-', align: 'right', color: plColor, bold: true },
-      ], i);
-    }).join('');
-    holdingsTable = sectionTable('Varlıklar',
-      ['Sembol', 'Tür', 'Miktar', 'Ort. Alış', 'Güncel', 'Maliyet', 'Değer', 'K/Z', '%'],
-      rows);
+    if (visibleCols && visibleCols.length > 0) {
+      // Kullanıcının seçtiği kolonlar
+      const headers = visibleCols.map((c) => c.label);
+      const rows = holdings.map((h, i) => {
+        const cells = visibleCols.map((c) => {
+          let raw;
+          try { raw = renderCellForExport(c.key, h); }
+          catch { return ''; }
+          if (raw == null) return { text: '-' };
+          const type = c.type || 'string';
+          if (type === 'number' || type === 'percent') {
+            const n = typeof raw === 'number' ? raw : parseFloat(raw);
+            if (!Number.isFinite(n)) return { text: '-' };
+            const isPnlCol = /K\/Z|PnL|Kâr|kar/i.test(c.label);
+            const color = isPnlCol ? (n >= 0 ? '#059669' : '#dc2626') : '#374151';
+            const bold = isPnlCol;
+            const text = type === 'percent' ? `${fmtTr(n, 2)}%` : fmtTr(n, 2);
+            return { text, align: 'right', color, bold };
+          }
+          return escapeHtml(String(raw));
+        });
+        return tableRow(cells, i);
+      }).join('');
+      holdingsTable = sectionTable('Varlıklar', headers, rows);
+    } else {
+      // Fallback: sabit kolon seti
+      const rows = holdings.map((h, i) => {
+        const cost = num(h.totalCost);
+        const pl   = num(h.profitLoss);
+        const pct  = cost && pl != null ? (pl / cost) * 100 : null;
+        const plColor = pl != null && pl >= 0 ? '#059669' : '#dc2626';
+        return tableRow([
+          escapeHtml(h.symbol ?? ''),
+          escapeHtml(assetLabel(h.assetType)),
+          { text: fmtTr(h.totalQuantity, 4), align: 'right' },
+          { text: fmtTr(h.averageCost, 4),   align: 'right' },
+          { text: fmtTr(h.currentPrice, 4),  align: 'right' },
+          { text: fmtTr(cost, 2),            align: 'right' },
+          { text: fmtTr(h.marketValue, 2),   align: 'right' },
+          { text: fmtTr(pl, 2),              align: 'right', color: plColor, bold: true },
+          { text: pct != null ? `${fmtTr(pct, 2)}%` : '-', align: 'right', color: plColor, bold: true },
+        ], i);
+      }).join('');
+      holdingsTable = sectionTable('Varlıklar',
+        ['Sembol', 'Tür', 'Miktar', 'Ort. Alış', 'Güncel', 'Maliyet', 'Değer', 'K/Z', '%'],
+        rows);
+    }
   }
 
   // İşlemler tablosu

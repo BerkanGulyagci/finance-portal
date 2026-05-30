@@ -14,7 +14,7 @@ import CouponIncomeModal from './CouponIncomeModal';
 const MAX_COLS = 12;
 
 /** Varsayılan kolonlar — tabloda bu sırayla gösterilir; Sıfırla aynı seti verir. */
-const DEFAULT_DISPLAY_ORDER = [
+export const DEFAULT_DISPLAY_ORDER = [
   'name',
   'symbol',
   'assetType',
@@ -42,33 +42,33 @@ const ASSET_LABELS = {
  * def: true → sayfa ilk açıldığında seçili gelir.
  * group: popover'daki grup başlığı.
  */
-const ALL_COLS = [
-  { key: 'name',          label: 'İsim',                  def: true,  group: 'Temel'   },
-  { key: 'symbol',        label: 'Sembol',                def: true,  group: 'Temel'   },
-  { key: 'assetType',     label: 'Tür',                   def: true,  group: 'Temel'   },
-  { key: 'qty',           label: 'Miktar',                def: true,  group: 'Temel'   },
-  { key: 'avgCost',       label: 'Ortalama Alış',         def: true,  group: 'Temel'   },
-  { key: 'currentPrice',  label: 'Mevcut Fiyat',          def: true,  group: 'Fiyat'   },
-  { key: 'marketValue',   label: 'Piyasa Değeri',         def: true,  group: 'Fiyat'   },
-  { key: 'totalCost',     label: 'Toplam Maliyet',        def: true,  group: 'Temel'   },
-  { key: 'unrealizedPnl', label: 'Gerçekleşmemiş K/Z',   def: true,  group: 'K/Z', hint: 'Nominal — enflasyon hariç' },
-  { key: 'unrealizedPct', label: 'Gerçekleşmemiş K/Z %', def: true,  group: 'K/Z', hint: 'Nominal — enflasyon hariç' },
-  { key: 'dailyPnl',      label: 'Günlük K/Z',           def: false, group: 'K/Z', hint: 'Bugün düne göre' },
-  { key: 'dailyPct',      label: 'Günlük K/Z %',         def: false, group: 'K/Z', hint: 'Bugün düne göre' },
-  { key: 'realizedPnl',   label: 'Gerçekleşmiş K/Z',     def: false, group: 'K/Z', hint: 'Satıştan kesinleşen' },
-  { key: 'realizedPct',   label: 'Gerçekleşmiş K/Z %',   def: false, group: 'K/Z', hint: 'Satıştan kesinleşen' },
-  { key: 'realPnl',       label: 'Reel K/Z',             def: false, group: 'Enflasyona Göre', hint: 'Kendi para birimi' },
-  { key: 'realPct',       label: 'Reel K/Z %',           def: false, group: 'Enflasyona Göre', hint: 'Kendi para birimi' },
-  { key: 'realPnlTry',    label: 'Reel K/Z (TL)',        def: false, group: 'Enflasyona Göre', hint: 'TL alım gücü (TÜFE)' },
-  { key: 'realPctTry',    label: 'Reel K/Z % (TL)',      def: false, group: 'Enflasyona Göre', hint: 'TL alım gücü (TÜFE)' },
-  { key: 'beatInflation', label: 'Enf. Durumu',          def: false, group: 'Enflasyona Göre', hint: 'Yendi / Yenildi' },
-  { key: 'inflationSince',label: 'Enflasyon (alıştan)',  def: false, group: 'Enflasyona Göre', hint: 'Birikimli enflasyon %' },
-  { key: 'currency',      label: 'Para Birimi',           def: false, group: 'Temel'   },
-  { key: 'firstBuyDate',  label: 'İlk Alış Tarihi',      def: false, group: 'Tarih'   },
-  { key: 'lastTxDate',    label: 'Son İşlem Tarihi',      def: false, group: 'Tarih'   },
-  { key: 'volume',        label: 'Hacim',                 def: false, group: 'Piyasa'  },
-  { key: 'week52',        label: '52 Hafta Aralığı',      def: false, group: 'Teknik'  },
-  { key: 'trend',         label: 'Trend',                 def: false, group: 'Teknik'  },
+export const ALL_COLS = [
+  { key: 'name',          label: 'İsim',                  def: true,  group: 'Temel',   type: 'string' },
+  { key: 'symbol',        label: 'Sembol',                def: true,  group: 'Temel',   type: 'string' },
+  { key: 'assetType',     label: 'Tür',                   def: true,  group: 'Temel',   type: 'string' },
+  { key: 'qty',           label: 'Miktar',                def: true,  group: 'Temel',   type: 'number' },
+  { key: 'avgCost',       label: 'Ortalama Alış',         def: true,  group: 'Temel',   type: 'number' },
+  { key: 'currentPrice',  label: 'Mevcut Fiyat',          def: true,  group: 'Fiyat',   type: 'number' },
+  { key: 'marketValue',   label: 'Piyasa Değeri',         def: true,  group: 'Fiyat',   type: 'number' },
+  { key: 'totalCost',     label: 'Toplam Maliyet',        def: true,  group: 'Temel',   type: 'number' },
+  { key: 'unrealizedPnl', label: 'Gerçekleşmemiş K/Z',   def: true,  group: 'K/Z',     type: 'number', hint: 'Nominal — enflasyon hariç' },
+  { key: 'unrealizedPct', label: 'Gerçekleşmemiş K/Z %', def: true,  group: 'K/Z',     type: 'percent', hint: 'Nominal — enflasyon hariç' },
+  { key: 'dailyPnl',      label: 'Günlük K/Z',           def: false, group: 'K/Z',     type: 'number', hint: 'Bugün düne göre' },
+  { key: 'dailyPct',      label: 'Günlük K/Z %',         def: false, group: 'K/Z',     type: 'percent', hint: 'Bugün düne göre' },
+  { key: 'realizedPnl',   label: 'Gerçekleşmiş K/Z',     def: false, group: 'K/Z',     type: 'number', hint: 'Satıştan kesinleşen' },
+  { key: 'realizedPct',   label: 'Gerçekleşmiş K/Z %',   def: false, group: 'K/Z',     type: 'percent', hint: 'Satıştan kesinleşen' },
+  { key: 'realPnl',       label: 'Reel K/Z',             def: false, group: 'Enflasyona Göre', type: 'number', hint: 'Kendi para birimi' },
+  { key: 'realPct',       label: 'Reel K/Z %',           def: false, group: 'Enflasyona Göre', type: 'percent', hint: 'Kendi para birimi' },
+  { key: 'realPnlTry',    label: 'Reel K/Z (TL)',        def: false, group: 'Enflasyona Göre', type: 'number', hint: 'TL alım gücü (TÜFE)' },
+  { key: 'realPctTry',    label: 'Reel K/Z % (TL)',      def: false, group: 'Enflasyona Göre', type: 'percent', hint: 'TL alım gücü (TÜFE)' },
+  { key: 'beatInflation', label: 'Enf. Durumu',          def: false, group: 'Enflasyona Göre', type: 'string', hint: 'Yendi / Yenildi' },
+  { key: 'inflationSince',label: 'Enflasyon (alıştan)',  def: false, group: 'Enflasyona Göre', type: 'percent', hint: 'Birikimli enflasyon %' },
+  { key: 'currency',      label: 'Para Birimi',           def: false, group: 'Temel',   type: 'string' },
+  { key: 'firstBuyDate',  label: 'İlk Alış Tarihi',      def: false, group: 'Tarih',   type: 'date' },
+  { key: 'lastTxDate',    label: 'Son İşlem Tarihi',      def: false, group: 'Tarih',   type: 'date' },
+  { key: 'volume',        label: 'Hacim',                 def: false, group: 'Piyasa',  type: 'number' },
+  { key: 'week52',        label: '52 Hafta Aralığı',      def: false, group: 'Teknik',  type: 'string' },
+  { key: 'trend',         label: 'Trend',                 def: false, group: 'Teknik',  type: 'string' },
 ];
 
 const DEFAULT_KEYS = [...DEFAULT_DISPLAY_ORDER];
@@ -91,7 +91,7 @@ function loadSavedColumns() {
 const GROUP_ORDER = ['Temel', 'Fiyat', 'K/Z', 'Enflasyona Göre', 'Tarih', 'Piyasa', 'Teknik'];
 
 /** Seçili kolonları varsayılan sıra + ekstra kolonlar (ALL_COLS sırası) ile döndürür. */
-function buildVisibleCols(selectedKeys) {
+export function buildVisibleCols(selectedKeys) {
   const set = new Set(selectedKeys);
   const primary = DEFAULT_DISPLAY_ORDER
     .filter(k => set.has(k))
@@ -282,6 +282,78 @@ function positionDailyGainLoss(h) {
   const cp = num(h, 'currentPrice');
   if (qty != null && cp != null && pc != null) return (qty * (cp - pc)) / scale;
   return null;
+}
+
+/**
+ * Excel/PDF export için bir kolonun RAW değerini döndürür (formatsız).
+ * - number/percent kolonlarda → Number veya null
+ * - date kolonlarda → ISO YYYY-MM-DD string veya ''
+ * - string kolonlarda → string
+ *
+ * Excel tarafı bu raw değeri ALL_COLS[key].type'a göre tipleyip formatlar.
+ * Bilinmeyen key → throw (yeni kolon eklenince fark edilir).
+ */
+export function renderCellForExport(key, h) {
+  const numProp = (...keys) => {
+    for (const k of keys) {
+      const v = h?.[k];
+      if (v == null || v === '') continue;
+      const n = typeof v === 'number' ? v : parseFloat(v);
+      if (Number.isFinite(n)) return n;
+    }
+    return null;
+  };
+
+  switch (key) {
+    case 'name':         return h.name ?? h.symbol ?? '';
+    case 'symbol':       return h.symbol ?? '';
+    case 'assetType':    return ASSET_LABELS[h.assetType] ?? String(h.assetType ?? '');
+    case 'qty':          return numProp('totalQuantity');
+    case 'avgCost':      return numProp('averageCost');
+    case 'currentPrice': return numProp('currentPrice');
+    case 'marketValue':  return positionMarketValue(h);
+    case 'totalCost':    return numProp('totalCost');
+    case 'unrealizedPnl': return unrealizedGainLoss(h);
+    case 'unrealizedPct': {
+      const pl = unrealizedGainLoss(h);
+      const cost = numProp('totalCost');
+      return cost && pl != null ? (pl / cost) * 100 : null;
+    }
+    case 'dailyPnl':     return positionDailyGainLoss(h);
+    case 'dailyPct':     return numProp('dailyGainLossPercent', 'dailyChangePercent', 'changePercent', 'returnOneDay');
+    case 'realizedPnl':  return numProp('realizedGainLoss');
+    case 'realizedPct':  return numProp('realizedGainLossPercent');
+    case 'realPnl':      return numProp('realProfitLoss');
+    case 'realPct':      return numProp('realProfitLossPercent');
+    case 'realPnlTry':   return numProp('realProfitLossTry');
+    case 'realPctTry':   return numProp('realProfitLossPercentTry');
+    case 'beatInflation': {
+      const pct = numProp('realProfitLossPercent');
+      if (pct == null) return '';
+      return pct >= 0 ? 'Enflasyonu Yendi' : 'Enflasyona Yenildi';
+    }
+    case 'inflationSince': return numProp('inflationSincePercent');
+    case 'currency':     return h.currency ?? 'TRY';
+    case 'firstBuyDate': return h.firstBuyDate ? String(h.firstBuyDate).slice(0, 10) : '';
+    case 'lastTxDate':   return h.lastTransactionDate ? String(h.lastTransactionDate).slice(0, 10) : '';
+    case 'volume':       return numProp('volume');
+    case 'week52': {
+      const low = numProp('fiftyTwoWeekLow');
+      const high = numProp('fiftyTwoWeekHigh');
+      if (low == null && high == null) return '';
+      const fmt = (n) => n == null ? '-' : n.toLocaleString('tr-TR', { maximumFractionDigits: 2 });
+      return `${fmt(low)} – ${fmt(high)}`;
+    }
+    case 'trend': {
+      const trend = computeTrend(h);
+      if (!trend) return '';
+      if (trend === 'UP') return 'Yükseliş';
+      if (trend === 'DOWN') return 'Düşüş';
+      return 'Yatay';
+    }
+    default:
+      throw new Error(`renderCellForExport: bilinmeyen kolon "${key}"`);
+  }
 }
 
 /**
@@ -822,12 +894,18 @@ export default function HoldingsTable({
   transactions = [],          // BOND expand'inde kupon listesi için
   portfolioId = null,         // Kupon Ekle modalı için
   onPortfolioChanged = null,  // Kupon eklendikten sonra çağrılır (parent'tan portfolio'yu reload eder)
+  onSelectedKeysChange = null, // Excel/PDF export "ekranda seçili kolonlar" — parent'a scalar selectedKeys yansıtır
 }) {
   const { t } = useTranslation();
   const [selectedKeys, setSelectedKeys] = useState(() => loadSavedColumns() ?? DEFAULT_KEYS);
   const [editorOpen, setEditorOpen]     = useState(false);
   const [expandedKeys, setExpandedKeys] = useState(() => new Set());
   const [couponModalSymbol, setCouponModalSymbol] = useState(null);
+
+  // Selected keys değişince parent'a yansıt (export butonlarının visibleCols'u bilmesi için).
+  useEffect(() => {
+    onSelectedKeysChange?.(selectedKeys);
+  }, [selectedKeys, onSelectedKeysChange]);
 
   // Seçim değişince tarayıcıya kaydet (sonraki girişte korunur).
   useEffect(() => {

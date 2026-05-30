@@ -1,8 +1,9 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, FileSpreadsheet, FileText, Pencil } from 'lucide-react';
 import { getPortfolioById } from '../../api/portfolioApi';
 import { downloadPortfolioExcel, downloadPortfolioPdf } from './utils/portfolioReportExport';
+import { buildVisibleCols } from './components/HoldingsTable';
 import PortfolioTypeBadge from './components/PortfolioTypeBadge';
 import EditPortfolioModal from './components/EditPortfolioModal';
 import HoldingsDetail from './components/HoldingsDetail';
@@ -19,6 +20,17 @@ export default function PortfolioDetailPage() {
   const [exporting, setExporting]   = useState(false);
   const [showEdit, setShowEdit]     = useState(false);
   const [holdingsTab, setHoldingsTab] = useState('holdings'); // HoldingsDetail aktif tab — export "ekranda seçili"
+  const [holdingsSelectedKeys, setHoldingsSelectedKeys] = useState([]); // HoldingsTable seçili kolonlar
+
+  // Excel/PDF tarafına geçilecek visibleCols (Trio + DEFAULT sırası ile build edilmiş).
+  // useCallback ile sarılı setter → HoldingsTable useEffect sonsuz render'a girmez.
+  const onHoldingsSelectedKeysChange = useCallback((keys) => {
+    setHoldingsSelectedKeys(keys);
+  }, []);
+  const holdingsVisibleCols = useMemo(
+    () => holdingsSelectedKeys.length > 0 ? buildVisibleCols(holdingsSelectedKeys) : [],
+    [holdingsSelectedKeys],
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -81,13 +93,16 @@ export default function PortfolioDetailPage() {
    * - charts/stats sekmeleri → her ikisi (varsayılan)
    */
   function buildExportOpts() {
+    const allHoldings = portfolio.holdings ?? [];
+    const allTxs     = portfolio.transactions ?? [];
+    const baseCols   = holdingsVisibleCols.length > 0 ? holdingsVisibleCols : undefined;
     if (holdingsTab === 'holdings') {
-      return { holdings: portfolio.holdings ?? [], transactions: [] };
+      return { holdings: allHoldings, transactions: [], visibleCols: baseCols };
     }
     if (holdingsTab === 'transactions') {
-      return { holdings: [], transactions: portfolio.transactions ?? [] };
+      return { holdings: [], transactions: allTxs, visibleCols: baseCols };
     }
-    return { holdings: portfolio.holdings ?? [], transactions: portfolio.transactions ?? [] };
+    return { holdings: allHoldings, transactions: allTxs, visibleCols: baseCols };
   }
 
   async function handleExportExcel() {
@@ -185,6 +200,7 @@ export default function PortfolioDetailPage() {
           initialInstrument={initialInstrument}
           onInitialInstrumentConsumed={consumeInitialInstrument}
           onActiveTabChange={setHoldingsTab}
+          onHoldingsSelectedKeysChange={onHoldingsSelectedKeysChange}
         />
       )}
     </div>
