@@ -321,7 +321,9 @@ cache:
     ttl-seconds: ${NEWS_CACHE_TTL_SECONDS:300}
   portfolio:
     list-ttl-seconds: ${CACHE_PORTFOLIO_LIST_TTL_SECONDS:30}
-    detail-ttl-seconds: ${CACHE_PORTFOLIO_DETAIL_TTL_SECONDS:30}
+    # Detay cache HIT'te artık re-enrich edilmeden döner → fiyatlar en fazla bu kadar bayat olabilir.
+    # 120 sn: piyasa cache'leri (60sn-6sa) yanında kabul edilebilir + refresh'ler anında. Al/sat cache'i evict eder.
+    detail-ttl-seconds: ${CACHE_PORTFOLIO_DETAIL_TTL_SECONDS:120}
     watchlist-ttl-seconds: ${CACHE_PORTFOLIO_WATCHLIST_TTL_SECONDS:60}
   market:
     fx:

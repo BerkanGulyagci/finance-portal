@@ -406,17 +406,22 @@ public class PortfolioServiceImpl implements PortfolioService {
     @WithSpan("PortfolioService.getPortfolioById")
     public PortfolioResponse getPortfolioById(@SpanAttribute("user.id") String userId,
                                               @SpanAttribute("portfolio.id") UUID portfolioId) {
-        PortfolioResponse response = portfolioCache.getPortfolioDetail(userId, portfolioId)
-                .orElseGet(() -> {
-                    Portfolio portfolio = portfolioPersistence.findByIdAndUserId(portfolioId, userId)
-                            .orElseThrow(() -> new IllegalArgumentException(
-                                    "Portfolio not found: id=" + portfolioId + " userId=" + userId));
-                    return toPortfolioResponse(portfolio);
-                });
-        // Redis'teki anlık snapshot fiyatları eskitir; her GET'te canlı fiyatları yeniden uygula
-        // (FUTURE/VİOP gibi sonradan eklenen zenginleştirme de cache'te kalmış boş alanları giderir).
-        // Her holding bağımsız + DTO üzerinde çalışır (JPA session'a dokunmaz) → PARALEL zenginleştir:
-        // seri döngü N holding için N ardışık dış/cache çağrısıydı (portföy yavaş açılmasının ana nedeni).
+        // Cache HIT: zaten zenginleştirilmiş yanıtı (canlı fiyat + 52h/MA + reel getiri ile, en fazla
+        // detail-ttl kadar önce hesaplanmış) OLDUĞU GİBİ döndür — re-enrich YOK. Eskiden cache hit'te bile
+        // tüm holdingler yeniden zenginleştiriliyordu (N ardışık/paralel dış çağrı) → 30s cache işe yaramıyor,
+        // her refresh ~21 sn bekliyordu. Al/sat/kupon/CRUD işlemleri cache'i evict ettiğinden veri tutarlı;
+        // tek "bayatlık" canlı fiyatların ≤ TTL kadar eski olması (piyasa cache'leri zaten 60sn-6sa).
+        var cachedDetail = portfolioCache.getPortfolioDetail(userId, portfolioId);
+        if (cachedDetail.isPresent()) {
+            return cachedDetail.get();
+        }
+
+        // Cache MISS: DB'den yükle → PARALEL zenginleştir (holdingler bağımsız + DTO üzerinde, JPA'ya dokunmaz)
+        // → reel getiri → zenginleştirilmiş yanıtı cache'e yaz.
+        Portfolio portfolio = portfolioPersistence.findByIdAndUserId(portfolioId, userId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Portfolio not found: id=" + portfolioId + " userId=" + userId));
+        PortfolioResponse response = toPortfolioResponse(portfolio);
         if (response.getHoldings() != null && !response.getHoldings().isEmpty()) {
             List<CompletableFuture<Void>> futures = new ArrayList<>(response.getHoldings().size());
             for (PortfolioHoldingResponse h : response.getHoldings()) {
