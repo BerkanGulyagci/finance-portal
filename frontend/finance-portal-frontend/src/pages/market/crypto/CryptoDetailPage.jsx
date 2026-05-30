@@ -616,7 +616,31 @@ export default function CryptoDetailPage() {
   }, [coinId, currency]);
 
   useEffect(() => {
-    getCryptoDetail(coinId).then(setDetail).catch(() => {});
+    getCryptoDetail(coinId).then(d => {
+      setDetail(d);
+      // getAllCryptos TÜM coin listesini çektiği için yavaş; tek-coin detail çağrısı genelde
+      // daha erken döner ve market_data kartın ihtiyacı olan her şeyi içerir. coin henüz yoksa
+      // başlık kartını HEMEN detail'den doldur (••• beklemesin); liste gelince refine eder.
+      setCoin(prev => {
+        if (prev) return prev;
+        const md = d?.market_data;
+        if (!md) return prev;
+        const c = currency.toLowerCase();
+        return {
+          id: coinId, symbol: d.symbol, name: d.name, image: d.image?.small || d.image?.thumb || d.image?.large,
+          currentPrice: md.current_price?.[c], marketCap: md.market_cap?.[c],
+          marketCapRank: d.market_cap_rank, totalVolume: md.total_volume?.[c],
+          high24h: md.high_24h?.[c], low24h: md.low_24h?.[c],
+          priceChange24h: md.price_change_24h,
+          priceChangePercentage24h: md.price_change_percentage_24h,
+          priceChangePercentage1h: md.price_change_percentage_1h_in_currency?.[c],
+          priceChangePercentage7d: md.price_change_percentage_7d_in_currency?.[c],
+        };
+      });
+      setLoading(false);
+    }).catch(() => {});
+    // currency kasıtlı dışarıda: ilk-yükleme dolumu içindir; para birimi değişimini getAllCryptos yönetir
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coinId]);
 
   // Ana coin chart verisi
