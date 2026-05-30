@@ -13,7 +13,7 @@ import PortfolioChartCard from './PortfolioChartCard';
 import PortfolioAnalyticsTooltip from './PortfolioAnalyticsTooltip';
 import { calculateDailyStatus } from '../../utils/portfolioAnalyticsHelpers';
 import { BAR_VERTICAL_BAR, BAR_VERTICAL_CHART, CHART_GRID, TICK } from './portfolioChartStyles';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 export default function PortfolioDailyStatusChart({ holdings }) {
   const { t } = useTranslation();

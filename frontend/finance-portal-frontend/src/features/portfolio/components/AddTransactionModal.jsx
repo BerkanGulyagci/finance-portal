@@ -16,7 +16,7 @@ import {
   formatGoldQuantity,
   goldQuantitySuffix,
 } from '../utils/goldTransactionMeta';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 import TransactionSummary from './TransactionSummary';
 import {
   extractApiErrorMessage,

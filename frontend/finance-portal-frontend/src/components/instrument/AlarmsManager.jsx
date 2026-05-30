@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, Plus, Pencil, Trash2, Pause, Play, ChevronRight } from 'lucide-react';
 import { getAlarms, updateAlarm, deleteAlarm } from '../../api/alarmApi';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import AlarmCreateModal from './AlarmCreateModal';
 import InstrumentSearchModal from './InstrumentSearchModal';

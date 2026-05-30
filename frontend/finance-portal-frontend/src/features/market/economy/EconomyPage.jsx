@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { getEconomyCharts } from '../../../api/marketApi.js';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 import EconomyChart from './EconomyChart';
 import { ECONOMY_TOPICS } from './economyContent';
 

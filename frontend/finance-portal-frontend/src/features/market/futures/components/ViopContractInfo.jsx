@@ -1,6 +1,6 @@
 import { Info, Calendar, Package, TrendingUp, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 export default function ViopContractInfo({ contract }) {
   const { t } = useTranslation();

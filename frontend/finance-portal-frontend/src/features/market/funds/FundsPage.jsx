@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getFunds } from '../../../api/marketApi';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 import Pagination from '../../../components/common/Pagination';
 import WatchlistStar from '../../../components/instrument/WatchlistStar';
 

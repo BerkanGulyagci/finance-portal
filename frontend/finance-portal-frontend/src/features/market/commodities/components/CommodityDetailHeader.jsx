@@ -9,7 +9,7 @@ import {
   getTrySpotPrice,
   canToggleTry,
 } from './commodityConstants';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 function formatOhlcValue(value, spot, usdTryRate) {
   if (value == null) return '-';

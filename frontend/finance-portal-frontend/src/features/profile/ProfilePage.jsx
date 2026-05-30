@@ -3,15 +3,15 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Mail, Pencil, RefreshCw, KeyRound, BadgeCheck, AlertCircle, IdCard } from 'lucide-react';
 import { getMe } from '../../api/meApi';
 import { useAuth } from '../../context/AuthContext';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 import {
   ProfileEmailModal,
   ProfileNameModal,
   ProfilePasswordModal,
-} from './ProfileAccountModals';
+} from './components/ProfileAccountModals';
 import TickerCustomizer from './components/TickerCustomizer';
 import NewsletterModal from '../../components/shared/NewsletterModal';
-import SupportTicketsCard from './SupportTicketsCard';
+import SupportTicketsCard from './components/SupportTicketsCard';
 import { getNewsletter } from '../../api/newsletterApi';
 
 function Field({ label, value }) {

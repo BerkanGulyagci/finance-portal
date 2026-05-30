@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft, BarChart2 } from 'lucide-react';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 export default function FundDetailHeader({ fund, code }) {
     const { t } = useTranslation();

@@ -18,7 +18,7 @@ import { readWlCharts, removeWlChart, DASH_WL_EVENT } from '../../utils/watchlis
 import { prefGet, prefSet } from '../../api/prefs';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 import GridBoard from '../../components/common/GridBoard';
 import AlarmCreateModal from '../../components/instrument/AlarmCreateModal';
 import MiniAssetChart from './components/MiniAssetChart';

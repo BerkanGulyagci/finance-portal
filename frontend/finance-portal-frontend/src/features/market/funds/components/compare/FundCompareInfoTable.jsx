@@ -1,5 +1,5 @@
 import { COMPARE_COLORS, toNum, fmtBig } from './compareUtils';
-import { useTranslation } from '../../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../../context/LanguageContext';
 
 /** NaN, null, undefined, "NaN" string → "-" */
 function safe(v) {

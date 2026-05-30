@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, X, Plus, BarChart2, Search, TrendingUp, TrendingDown } from 'lucide-react';
 import { getStockChart, getStockMidasDetail, getAllStocks, getMarketPriceHistory } from '../../../api/marketApi';
 import { STOCK_CHART_RANGES } from './stockChartRanges';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 import InstrumentSearchModal from '../../../components/instrument/InstrumentSearchModal';
 
 const ASSET_LABELS = {

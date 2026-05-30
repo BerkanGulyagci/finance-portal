@@ -3,7 +3,7 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine,
 } from 'recharts';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 import {
   WATCHLIST_ASSET_LABELS, groupByAssetType, calculateDailyStatus, calculateAverageChangeByType,
   getTopGainers, getTopLosers, formatPctForChart, formatSharePercent, countSharePercent,

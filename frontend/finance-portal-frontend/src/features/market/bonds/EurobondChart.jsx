@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Trash2, X, ChevronDown } from 'lucide-react';
 import { init as klineInit, dispose as klineDispose, registerOverlay } from 'klinecharts';
 import { getGlobalBondChart } from '../../../api/marketApi';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 // Custom overlay'leri bir kez kaydet (hisse sayfasıyla aynı; yeniden kayıt zararsız).
 let overlaysReady = false;

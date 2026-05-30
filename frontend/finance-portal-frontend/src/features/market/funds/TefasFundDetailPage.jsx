@@ -4,7 +4,7 @@ import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown, ChevronDown, BarChar
 import { init as klineInit, dispose as klineDispose } from 'klinecharts';
 import { getRasyonetFundDetail, getFundPriceHistory } from '../../../api/marketApi';
 import { FUND_CHART_RANGES, buildFundChartSeries } from './fundChartSeries';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 import TrendBadge from '../../../components/common/TrendBadge';
 import UniversalCompareButton from '../../../components/common/UniversalCompareButton';
 import InstrumentActionButtons from '../../../components/instrument/InstrumentActionButtons';

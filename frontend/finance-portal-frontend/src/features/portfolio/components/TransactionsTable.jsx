@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Trash2, Search, X, Coins } from 'lucide-react';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 function fmt(v, dec = 2) {
   if (v == null) return '-';

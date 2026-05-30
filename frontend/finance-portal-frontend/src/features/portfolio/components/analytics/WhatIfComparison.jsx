@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import { getPortfolioWhatIfSeries } from '../../../../api/portfolioApi';
 import { formatMoney } from '../../utils/portfolioFormatUtils';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 import InstrumentSearchModal from '../../../../components/instrument/InstrumentSearchModal';
 
 const SERIES = [

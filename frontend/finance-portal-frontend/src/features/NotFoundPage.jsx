@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useTranslation } from '../i18n/LanguageContext';
+import { useTranslation } from '../context/LanguageContext';
 
 export default function NotFoundPage() {
   const { t } = useTranslation();

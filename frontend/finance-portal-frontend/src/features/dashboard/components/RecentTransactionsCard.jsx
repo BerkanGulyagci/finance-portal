@@ -3,7 +3,7 @@ import { ArrowDownLeft, ArrowUpRight, History } from 'lucide-react';
 import DashCard from './DashCard';
 import { fmtMoney, num, ASSET_LABEL } from '../utils/dashUtils';
 import { getWatchlistDetailPath } from '../../portfolio';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 function fmtDate(s) {
   if (!s) return '';

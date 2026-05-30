@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Bot, X, ArrowUp, Maximize2, Minimize2, Trash2, TrendingUp, Newspaper, Wallet } from 'lucide-react';
 import { sendAssistantChat } from '../../api/assistantApi';
 import { useAuth } from '../../context/AuthContext';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 
 const STORAGE_KEY = 'porti_chat_v1';
 

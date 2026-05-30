@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { fmt, getSpotPrice } from './goldConstants';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 export default function GoldHeaderCard({ spot, activeTab, historyPoints }) {
   const { t } = useTranslation();

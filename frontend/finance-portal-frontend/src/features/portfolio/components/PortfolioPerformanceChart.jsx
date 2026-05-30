@@ -3,7 +3,7 @@ import { init as klineInit, dispose as klineDispose, registerIndicator } from 'k
 import { getPortfolioPerformance } from '../../../api/portfolioApi';
 import { formatChartValue, MASK_MONEY } from '../utils/portfolioFormatUtils';
 import { computeKlinePricePrecision } from '../../../utils/numberFormat';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 const INFLATION_LINE_COLOR = '#9333ea';
 

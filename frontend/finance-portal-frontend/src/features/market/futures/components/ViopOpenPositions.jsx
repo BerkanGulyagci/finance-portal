@@ -1,6 +1,6 @@
 import { TrendingUp, TrendingDown, Users } from 'lucide-react';
 import { parseTrNumber, formatQuantity } from '../../../../utils/numberFormat';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 export default function ViopOpenPositions({ contract }) {
   const { t } = useTranslation();

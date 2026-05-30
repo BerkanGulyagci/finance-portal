@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import AnalysisPdfExportButton from './AnalysisPdfExportButton';
 import AddWatchlistChartsToDashboardMenu from './AddWatchlistChartsToDashboardMenu';
 import GridBoard from '../../../components/common/GridBoard';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 import { calculateDailyStatus, hasAnyChangePercentData } from '../utils/watchlistChartHelpers';
 import { ChartCard, WL_CHARTS } from './watchlistChartRegistry';
 

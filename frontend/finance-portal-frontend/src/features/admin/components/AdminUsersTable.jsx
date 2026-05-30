@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 import AdminUsersTableRow from './AdminUsersTableRow';
 
 export default function AdminUsersTable({

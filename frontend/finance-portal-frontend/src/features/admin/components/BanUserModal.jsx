@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Ban, Clock, Infinity, User, X } from 'lucide-react';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 const BAN_TYPE = {
   PERMANENT: 'PERMANENT',

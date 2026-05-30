@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { X, Save } from 'lucide-react';
 import { updatePortfolio } from '../../../api/portfolioApi';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 export default function EditPortfolioModal({ portfolio, onClose, onUpdated }) {
   const { t } = useTranslation();

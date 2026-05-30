@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
-import { changeMePassword, updateMeEmail, updateMeProfile } from '../../api/meApi';
-import { keycloakAccountUrls } from '../../config/keycloakAccount';
-import { useTranslation } from '../../i18n/LanguageContext';
-import { mapPasswordChangeError } from './profilePasswordErrors';
+import { changeMePassword, updateMeEmail, updateMeProfile } from '../../../api/meApi';
+import { keycloakAccountUrls } from '../../../config/keycloakAccount';
+import { useTranslation } from '../../../context/LanguageContext';
+import { mapPasswordChangeError } from '../utils/profilePasswordErrors';
 
 function ModalShell({ title, open, onClose, children }) {
   const { t } = useTranslation();

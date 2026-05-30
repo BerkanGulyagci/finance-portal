@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Bell } from 'lucide-react';
 import AlarmsManager from '../../components/instrument/AlarmsManager';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 
 /**
  * "Alarmlarımı Düzenle" sayfası — tüm alarmların listesi + yönetimi.

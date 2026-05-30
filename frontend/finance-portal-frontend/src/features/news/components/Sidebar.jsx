@@ -5,7 +5,7 @@ import { getFxTcmb, getEconomicIndicators, getEconomy } from '../../../api/marke
 import { getNews } from '../../../api/newsApi';
 import { getIpos } from '../../../api/ipoApi';
 import StockLogo from '../../dashboard/components/StockLogo';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 /** Site tasarımına uygun, tarayıcı select'i yerine özel açılır menü. */
 function CurrencyDropdown({ value, options, onChange }) {

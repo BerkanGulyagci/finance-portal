@@ -1,5 +1,5 @@
 import { Eye, Briefcase } from 'lucide-react';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 /**
  * portfolioType değerine göre renkli badge gösterir.

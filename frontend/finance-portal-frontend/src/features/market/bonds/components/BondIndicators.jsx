@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { fmtPct } from './bondChartUtils';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 // ── Yardımcılar ───────────────────────────────────────────────────────────────
 

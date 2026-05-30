@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Trash2 } from 'lucide-react';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 const COMMODITY_NAMES = {
   'CL=F': 'WTI Ham Petrol',

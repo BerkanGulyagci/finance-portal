@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 export default function GoldErrorState({ message }) {
   const { t } = useTranslation();

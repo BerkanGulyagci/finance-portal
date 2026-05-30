@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { GitCompare } from 'lucide-react';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 
 /**
  * "Tümüyle Karşılaştır" butonu — herhangi bir enstrümanı evrensel karşılaştırma sayfasına

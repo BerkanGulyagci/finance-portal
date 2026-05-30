@@ -11,7 +11,7 @@ import {
   parseMarketValue,
   PORTFOLIO_ASSET_LABELS,
 } from '../../utils/portfolioAnalyticsHelpers';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 function parsePrice(h) {
   const cp = h?.currentPrice;

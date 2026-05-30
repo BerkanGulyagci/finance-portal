@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { Search, X } from 'lucide-react';
 import { COMPARE_COLORS } from './compareUtils';
-import { useTranslation } from '../../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../../context/LanguageContext';
 
 const MAX_FUNDS = 4;
 

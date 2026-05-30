@@ -3,7 +3,7 @@ import { LayoutDashboard, Check, ChevronDown } from 'lucide-react';
 import { WL_CHARTS } from './watchlistChartRegistry';
 import { addWlChart, readWlCharts, removeWlChart, DASH_WL_EVENT } from '../../../utils/watchlistDashCharts';
 import { useToast } from '../../../context/ToastContext';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 /**
  * İzleme listesi "Grafikler" sekmesi araç çubuğu menüsü: hangi grafiğin Dashboard'a ekleneceğini

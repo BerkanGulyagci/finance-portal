@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
-import { useTranslation } from '../i18n/LanguageContext';
+import { useTranslation } from '../context/LanguageContext';
 import { hydratePrefs, prefGet } from '../api/prefs';
 
 const PreferencesContext = createContext({ ready: true });

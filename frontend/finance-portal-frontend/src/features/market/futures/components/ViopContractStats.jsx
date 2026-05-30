@@ -1,5 +1,5 @@
 import { parseTrNumber, formatPrice } from '../../../../utils/numberFormat';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 export default function ViopContractStats({ contract }) {
   const { t } = useTranslation();

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X, ArrowLeftRight } from 'lucide-react';
 import { addWatchlistItem } from '../../../api/portfolioApi';
 import InstrumentSearchModal from '../../../components/instrument/InstrumentSearchModal';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 /**
  * İzleme listesine sembol ekleme modal'ı.

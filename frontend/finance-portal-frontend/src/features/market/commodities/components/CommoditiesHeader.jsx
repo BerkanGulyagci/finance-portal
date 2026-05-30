@@ -1,5 +1,5 @@
 import { RefreshCw } from 'lucide-react';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 export default function CommoditiesHeader({ loading, onRefresh, usdTryRate }) {
   const { t } = useTranslation();

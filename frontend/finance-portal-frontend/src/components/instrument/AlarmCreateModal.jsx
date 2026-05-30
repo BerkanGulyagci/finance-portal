@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { X, Bell, ChevronDown } from 'lucide-react';
 import { createAlarm, updateAlarm } from '../../api/alarmApi';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 
 const FREQUENCIES = [

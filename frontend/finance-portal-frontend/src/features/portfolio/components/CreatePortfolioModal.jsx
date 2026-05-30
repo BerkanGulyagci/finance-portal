@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { X, Eye, Briefcase } from 'lucide-react';
 import { createPortfolio, getMyPortfolios } from '../../../api/portfolioApi';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 const TYPE_OPTIONS = [
   {

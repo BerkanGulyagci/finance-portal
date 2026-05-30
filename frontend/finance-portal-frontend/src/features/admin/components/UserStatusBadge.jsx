@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 import { formatBanUntil, getBanStatusLabel, isActiveUser, isPermanentBan, isTemporaryBan } from '../utils/banDisplay';
 
 export default function UserStatusBadge({ user }) {

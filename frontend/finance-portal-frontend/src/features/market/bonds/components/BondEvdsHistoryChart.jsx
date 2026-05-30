@@ -16,7 +16,7 @@ import {
   filterBondHistoryByDays,
   fmtNum, fmtPct,
 } from './bondChartUtils';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 const PERIODS = BOND_CHART_PERIODS;
 

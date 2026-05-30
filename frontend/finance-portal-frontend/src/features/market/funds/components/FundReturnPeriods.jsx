@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 const PERIODS = [
   { key: 'return1M', label: '1 Ay' },

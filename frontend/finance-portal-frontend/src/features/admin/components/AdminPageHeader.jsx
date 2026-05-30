@@ -1,5 +1,5 @@
 import { RefreshCw, Shield } from 'lucide-react';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 export default function AdminPageHeader({ title, description, loading, onRefresh }) {
   const { t } = useTranslation();

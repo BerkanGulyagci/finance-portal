@@ -9,7 +9,7 @@ import {
   getTrySpotPrice,
   canToggleTry,
 } from './commodityConstants';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 import WatchlistStar from '../../../../components/instrument/WatchlistStar';
 
 export default function CommodityCard({ meta, spot, loading, onClick }) {

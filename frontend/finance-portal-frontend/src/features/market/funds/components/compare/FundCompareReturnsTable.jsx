@@ -1,5 +1,5 @@
 import { COMPARE_COLORS, toNum, fmtPct, fmtPctColor } from './compareUtils';
-import { useTranslation } from '../../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../../context/LanguageContext';
 
 const RETURN_ROWS = [
   { key: 'returnOneDay',      label: 'Günlük' },

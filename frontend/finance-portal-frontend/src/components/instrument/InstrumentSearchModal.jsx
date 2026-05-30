@@ -9,7 +9,7 @@ import {
   isYahooCommoditySymbol,
 } from '../../utils/commodityPriceUtils';
 import { pickSilverGramCloseTry } from '../../utils/silverPriceUtils';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 
 /**
  * Yeniden kullanılabilir enstrüman arama modal'ı.

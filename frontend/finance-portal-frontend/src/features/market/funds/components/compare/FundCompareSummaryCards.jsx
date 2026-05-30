@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ExternalLink } from 'lucide-react';
 import { COMPARE_COLORS, toNum, fmtPct, fmtPctColor, fmtPrice, calcPeriodReturn } from './compareUtils';
-import { useTranslation } from '../../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../../context/LanguageContext';
 
 function RiskBar({ level }) {
   if (level == null) return <span className="text-gray-300 text-xs">-</span>;

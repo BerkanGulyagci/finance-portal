@@ -14,7 +14,7 @@ import InstrumentActionButtons from '../../../components/instrument/InstrumentAc
 // Aktif sekme → COMMODITY sembol kategorisi (portföy/alarm/kıyas için)
 const PRECIOUS_CAT = { try_gram: 'GRAM_TRY', try_kg: 'KG_TRY', usd_ons: 'USD_ONS', eur_ons: 'EUR_ONS' };
 import GoldSourceNotice  from '../gold/components/GoldSourceNotice';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 // ── Yardımcı ─────────────────────────────────────────────────────────────────
 function fmt(v, dec = 2) {

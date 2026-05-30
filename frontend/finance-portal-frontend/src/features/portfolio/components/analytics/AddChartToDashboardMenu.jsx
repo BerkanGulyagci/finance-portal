@@ -3,7 +3,7 @@ import { LayoutDashboard, Check, ChevronDown } from 'lucide-react';
 import { ANALYTICS_CHARTS } from './analyticsRegistry';
 import { addPfChart, readPfCharts, removePfChart, DASH_PF_EVENT } from '../../../../utils/dashboardCharts';
 import { useToast } from '../../../../context/ToastContext';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 /**
  * Portföy "Grafikler" sekmesi araç çubuğu butonu: tıklayınca hangi grafiğin

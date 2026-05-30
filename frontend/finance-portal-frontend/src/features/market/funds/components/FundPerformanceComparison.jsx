@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 // Geçmiş performans karşılaştırması — Dolar, Altın, BIST100 vs Fon
 const BAR_COLORS = {

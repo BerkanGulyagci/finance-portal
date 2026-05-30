@@ -1,6 +1,6 @@
 import { TrendingUp, TrendingDown, Clock } from 'lucide-react';
 import { parseTrNumber, formatPrice } from '../../../../utils/numberFormat';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 import InstrumentActionButtons from '../../../../components/instrument/InstrumentActionButtons';
 import InstrumentLogo from '../../../../components/instrument/InstrumentLogo';
 

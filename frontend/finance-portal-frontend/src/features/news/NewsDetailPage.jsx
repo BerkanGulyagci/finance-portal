@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, Newspaper, Clock, User, Link2 } from 'lucide-react';
 import { getNewsDetail, proxyImageUrl } from '../../api/newsApi';
 import { Sidebar } from './components/Sidebar';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 import { categoryBadgeClass, formatNewsDate, formatNewsTime } from '../../utils/newsUtils';
 
 function ShareButtons({ url, title }) {

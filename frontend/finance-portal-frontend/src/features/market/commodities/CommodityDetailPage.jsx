@@ -10,7 +10,7 @@ import CommodityDetailSourceNotice from './components/CommodityDetailSourceNotic
 import CommoditiesErrorState      from './components/CommoditiesErrorState';
 import UniversalCompareButton     from '../../../components/common/UniversalCompareButton';
 import InstrumentActionButtons    from '../../../components/instrument/InstrumentActionButtons';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 // history noktalarını display değerleriyle zenginleştir (USX → USD dönüşümü zaten backend'de yapılıyor)
 function enrichPoints(points) {

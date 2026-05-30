@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { redirectToLogin } from '../../api/authApi';
 import { useAuth } from '../../context/AuthContext';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 
 export default function LoginPage() {
   const { t } = useTranslation();

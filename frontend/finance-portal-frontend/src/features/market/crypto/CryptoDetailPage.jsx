@@ -30,7 +30,7 @@ import {
   formatYahooChartSourceNote,
 } from './cryptoChartRanges';
 import { getCryptoChart, getCryptoOhlc } from '../../../api/marketApi';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 const CURRENCIES = ['TRY', 'USD', 'EUR'];
 const CURRENCY_SYMBOLS = { TRY: '₺', USD: '$', EUR: '€' };

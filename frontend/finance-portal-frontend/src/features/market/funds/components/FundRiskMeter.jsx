@@ -8,7 +8,7 @@ const RISK_COLORS = [
   '#991b1b',
 ];
 
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 const RISK_LABELS = ['', 'Çok Düşük', 'Düşük', 'Orta-Düşük', 'Orta', 'Orta-Yüksek', 'Yüksek', 'Çok Yüksek'];
 

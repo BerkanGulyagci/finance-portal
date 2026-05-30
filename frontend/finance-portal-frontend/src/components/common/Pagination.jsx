@@ -1,4 +1,4 @@
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 
 /**
  * Liste sayfaları için ortak sayfalama bileşeni — tasarım hisse listesi sayfasına dayanır

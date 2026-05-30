@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { fmt, getSpotPrice } from './goldConstants';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 /**
  * Seçili dönemin history noktalarından istatistik hesaplar.

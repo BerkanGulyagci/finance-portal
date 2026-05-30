@@ -4,7 +4,7 @@ import { ArrowLeft, TrendingUp, TrendingDown, BarChart2, Repeat } from 'lucide-r
 import { getGlobalBondDetail } from '../../../api/marketApi';
 import InstrumentActionButtons from '../../../components/instrument/InstrumentActionButtons';
 import EurobondChart from './EurobondChart';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 function fmtPrice(v, currency) {
   if (v == null) return '-';

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Mail, Calendar } from 'lucide-react';
 import { getNewsletter, updateNewsletter } from '../../api/newsletterApi';
 import { useToast } from '../../context/ToastContext';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 
 const FREQS = [
   { key: 'DAILY', label: 'Günlük', sub: 'Her sabah' },

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { init as klineInit, dispose as klineDispose, registerOverlay } from 'klinecharts';
 import { Trash2, X, ChevronDown, TrendingUp, TrendingDown } from 'lucide-react';
 import { computeKlinePricePrecision, computeKlineVolumePrecision } from '../../../../utils/numberFormat';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 import TrendBadge from '../../../../components/common/TrendBadge';
 import IndicatorMenu from '../../../../components/common/IndicatorMenu';
 import { buildTrendItem } from '../../../../utils/trendUtils';

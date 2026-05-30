@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { RefreshCw, TrendingUp, TrendingDown, BarChart2, Plus, X, ChevronDown, Trash2 } from 'lucide-react';
 import { init as klineInit, dispose as klineDispose, registerIndicator, registerOverlay } from 'klinecharts';
 import { getViopChart, getViopContracts } from '../../../../api/marketApi';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 import UniversalCompareButton from '../../../../components/common/UniversalCompareButton';
 import TrendBadge from '../../../../components/common/TrendBadge';
 import IndicatorMenu from '../../../../components/common/IndicatorMenu';

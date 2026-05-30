@@ -6,7 +6,7 @@ import SortableTh from '../../../components/common/SortableTh';
 import Pagination from '../../../components/common/Pagination';
 import WatchlistStar from '../../../components/instrument/WatchlistStar';
 import InstrumentLogo from '../../../components/instrument/InstrumentLogo';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 const PAGE_SIZE = 20;
 

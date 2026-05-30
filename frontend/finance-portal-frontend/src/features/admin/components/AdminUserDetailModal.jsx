@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Ban, User, UserCheck, X } from 'lucide-react';
 import { getUser } from '../../../api/adminApi';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 import UserStatusBadge from './UserStatusBadge';
 import UserRolesCell from './UserRolesCell';
 import AdminUserTickets from './AdminUserTickets';

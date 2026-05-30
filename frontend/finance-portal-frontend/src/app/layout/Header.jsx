@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useId } from 'react';
 import { ChevronDown, Menu, X, User, Shield, LogOut, Briefcase, Bell, BellRing, LayoutGrid, LifeBuoy } from 'lucide-react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 import { getMyPortfolios } from '../../api/portfolioApi';
 import SearchBox from './SearchBox';
 import NotificationBell from './NotificationBell';

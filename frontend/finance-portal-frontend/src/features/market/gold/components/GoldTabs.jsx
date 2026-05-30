@@ -1,5 +1,5 @@
 import { GOLD_TABS } from './goldConstants';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 export default function GoldTabs({ activeTab, onTabChange }) {
   const { t } = useTranslation();

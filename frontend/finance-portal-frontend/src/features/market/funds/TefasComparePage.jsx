@@ -15,7 +15,7 @@ import FundCompareSimulation      from './components/compare/FundCompareSimulati
 import CompareLoadingState        from './components/compare/CompareLoadingState';
 import CompareEmptyState          from './components/compare/CompareEmptyState';
 import CompareErrorState          from './components/compare/CompareErrorState';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 const MAX_FUNDS = 4;
 const DEFAULT_RANGE = '1Y';

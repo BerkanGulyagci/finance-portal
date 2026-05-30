@@ -1,5 +1,5 @@
 import { GOLD_TABS, fmt } from './goldConstants';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 const TABLE_ROWS = [
   { label: 'Gram Altın',        grossWeight: 1,     fineness: 1.0000, spotField: 'gramGoldTry',          unit: '1g' },

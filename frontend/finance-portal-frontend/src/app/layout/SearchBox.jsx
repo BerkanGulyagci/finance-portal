@@ -6,7 +6,7 @@ import {
   getAllTefasFunds, getAllBesFunds, getAllOksFunds, getOsmanliFundBulletin,
   getViopContracts, getEvdsBonds, getGlobalBonds,
 } from '../../api/marketApi';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 
 const TYPE_LABEL = {
   STOCK: 'Hisse', CRYPTO: 'Kripto', FX: 'Döviz', COMMODITY: 'Emtia',

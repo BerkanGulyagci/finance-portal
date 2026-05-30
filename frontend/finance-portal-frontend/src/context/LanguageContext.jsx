@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import translations from './translations';
+import translations from '../i18n/translations';
 import { prefGet, prefSet } from '../api/prefs';
 
 const STORAGE_KEY = 'app_language';

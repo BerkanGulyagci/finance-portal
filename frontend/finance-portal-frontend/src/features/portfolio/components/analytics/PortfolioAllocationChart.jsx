@@ -6,7 +6,7 @@ import {
   CHART_DONUT_COLORS,
   formatSharePercent,
 } from '../../utils/portfolioAnalyticsHelpers';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 export default function PortfolioAllocationChart({ holdings, valuesHidden, currency }) {
   const { t } = useTranslation();

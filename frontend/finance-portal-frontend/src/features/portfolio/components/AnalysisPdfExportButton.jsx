@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FileText } from 'lucide-react';
 import { exportElementToPdf } from '../utils/domToPdf';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 /**
  * Analiz raporu PDF indirmesi — ham veri export’u değil; ekran görüntüsü tabanlı özet rapor.

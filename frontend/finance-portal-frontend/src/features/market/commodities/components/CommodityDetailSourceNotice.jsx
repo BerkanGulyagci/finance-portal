@@ -1,5 +1,5 @@
 import { AlertCircle } from 'lucide-react';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 export default function CommodityDetailSourceNotice() {
   const { t } = useTranslation();

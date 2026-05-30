@@ -4,7 +4,7 @@ import {
   TICKER_CATALOG, readTickerPrefs, saveTickerPrefs,
   readCustomTickerItems, saveCustomTickerItems,
 } from '../../../utils/tickerPrefs';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 import InstrumentSearchModal from '../../../components/instrument/InstrumentSearchModal';
 
 const ASSET_LABEL = {

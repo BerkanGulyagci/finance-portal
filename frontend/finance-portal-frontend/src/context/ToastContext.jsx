@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { CheckCircle2, X, XCircle } from 'lucide-react';
-import { useTranslation } from '../i18n/LanguageContext';
+import { useTranslation } from '../context/LanguageContext';
 
 const ToastContext = createContext(null);
 

@@ -1,7 +1,7 @@
 import { LayoutDashboard } from 'lucide-react';
 import { addPfChart } from '../../../../utils/dashboardCharts';
 import { useToast } from '../../../../context/ToastContext';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 /**
  * Portföy analiz kartını Dashboard'a ekler. Dashboard'da hangi portföyden geldiği yazılır.

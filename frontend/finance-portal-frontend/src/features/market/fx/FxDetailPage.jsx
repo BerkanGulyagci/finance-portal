@@ -7,7 +7,7 @@ import {
 import { getFxHistory, getFxTcmb, getFxOpen, getBankCurrencyRates } from '../../../api/marketApi.js';
 import { FX_META, FlagImg } from '../../../utils/fxMeta.jsx';
 import { init as klineInit, dispose as klineDispose, registerOverlay } from 'klinecharts';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 import UniversalCompareButton from '../../../components/common/UniversalCompareButton';
 import TrendBadge from '../../../components/common/TrendBadge';
 import InstrumentActionButtons from '../../../components/instrument/InstrumentActionButtons';

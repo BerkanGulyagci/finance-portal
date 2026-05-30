@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { TrendingUp, TrendingDown, ExternalLink, Loader2 } from 'lucide-react';
 import { getViopContractsByUnderlying } from '../../../../api/marketApi';
 import { parseTrNumber, formatPrice } from '../../../../utils/numberFormat';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 export default function RelatedViopContracts({ symbol }) {
   const { t } = useTranslation();

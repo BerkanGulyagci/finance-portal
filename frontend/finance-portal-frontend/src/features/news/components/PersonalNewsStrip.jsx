@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
 import { getForMeNews, proxyImageUrl } from '../../../api/newsApi';
 import { useAuth } from '../../../context/AuthContext';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 import { categoryBadgeClass, formatNewsTime } from '../../../utils/newsUtils';
 
 /** Giriş yapan kullanıcının portföyüne göre "Size Özel" haber şeridi (feed üstünde). Boşsa/anonimse gizli. */

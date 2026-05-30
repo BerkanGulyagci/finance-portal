@@ -12,7 +12,7 @@ import {
   getMarketPriceHistory,
   getEconomicIndicators,
 } from '../../api/marketApi';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 
 const TICKER_OPEN_STORAGE_KEY = 'finance-portal-market-ticker-open';
 

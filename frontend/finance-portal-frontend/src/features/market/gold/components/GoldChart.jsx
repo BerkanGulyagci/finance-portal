@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { init as klineInit, dispose as klineDispose, registerOverlay } from 'klinecharts';
 import { Trash2, X, ChevronDown } from 'lucide-react';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 import IndicatorMenu from '../../../../components/common/IndicatorMenu';
 
 // ── Custom overlay kayıtları (bir kez) ───────────────────────────────────────

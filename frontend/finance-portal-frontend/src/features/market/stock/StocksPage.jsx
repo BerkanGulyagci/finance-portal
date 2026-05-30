@@ -7,7 +7,7 @@ import WatchlistStar from '../../../components/instrument/WatchlistStar';
 import InstrumentLogo from '../../../components/instrument/InstrumentLogo';
 import Pagination from '../../../components/common/Pagination';
 import { STOCK_CHART_RANGES, formatStockChartTimeLabel } from './stockChartRanges';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 const PAGE_SIZE = 20;
 

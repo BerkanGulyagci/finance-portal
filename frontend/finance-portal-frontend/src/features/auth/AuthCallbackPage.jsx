@@ -9,7 +9,7 @@ import {
   OAUTH_ACTION_COMPLETE_MESSAGE,
 } from '../../api/authApi';
 import { useAuth } from '../../context/AuthContext';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 
 function ActionCompleteCard({ onGoToLogin }) {
   const { t } = useTranslation();

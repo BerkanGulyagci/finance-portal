@@ -1,5 +1,5 @@
 import { Ban, Eye, UserCheck } from 'lucide-react';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 import { isActiveUser } from '../utils/banDisplay';
 
 function canBanUser(user, currentUserId) {

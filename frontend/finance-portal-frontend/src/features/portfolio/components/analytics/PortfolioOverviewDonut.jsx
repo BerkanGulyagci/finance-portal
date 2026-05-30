@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { CHART_DONUT_COLORS, formatSharePercent } from '../../utils/portfolioAnalyticsHelpers';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 function currencySymbol(cur) {
   return cur === 'USD' ? '$' : cur === 'EUR' ? '€' : '₺';

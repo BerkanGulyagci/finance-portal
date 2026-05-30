@@ -3,7 +3,7 @@ import GridLayout, { WidthProvider } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import { GripHorizontal, RotateCcw, X, Pencil, Check } from 'lucide-react';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 import { prefGet, prefSet } from '../../api/prefs';
 
 const RGL = WidthProvider(GridLayout);

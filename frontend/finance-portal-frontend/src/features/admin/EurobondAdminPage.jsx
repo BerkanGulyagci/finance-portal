@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Landmark, Users, Download, CheckCircle2, AlertCircle } from 'lucide-react';
 import { getEurobondIsins, refreshEurobondIsins } from '../../api/adminApi';
 import AdminPageHeader from './components/AdminPageHeader';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 
 export default function EurobondAdminPage() {
   const { t } = useTranslation();

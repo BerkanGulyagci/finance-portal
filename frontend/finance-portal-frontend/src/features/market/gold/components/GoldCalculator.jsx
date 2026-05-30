@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ArrowLeftRight, ChevronDown } from 'lucide-react';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 // Çevirici chip'i (döviz çeviricisindeki CurrencyChip ile aynı tasarım)
 function GoldTypeChip({ value, onChange, types }) {

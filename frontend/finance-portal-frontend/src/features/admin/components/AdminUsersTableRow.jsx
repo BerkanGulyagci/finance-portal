@@ -1,5 +1,5 @@
 import { LifeBuoy } from 'lucide-react';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 import UserStatusBadge from './UserStatusBadge';
 import UserRolesCell from './UserRolesCell';
 import AdminUserActions from './AdminUserActions';

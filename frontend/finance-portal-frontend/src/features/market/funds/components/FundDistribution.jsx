@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 // Renk paleti — fon içeriği dağılımı için
 const COLORS = [

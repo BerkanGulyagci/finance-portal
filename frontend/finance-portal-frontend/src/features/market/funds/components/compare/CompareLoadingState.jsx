@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../../context/LanguageContext';
 
 export default function CompareLoadingState({ count = 2 }) {
   const { t } = useTranslation();

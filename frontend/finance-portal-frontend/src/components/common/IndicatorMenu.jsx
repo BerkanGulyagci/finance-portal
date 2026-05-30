@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { SlidersHorizontal, ChevronDown } from 'lucide-react';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 
 /**
  * "İndikatör ▾" dropdown — hisse detay grafiğindeki tasarımın paylaşılan hali.

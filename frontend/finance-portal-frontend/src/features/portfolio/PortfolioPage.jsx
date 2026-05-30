@@ -12,7 +12,7 @@ import PortfolioTypeBadge from './components/PortfolioTypeBadge';
 import AlarmsManager from '../../components/instrument/AlarmsManager';
 import PortfolioOverviewDonut from './components/analytics/PortfolioOverviewDonut';
 import { calculateAllocationByType } from './utils/portfolioAnalyticsHelpers';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 
 const CURRENCY_ORDER = ['TRY', 'USD', 'EUR'];
 

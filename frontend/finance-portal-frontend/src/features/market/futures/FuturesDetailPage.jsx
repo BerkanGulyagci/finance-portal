@@ -9,7 +9,7 @@ import ViopContractInfo from './components/ViopContractInfo';
 import ViopPriceChart from './components/ViopPriceChart';
 import { getViopContracts } from '../../../api/marketApi';
 import { fixViopContractName, viopContractNamesMatch } from './viopContractNameFix';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 export default function FuturesDetailPage() {
   const { t } = useTranslation();

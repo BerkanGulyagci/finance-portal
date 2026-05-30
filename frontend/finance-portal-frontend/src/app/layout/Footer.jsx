@@ -1,6 +1,6 @@
 import { Mail, MessageCircle, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 
 const footerLinks = {
   piyasalar: [

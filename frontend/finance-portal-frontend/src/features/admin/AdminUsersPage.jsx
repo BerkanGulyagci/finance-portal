@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 import { useAdminUsers } from './hooks/useAdminUsers';
 import AdminPageHeader from './components/AdminPageHeader';
 import AdminUsersPanel from './components/AdminUsersPanel';

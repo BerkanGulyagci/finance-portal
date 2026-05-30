@@ -7,7 +7,7 @@ import { getWatchlistDetailPath } from '../../portfolio';
 import InstrumentSearchModal from '../../../components/instrument/InstrumentSearchModal';
 import { getMarketPriceHistory } from '../../../api/marketApi';
 import { fmtMoney, fmtPct, pctClass, num } from '../utils/dashUtils';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 import { prefGet, prefSet } from '../../../api/prefs';
 
 function readList(key) {

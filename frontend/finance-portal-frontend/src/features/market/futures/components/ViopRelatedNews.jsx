@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Newspaper } from 'lucide-react';
 import { getBloombergHtNews } from '../../../../api/newsApi';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 export default function ViopRelatedNews({ contract }) {
   const { t } = useTranslation();

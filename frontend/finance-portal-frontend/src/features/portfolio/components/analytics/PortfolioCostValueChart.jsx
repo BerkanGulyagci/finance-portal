@@ -25,7 +25,7 @@ import {
   isSkewedMoneyScale,
   positiveMoneyDomain,
 } from './portfolioChartStyles';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 export default function PortfolioCostValueChart({ holdings, valuesHidden, currency }) {
   const { t } = useTranslation();

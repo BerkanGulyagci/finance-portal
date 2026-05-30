@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { COMPARE_COLORS, toNum, calcPeriodReturn } from './compareUtils';
-import { useTranslation } from '../../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../../context/LanguageContext';
 
 export default function FundCompareSimulation({ detailMap, selectedCodes, range }) {
   const { t } = useTranslation();

@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 import WhatIfComparison from './WhatIfComparison';
 
 export default function PortfolioStatsSummary({ portfolioId, holdings, valuesHidden }) {

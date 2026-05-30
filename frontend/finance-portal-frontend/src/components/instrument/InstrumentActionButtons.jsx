@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Star, Bell } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getMyPortfolios } from '../../api/portfolioApi';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 import InstrumentTargetModal from './InstrumentTargetModal';
 import AlarmCreateModal from './AlarmCreateModal';
 

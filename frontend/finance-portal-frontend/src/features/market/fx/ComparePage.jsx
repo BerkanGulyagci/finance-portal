@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { X, Plus, TrendingUp, TrendingDown, BarChart2 } from 'lucide-react';
 import { getFxHistory } from '../../../api/marketApi';
 import { FX_META, FlagImg } from '../../../utils/fxMeta.jsx';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 // ── Sabit renkler ─────────────────────────────────────────────────────────────
 const COLORS = ['#093eaa', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316'];

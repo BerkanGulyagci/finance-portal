@@ -5,7 +5,7 @@ import { NewsFeed } from './components/NewsFeed';
 import { NewsFilterBar } from './components/NewsFilterBar';
 import { PersonalNewsStrip } from './components/PersonalNewsStrip';
 import { Sidebar } from './components/Sidebar';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 
 const FILTERS_KEY = 'news_filters_v1';
 const DEFAULT_FILTERS = { category: '', source: '', q: '', region: 'TR' };

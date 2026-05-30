@@ -4,7 +4,7 @@ import { ArrowLeft, Bell, Mail, MailWarning, Trash2, CheckCheck } from 'lucide-r
 import {
   getNotifications, markNotificationRead, markAllNotificationsRead, deleteNotification,
 } from '../../api/notificationApi';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 
 function emailBadge(status, t) {

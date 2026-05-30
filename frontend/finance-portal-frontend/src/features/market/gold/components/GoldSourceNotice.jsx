@@ -1,5 +1,5 @@
 import { THEORETICAL_DISCLAIMER } from './goldConstants';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 export default function GoldSourceNotice({ source, official, fallback, disclaimer }) {
   const { t } = useTranslation();

@@ -8,7 +8,7 @@ import { getWatchlistItems, deleteWatchlistItem, getMyPortfolios } from '../../.
 import { downloadWatchlistCsv } from '../utils/exportWatchlistCsv';
 import { getWatchlistDetailPath } from '../constants/watchlistMarketRoutes';
 import { computeTrend, TREND_SIGNAL } from '../../../utils/trendUtils';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 const TABS = [
   { key: 'overview', label: 'Özet' },

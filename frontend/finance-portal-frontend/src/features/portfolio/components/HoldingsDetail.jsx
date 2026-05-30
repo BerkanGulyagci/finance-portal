@@ -10,7 +10,7 @@ import { deleteTransaction, getPortfolioById } from '../../../api/portfolioApi';
 import { getCommoditySpot, getFxTcmb, getCryptos, getGoldSpot } from '../../../api/marketApi';
 import { isYahooCommoditySymbol } from '../../../utils/commodityPriceUtils';
 import { formatMoney, formatPercent } from '../utils/portfolioFormatUtils';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 function toNumberOrNull(v) {
   if (v == null || v === '') return null;

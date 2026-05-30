@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { LifeBuoy, Plus, Pencil, Trash2, Check } from 'lucide-react';
-import { getMyTickets, createTicket, updateTicket, deleteTicket } from '../../api/supportApi';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { getMyTickets, createTicket, updateTicket, deleteTicket } from '../../../api/supportApi';
+import { useTranslation } from '../../../context/LanguageContext';
 
 const STATUS_BADGE = {
   OPEN: 'bg-amber-100 text-amber-800',

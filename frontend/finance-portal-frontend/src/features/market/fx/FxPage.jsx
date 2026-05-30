@@ -6,7 +6,7 @@ import { useSortable } from '../../../hooks/useSortable.js';
 import SortableTh from '../../../components/common/SortableTh.jsx';
 import WatchlistStar from '../../../components/instrument/WatchlistStar';
 import { FX_META, FlagImg } from '../../../utils/fxMeta.jsx';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 function num(v, dec = 4) {
   return v == null ? '-' : parseFloat(v).toLocaleString('tr-TR', { minimumFractionDigits: dec, maximumFractionDigits: dec });

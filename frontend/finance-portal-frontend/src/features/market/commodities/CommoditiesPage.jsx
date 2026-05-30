@@ -7,7 +7,7 @@ import CommoditiesSourceNotice from './components/CommoditiesSourceNotice';
 import CommodityCard from './components/CommodityCard';
 import CommoditiesLoadingState from './components/CommoditiesLoadingState';
 import CommoditiesErrorState from './components/CommoditiesErrorState';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 // M3 tarzı kategori filtre çipi
 function CategoryChip({ active, label, count, meta, onClick }) {

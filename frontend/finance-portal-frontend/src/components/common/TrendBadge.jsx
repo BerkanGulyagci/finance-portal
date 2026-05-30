@@ -1,5 +1,5 @@
 import { computeTrend, TREND_SIGNAL, TREND_METHOD_LABEL } from '../../utils/trendUtils';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 
 /**
  * TrendBadge

@@ -4,7 +4,7 @@ import {
   Legend, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import { getPreciousMetalHistory } from '../../../api/marketApi';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 // ── Sabitler ──────────────────────────────────────────────────────────────────
 

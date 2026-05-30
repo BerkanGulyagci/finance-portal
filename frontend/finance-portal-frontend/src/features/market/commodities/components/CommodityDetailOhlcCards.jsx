@@ -1,5 +1,5 @@
 import { fmt } from './commodityConstants';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 function fmtVolume(v) {
   if (v == null) return '-';

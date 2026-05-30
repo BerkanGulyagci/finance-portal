@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Star } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useWatchlist } from '../../context/WatchlistContext';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 import InstrumentTargetModal from './InstrumentTargetModal';
 
 /**

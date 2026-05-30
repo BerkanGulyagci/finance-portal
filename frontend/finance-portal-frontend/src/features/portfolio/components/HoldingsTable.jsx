@@ -6,7 +6,7 @@ import { computeTrend } from '../../../utils/trendUtils';
 import { getWatchlistDetailPath } from '../constants/watchlistMarketRoutes';
 import { MASK_MONEY, MASK_PERCENT, MASK_QTY } from '../utils/portfolioFormatUtils';
 import { getCommodityUnit } from '../utils/commodityUnit';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 import CouponIncomeModal from './CouponIncomeModal';
 
 // ── Sabitler ─────────────────────────────────────────────────────────────────

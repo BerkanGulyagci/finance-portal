@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { BarChart2 } from 'lucide-react';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 
 /**
  * "Karşılaştır" butonu — kıymetli madenlerin (altın, gümüş, platin, paladyum) kendi

@@ -3,7 +3,7 @@ import {
   calculateConcentrationMetrics,
   formatSharePercent,
 } from '../../utils/portfolioAnalyticsHelpers';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 const RISK_STYLES = {
   high: 'border-rose-200 bg-rose-50/70 text-rose-800',

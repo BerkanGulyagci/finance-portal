@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Clock, TrendingUp, Send } from 'lucide-react';
 import { getNews, proxyImageUrl } from '../../../api/newsApi';
 import { useAuth } from '../../../context/AuthContext';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 import { formatNewsTime } from '../../../utils/newsUtils';
 import NewsletterModal from '../../../components/shared/NewsletterModal';
 

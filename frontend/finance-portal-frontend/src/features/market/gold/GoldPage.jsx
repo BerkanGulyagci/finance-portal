@@ -18,7 +18,7 @@ import GoldChart                  from './components/GoldChart';
 import GoldSourceNotice           from './components/GoldSourceNotice';
 import GoldTheoreticalPricesTable from './components/GoldTheoreticalPricesTable';
 import GoldCalculator             from './components/GoldCalculator';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 // Alarm/işlem ön-doldurması için: compareSymbol → spot TRY fiyat alanı (backend probe ile aynı eşleme)
 const GOLD_SPOT_FIELD_BY_SYMBOL = {

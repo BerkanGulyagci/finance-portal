@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { getCryptos, getStocks, getFutures, getFunds, getFxTcmb } from '../../api/marketApi';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 
 const TABS = [
   { key: 'crypto',  labelKey: '🪙 Kripto' },

@@ -4,7 +4,7 @@ import { X, Wallet, Eye, Plus, Check, ChevronRight } from 'lucide-react';
 import {
   getMyPortfolios, getWatchlistItems, addWatchlistItem, deleteWatchlistItem, createPortfolio,
 } from '../../api/portfolioApi';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { useWatchlist } from '../../context/WatchlistContext';
 import { AddTransactionModal } from '../../features/portfolio';

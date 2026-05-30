@@ -4,7 +4,7 @@ import {
   ResponsiveContainer, Legend, ReferenceLine,
 } from 'recharts';
 import { COMPARE_COLORS, buildChartData, calcPeriodReturn, toNum } from './compareUtils';
-import { useTranslation } from '../../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../../context/LanguageContext';
 
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;

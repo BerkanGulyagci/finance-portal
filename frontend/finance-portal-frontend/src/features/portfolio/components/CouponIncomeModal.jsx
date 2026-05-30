@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X, Coins } from 'lucide-react';
 import { addCouponIncome } from '../../../api/portfolioApi';
 import DateTimeField from './DateTimeField';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 import {
   extractApiErrorMessage,
   formatGroupedInput,

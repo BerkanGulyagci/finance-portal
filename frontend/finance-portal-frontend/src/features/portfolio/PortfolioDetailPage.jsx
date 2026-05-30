@@ -7,7 +7,7 @@ import PortfolioTypeBadge from './components/PortfolioTypeBadge';
 import EditPortfolioModal from './components/EditPortfolioModal';
 import HoldingsDetail from './components/HoldingsDetail';
 import WatchlistDetail from './components/WatchlistDetail';
-import { useTranslation } from '../../i18n/LanguageContext';
+import { useTranslation } from '../../context/LanguageContext';
 
 export default function PortfolioDetailPage() {
   const { t } = useTranslation();

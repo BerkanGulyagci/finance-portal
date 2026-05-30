@@ -26,7 +26,7 @@ import {
   signedNumericDomain,
 } from './portfolioChartStyles';
 import { formatMoney } from '../../utils/portfolioFormatUtils';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 export default function PortfolioProfitLossChart({ holdings, valuesHidden, currency }) {
   const { t } = useTranslation();

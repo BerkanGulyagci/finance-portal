@@ -1,5 +1,5 @@
 import { BarChart3 } from 'lucide-react';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 export default function ViopChartPlaceholder() {
   const { t } = useTranslation();

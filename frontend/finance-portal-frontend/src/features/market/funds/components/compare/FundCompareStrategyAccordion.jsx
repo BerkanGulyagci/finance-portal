@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { COMPARE_COLORS } from './compareUtils';
-import { useTranslation } from '../../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../../context/LanguageContext';
 
 export default function FundCompareStrategyAccordion({ detailMap, selectedCodes }) {
   const { t } = useTranslation();

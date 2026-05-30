@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { LifeBuoy } from 'lucide-react';
 import { getUserTickets, updateTicketStatus } from '../../../api/supportApi';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 const STATUSES = [
   { value: 'OPEN', label: 'Açık' },

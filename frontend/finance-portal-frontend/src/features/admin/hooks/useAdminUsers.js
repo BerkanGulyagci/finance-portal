@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { banUser, getUsers, unbanUser } from '../../../api/adminApi';
 import { useToast } from '../../../context/ToastContext';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 import { BAN_STATUS_FILTER } from '../utils/banDisplay';
 
 const PAGE_SIZE = 20;

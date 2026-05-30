@@ -1,5 +1,5 @@
 import { fmtTry, fmtUsd, getPrimarySpotPrice } from '../../../utils/commodityPriceUtils';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 /**
  * Yahoo emtia için TRY işlem fiyatı altında USD referans satırı.

@@ -1,5 +1,5 @@
 import { fmtNum, fmtPct, calculatePeriodChangePercent } from './bondChartUtils';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 /**
  * Karşılaştırma özet kartları.

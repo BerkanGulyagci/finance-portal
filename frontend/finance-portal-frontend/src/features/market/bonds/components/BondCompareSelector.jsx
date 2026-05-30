@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Plus, X, ChevronDown } from 'lucide-react';
 import { getEvdsBonds } from '../../../../api/marketApi';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 /**
  * EVDS kıymet karşılaştırma seçici.

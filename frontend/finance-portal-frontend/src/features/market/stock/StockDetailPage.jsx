@@ -12,7 +12,7 @@ import { buildTrendItem } from '../../../utils/trendUtils';
 import { init as klineInit, dispose as klineDispose, registerOverlay } from 'klinecharts';
 import RelatedViopContracts from './components/RelatedViopContracts';
 import { STOCK_CHART_RANGES } from './stockChartRanges';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 
 // ── Custom Overlay Kayıtları (uygulama başında bir kez çalışır) ──────────────
 // customRect: 2 köşe noktasıyla dikdörtgen çizer

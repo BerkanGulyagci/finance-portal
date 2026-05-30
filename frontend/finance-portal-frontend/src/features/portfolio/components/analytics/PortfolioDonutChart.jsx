@@ -9,7 +9,7 @@ import {
 import PortfolioAnalyticsTooltip from './PortfolioAnalyticsTooltip';
 import { formatMoney } from '../../utils/portfolioFormatUtils';
 import { CHART_DONUT_COLORS, formatSharePercent } from '../../utils/portfolioAnalyticsHelpers';
-import { useTranslation } from '../../../../i18n/LanguageContext';
+import { useTranslation } from '../../../../context/LanguageContext';
 
 const EXPAND_PX = 10;
 

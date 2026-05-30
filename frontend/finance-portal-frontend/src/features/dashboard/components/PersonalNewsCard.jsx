@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
 import { getForMeNews, proxyImageUrl } from '../../../api/newsApi';
-import { useTranslation } from '../../../i18n/LanguageContext';
+import { useTranslation } from '../../../context/LanguageContext';
 import { formatNewsTime } from '../../../utils/newsUtils';
 
 /** Dashboard kartı: portföye göre "Size Özel Haberler" (ilk birkaç başlık). */
