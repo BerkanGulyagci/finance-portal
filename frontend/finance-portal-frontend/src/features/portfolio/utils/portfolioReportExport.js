@@ -11,7 +11,8 @@
  */
 
 import * as XLSX from 'xlsx';
-import { exportElementToPdf } from './domToPdf';
+import { toPng } from 'html-to-image';
+import { jsPDF } from 'jspdf';
 import { renderCellForExport, ALL_COLS } from '../components/HoldingsTable';
 
 // ── Sabitler ────────────────────────────────────────────────────────────────
@@ -244,15 +245,17 @@ export async function downloadPortfolioPdf(portfolio, opts = {}) {
   const txs      = opts.transactions ?? portfolio.transactions ?? [];
   const visibleCols = Array.isArray(opts.visibleCols) ? opts.visibleCols : null;
 
-  // Off-screen container — görünür ama ekran dışında (left: -99999px).
-  // KRİTİK: visibility:hidden veya opacity:0 KULLANMA — html-to-image
-  // clone'un da hidden olur ve boş PNG üretir.
+  // Off-screen container — görünür ama ekran dışında.
+  // domToPdf.js'in expandAncestorsForCapture body/html'i değiştiriyor +
+  // scrollIntoView off-screen elementi şaşırtıyor — bu yüzden domToPdf.js
+  // bypass edilip html-to-image doğrudan çağrılıyor.
+  const PAGE_WIDTH_PX = 794;
   const root = document.createElement('div');
   root.style.cssText = `
     position: absolute;
     top: 0;
     left: -99999px;
-    width: 794px;
+    width: ${PAGE_WIDTH_PX}px;
     background: #ffffff;
     color: #111827;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -261,7 +264,6 @@ export async function downloadPortfolioPdf(portfolio, opts = {}) {
     padding: 0;
     box-sizing: border-box;
     pointer-events: none;
-    z-index: -1;
   `;
   root.innerHTML = buildPdfHtml(portfolio, holdings, txs, visibleCols);
   document.body.appendChild(root);
@@ -271,21 +273,80 @@ export async function downloadPortfolioPdf(portfolio, opts = {}) {
     if (document.fonts?.ready) {
       await document.fonts.ready.catch(() => {});
     }
-    // 2) Üç RAF tick + 100ms — layout, fontlar ve images stabilize olsun
+    // 2) Üç RAF tick + 120ms — layout, fontlar ve images stabilize olsun
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r))));
-    await new Promise((r) => setTimeout(r, 100));
+    await new Promise((r) => setTimeout(r, 120));
 
-    // 3) Capture öncesi sanity check — boyut yoksa erken hata
-    if (root.scrollHeight < 50 || root.scrollWidth < 50) {
-      throw new Error(`PDF içeriği render edilemedi (boyut: ${root.scrollWidth}x${root.scrollHeight}).`);
+    // 3) Capture öncesi sanity check
+    const captureH = Math.max(root.scrollHeight, root.offsetHeight);
+    if (captureH < 50 || root.scrollWidth < 50) {
+      throw new Error(`PDF içeriği render edilemedi (boyut: ${root.scrollWidth}x${captureH}).`);
     }
 
-    await exportElementToPdf(root, {
-      fileName: `${safeFilenameBase(portfolio?.name)}_${stampNow()}`,
-      scale: 2,
-      marginMm: 8,
-      orientation: 'p',
+    // 4) html-to-image ile direkt PNG'ye çevir (domToPdf.js bypass — body
+    //    style mutasyonu ve scrollIntoView yok)
+    const dataUrl = await toPng(root, {
+      pixelRatio: 2,
+      backgroundColor: '#ffffff',
+      width: PAGE_WIDTH_PX,
+      height: captureH,
+      style: {
+        transform: 'none',
+        margin: '0',
+      },
+      skipFonts: false,
+      cacheBust: true,
     });
+
+    if (!dataUrl || dataUrl === 'data:,' || dataUrl.length < 1000) {
+      throw new Error('PNG üretimi başarısız (dataUrl boş veya çok küçük).');
+    }
+
+    // 5) PNG'yi Image'a yükle (jsPDF natural width/height için gerekli)
+    const img = new Image();
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = () => reject(new Error('PNG yüklenemedi.'));
+      img.src = dataUrl;
+    });
+
+    // 6) jsPDF ile çok-sayfa PDF
+    const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'p' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const margin = 8;
+    const useW = pageW - 2 * margin;
+    const useH = pageH - 2 * margin;
+    const imgRatio = img.naturalHeight / img.naturalWidth;
+    const imgHeightMm = useW * imgRatio;
+
+    let yMm = margin;
+    let remaining = imgHeightMm;
+    let srcY = 0;
+
+    while (remaining > 0.5) {
+      const sliceMm = Math.min(remaining, useH);
+      const sliceFrac = sliceMm / imgHeightMm;
+      const sliceH = img.naturalHeight * sliceFrac;
+
+      const sliceCanvas = document.createElement('canvas');
+      sliceCanvas.width = img.naturalWidth;
+      sliceCanvas.height = Math.round(sliceH);
+      const ctx = sliceCanvas.getContext('2d');
+      ctx.drawImage(img, 0, -srcY, img.naturalWidth, img.naturalHeight);
+
+      const sliceData = sliceCanvas.toDataURL('image/png');
+      pdf.addImage(sliceData, 'PNG', margin, yMm, useW, sliceMm);
+
+      srcY += sliceH;
+      remaining -= sliceMm;
+      if (remaining > 0.5) {
+        pdf.addPage();
+        yMm = margin;
+      }
+    }
+
+    pdf.save(`${safeFilenameBase(portfolio?.name)}_${stampNow()}.pdf`);
   } finally {
     document.body.removeChild(root);
     _pdfExporting = false;
