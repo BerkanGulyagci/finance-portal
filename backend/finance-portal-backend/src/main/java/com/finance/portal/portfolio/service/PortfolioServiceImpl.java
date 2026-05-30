@@ -27,6 +27,7 @@ import com.finance.portal.portfolio.application.port.PortfolioPersistencePort;
 import com.finance.portal.portfolio.application.port.WatchlistMarketEnrichmentPort;
 import io.opentelemetry.instrumentation.annotations.SpanAttribute;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -59,12 +60,18 @@ public class PortfolioServiceImpl implements PortfolioService {
      * her holding ardışık (seri) zenginleştirildiği için N holding = N ardışık dış/cache çağrısıydı.
      * Bu havuzla paralel çalıştırılır → duvar-saati toplam yerine en yavaş tek holding'e yaklaşır.
      * Boyut 8: dış API'leri (TCMB/EVDS) aşırı yüklemeden makul paralellik. Daemon thread'ler.
+     * Instance alanı + {@link PreDestroy}: Spring context kapanınca düzgün shutdown (thread sızıntısı yok).
      */
-    private static final ExecutorService ENRICH_EXECUTOR = Executors.newFixedThreadPool(8, r -> {
+    private final ExecutorService enrichExecutor = Executors.newFixedThreadPool(8, r -> {
         Thread t = new Thread(r, "portfolio-enrich");
         t.setDaemon(true);
         return t;
     });
+
+    @PreDestroy
+    void shutdownEnrichExecutor() {
+        enrichExecutor.shutdownNow();
+    }
 
     private final PortfolioPersistencePort portfolioPersistence;
     private final PortfolioCachePort portfolioCache;
@@ -419,7 +426,7 @@ public class PortfolioServiceImpl implements PortfolioService {
                     } catch (Exception e) {
                         log.debug("Holding enrich failed for {}: {}", h.getSymbol(), e.getMessage());
                     }
-                }, ENRICH_EXECUTOR));
+                }, enrichExecutor));
             }
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
         }
