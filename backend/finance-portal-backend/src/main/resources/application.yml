@@ -151,7 +151,7 @@ assistant:
 news:
   api:
     url: https://newsapi.org/v2/top-headlines
-    key: ${NEWS_API_KEY:a708be2ff81e432d98abb8a2586fedc1}
+    key: ${NEWS_API_KEY:}          # gerçek anahtar .env.local / prod secret'ta (git'e commit edilmez)
   # Çoklu haber kaynakları. RSS anahtarsız her zaman aktif; API'ler anahtar verilince devreye girer.
   sources:
     finnhub:
@@ -382,7 +382,7 @@ market:
       # TEFAS resmi fon fiyat geçmişi API'si (grafik için, 5 yıla kadar derin geçmiş).
       # bearer-token: TEFAS public SPA'sinin anonim token'ı (kullanıcı kimliği değil); değişirse güncellenir.
       history-url: ${TEFAS_HISTORY_URL:https://www.tefas.gov.tr/api/funds/fonGnlBlgSiraliGetir}
-      bearer-token: ${TEFAS_BEARER_TOKEN:ST-tefaswebwse3irfmSBj4iRAzGPbAlS94Se}
+      bearer-token: ${TEFAS_BEARER_TOKEN:}   # anonim TEFAS token — .env.local'de (git'e commit edilmez)
       timeout-seconds: ${TEFAS_TIMEOUT_SECONDS:20}
       chunk-days: ${TEFAS_CHUNK_DAYS:28}
       parallelism: ${TEFAS_PARALLELISM:4}
@@ -440,7 +440,7 @@ deposit:
 
 coingecko:
   base-url: ${COINGECKO_BASE_URL:https://api.coingecko.com/api/v3}
-  api-key: ${COINGECKO_API_KEY:CG-B1V3coqfjBN6Q5Ff8j6AnpZf}
+  api-key: ${COINGECKO_API_KEY:}   # gerçek anahtar .env.local / prod secret'ta (git'e commit edilmez)
   vs-currency: try
 
 binance:
