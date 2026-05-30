@@ -47,6 +47,24 @@ function NavDropdown({ menu, onClose, t }) {
   );
 }
 
+// ── Mobile accordion section (drawer içinde) ──────────────────────────────────
+function MobileAccordion({ title, isOpen, onToggle, children }) {
+  return (
+    <div className="border-t border-gray-100">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex items-center justify-between px-5 py-3.5 text-left active:bg-gray-100"
+        aria-expanded={isOpen}
+      >
+        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{title}</span>
+        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+      {isOpen && <div className="pb-2 bg-gray-50/40">{children}</div>}
+    </div>
+  );
+}
+
 // ── Profile menu ──────────────────────────────────────────────────────────────
 function ProfileMenu({ onClose, t }) {
   const { logout } = useAuth();
@@ -205,11 +223,30 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState(null); // index of open dropdown
   const [profileOpen, setProfileOpen] = useState(false);
+  const [openSections, setOpenSections] = useState({}); // mobile drawer accordion state
   const { isAuthenticated, isAdmin, logout, username } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const navRef = useRef(null);
   const profileRef = useRef(null);
+
+  const toggleSection = (key) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
+
+  // Mobile drawer açıkken body scroll kilitle + Esc tuşu ile kapatma + kapanınca accordion sıfır
+  useEffect(() => {
+    if (!mobileOpen) {
+      setOpenSections({});
+      return;
+    }
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e) => { if (e.key === 'Escape') setMobileOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [mobileOpen]);
 
   // ── Nav item definitions ────────────────────────────────────────────────────
   const navItems = [
@@ -301,6 +338,7 @@ export function Header() {
   function handleLogout() { logout(); navigate('/'); }
 
   return (
+    <>
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex items-center h-14 gap-3">
@@ -415,105 +453,186 @@ export function Header() {
               </div>
             )}
 
-            <button className="lg:hidden p-2" onClick={() => setMobileOpen(o => !o)}>
-              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            <button
+              className="lg:hidden p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors"
+              onClick={() => setMobileOpen(true)}
+              aria-label={t('Menüyü aç')}
+            >
+              <Menu className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Mobile Menu */}
-        {mobileOpen && (
-          <div className="lg:hidden py-3 border-t border-gray-200 space-y-1">
-            {/* Mobile language toggle — only below sm; ≥sm uses the top-bar LanguageToggle */}
-            <div className="sm:hidden px-4 py-2 flex items-center justify-between border-b border-gray-100 mb-2">
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('Dil')}</span>
+      </div>
+    </header>
+
+    {/* ── Mobile Drawer ────────────────────────────────────────────────────── */}
+    {mobileOpen && (
+      <>
+        {/* Backdrop — tap to close */}
+        <div
+          className="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[60]"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+        {/* Drawer — slide from right */}
+        <aside
+          className="lg:hidden fixed top-0 right-0 h-full w-[88vw] max-w-sm bg-white z-[70] shadow-2xl flex flex-col"
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('Menü')}
+        >
+          {/* Sticky drawer header */}
+          <div className="shrink-0 px-4 py-3 border-b border-gray-200 flex items-center justify-between bg-white">
+            <Link
+              to="/"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-2 min-w-0"
+              aria-label="Portiva"
+            >
+              <img src="/brand-logo.png" alt="" className="h-9 w-auto shrink-0" />
+              <span className="text-base font-bold tracking-tight">
+                <span className="text-[#093eaa]">Port</span>
+                <span className="text-gray-900">iva</span>
+              </span>
+            </Link>
+            <div className="flex items-center gap-1">
               <LanguageToggle />
+              <button
+                type="button"
+                onClick={() => setMobileOpen(false)}
+                aria-label={t('Kapat')}
+                className="p-2 -mr-1 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Scrollable content */}
+          <nav className="flex-1 overflow-y-auto overscroll-contain pb-6">
+            {/* Top-level links */}
+            <div className="py-1">
+              {navItems.filter(item => !item.auth || isAuthenticated).map(item => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center px-5 py-3 text-[15px] font-semibold text-gray-800 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                >
+                  {t(item.name)}
+                </Link>
+              ))}
+              {isAdmin && (
+                <Link
+                  to="/admin/users"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center px-5 py-3 text-[15px] font-semibold text-[#093eaa] hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                >
+                  {t('Admin Panel')}
+                </Link>
+              )}
             </div>
 
-            {navItems.filter(item => !item.auth || isAuthenticated).map(item => (
-              <Link key={item.path} to={item.path} onClick={() => setMobileOpen(false)}
-                className="block px-4 py-2.5 text-sm font-semibold hover:bg-gray-50 rounded-lg transition-colors">
-                {t(item.name)}
-              </Link>
-            ))}
-            {isAdmin && (
-              <Link to="/admin/users" onClick={() => setMobileOpen(false)}
-                className="block px-4 py-2.5 text-sm font-semibold text-[#093eaa] hover:bg-gray-50 rounded-lg transition-colors">
-                {t('Admin Panel')}
-              </Link>
-            )}
+            {/* Account accordion */}
             {isAuthenticated && (
-              <div className="px-4 py-2 border-b border-gray-100 mb-2 space-y-1">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t('Hesap')}</p>
+              <MobileAccordion
+                title={t('Hesap')}
+                isOpen={!!openSections.account}
+                onToggle={() => toggleSection('account')}
+              >
                 <Link to="/portfolio" onClick={() => setMobileOpen(false)}
-                  className="block py-2 text-sm font-semibold text-gray-700 hover:text-[#093eaa]">
-                  {t('Portföyüm')}
+                  className="flex items-center gap-2.5 px-7 py-2.5 text-sm font-semibold text-gray-700 hover:text-[#093eaa] hover:bg-gray-50">
+                  <Briefcase className="w-4 h-4 shrink-0" /> {t('Portföyüm')}
                 </Link>
                 <Link to="/profile" onClick={() => setMobileOpen(false)}
-                  className="block py-2 text-sm font-semibold text-gray-700 hover:text-[#093eaa]">
-                  {t('Profilim')}
+                  className="flex items-center gap-2.5 px-7 py-2.5 text-sm font-semibold text-gray-700 hover:text-[#093eaa] hover:bg-gray-50">
+                  <User className="w-4 h-4 shrink-0" /> {t('Profilim')}
                 </Link>
                 <Link to="/alarms" onClick={() => setMobileOpen(false)}
-                  className="block py-2 text-sm font-semibold text-gray-700 hover:text-[#093eaa]">
-                  {t('Alarmlarım')}
+                  className="flex items-center gap-2.5 px-7 py-2.5 text-sm font-semibold text-gray-700 hover:text-[#093eaa] hover:bg-gray-50">
+                  <Bell className="w-4 h-4 shrink-0" /> {t('Alarmlarım')}
                 </Link>
                 <Link to="/notifications" onClick={() => setMobileOpen(false)}
-                  className="block py-2 text-sm font-semibold text-gray-700 hover:text-[#093eaa]">
-                  {t('Bildirimler')}
+                  className="flex items-center gap-2.5 px-7 py-2.5 text-sm font-semibold text-gray-700 hover:text-[#093eaa] hover:bg-gray-50">
+                  <BellRing className="w-4 h-4 shrink-0" /> {t('Bildirimler')}
                 </Link>
                 <Link to="/profile?tab=support" onClick={() => setMobileOpen(false)}
-                  className="block py-2 text-sm font-semibold text-gray-700 hover:text-[#093eaa]">
-                  {t('Taleplerim')}
+                  className="flex items-center gap-2.5 px-7 py-2.5 text-sm font-semibold text-gray-700 hover:text-[#093eaa] hover:bg-gray-50">
+                  <LifeBuoy className="w-4 h-4 shrink-0" /> {t('Taleplerim')}
                 </Link>
                 <Link to="/profile?modal=password" onClick={() => setMobileOpen(false)}
-                  className="block py-2 text-sm font-semibold text-gray-700 hover:text-[#093eaa]">
-                  {t('Şifre Değiştir')}
+                  className="flex items-center gap-2.5 px-7 py-2.5 text-sm font-semibold text-gray-700 hover:text-[#093eaa] hover:bg-gray-50">
+                  <Shield className="w-4 h-4 shrink-0" /> {t('Şifre Değiştir')}
                 </Link>
                 <button type="button" onClick={() => { setMobileOpen(false); handleLogout(); }}
-                  className="block w-full text-left py-2 text-sm font-semibold text-red-700">
-                  {t('Çıkış Yap')}
+                  className="w-full text-left flex items-center gap-2.5 px-7 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50">
+                  <LogOut className="w-4 h-4 shrink-0" /> {t('Çıkış Yap')}
                 </button>
-              </div>
+              </MobileAccordion>
             )}
+
+            {/* Dropdown menus — each as accordion */}
             {dropdownMenus.map(menu => (
-              <div key={menu.label} className="px-4 py-2">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{t(menu.label)}</p>
+              <MobileAccordion
+                key={menu.label}
+                title={t(menu.label)}
+                isOpen={!!openSections[menu.label]}
+                onToggle={() => toggleSection(menu.label)}
+              >
                 {menu.groups
                   ? menu.groups.map(group => (
-                      <div key={group.title} className="mb-2">
-                        <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest mb-1 pl-1">{t(group.title)}</p>
+                      <div key={group.title} className="pt-1.5 pb-0.5">
+                        <p className="px-7 pb-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t(group.title)}</p>
                         {group.items.map(item => (
-                          <Link key={item.path + item.label} to={item.path} onClick={() => setMobileOpen(false)}
-                            className="block py-1.5 pl-3 text-sm font-semibold text-gray-700 hover:text-[#093eaa] transition-colors">
+                          <Link
+                            key={item.path + item.label}
+                            to={item.path}
+                            onClick={() => setMobileOpen(false)}
+                            className="block px-7 py-2 text-sm font-medium text-gray-700 hover:text-[#093eaa] hover:bg-gray-50"
+                          >
                             {t(item.label)}
                           </Link>
                         ))}
                       </div>
                     ))
                   : menu.items.map(item => (
-                      <Link key={item.path + item.label} to={item.path} onClick={() => setMobileOpen(false)}
-                        className="block py-1.5 text-sm font-semibold text-gray-700 hover:text-[#093eaa] transition-colors">
+                      <Link
+                        key={item.path + item.label}
+                        to={item.path}
+                        onClick={() => setMobileOpen(false)}
+                        className="block px-7 py-2.5 text-sm font-medium text-gray-700 hover:text-[#093eaa] hover:bg-gray-50"
+                      >
                         {t(item.label)}
                       </Link>
                     ))
                 }
-              </div>
+              </MobileAccordion>
             ))}
+
+            {/* Login / Register (unauthenticated) */}
             {!isAuthenticated && (
-              <div className="px-4 pt-2 flex gap-2">
-                <Link to="/login" onClick={() => setMobileOpen(false)}
-                  className="flex-1 text-center text-gray-700 px-3 py-2 rounded-lg text-sm font-bold border border-gray-200">
+              <div className="px-5 pt-5 flex gap-2 border-t border-gray-100 mt-2">
+                <Link
+                  to="/login"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex-1 text-center text-gray-700 px-3 py-2.5 rounded-lg text-sm font-bold border border-gray-200 hover:bg-gray-50"
+                >
                   {t('Giriş Yap')}
                 </Link>
-                <Link to="/register" onClick={() => setMobileOpen(false)}
-                  className="flex-1 text-center bg-[#093eaa] text-white px-3 py-2 rounded-lg text-sm font-bold">
+                <Link
+                  to="/register"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex-1 text-center bg-[#093eaa] text-white px-3 py-2.5 rounded-lg text-sm font-bold hover:bg-[#0a2966]"
+                >
                   {t('Kayıt Ol')}
                 </Link>
               </div>
             )}
-          </div>
-        )}
-      </div>
-    </header>
+          </nav>
+        </aside>
+      </>
+    )}
+    </>
   );
 }

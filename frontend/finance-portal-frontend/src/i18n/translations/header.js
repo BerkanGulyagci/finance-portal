@@ -93,6 +93,8 @@ const en = {
   // Search / misc
   'Ara...': 'Search...',
   'Dil': 'Language',
+  'Menü': 'Menu',
+  'Menüyü aç': 'Open menu',
 };
 
 export default { en };
