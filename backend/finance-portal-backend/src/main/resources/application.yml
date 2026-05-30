@@ -311,6 +311,11 @@ news:
     warmup:
       fixed-delay-ms: ${NEWS_CACHE_WARMUP_FIXED_DELAY_MS:300000}
 
+# @Scheduled görev thread havuzu — tek-thread blocking'i önler (uzun warm-up'lar alarm gibi
+# zaman-kritik job'ları geciktirmesin). Bkz. SchedulerConfig.
+scheduling:
+  pool-size: ${SCHEDULING_POOL_SIZE:5}
+
 cache:
   news:
     ttl-seconds: ${NEWS_CACHE_TTL_SECONDS:300}
@@ -331,7 +336,12 @@ cache:
     crypto:
       ttl-seconds: ${CACHE_MARKET_CRYPTO_TTL_SECONDS:300}
     funds:
-      ttl-seconds: 300
+      # Fon LİSTESİ + detay. Warm-up 8 dk'da bir tazeler → TTL bundan UZUN olmalı (10 dk),
+      # yoksa warm-up'lar arasında expire olup soğuk pencere oluşur (8dk<10dk; stock deseniyle aynı).
+      ttl-seconds: ${CACHE_MARKET_FUNDS_TTL_SECONDS:600}
+      # Fon GEÇMİŞİ (grafik): NAV günde bir kez yayınlanır, geçmiş değişmez →
+      # 5 dk'da bir tüm geçmişi yeniden çekmek gereksiz; uzun TTL yeterli (varsayılan 6 saat).
+      history-ttl-seconds: ${CACHE_MARKET_FUNDS_HISTORY_TTL_SECONDS:21600}
     futures:
       ttl-seconds: 300
     commodity:
@@ -342,7 +352,9 @@ cache:
     evds:
       bonds:
         active-series-ttl-seconds: ${CACHE_EVDS_BONDS_ACTIVE_SERIES_TTL_SECONDS:43200}
-        list-ttl-seconds: ${CACHE_EVDS_BONDS_LIST_TTL_SECONDS:3600}
+        # 537+ enstrümanlık liste warm-up scheduler ile 2 saatte bir tazelenir; TTL bundan uzun
+        # (6 saat) ki warm-up'lar arasında expire olup kullanıcıyı soğuk yola düşürmesin.
+        list-ttl-seconds: ${CACHE_EVDS_BONDS_LIST_TTL_SECONDS:21600}
         detail-ttl-seconds: ${CACHE_EVDS_BONDS_DETAIL_TTL_SECONDS:3600}
         history-ttl-seconds: ${CACHE_EVDS_BONDS_HISTORY_TTL_SECONDS:7200}
     economy:
@@ -352,6 +364,14 @@ cache:
         ttl-seconds: ${CACHE_MARKET_CURRENCY_BANKS_TTL_SECONDS:120}
 
 market:
+  # Liste cache warm-up (tahvil + fon): soğuk yükleme maliyetini kullanıcı isteğinden arka plana taşır.
+  warmup:
+    bonds:
+      fixed-delay-ms: ${MARKET_WARMUP_BONDS_FIXED_DELAY_MS:7200000}      # 2 saat (TTL 6 saat)
+      initial-delay-ms: ${MARKET_WARMUP_BONDS_INITIAL_DELAY_MS:7200000}
+    funds:
+      fixed-delay-ms: ${MARKET_WARMUP_FUNDS_FIXED_DELAY_MS:480000}       # 8 dakika (TTL 10 dakika)
+      initial-delay-ms: ${MARKET_WARMUP_FUNDS_INITIAL_DELAY_MS:600000}
   gold:
     bist:
       url: ${MARKET_GOLD_BIST_URL:https://www.borsaistanbul.com/veri-sorgulama.php}

@@ -6,6 +6,7 @@ import com.finance.portal.market.application.funds.model.RasyonetOsmanliFundBull
 import com.finance.portal.market.application.funds.port.RasyonetFundPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
@@ -69,6 +70,28 @@ public class RasyonetFundService {
         List<RasyonetOsmanliFundBulletinDto> funds = rasyonetFundPort.fetchOsmanliFundBulletin();
         log.info("Osmanlı bulletin: {} funds", funds.size());
         return funds;
+    }
+
+    // ── Warm-up refresh'leri (cache'i proaktif sıcak tutar) ────────────────────
+    // @CachePut: her çağrıda Rasyonet'ten taze çekip ilgili liste key'ini atomik günceller
+    // (evict→reload boşluğu yok). Scheduler + açılışta çağrılır; kullanıcı soğuk yola düşmez.
+
+    @CachePut(cacheNames = "market.tefas.funds", key = "'rasyonet:funds:TMF'")
+    public List<RasyonetFundDto> refreshAllFunds() {
+        log.info("Refreshing TMF funds (warm-up)");
+        return rasyonetFundPort.fetchFundsBySourceCode("TMF");
+    }
+
+    @CachePut(cacheNames = "market.tefas.funds", key = "'rasyonet:funds:TPF'")
+    public List<RasyonetFundDto> refreshBesFunds() {
+        log.info("Refreshing TPF (BES) funds (warm-up)");
+        return rasyonetFundPort.fetchFundsBySourceCode("TPF");
+    }
+
+    @CachePut(cacheNames = "market.tefas.funds", key = "'rasyonet:funds:TAF'")
+    public List<RasyonetFundDto> refreshOksFunds() {
+        log.info("Refreshing TAF (OKS) funds (warm-up)");
+        return rasyonetFundPort.fetchFundsBySourceCode("TAF");
     }
 
     // ── Fon detayı ────────────────────────────────────────────────────────────

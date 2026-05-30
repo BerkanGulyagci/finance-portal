@@ -46,6 +46,11 @@ public class CacheConfig {
     @Value("${cache.market.funds.ttl-seconds:600}")
     private long marketFundsTtlSeconds;
 
+    // Fon GEÇMİŞİ (grafik) — NAV günde bir kez yayınlanır, geçmiş değişmez.
+    // Bu yüzden tüm geçmişi 10 dk'da bir yeniden çekmek gereksiz; uzun TTL yeterli (varsayılan 6 saat).
+    @Value("${cache.market.funds.history-ttl-seconds:21600}")
+    private long marketFundsHistoryTtlSeconds;
+
     @Value("${cache.market.futures.ttl-seconds:600}")
     private long marketFuturesTtlSeconds;
 
@@ -58,7 +63,10 @@ public class CacheConfig {
     @Value("${cache.market.evds.bonds.active-series-ttl-seconds:43200}")
     private long evdsBondsActiveSeriesTtlSeconds;
 
-    @Value("${cache.market.evds.bonds.list-ttl-seconds:3600}")
+    // Tahvil listesi 537+ enstrüman için EVDS'ten ağır yüklenir; warm-up scheduler @CachePut ile
+    // 2 saatte bir tazeler. TTL bundan uzun (6 saat) ki warm-up'lar arasında asla expire olup
+    // kullanıcıyı soğuk yola düşürmesin.
+    @Value("${cache.market.evds.bonds.list-ttl-seconds:21600}")
     private long evdsBondsListTtlSeconds;
 
     @Value("${cache.market.evds.bonds.detail-ttl-seconds:3600}")
@@ -132,6 +140,16 @@ public class CacheConfig {
         RedisCacheConfiguration marketFundsCacheConfig = RedisCacheConfiguration
                 .defaultCacheConfig()
                 .entryTtl(Duration.ofSeconds(marketFundsTtlSeconds))
+                .serializeValuesWith(
+                        RedisSerializationContext.SerializationPair.fromSerializer(
+                                new GenericJackson2JsonRedisSerializer()
+                        )
+                );
+
+        // Fon GEÇMİŞİ (immutable NAV) — uzun TTL (varsayılan 6 saat)
+        RedisCacheConfiguration marketFundsHistoryCacheConfig = RedisCacheConfiguration
+                .defaultCacheConfig()
+                .entryTtl(Duration.ofSeconds(marketFundsHistoryTtlSeconds))
                 .serializeValuesWith(
                         RedisSerializationContext.SerializationPair.fromSerializer(
                                 new GenericJackson2JsonRedisSerializer()
@@ -220,11 +238,11 @@ public class CacheConfig {
                 .withCacheConfiguration("market.silver.history", marketFundsCacheConfig)
                 .withCacheConfiguration("market.precious.spot", marketFxTcmbCacheConfig)
                 .withCacheConfiguration("market.precious.history", marketFundsCacheConfig)
-                .withCacheConfiguration("market.tefas.history", marketFundsCacheConfig)
-                .withCacheConfiguration("market.fund.history", marketFundsCacheConfig)
+                .withCacheConfiguration("market.tefas.history", marketFundsHistoryCacheConfig)
+                .withCacheConfiguration("market.fund.history", marketFundsHistoryCacheConfig)
                 .withCacheConfiguration("market.funds.page", marketFundsCacheConfig)
                 .withCacheConfiguration("market.funds.detail", marketFundsCacheConfig)
-                .withCacheConfiguration("market.funds.chart", marketFundsCacheConfig)
+                .withCacheConfiguration("market.funds.chart", marketFundsHistoryCacheConfig)
                 .withCacheConfiguration("market.futures.page", marketFuturesCacheConfig)
                 .withCacheConfiguration("market.commodity.spot", marketCommoditySpotCacheConfig)
                 .withCacheConfiguration("market.commodity.history", marketCommodityHistoryCacheConfig)

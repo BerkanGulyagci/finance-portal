@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
@@ -42,7 +43,7 @@ import java.util.stream.Collectors;
  * <p>Cache isimleri:
  * <ul>
  *   <li>{@code market.evds.bonds.active-series} — 12 saat (aktif seri listesi)
- *   <li>{@code market.evds.bonds.list}          — 1 saat
+ *   <li>{@code market.evds.bonds.list}          — 6 saat (warm-up scheduler 2 saatte bir @CachePut ile tazeler)
  *   <li>{@code market.evds.bonds.detail}        — 1 saat
  *   <li>{@code market.evds.bonds.history}       — 2 saat
  * </ul>
@@ -90,10 +91,25 @@ public class EvdsBondService {
     /**
      * Vadesi geçmemiş tüm aktif DİBS kıymetlerini döndürür (pagination yok).
      * Controller katmanında pagination/filter/sort uygulanır.
-     * Cache TTL: 1 saat.
+     * Cache TTL: 6 saat (warm-up scheduler 2 saatte bir {@link #refreshEvdsBondsAll()} ile tazeler).
      */
     @Cacheable(cacheNames = "market.evds.bonds.list", key = "'all'")
     public List<EvdsBondInstrument> getEvdsBondsAll() {
+        return loadAllBonds();
+    }
+
+    /**
+     * Tüm aktif tahvil/kira sertifikası listesini EVDS'ten yeniden çekip cache'i GÜNCELLER.
+     * Warm-up scheduler çağırır — {@code @CachePut}: her zaman çalışır ve cache'i atomik değiştirir
+     * (evict→reload boşluğu yok). Amaç: kullanıcı isteği 537+ çağrılık soğuk yola hiç düşmesin.
+     */
+    @CachePut(cacheNames = "market.evds.bonds.list", key = "'all'")
+    public List<EvdsBondInstrument> refreshEvdsBondsAll() {
+        log.info("[EvdsBondService] refreshEvdsBondsAll (warm-up) — bonds.list cache'i yenileniyor.");
+        return loadAllBonds();
+    }
+
+    private List<EvdsBondInstrument> loadAllBonds() {
         log.info("[EvdsBondService] getEvdsBondsAll başlatıldı. useWhitelist={} includeLeaseCerts={}",
                 useWhitelist, includeLeaseCerts);
 
