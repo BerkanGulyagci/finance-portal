@@ -7,7 +7,7 @@ import {
 import { useTranslation } from '../../i18n/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { useWatchlist } from '../../context/WatchlistContext';
-import { AddTransactionModal } from '../../pages/portfolio';
+import { AddTransactionModal } from '../../features/portfolio';
 
 const sameInst = (it, assetType, symbol) =>
   it && it.assetType === assetType && String(it.symbol).toUpperCase() === String(symbol).toUpperCase();

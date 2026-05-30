@@ -6,7 +6,7 @@
  * portfolio'nun iç dosya yapısına bağımlı olmadan import yapabilir.
  *
  * Kural: Portfolio'nun iç yapısı değişse bile bu dosyadan expose edilenler aynı
- * import path'iyle (`from '.../pages/portfolio'`) erişilebilir kalır.
+ * import path'iyle (`from '.../features/portfolio'`) erişilebilir kalır.
  *
  * Kullanım (dış feature'lardan):
  *   import { InstrumentSearchModal } from '../portfolio';
