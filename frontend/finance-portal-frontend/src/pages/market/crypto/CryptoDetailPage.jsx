@@ -1181,6 +1181,7 @@ export default function CryptoDetailPage() {
                   key={`${coinId}-${rangeIdx}-${chartMode}-${currency}`}
                   points={chartMode === 'candle' ? ohlcData : linePoints}
                   chartMode={chartMode}
+                  valueFormatter={(v) => fmtPrice(v, currency)}
                   loading={chartLoading || compareLoading}
                   sourceNote={(() => {
                     const n = chartMode === 'candle' ? ohlcData.length : linePoints.length;

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { init as klineInit, dispose as klineDispose, registerOverlay } from 'klinecharts';
-import { Trash2, X, ChevronDown } from 'lucide-react';
+import { Trash2, X, ChevronDown, TrendingUp, TrendingDown } from 'lucide-react';
 import { computeKlinePricePrecision, computeKlineVolumePrecision } from '../../../../utils/numberFormat';
 import { useTranslation } from '../../../../i18n/LanguageContext';
 import TrendBadge from '../../../../components/common/TrendBadge';
@@ -176,12 +176,23 @@ export default function CommodityDetailChart({
   loading,
   sourceNote,
   sourceWarning = null,
+  valueFormatter = null,
 }) {
   const { t } = useTranslation();
   const resolvedSourceNote = sourceNote ?? t('Kaynak: Yahoo Finance · OHLC verisi');
   const chartId  = useRef(`commodity_chart_${Date.now()}`);
   const chartRef = useRef(null);
   const indicatorPaneIds = useRef({});
+
+  // Hover tooltip (yalnız çizgi modunda): imleci takip eden şık kart
+  const wrapperRef   = useRef(null);
+  const klineDataRef = useRef([]);
+  const isLineRef    = useRef(true);
+  const pricePrecRef = useRef(2);
+  const fmtRef       = useRef(valueFormatter);
+  fmtRef.current = valueFormatter;
+  const [hover, setHover] = useState(null);
+  const [pos,   setPos]   = useState({ x: 0, y: 0, flipX: false, flipY: false });
 
   const [activeMAs,      setActiveMAs]      = useState([]);
   const [activeSubInds,  setActiveSubInds]  = useState([]);
@@ -337,6 +348,41 @@ export default function CommodityDetailChart({
 
     chart.applyNewData(klineData);
 
+    // ── Hover tooltip mekanizması (yalnız çizgi modu) ──────────────────────────
+    klineDataRef.current = klineData;
+    isLineRef.current = !isCandle;
+    try {
+      pricePrecRef.current = computeKlinePricePrecision(klineData.map((d) => d.close));
+    } catch (_) { /* varsayılan hassasiyet */ }
+    if (!isCandle) {
+      // Varsayılan (sol-üst) klinecharts metin tooltip'ini gizle — yerine özel kart gösteriyoruz.
+      // (Candle modunda OHLC tooltip'i faydalı olduğu için dokunulmaz.)
+      try { chart.setStyles({ candle: { tooltip: { showRule: 'none' } } }); } catch (_) {}
+    }
+    try {
+      chart.subscribeAction('onCrosshairChange', (data) => {
+        if (!isLineRef.current) { setHover(null); return; }
+        const arr = klineDataRef.current;
+        const idx = data?.dataIndex;
+        if (idx == null || idx < 0 || !arr[idx]) { setHover(null); return; }
+        const ptD = arr[idx];
+        const base = arr[0]?.close;
+        const changePct = (base && base > 0) ? ((ptD.close - base) / base) * 100 : null;
+        const dt = new Date(ptD.timestamp);
+        const hasTime = dt.getHours() !== 0 || dt.getMinutes() !== 0;
+        const dateLabel = dt.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: '2-digit' })
+          + (hasTime ? ' · ' + dt.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '');
+        const prec = pricePrecRef.current;
+        const priceLabel = fmtRef.current
+          ? fmtRef.current(ptD.close)
+          : Number(ptD.close).toLocaleString('tr-TR', { minimumFractionDigits: prec, maximumFractionDigits: prec });
+        const volumeLabel = ptD.volume > 0
+          ? Number(ptD.volume).toLocaleString('tr-TR', { notation: 'compact', maximumFractionDigits: 2 })
+          : null;
+        setHover({ dateLabel, priceLabel, changePct, up: changePct == null ? true : changePct >= 0, volumeLabel });
+      });
+    } catch (_) { /* klinecharts sürüm uyumsuzluğu */ }
+
     // Cleanup
     return () => {
       klineDispose(id);
@@ -374,7 +420,18 @@ export default function CommodityDetailChart({
       />
 
       {/* Grafik */}
-      <div className="relative">
+      <div
+        className="relative"
+        ref={wrapperRef}
+        onMouseMove={(e) => {
+          const r = wrapperRef.current?.getBoundingClientRect();
+          if (!r) return;
+          const x = e.clientX - r.left;
+          const y = e.clientY - r.top;
+          setPos({ x, y, flipX: x > r.width - 200, flipY: y > r.height - 96 });
+        }}
+        onMouseLeave={() => setHover(null)}
+      >
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
             <div className="flex gap-1.5">
@@ -390,6 +447,36 @@ export default function CommodityDetailChart({
           </div>
         )}
         <div id={chartId.current} style={{ width: '100%', height: '300px' }} />
+
+        {/* Şık hover tooltip — imleci takip eder, kenarlarda otomatik ters çevrilir (çizgi modu) */}
+        {hover && (
+          <div
+            className="pointer-events-none absolute z-30 min-w-[140px] rounded-xl bg-slate-900/90 px-3.5 py-2.5 shadow-2xl ring-1 ring-white/10 backdrop-blur-md"
+            style={{
+              left: pos.x,
+              top: pos.y,
+              transform: `translate(${pos.flipX ? 'calc(-100% - 14px)' : '14px'}, ${pos.flipY ? 'calc(-100% - 14px)' : '14px'})`,
+            }}
+          >
+            <div className="mb-1 flex items-center gap-1.5">
+              <span className="inline-block h-2 w-2 rounded-full" style={{ background: hover.up ? '#10b981' : '#ef4444' }} />
+              <span className="text-[11px] font-medium text-slate-300">{hover.dateLabel}</span>
+            </div>
+            <div className="text-base font-black leading-tight text-white tabular-nums">{hover.priceLabel}</div>
+            {hover.changePct != null && (
+              <div className={`mt-0.5 flex items-center gap-1 text-xs font-bold ${hover.up ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {hover.up ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                {hover.up ? '+' : ''}{hover.changePct.toFixed(2)}%
+                <span className="font-medium text-slate-500">· {t('dönem')}</span>
+              </div>
+            )}
+            {hover.volumeLabel && (
+              <div className="mt-1 border-t border-white/10 pt-1 text-[11px] text-slate-400">
+                {t('Hacim')}: <span className="font-semibold text-slate-200">{hover.volumeLabel}</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {resolvedSourceNote && <p className="text-xs text-gray-400 mt-2">{resolvedSourceNote}</p>}
