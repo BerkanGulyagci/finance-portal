@@ -239,15 +239,21 @@ export async function fetchYahooCryptoLineChart(symbol, uiCurrency, yahooRange, 
     try {
       const res = await getCryptoYahooTryChart(symbol, '5y');
       const prices = stockChartToLinePrices(res);
-      if (isAdequateRemoteLinePrices(prices) && lastPriceWithinTolerance(prices, currentPrice)) {
-        return {
-          prices,
-          total_volumes: [],
-          yahooSymbol: res?.symbol ?? null,
-          quoteCurrency: 'TRY',
-          sourceNote: "Yahoo Finance · USD fiyat × USD/TRY ile TL'ye çevrildi",
-          tryFallbackWarning: null,
-        };
+      if (isAdequateRemoteLinePrices(prices)) {
+        if (lastPriceWithinTolerance(prices, currentPrice)) {
+          return {
+            prices,
+            total_volumes: [],
+            yahooSymbol: res?.symbol ?? null,
+            quoteCurrency: 'TRY',
+            sourceNote: "Yahoo Finance · USD fiyat × USD/TRY ile TL'ye çevrildi",
+            tryFallbackWarning: null,
+          };
+        }
+        // Çevrilen TL son değeri güncel fiyattan çok uzak → Yahoo'da YANLIŞ/uyumsuz token
+        // (ör. MNT-USD = gerçek Mantle değil; $0.12 vs ~$0.87). "Tüm" ile aynı: Yahoo'yu (USD
+        // dahil) tamamen atla, CoinGecko TRY'ye düş — yanlış-token grafiği gösterme.
+        yahooTokenSuspect = true;
       }
     } catch {
       /* Yahoo USD akışına düş */
