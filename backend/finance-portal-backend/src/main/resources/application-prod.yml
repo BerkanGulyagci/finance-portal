@@ -1,0 +1,81 @@
+# ============================================================================
+# PROD PROFILE — Üretim
+# ============================================================================
+# Uygulamayı çalıştırma:
+#   SPRING_PROFILES_ACTIVE=prod (Docker compose / k8s manifest'inde set)
+#
+# Üretim güvenliği:
+#   - Credential / API key DEFAULT yok; env yoksa uygulama başlamaz (fail-loud).
+#   - SQL log + stack trace KAPALI.
+#   - Logging seviyesi INFO (root WARN).
+#   - application.yml'daki dev-friendly defaultlar (DB=localhost:5433 vb.) burada
+#     env-only patterne dönüştürülür → yanlışlıkla localhost'a bağlanma riski yok.
+# ============================================================================
+
+spring:
+  # Üretimde credential/url default YOK — env set edilmemişse Spring fail eder
+  # (yanlışlıkla localhost'a bağlanma riski engellenir).
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI}
+  mail:
+    host: ${SMTP_HOST}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USER}
+    password: ${SMTP_PASSWORD}
+  jpa:
+    # Üretimde SQL log KESİNLİKLE kapalı (performans + güvenlik).
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+server:
+  error:
+    # Üretimde stack trace KAPALI (güvenlik — exception detayı sızdırma).
+    include-message: always
+    include-stacktrace: never
+    include-binding-errors: never
+
+logging:
+  level:
+    root: WARN
+    com.finance.portal: INFO
+    org.springframework: WARN
+    org.hibernate: WARN
+
+# Üretim secrets — env'den GELMELİ (default boş = endpoint sessizce "veri yok" döner).
+assistant:
+  api-key: ${ASSISTANT_API_KEY:}
+  gemini-api-key: ${GEMINI_API_KEY:}
+news:
+  api:
+    key: ${NEWS_API_KEY:}
+  sources:
+    finnhub:
+      key: ${FINNHUB_API_KEY:}
+fred:
+  api-key: ${FRED_API_KEY:}
+evds:
+  api-key: ${EVDS_API_KEY:}
+coingecko:
+  api-key: ${COINGECKO_API_KEY:}
+keycloak:
+  admin:
+    url: ${KEYCLOAK_ADMIN_URL}
+    client-secret: ${KEYCLOAK_ADMIN_CLIENT_SECRET}
+ldap:
+  url: ${LDAP_URL}
+  admin-password: ${LDAP_ADMIN_PASSWORD}

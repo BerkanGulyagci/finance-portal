@@ -10,6 +10,12 @@ server:
       force: true
 
 spring:
+  # Aktif profil: SPRING_PROFILES_ACTIVE env değişkeniyle kontrol edilir (yoksa "dev").
+  # Profiller: dev (local geliştirme, varsayılan), prod (üretim, env-only credentials),
+  # test (entegrasyon testleri, scheduled job + external API kapalı).
+  # Profile-özel ayarlar application-{profile}.yml dosyalarındadır; bu dosyadakiler ortak default.
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   # Graceful shutdown'a tanınan azami süre — bu süre içinde mevcut istekler bitirilir.
   lifecycle:
     timeout-per-shutdown-phase: 30s

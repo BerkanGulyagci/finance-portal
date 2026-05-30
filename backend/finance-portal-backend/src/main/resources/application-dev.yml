@@ -1,0 +1,35 @@
+# ============================================================================
+# DEV PROFILE — Local geliştirme (varsayılan)
+# ============================================================================
+# Uygulamayı çalıştırma:
+#   SPRING_PROFILES_ACTIVE=dev (veya hiç set etme — varsayılan)
+#
+# application.yml'daki tüm değerler GEÇERLİ kalır; bu dosya sadece dev'e özel
+# override'ları içerir. Geliştirici deneyimini artıran ayarlar (SQL log, debug
+# seviyesi log, daha verbose hata mesajları) burada toplanır.
+# ============================================================================
+
+spring:
+  jpa:
+    # Geliştirmede SQL'i konsola yazdır — sorgu debug için.
+    show-sql: true
+  # Web hata yanıtlarında stack trace dahil et — yerel debug için.
+  # NOT: prod profilinde KAPALI (güvenlik).
+
+server:
+  error:
+    include-message: always
+    include-stacktrace: on_param      # ?trace=true ile aktif
+    include-binding-errors: always
+
+logging:
+  level:
+    root: INFO
+    com.finance.portal: DEBUG
+    # Hibernate SQL parameter binding (verbose — sadece debug oturumlarında)
+    # org.hibernate.orm.jdbc.bind: TRACE
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+
+# Dev'de external API çağrıları çalışır (gerçek piyasa verisi).
+# .env.local içinde API anahtarları olmalı; yoksa ilgili endpoint'ler boş döner.

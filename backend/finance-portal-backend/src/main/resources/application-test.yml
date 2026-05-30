@@ -1,0 +1,46 @@
+# ============================================================================
+# TEST PROFILE — Entegrasyon testleri
+# ============================================================================
+# Aktive etme:
+#   @SpringBootTest sınıflarında @ActiveProfiles("test") annotation'ı.
+#   (Mevcut testlerin çoğu profile annotation kullanmıyor — default "dev"
+#    profili ile çalışıyor. Yeni IT yazarken @ActiveProfiles("test") tercih et.)
+#
+# Test izolasyonu hedefleri:
+#   - Scheduled job'lar KAPALI (test sırasında alarm değerlendirme tetiklenmesin).
+#   - Newsletter digest KAPALI (test sırasında e-posta çıkmasın).
+#   - Assistant (LLM) KAPALI (external API çağrısı yapılmasın).
+#   - SQL log konsolu kirletmesin → KAPALI.
+#   - DB & Redis → testler kendi Testcontainers veya embedded provider'ını
+#     getirir; bu dosya host/port override etmez (testin context configini bozmaz).
+# ============================================================================
+
+spring:
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+logging:
+  level:
+    root: WARN
+    com.finance.portal: INFO
+    org.springframework: WARN
+    org.hibernate: WARN
+
+# Test sırasında zamanlanmış görevler tetiklenmez.
+alarm:
+  evaluation:
+    enabled: false
+
+newsletter:
+  digest:
+    enabled: false
+
+# Test sırasında LLM çağrısı yapılmaz — Warren AI endpoint "şu an kullanılamıyor" döner.
+assistant:
+  enabled: false
+
+# Kafka producer'ın test'te host'a takılmaması için kısa timeout (mevcut değerler zaten kısa).
+# Test'in production kafka'ya gerçek istek göndermesi istenmiyorsa @MockBean kullanılmalı.
