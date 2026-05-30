@@ -227,9 +227,16 @@ public class EurobondService {
     }
 
     private void evict(String cache) {
-        Cache c = cacheManager.getCache(cache);
-        if (c != null) {
-            c.clear();
+        // Cache temizliği BEST-EFFORT: refreshFromXlsx zaten ISIN'leri güncelledi. Redis erişilemezse
+        // (ör. geçici kesinti ya da Redis'siz test/CI ortamı) tüm tazelemeyi 502'ye düşürme — bayat
+        // cache TTL ile zaten dolar. Hata yalnızca loglanır.
+        try {
+            Cache c = cacheManager.getCache(cache);
+            if (c != null) {
+                c.clear();
+            }
+        } catch (Exception e) {
+            log.warn("Eurobond cache evict atlandı ({}): {}", cache, e.getMessage());
         }
     }
 
