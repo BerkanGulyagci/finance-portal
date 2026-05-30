@@ -1,15 +1,15 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, X, Plus } from 'lucide-react';
-import client from '../../../lib/http';
-import { parseTrNumber } from '../../../utils/numberFormat';
+import client from '../../lib/http';
+import { parseTrNumber } from '../../utils/numberFormat';
 import {
   pickCommoditySpotPriceTry,
   pickCommoditySpotPriceUsd,
   isYahooCommoditySymbol,
-} from '../../../utils/commodityPriceUtils';
-import { pickSilverGramCloseTry } from '../../../utils/silverPriceUtils';
-import { useTranslation } from '../../../i18n/LanguageContext';
+} from '../../utils/commodityPriceUtils';
+import { pickSilverGramCloseTry } from '../../utils/silverPriceUtils';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 /**
  * Yeniden kullanılabilir enstrüman arama modal'ı.

@@ -9,12 +9,13 @@
  * import path'iyle (`from '.../features/portfolio'`) erişilebilir kalır.
  *
  * Kullanım (dış feature'lardan):
- *   import { InstrumentSearchModal } from '../portfolio';
  *   import { calculateAllocationByType, WL_CHART_BY_KEY } from '../portfolio';
+ *
+ * NOT: InstrumentSearchModal 5+ feature kullandığı için global'e terfi etti —
+ * artık 'src/components/instrument/InstrumentSearchModal' üzerinden import edilir.
  */
 
 // ── Sayfa-level component'ler (cross-feature kullanılıyor) ──────────────────
-export { default as InstrumentSearchModal } from './components/InstrumentSearchModal';
 export { default as AddTransactionModal }   from './components/AddTransactionModal';
 
 // ── Helper fonksiyonlar ─────────────────────────────────────────────────────

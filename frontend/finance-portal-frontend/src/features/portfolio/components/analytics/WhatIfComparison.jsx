@@ -6,7 +6,7 @@ import {
 import { getPortfolioWhatIfSeries } from '../../../../api/portfolioApi';
 import { formatMoney } from '../../utils/portfolioFormatUtils';
 import { useTranslation } from '../../../../i18n/LanguageContext';
-import InstrumentSearchModal from '../InstrumentSearchModal';
+import InstrumentSearchModal from '../../../../components/instrument/InstrumentSearchModal';
 
 const SERIES = [
   { key: 'actual', label: 'Gerçek', color: '#093eaa' },

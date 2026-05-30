@@ -5,7 +5,7 @@ import {
   readCustomTickerItems, saveCustomTickerItems,
 } from '../../../utils/tickerPrefs';
 import { useTranslation } from '../../../i18n/LanguageContext';
-import { InstrumentSearchModal } from '../../portfolio';
+import InstrumentSearchModal from '../../../components/instrument/InstrumentSearchModal';
 
 const ASSET_LABEL = {
   STOCK: 'Hisse', FUND: 'Fon', FX: 'Döviz', FUTURE: 'Vadeli',

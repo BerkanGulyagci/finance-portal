@@ -4,7 +4,7 @@ import { ArrowLeft, X, Plus, BarChart2, Search, TrendingUp, TrendingDown } from 
 import { getStockChart, getStockMidasDetail, getAllStocks, getMarketPriceHistory } from '../../../api/marketApi';
 import { STOCK_CHART_RANGES } from './stockChartRanges';
 import { useTranslation } from '../../../i18n/LanguageContext';
-import { InstrumentSearchModal } from '../../portfolio';
+import InstrumentSearchModal from '../../../components/instrument/InstrumentSearchModal';
 
 const ASSET_LABELS = {
   STOCK: 'Hisse', CRYPTO: 'Kripto', FX: 'Döviz', FUND: 'Fon',

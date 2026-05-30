@@ -11,8 +11,8 @@ import {
   calculateAllocationByType,
   ANALYTICS_BY_KEY,
   WL_CHART_BY_KEY,
-  InstrumentSearchModal,
 } from '../portfolio';
+import InstrumentSearchModal from '../../components/instrument/InstrumentSearchModal';
 import { readPfCharts, removePfChart, DASH_PF_EVENT } from '../../utils/dashboardCharts';
 import { readWlCharts, removeWlChart, DASH_WL_EVENT } from '../../utils/watchlistDashCharts';
 import { prefGet, prefSet } from '../../api/prefs';

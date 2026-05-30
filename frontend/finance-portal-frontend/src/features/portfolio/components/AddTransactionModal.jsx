@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { X, ArrowLeftRight, TrendingUp, TrendingDown } from 'lucide-react';
 import { addTransaction, getPriceAtDate } from '../../../api/portfolioApi';
 import { getViopChart, getEvdsBondDetail, getGlobalBondDetail } from '../../../api/marketApi';
-import InstrumentSearchModal from './InstrumentSearchModal';
+import InstrumentSearchModal from '../../../components/instrument/InstrumentSearchModal';
 import CommodityPriceHint from './CommodityPriceHint';
 import DateTimeField from './DateTimeField';
 import { isYahooCommoditySymbol } from '../../../utils/commodityPriceUtils';
