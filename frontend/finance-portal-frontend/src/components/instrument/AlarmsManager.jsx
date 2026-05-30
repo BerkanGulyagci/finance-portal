@@ -5,7 +5,7 @@ import { getAlarms, updateAlarm, deleteAlarm } from '../../api/alarmApi';
 import { useTranslation } from '../../i18n/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import AlarmCreateModal from './AlarmCreateModal';
-import InstrumentSearchModal from '../../pages/portfolio/components/InstrumentSearchModal';
+import { InstrumentSearchModal } from '../../pages/portfolio';
 
 const METRIC_LABEL = { PRICE: 'Fiyat', CHANGE_PERCENT: 'Değişim', VOLUME: 'Hacim' };
 const METRIC_WORD = { PRICE: 'fiyat', CHANGE_PERCENT: 'değişim', VOLUME: 'hacim' };

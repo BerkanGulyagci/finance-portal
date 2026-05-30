@@ -7,17 +7,19 @@ import {
 import {
   getCryptos, getStocks, getAllTefasFunds, getFxTcmb, getEconomy, getEconomicIndicators,
 } from '../api/marketApi';
-import { calculateAllocationByType } from './portfolio/utils/portfolioAnalyticsHelpers';
-import { ANALYTICS_BY_KEY } from './portfolio/components/analytics/analyticsRegistry';
+import {
+  calculateAllocationByType,
+  ANALYTICS_BY_KEY,
+  WL_CHART_BY_KEY,
+  InstrumentSearchModal,
+} from './portfolio';
 import { readPfCharts, removePfChart, DASH_PF_EVENT } from '../utils/dashboardCharts';
 import { readWlCharts, removeWlChart, DASH_WL_EVENT } from '../utils/watchlistDashCharts';
-import { WL_CHART_BY_KEY } from './portfolio/components/watchlistChartRegistry';
 import { prefGet, prefSet } from '../api/prefs';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useTranslation } from '../i18n/LanguageContext';
 import GridBoard from '../components/common/GridBoard';
-import InstrumentSearchModal from './portfolio/components/InstrumentSearchModal';
 import AlarmCreateModal from '../components/instrument/AlarmCreateModal';
 import MiniAssetChart from './dashboard/MiniAssetChart';
 import StatTiles from './dashboard/StatTiles';

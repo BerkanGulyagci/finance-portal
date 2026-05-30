@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { Star, Plus, X, Mail } from 'lucide-react';
 import DashCard from './DashCard';
 import { fmtMoney, fmtPct, pctClass, num, ASSET_LABEL } from './dashUtils';
-import { getWatchlistDetailPath } from '../portfolio/constants/watchlistMarketRoutes';
+import { getWatchlistDetailPath } from '../portfolio';
 import { useTranslation } from '../../i18n/LanguageContext';
 
 /**
