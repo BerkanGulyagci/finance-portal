@@ -236,22 +236,29 @@ export function getTopLosers(holdings, limit = 5) {
   return withVal.slice(0, limit).map(({ h, pct }) => ({ holding: h, changePercent: pct }));
 }
 
+/**
+ * Pie/donut yüzde formatlama — tutarlı 2 ondalık + sahte 100% / sahte 0% koruması.
+ *
+ * Davranış:
+ *  - < 0,005 → "%0"     (gerçekten ihmal edilebilir; ondalıkları gizle)
+ *  - < 0,01  → "<%0,01" (yuvarlama 0% göstermesin)
+ *  - > 99,99 ama tam 100 değil → "%99,99+" (yuvarlama dominant dilime
+ *    tüm portföyü yanlışlıkla atfetmesin; ör. %99,9974 → 100% yerine)
+ *  - diğer hepsi → 2 ondalıklı tutarlı format ("%12,34")
+ */
 export function formatSharePercent(percentOf100, valuesHidden) {
   if (valuesHidden) return '••••';
   if (!Number.isFinite(percentOf100)) return '-';
   if (percentOf100 === 0) return '%0';
   const abs = Math.abs(percentOf100);
-  // Küçük dilimler için adaptif precision — aksi takdirde "%0" görünüp veri kaybolur.
-  let dec;
-  if (abs >= 1) dec = 1;
-  else if (abs >= 0.1) dec = 2;
-  else if (abs >= 0.01) dec = 3;
-  else dec = 4;
-  const rounded = Math.round(percentOf100 * 10 ** dec) / 10 ** dec;
-  if (Number.isInteger(rounded)) {
-    return `%${rounded.toLocaleString('tr-TR')}`;
-  }
-  const str = rounded.toLocaleString('tr-TR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+  if (abs < 0.005) return '%0';
+  if (abs < 0.01) return '<%0,01';
+  // Yuvarlama dominant dilimi 100%'e taşımasın (diğer dilimler hala görünür).
+  if (percentOf100 > 99.99 && percentOf100 < 100) return '%99,99+';
+  const str = percentOf100.toLocaleString('tr-TR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
   return `%${str}`;
 }
 

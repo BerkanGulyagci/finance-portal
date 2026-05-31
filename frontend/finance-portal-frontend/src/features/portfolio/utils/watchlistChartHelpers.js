@@ -204,14 +204,26 @@ export function formatPctForChart(n) {
 }
 
 /**
- * 0–100 arası payı Türkçe yüzde gösterimi (grafik/tablo tutarlılığı; örn. %25, %12,5).
+ * 0–100 arası payı Türkçe yüzde gösterimi — tutarlı 2 ondalık + sahte 100% / 0% koruması.
+ *
+ * Davranış:
+ *  - < 0,005 → "%0"     (gerçekten ihmal edilebilir)
+ *  - < 0,01  → "<%0,01" (yuvarlama 0% göstermesin)
+ *  - > 99,99 ama tam 100 değil → "%99,99+" (yuvarlama dominant dilime
+ *    tüm grafiği yanlışlıkla atfetmesin)
+ *  - diğer hepsi → 2 ondalıklı tutarlı format ("%12,34")
  */
 export function formatSharePercent(percentOf100) {
   if (!Number.isFinite(percentOf100)) return '-';
-  const x = Math.round(percentOf100 * 10) / 10;
-  const str = Number.isInteger(x)
-    ? x.toLocaleString('tr-TR')
-    : x.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  if (percentOf100 === 0) return '%0';
+  const abs = Math.abs(percentOf100);
+  if (abs < 0.005) return '%0';
+  if (abs < 0.01) return '<%0,01';
+  if (percentOf100 > 99.99 && percentOf100 < 100) return '%99,99+';
+  const str = percentOf100.toLocaleString('tr-TR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
   return `%${str}`;
 }
 
