@@ -151,24 +151,25 @@ public class BondHoldingEnricher {
 
         BondCategory category = bond != null ? bond.getCategory() : null;
 
-        // TÜFE-endeksli bondlarda EVDS "Gösterge Değeri" ZATEN nominal/endekslidir — ihraçtan bugüne
-        // kümülatif enflasyonu içinde taşır (ör. ~12× = 100 nominal × referans endeks oranı; seri 6 ayda
-        // ≈ enflasyon kadar büyür). Bu yüzden ek bir TÜFE çarpanı UYGULANMAZ; aksi halde enflasyon çifte
-        // sayılırdı. cost (alışta ödenen nominal TL) sabit, mv (bugünkü nominal değer) bondun kendi
-        // endekslenmiş fiyatından gelir → nominal K/Z doğrudan tutarlı. Reel (enflasyondan arındırılmış)
-        // getiri PortfolioRealReturnEnricher'da ayrı hesaplanır ("Reel K/Z %").
+        // TÜFE-endeksli bondlarda EVDS "Gösterge Değeri" standart 100 TL nominal üzerinden temiz
+        // fiyattır (ör. TRT150927T11 ≈ 73.11) — günlük kotasyona enflasyon endekslemesi GÖMÜLÜ
+        // DEĞİLDİR. TÜFE endekslemesi yalnız kupon ödemesinde ve vade itfasında ödenir (bkz.
+        // BondMaturityScheduler — TÜFE bondları otomatik itfadan elle dışlanmıştır). Bu yüzden
+        // TÜFE bondları Tier-1 DİBS ile aynı /100 ölçeğini kullanır; ek bir TÜFE çarpanı
+        // UYGULANMAZ. Reel (enflasyondan arındırılmış) getiri PortfolioRealReturnEnricher'da
+        // ayrı hesaplanır ("Reel K/Z %") — formül mv − cost × (1 + TÜFE) çünkü günlük temiz fiyat
+        // enflasyon içermez.
 
         // Yabancı para cinsli DT (Section 5/6): EVDS "Değer" zaten TL bazlı kotasyon —
         // dış FX çevirisi YAPILMAZ; currency etiketi de TRY kalır (değerler TL).
         // (Kategori rozeti UI'da "EUR/USD" gösterir ama TL hesaba göre.)
 
-        // Per-unit nominal quote (altına dayalı + TÜFE-endeksli aile, bkz. BondCategory#usesPerUnitNominalQuote):
+        // Per-unit nominal quote (yalnız altına dayalı senet, bkz. BondCategory#usesPerUnitNominalQuote):
         //   - Altına dayalı senet (Section 4): EVDS "Değer/1 adet" — birim 1 gram has altın, TL/adet.
-        //   - TÜFE-endeksli DT/strip/lease: indicator değeri ZATEN nominal-endeksli TL (ör. TRT070727T13≈1225,
-        //     TRT270127T15≈6500); enflasyon çarpanı seriye gömülü.
-        // Her iki ailede de qty × price doğrudan TL piyasa değerini verir, /100 YOK; cost tarafıyla simetri:
-        // HoldingsBuilder aynı kategoriler için effectivePrice'ı /100 BÖLMEZ → cost da nominal birim üzerinden,
-        // ratio (PL%) doğru kalır. Diğer DİBS/Eurobond/Kira sertifikaları klasik %-of-par konvansiyonunu kullanır.
+        // Bu ailede qty × price doğrudan TL piyasa değerini verir, /100 YOK; cost tarafıyla simetri:
+        // HoldingsBuilder aynı kategoride effectivePrice'ı /100 BÖLMEZ → cost da nominal birim üzerinden,
+        // ratio (PL%) doğru kalır. Diğer tüm DİBS/Eurobond/TÜFE/Kira sertifikaları klasik %-of-par
+        // konvansiyonunu kullanır (qty × price / 100).
         if (mv != null && category != null && category.usesPerUnitNominalQuote()) {
             BigDecimal qty = holding.getTotalQuantity() != null
                     ? holding.getTotalQuantity() : BigDecimal.ZERO;

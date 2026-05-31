@@ -17,7 +17,8 @@ public interface PortfolioHistoricalPricePort {
      * Boş veya bulunamayan seri için {@link Optional#empty()}.
      *
      * <p>BOND için EVDS "Gösterge Değeri" doğrudan döner — TÜFE-endeksli bondlar dahil ek ölçekleme
-     * uygulanmaz (gösterge değeri zaten nominal/endekslidir). Reel getiri ayrı hesaplanır.
+     * uygulanmaz (günlük kotasyon 100 TL nominal başına temiz fiyattır; enflasyon endekslemesi
+     * yalnız kupon ve vade ödemesine yansır). Reel getiri ayrı hesaplanır.
      */
     Optional<NavigableMap<LocalDate, BigDecimal>> fetchDailyClosePrices(
             AssetType assetType,

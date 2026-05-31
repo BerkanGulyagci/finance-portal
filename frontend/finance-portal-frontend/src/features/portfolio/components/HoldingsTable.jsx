@@ -533,7 +533,7 @@ function renderCell(key, h, commoditySpots, valuesHidden, t) {
           {isInfBond && (
             <span
               className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold"
-              title={t('TÜFE-endeksli — EVDS gösterge değeri zaten enflasyona endeksli; piyasa değeri kendiliğinden TÜFE ile büyür')}
+              title={t('TÜFE-endeksli — günlük kotasyon 100 TL nominal başına temiz fiyattır; enflasyon endekslemesi kupon ve vade ödemesine yansır')}
             >
               {t('TÜFE')}
             </span>

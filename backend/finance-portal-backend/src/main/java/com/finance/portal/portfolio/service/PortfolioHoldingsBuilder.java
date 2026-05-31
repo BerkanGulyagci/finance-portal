@@ -56,10 +56,14 @@ public class PortfolioHoldingsBuilder {
     }
 
     /**
-     * BOND fiyatı per-unit nominal (adet/gram veya TÜFE-endeksli nominal TL) cinsinden mi
-     * kote ediliyor? Bu durumda TCMB "100 TL nominal üzerinden %quote" konvansiyonu
-     * UYGULANMAZ — yani builder maliyet hesabında {@code /100} ölçeğini atlar (enricher de
-     * aynı simetri ile mv hesabında atlar; bkz. {@link BondCategory#usesPerUnitNominalQuote()}).
+     * BOND fiyatı per-unit nominal (yalnız altına dayalı senet — birim 1 gram has altın)
+     * cinsinden mi kote ediliyor? Bu durumda TCMB "100 TL nominal üzerinden %quote"
+     * konvansiyonu UYGULANMAZ — builder maliyet hesabında {@code /100} ölçeğini atlar
+     * (enricher de aynı simetri ile mv hesabında atlar; bkz.
+     * {@link BondCategory#usesPerUnitNominalQuote()}).
+     * <p>TÜFE-endeksli aile bu sete DAHİL DEĞİL — günlük EVDS kotasyonu standart "100 TL
+     * nominal üzerinden temiz fiyat"tır (ör. TRT150927T11 ≈ 73.11); enflasyon endekslemesi
+     * yalnız kupon ve vade ödemesine yansır.
      * <p>EVDS detail lookup; symbol başına bir kez yapılır, hata durumunda (örn. Eurobond
      * EVDS'de yok) false → klasik %-of-par konvansiyonu uygulanır.
      */
@@ -115,9 +119,11 @@ public class PortfolioHoldingsBuilder {
             String accSymbol = assetType == AssetType.FUTURE
                     ? canonicalFutureDisplaySymbol(sample.getSymbol())
                     : sample.getSymbol();
-            // BOND fiyat ölçeği: altına dayalı senet (adet/gram) ve TÜFE-endeksli (nominal-endeksli TL)
-            // kategorilerinde /100 UYGULANMAZ — enricher mv hesabı da aynı simetri ile bu kategorilerde
-            // /100'ü atlar (bkz. BondCategory#usesPerUnitNominalQuote).
+            // BOND fiyat ölçeği: yalnız altına dayalı senet (adet/gram) kategorisinde /100
+            // UYGULANMAZ — enricher mv hesabı da aynı simetri ile bu kategoride /100'ü
+            // atlar (bkz. BondCategory#usesPerUnitNominalQuote). TÜFE-endeksli bondlar
+            // standart /100 yoluna düşer (günlük EVDS kotasyonu 100 TL nominal başına
+            // temiz fiyat — enflasyon endekslemesi kupon/vade ödemesine ayrı yansır).
             boolean parUnscaledBond = assetType == AssetType.BOND && isParUnscaledBondSymbol(accSymbol);
             HoldingAccumulator acc = new HoldingAccumulator(accSymbol, assetType, parUnscaledBond);
             for (PortfolioTransaction tx : txs) {
@@ -296,8 +302,9 @@ public class PortfolioHoldingsBuilder {
         final String symbol;
         final AssetType assetType;
         /**
-         * BOND fiyat ölçeği "per-unit nominal" (adet/gram veya TÜFE-endeksli nominal TL) ise true →
-         * {@code /100} ölçeği UYGULANMAZ. {@link BondCategory#usesPerUnitNominalQuote()} ile aynı set.
+         * BOND fiyat ölçeği "per-unit nominal" (yalnız altına dayalı senet — adet/gram) ise
+         * true → {@code /100} ölçeği UYGULANMAZ. {@link BondCategory#usesPerUnitNominalQuote()}
+         * ile aynı set.
          */
         final boolean parUnscaledBond;
 
@@ -361,8 +368,10 @@ public class PortfolioHoldingsBuilder {
             }
 
             // BOND için piyasa konvansiyonu "100 TL nominal üzerinden fiyat" — etkin fiyat = price/100.
-            // İstisna (parUnscaledBond): altın senedi (adet/gram) ve TÜFE-endeksli aile (nominal-endeksli TL)
-            // — fiyat doğrudan birim üzerinden kote, /100 UYGULANMAZ. Enricher mv hesabı da aynı simetri ile davranır.
+            // Tek istisna (parUnscaledBond): altına dayalı senet (adet/gram) — fiyat doğrudan birim
+            // üzerinden kote, /100 UYGULANMAZ. Enricher mv hesabı da aynı simetri ile davranır.
+            // TÜFE-endeksli bondlar standart /100 yoluna düşer (günlük EVDS kotasyonu 100 TL
+            // nominal başına temiz fiyat — enflasyon endekslemesi kupon/vade ödemesine ayrı yansır).
             BigDecimal effectivePrice = (assetType == AssetType.BOND && !parUnscaledBond)
                     ? price.divide(BOND_PAR_SCALE, 12, RoundingMode.HALF_UP)
                     : price;

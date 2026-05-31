@@ -245,11 +245,11 @@ public class PortfolioHistoricalPriceAdapter implements PortfolioHistoricalPrice
         if (eurobondService.currentIsins().contains(code)) {
             return fetchEurobond(code, from, to);
         }
-        // EVDS "Gösterge Değeri" tüm DİBS tür­leri için doğrudan kullanılır — ek ölçekleme YOK.
-        // TÜFE-endeksli bondlarda bu değer zaten nominal/endeksli (ihraçtan bugüne kümülatif enflasyonu
-        // içinde taşır); FX/Altın bondlarda da EVDS değeri zaten TL bazlı. Dolayısıyla ne TÜFE çarpanı
-        // ne de dış FX/altın çevrimi uygulanır (yoksa enflasyon/kur çifte sayılırdı). Reel getiri
-        // PortfolioRealReturnEnricher'da nominal seriden ayrıca türetilir.
+        // EVDS "Gösterge Değeri" tüm DİBS türleri için doğrudan kullanılır — ek ölçekleme YOK.
+        // TÜFE-endeksli bondlarda günlük kotasyon 100 TL nominal başına temiz fiyattır (Tier-1 ile
+        // aynı konvansiyon); enflasyon endekslemesi yalnız kupon ve vade ödemesine yansır. FX/Altın
+        // bondlarda EVDS değeri zaten TL bazlı. Dolayısıyla ne ek TÜFE çarpanı ne de dış FX/altın
+        // çevrimi uygulanır. Reel getiri PortfolioRealReturnEnricher'da nominal seriden ayrıca türetilir.
         List<EvdsSeriesPoint> points = evdsBondPort.fetchIndicatorValues(symbol, from, to);
         NavigableMap<LocalDate, BigDecimal> map = new TreeMap<>();
         for (EvdsSeriesPoint p : points) {
