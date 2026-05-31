@@ -97,9 +97,13 @@ public class PortfolioHoldingsBuilder {
 
         for (Map.Entry<String, List<PortfolioTransaction>> e : byKey.entrySet()) {
             List<PortfolioTransaction> txs = new ArrayList<>(e.getValue());
+            // Sıralama: önce transactionDate, eşit ise createdAt (DB insert anı), son fallback ID.
+            // ID-only fallback random-UUID olduğu için aynı dakikadaki BUY+SELL'leri ters sıralayıp
+            // "SELL with non-positive open quantity" hatasına yol açabiliyordu (Edge 2 senaryosu).
             txs.sort(Comparator
-                    .comparing(PortfolioTransaction::getTransactionDate)
-                    .thenComparing(PortfolioTransaction::getId));
+                    .comparing(PortfolioTransaction::getTransactionDate, Comparator.nullsLast(Comparator.naturalOrder()))
+                    .thenComparing(PortfolioTransaction::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder()))
+                    .thenComparing(PortfolioTransaction::getId, Comparator.nullsLast(Comparator.naturalOrder())));
 
             PortfolioTransaction sample = txs.get(0);
             AssetType assetType = sample.getAssetType();
@@ -187,13 +191,34 @@ public class PortfolioHoldingsBuilder {
             }
 
             if (acc.anySell) {
-                holding.setRealizedGainLoss(acc.realizedGainLossSum.setScale(moneyScale, RoundingMode.HALF_UP));
-                if (acc.totalSoldCostBasis.compareTo(BigDecimal.ZERO) > 0) {
-                    holding.setRealizedGainLossPercent(
-                            acc.realizedGainLossSum
-                                    .divide(acc.totalSoldCostBasis, 10, RoundingMode.HALF_UP)
-                                    .multiply(BigDecimal.valueOf(100))
-                                    .setScale(realizedPctScale, RoundingMode.HALF_UP));
+                // FUTURE: accumulator spot mantığıyla hesapladı (multiplier yok, dir yok).
+                // Holding direction-grouped olduğundan tüm SELL'ler aynı yön + multiplier paylaşır,
+                // tek seferde çevirebiliriz: realized = spot × multiplier × dirSign.
+                // Yüzde paydası da margin'e geçer → pct = pct_spot × dirSign ÷ marginRate.
+                // Bu hesap BURADA (idempotent) yapılır; Enricher tekrar dokunmaz (PortfolioServiceImpl
+                // performance amacıyla enrich'i parallel olarak BİR KEZ DAHA çağırır → read+write
+                // pattern'i 1000× bug üretir, bu yüzden write-only burada tutulur).
+                BigDecimal realizedFinal = acc.realizedGainLossSum;
+                BigDecimal pctSpot = acc.totalSoldCostBasis.compareTo(BigDecimal.ZERO) > 0
+                        ? acc.realizedGainLossSum.divide(acc.totalSoldCostBasis, 10, RoundingMode.HALF_UP)
+                              .multiply(BigDecimal.valueOf(100))
+                        : null;
+                BigDecimal pctFinal = pctSpot;
+                if (acc.assetType == AssetType.FUTURE) {
+                    ViopContractSpec spec = viopSpecRegistry.resolveOrFallback(acc.symbol);
+                    String dir = !txs.isEmpty() && txs.get(0).getDirection() != null
+                            ? txs.get(0).getDirection().trim().toUpperCase() : "LONG";
+                    BigDecimal dirSign = "SHORT".equals(dir)
+                            ? BigDecimal.ONE.negate() : BigDecimal.ONE;
+                    realizedFinal = realizedFinal.multiply(spec.multiplier()).multiply(dirSign);
+                    if (pctSpot != null && spec.marginRate().signum() > 0) {
+                        pctFinal = pctSpot.multiply(dirSign)
+                                .divide(spec.marginRate(), 4, RoundingMode.HALF_UP);
+                    }
+                }
+                holding.setRealizedGainLoss(realizedFinal.setScale(moneyScale, RoundingMode.HALF_UP));
+                if (pctFinal != null) {
+                    holding.setRealizedGainLossPercent(pctFinal.setScale(realizedPctScale, RoundingMode.HALF_UP));
                 }
             }
 

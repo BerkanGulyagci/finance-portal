@@ -151,30 +151,9 @@ public class FutureHoldingEnricher {
             holding.setViopDirection("LONG"); // geriye uyumluluk
         }
 
-        // Realized P/L (kapatılan pozisyon kar/zararı) — Builder spot mantığıyla
-        //   sum_i ((sell_price_i − avgEntry) × qty_i)
-        // hesaplar; multiplier ve directionSign uygulamaz. Holding direction-grouped olduğundan
-        // tüm SELL'ler aynı yön ve aynı multiplier'ı paylaşır → tek seferde çevirebiliriz:
-        //   realized_correct = realized_spot × multiplier × directionSign
-        // Yüzdeyi de margin payda olacak şekilde yeniden ölçekle: × dirSign ÷ marginRate.
-        BigDecimal builderRealized = holding.getRealizedGainLoss();
-        if (builderRealized != null && builderRealized.signum() != 0) {
-            BigDecimal correctRealized = builderRealized
-                    .multiply(multiplier)
-                    .multiply(dirSign)
-                    .setScale(MONEY_SCALE, RoundingMode.HALF_UP);
-            holding.setRealizedGainLoss(correctRealized);
-
-            BigDecimal builderPct = holding.getRealizedGainLossPercent();
-            if (builderPct != null && spec.marginRate().signum() > 0) {
-                // pct_correct = pct_spot × dir / marginRate
-                BigDecimal correctPct = builderPct
-                        .multiply(dirSign)
-                        .divide(spec.marginRate(), 4, RoundingMode.HALF_UP)
-                        .setScale(2, RoundingMode.HALF_UP);
-                holding.setRealizedGainLossPercent(correctPct);
-            }
-        }
+        // Not: Realized P/L FUTURE düzeltmesi (multiplier × dirSign) Builder'da yapılır.
+        // Enricher PortfolioServiceImpl tarafından parallel cache amacıyla BİR KEZ DAHA
+        // çağrılır → idempotent olmayan read+multiply+write burada 1000× bug üretir.
 
         // Günlük "change" (kontrat başına TL fark) — direction-aware:
         //   LONG : (current − prevSettle) × multiplier        — fiyat ↑ = kar
