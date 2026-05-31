@@ -234,6 +234,10 @@ public class PortfolioWhatIfService {
          * veri) çağıran eski ratio davranışına düşer.
          */
         BigDecimal effQty;
+        /** FUTURE pozisyonlarda canlı TL nominal piyasa değeri (mark-to-market). */
+        BigDecimal futureNotionalMv;
+        /** FUTURE özel-yol: tarihsel seri yok, MV doğrudan nominal değerden gelir. */
+        boolean isFuture;
         BigDecimal assetBase;
         BigDecimal goldBase;
         BigDecimal usdBase;
@@ -285,6 +289,23 @@ public class PortfolioWhatIfService {
             BigDecimal costTl = currencyConverter.toTry(h.getTotalCost(), h.getCurrency());
             LocalDate date = h.getFirstBuyDate() != null ? h.getFirstBuyDate().toLocalDate() : null;
             if (costTl == null || costTl.signum() <= 0 || date == null) {
+                continue;
+            }
+            // FUTURE özel-yolu: vadeli sözleşmeler için tarihsel close serisi yok (mark-to-market
+            // canlı nominal değer üzerinden). Tek SeriesPos kur, futureNotionalMv = canlı TL MV;
+            // effQty=null bırak (computeSeries içindeki branch isFuture'a göre dallanacak).
+            if (h.getAssetType() == com.finance.portal.common.domain.AssetType.FUTURE) {
+                SeriesPos sp = new SeriesPos(costTl, date, null);
+                sp.isFuture = true;
+                sp.futureNotionalMv = currencyConverter.toTry(h.getMarketValue(), h.getCurrency());
+                sp.effQty = null;
+                positions.add(sp);
+                if (date.isBefore(earliest)) {
+                    earliest = date;
+                }
+                if (single) {
+                    singleLabel = (h.getName() != null && !h.getName().isBlank()) ? h.getName() : h.getSymbol();
+                }
                 continue;
             }
             // Asset series tüm holding için bir kez çekilir — lots aynı seriyi paylaşır.
@@ -519,7 +540,24 @@ public class PortfolioWhatIfService {
                 }
                 cost = cost.add(p.costTl);
 
-                if (actualAvail && positive(p.assetBase)) {
+                if (p.isFuture) {
+                    // FUTURE: tarihsel kapanış yok. t bugün/ileri ve canlı nominal MV varsa onu
+                    // kullan (mark-to-market); aksi halde eski ratio fallback'iyle (assetBase var
+                    // ise) yaklaşıklaştır. positive(futureNotionalMv) yoksa katkı verme.
+                    BigDecimal contrib = null;
+                    if (!t.isBefore(today) && positive(p.futureNotionalMv)) {
+                        contrib = p.futureNotionalMv;
+                    } else if (positive(p.assetBase)) {
+                        BigDecimal v = floorVal(p.assetSeries, t);
+                        if (positive(v)) {
+                            contrib = ratio(p.costTl, v, p.assetBase);
+                        }
+                    }
+                    if (contrib != null) {
+                        actual = actual.add(contrib);
+                        anyA = true;
+                    }
+                } else if (actualAvail && positive(p.assetBase)) {
                     BigDecimal v = floorVal(p.assetSeries, t);
                     if (positive(v)) {
                         // "Gerçek" = pozisyonun gerçek piyasa değeri. effQty (qty/parScale) varsa

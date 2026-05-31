@@ -30,8 +30,14 @@ class PortfolioPerformanceCalculatorTest {
 
     @BeforeEach
     void setUp() {
+        com.finance.portal.portfolio.application.viop.spec.ViopContractSpecRegistry specRegistry =
+                org.mockito.Mockito.mock(com.finance.portal.portfolio.application.viop.spec.ViopContractSpecRegistry.class);
+        org.mockito.Mockito.when(specRegistry.resolveOrFallback(org.mockito.ArgumentMatchers.anyString()))
+                .thenReturn(com.finance.portal.portfolio.application.viop.spec.ViopContractSpec.fallback("TEST"));
         calculator = new PortfolioPerformanceCalculator(
-                org.mockito.Mockito.mock(com.finance.portal.market.application.bond.evds.EvdsBondService.class));
+                org.mockito.Mockito.mock(com.finance.portal.market.application.bond.evds.EvdsBondService.class),
+                specRegistry,
+                new com.finance.portal.portfolio.application.viop.valuation.ViopValuationService());
     }
 
     @Test

@@ -86,11 +86,44 @@ public class PortfolioRealReturnEnricher {
         for (PortfolioHoldingResponse h : holdings) {
             clear(h);
 
-            // FUTURE (VİOP) pozisyonları reel getiri hesabından hariç:
-            // kaldıraçlı + günlük mark-to-market ürünlerde "openCostLots × enflasyon faktörü"
-            // anlam taşımaz (totalCost = teminat ama lot price-unit; boyut uyumsuzluğu).
-            // UI bunları "Reel K/Z — geçerli değil" (–) olarak gösterir.
+            // FUTURE (VİOP) pozisyonları: lot bazlı enflasyon doğru değil (kaldıraçlı + günlük
+            // mark-to-market). Bunun yerine yatırılan teminat (viopMarginPosted) tek bir "buy
+            // date" çapasından bugüne TÜFE faktörüyle şişirilip reel teminat olarak alınır;
+            // marketValue (canlı M2M) ile farkı reel K/Z'yi verir.
             if (h.getAssetType() == com.finance.portal.common.domain.AssetType.FUTURE) {
+                BigDecimal margin = h.getViopMarginPosted();
+                if (margin == null) margin = h.getTotalCost();
+                BigDecimal mv = h.getMarketValue();
+                if (margin == null || mv == null || margin.signum() <= 0) continue;
+
+                LocalDate buyDate = h.getFirstBuyDate() != null ? h.getFirstBuyDate().toLocalDate() : null;
+                Optional<BigDecimal> fOpt = deflator.cumulativeFactor(tufe, buyDate);
+                BigDecimal f = fOpt.orElse(BigDecimal.ONE);
+
+                BigDecimal realCost = margin.multiply(f);
+                h.setRealProfitLoss(mv.subtract(realCost).setScale(MONEY_SCALE, RoundingMode.HALF_UP));
+                h.setRealProfitLossPercent(pct(mv, realCost));
+                if (fOpt.isPresent()) {
+                    h.setInflationSincePercent(f.subtract(BigDecimal.ONE)
+                            .multiply(HUNDRED).setScale(PCT_SCALE, RoundingMode.HALF_UP));
+                    h.setInflationSource(SRC_TUFE);
+                }
+
+                String cur = h.getCurrency();
+                BigDecimal costTl = currencyConverter.toTry(margin, cur);
+                BigDecimal mvTl = currencyConverter.toTry(mv, cur);
+                if (costTl != null && mvTl != null && costTl.signum() > 0) {
+                    BigDecimal realCostTl = costTl.multiply(f);
+                    h.setRealProfitLossTry(mvTl.subtract(realCostTl).setScale(MONEY_SCALE, RoundingMode.HALF_UP));
+                    h.setRealProfitLossPercentTry(pct(mvTl, realCostTl));
+                    if (fOpt.isPresent()) {
+                        h.setInflationSinceTryPercent(f.subtract(BigDecimal.ONE)
+                                .multiply(HUNDRED).setScale(PCT_SCALE, RoundingMode.HALF_UP));
+                    }
+                    sumRealCostTl = sumRealCostTl.add(realCostTl);
+                    sumRealPlTl = sumRealPlTl.add(mvTl.subtract(realCostTl));
+                    anyTl = true;
+                }
                 continue;
             }
 

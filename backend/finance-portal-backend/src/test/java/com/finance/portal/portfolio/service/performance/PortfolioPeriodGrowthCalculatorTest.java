@@ -173,8 +173,14 @@ class PortfolioPeriodGrowthCalculatorTest {
     void integration_calculatorWithPeriodGrowth() {
         LocalDate d1 = LocalDate.of(2026, 4, 1);
         LocalDate d2 = LocalDate.of(2026, 4, 2);
+        com.finance.portal.portfolio.application.viop.spec.ViopContractSpecRegistry specRegistry =
+                org.mockito.Mockito.mock(com.finance.portal.portfolio.application.viop.spec.ViopContractSpecRegistry.class);
+        org.mockito.Mockito.when(specRegistry.resolveOrFallback(org.mockito.ArgumentMatchers.anyString()))
+                .thenReturn(com.finance.portal.portfolio.application.viop.spec.ViopContractSpec.fallback("TEST"));
         PortfolioPerformanceCalculator calc = new PortfolioPerformanceCalculator(
-                org.mockito.Mockito.mock(com.finance.portal.market.application.bond.evds.EvdsBondService.class));
+                org.mockito.Mockito.mock(com.finance.portal.market.application.bond.evds.EvdsBondService.class),
+                specRegistry,
+                new com.finance.portal.portfolio.application.viop.valuation.ViopValuationService());
 
         List<PortfolioTransaction> txs = List.of(
                 buyTx("THYAO", d1.atStartOfDay(), "10", "100"));

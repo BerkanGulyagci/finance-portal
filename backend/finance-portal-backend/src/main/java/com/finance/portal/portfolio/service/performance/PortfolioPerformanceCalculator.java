@@ -7,6 +7,9 @@ import com.finance.portal.market.application.bond.evds.model.BondCategory;
 import com.finance.portal.market.application.viop.ViopService;
 import com.finance.portal.portfolio.application.performance.ExcludedPerformanceAsset;
 import com.finance.portal.portfolio.application.performance.PortfolioPerformancePoint;
+import com.finance.portal.portfolio.application.viop.spec.ViopContractSpec;
+import com.finance.portal.portfolio.application.viop.spec.ViopContractSpecRegistry;
+import com.finance.portal.portfolio.application.viop.valuation.ViopValuationService;
 import com.finance.portal.portfolio.domain.PortfolioTransaction;
 import com.finance.portal.portfolio.domain.TransactionType;
 import com.finance.portal.portfolio.infrastructure.market.PortfolioHistoricalPriceAdapter;
@@ -39,9 +42,15 @@ public class PortfolioPerformanceCalculator {
     private static final BigDecimal BOND_PAR_SCALE = new BigDecimal("100");
 
     private final EvdsBondService evdsBondService;
+    private final ViopContractSpecRegistry viopSpecRegistry;
+    private final ViopValuationService viopValuation;
 
-    public PortfolioPerformanceCalculator(EvdsBondService evdsBondService) {
+    public PortfolioPerformanceCalculator(EvdsBondService evdsBondService,
+                                          ViopContractSpecRegistry viopSpecRegistry,
+                                          ViopValuationService viopValuation) {
         this.evdsBondService = evdsBondService;
+        this.viopSpecRegistry = viopSpecRegistry;
+        this.viopValuation = viopValuation;
     }
 
     /** Altın bond? Birim "adet/gram" — /100 uygulanmaz. */
@@ -91,31 +100,22 @@ public class PortfolioPerformanceCalculator {
                     break;
                 }
                 String key = positionKey(tx);
-                // VİOP pozisyonları geçmiş performans grafiğinden hariç:
-                // bu calculator (qty × güncel fiyat) modeli kullanır, ne multiplier ne marginRate
-                // ne de direction'ı bilir → SHORT pozisyonda fiyat yükselirse mv yükselir (TERS yön).
-                // FUTURE'ı dahil etmek grafiği ciddi şekilde yanıltır; doğru entegrasyon
-                // ViopValuationService + spec lookup gerektirir (gelecekte yapılacak).
-                if (tx.getAssetType() == AssetType.FUTURE) {
-                    if (!excludedKeys.contains(key)) {
-                        excludedKeys.add(key);
-                        if (excludedAssetsOut != null) {
-                            excludedAssetsOut.add(new ExcludedPerformanceAsset(
-                                    displaySymbol(tx),
-                                    tx.getAssetType(),
-                                    "VİOP pozisyonları geçmiş performans grafiğinden hariç tutulur"
-                                            + " (kaldıraçlı + mark-to-market — doğru entegrasyon yapılana kadar)."
-                            ));
-                        }
-                    }
-                    txIndex++;
-                    continue;
-                }
                 if (!excludedKeys.contains(key)) {
                     final String dsym = displaySymbol(tx);
                     final boolean isGold = tx.getAssetType() == AssetType.BOND && isGoldBondSymbol(dsym);
-                    openPositions.computeIfAbsent(key, k -> new HoldingAccumulator(
-                            key, dsym, tx.getAssetType(), isGold)).apply(tx);
+                    if (tx.getAssetType() == AssetType.FUTURE) {
+                        final String dir = tx.getDirection() != null && !tx.getDirection().isBlank()
+                                ? tx.getDirection().trim().toUpperCase()
+                                : "LONG";
+                        final ViopContractSpec spec = viopSpecRegistry != null
+                                ? viopSpecRegistry.resolveOrFallback(tx.getSymbol())
+                                : ViopContractSpec.fallback(tx.getSymbol() != null ? tx.getSymbol() : "");
+                        openPositions.computeIfAbsent(key, k -> new HoldingAccumulator(
+                                key, dsym, tx.getAssetType(), false, dir, spec)).apply(tx);
+                    } else {
+                        openPositions.computeIfAbsent(key, k -> new HoldingAccumulator(
+                                key, dsym, tx.getAssetType(), isGold, null, null)).apply(tx);
+                    }
                     HoldingAccumulator acc = openPositions.get(key);
                     if (acc.openQuantity.compareTo(BigDecimal.ZERO) <= 0) {
                         openPositions.remove(key);
@@ -146,14 +146,27 @@ public class PortfolioPerformanceCalculator {
                     continue;
                 }
                 contributedKeys.add(key);
-                // BOND için fiyat 100 nominal üzerinden — etkin = unitPrice/100.
-                // Altın bond istisnası: birim adet/gram → /100 uygulanmaz.
-                BigDecimal effectivePrice = (acc.assetType == AssetType.BOND && !acc.isGoldBond)
-                        ? unitPrice.divide(BOND_PAR_SCALE, 12, RoundingMode.HALF_UP)
-                        : unitPrice;
-                BigDecimal mv = effectivePrice.multiply(acc.openQuantity).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+                BigDecimal mv;
+                BigDecimal costContribution;
+                if (acc.assetType == AssetType.FUTURE && acc.viopSpec != null) {
+                    // VİOP: marginPosted + pnl (notional değil) — portföy katkısı kaldıraçsız tutarlıdır.
+                    BigDecimal avgEntry = acc.openCostBasis.divide(acc.openQuantity, 12, RoundingMode.HALF_UP);
+                    BigDecimal marginPosted = viopValuation.marginPosted(acc.openQuantity, avgEntry, acc.viopSpec);
+                    BigDecimal pnl = viopValuation.pnl(acc.openQuantity, avgEntry, unitPrice, acc.viopSpec, acc.direction);
+                    mv = viopValuation.portfolioContribution(marginPosted, pnl)
+                            .setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+                    costContribution = marginPosted.setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+                } else {
+                    // BOND için fiyat 100 nominal üzerinden — etkin = unitPrice/100.
+                    // Altın bond istisnası: birim adet/gram → /100 uygulanmaz.
+                    BigDecimal effectivePrice = (acc.assetType == AssetType.BOND && !acc.isGoldBond)
+                            ? unitPrice.divide(BOND_PAR_SCALE, 12, RoundingMode.HALF_UP)
+                            : unitPrice;
+                    mv = effectivePrice.multiply(acc.openQuantity).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+                    costContribution = acc.openCostBasis.setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+                }
                 totalMarketValue = totalMarketValue.add(mv);
-                totalCost = totalCost.add(acc.openCostBasis.setScale(MONEY_SCALE, RoundingMode.HALF_UP));
+                totalCost = totalCost.add(costContribution);
             }
 
             BigDecimal profitLoss = totalMarketValue.subtract(totalCost).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
@@ -184,9 +197,13 @@ public class PortfolioPerformanceCalculator {
     }
 
     public static String positionKey(PortfolioTransaction tx) {
-        String symPart = tx.getAssetType() == AssetType.FUTURE
-                ? ViopService.portfolioFutureGroupKey(tx.getSymbol())
-                : (tx.getSymbol() != null ? tx.getSymbol() : "");
+        if (tx.getAssetType() == AssetType.FUTURE) {
+            String dn = tx.getDirection() != null && !tx.getDirection().isBlank()
+                    ? tx.getDirection().trim().toUpperCase()
+                    : "LONG";
+            return ViopService.portfolioFutureGroupKey(tx.getSymbol()) + "::FUTURE::" + dn;
+        }
+        String symPart = tx.getSymbol() != null ? tx.getSymbol() : "";
         return symPart + "::" + tx.getAssetType().name();
     }
 
@@ -232,15 +249,20 @@ public class PortfolioPerformanceCalculator {
         final String symbol;
         final AssetType assetType;
         final boolean isGoldBond;
+        final String direction;
+        final ViopContractSpec viopSpec;
 
         BigDecimal openQuantity = BigDecimal.ZERO;
         BigDecimal openCostBasis = BigDecimal.ZERO;
 
-        HoldingAccumulator(String positionKey, String symbol, AssetType assetType, boolean isGoldBond) {
+        HoldingAccumulator(String positionKey, String symbol, AssetType assetType, boolean isGoldBond,
+                           String direction, ViopContractSpec viopSpec) {
             this.positionKey = positionKey;
             this.symbol = symbol;
             this.assetType = assetType;
             this.isGoldBond = isGoldBond;
+            this.direction = direction;
+            this.viopSpec = viopSpec;
         }
 
         void apply(PortfolioTransaction tx) {

@@ -1081,7 +1081,11 @@ export default function HoldingsTable({
           </thead>
           <tbody>
             {holdings.map(h => {
-              const rowKey = `${h.assetType}-${h.symbol}`;
+              // FUTURE için aynı sembolde LONG ve SHORT AYRI satır olur — direction'ı
+              // key'e ekle ki React duplicate-key collision yapıp birini gizlemesin.
+              const rowKey = h.assetType === 'FUTURE' && h.viopDirection
+                ? `${h.assetType}-${h.symbol}-${h.viopDirection}`
+                : `${h.assetType}-${h.symbol}`;
               const isBond = String(h.assetType ?? '').toUpperCase() === 'BOND';
               const isClosed = !!h.closed;
               const coupons = isBond ? (couponsBySymbol.get(h.symbol) || []) : [];
