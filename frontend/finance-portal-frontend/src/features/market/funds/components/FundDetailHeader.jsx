@@ -14,14 +14,12 @@ export default function FundDetailHeader({ fund, code }) {
                         <ArrowLeft className="w-5 h-5" />
                     </Link>
                     <div className="flex items-start gap-3">
-                        {fund?.logoUrl && (
-                            <img
-                                src={fund.logoUrl}
-                                alt={fund.code}
-                                className="w-12 h-12 rounded-xl object-contain border border-gray-100 p-1 bg-white shadow-sm flex-shrink-0"
-                                onError={e => { e.target.style.display = 'none'; }}
-                            />
-                        )}
+                        <span
+                            className="w-12 h-12 rounded-xl flex items-center justify-center bg-emerald-50 text-emerald-600 font-bold text-xl border border-gray-100 shadow-sm flex-shrink-0"
+                            aria-hidden="true"
+                        >
+                            {((fund?.title || fund?.code || code || '?').trim().charAt(0) || '?').toUpperCase()}
+                        </span>
                         <div>
                             <div className="flex items-center gap-2 flex-wrap">
                                 <span className="text-2xl font-black text-gray-900 font-mono">{fund?.code ?? code}</span>
