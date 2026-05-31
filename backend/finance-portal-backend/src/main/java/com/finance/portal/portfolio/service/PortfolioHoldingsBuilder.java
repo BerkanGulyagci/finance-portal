@@ -160,6 +160,15 @@ public class PortfolioHoldingsBuilder {
             holding.setLastTransactionDate(txs.get(txs.size() - 1).getTransactionDate());
             holding.setOpenCostLots(acc.snapshotLots());
 
+            // VİOP: pozisyon yönü transaction'lardan kalıt — grouping key direction'ı içerdiği
+            // için bir holding içindeki tüm txs zaten aynı yönde olur.
+            if (acc.assetType == AssetType.FUTURE && !txs.isEmpty()) {
+                String firstDir = txs.get(0).getDirection();
+                String dir = (firstDir != null && !firstDir.isBlank())
+                        ? firstDir.trim().toUpperCase() : "LONG";
+                holding.setViopDirection(dir);
+            }
+
             if (acc.anySell) {
                 holding.setRealizedGainLoss(acc.realizedGainLossSum.setScale(moneyScale, RoundingMode.HALF_UP));
                 if (acc.totalSoldCostBasis.compareTo(BigDecimal.ZERO) > 0) {
@@ -210,7 +219,12 @@ public class PortfolioHoldingsBuilder {
 
     private static String groupingKeyForTransaction(PortfolioTransaction tx) {
         if (tx.getAssetType() == AssetType.FUTURE) {
-            return ViopService.portfolioFutureGroupKey(tx.getSymbol());
+            // LONG ve SHORT aynı sembolde AYRI holding olur — quantity'ler karışmasın
+            // ve PnL doğru yönde hesaplansın. Eski (direction=null) transaction'lar LONG'a düşer
+            // ve mevcut holdings davranışı aynı kalır.
+            String dir = tx.getDirection();
+            String dirNorm = (dir != null && !dir.isBlank()) ? dir.trim().toUpperCase() : "LONG";
+            return ViopService.portfolioFutureGroupKey(tx.getSymbol()) + "::" + dirNorm;
         }
         return tx.getSymbol() != null ? tx.getSymbol() : "";
     }
