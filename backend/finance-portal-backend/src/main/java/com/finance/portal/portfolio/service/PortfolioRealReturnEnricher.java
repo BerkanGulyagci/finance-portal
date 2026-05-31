@@ -86,6 +86,14 @@ public class PortfolioRealReturnEnricher {
         for (PortfolioHoldingResponse h : holdings) {
             clear(h);
 
+            // FUTURE (VİOP) pozisyonları reel getiri hesabından hariç:
+            // kaldıraçlı + günlük mark-to-market ürünlerde "openCostLots × enflasyon faktörü"
+            // anlam taşımaz (totalCost = teminat ama lot price-unit; boyut uyumsuzluğu).
+            // UI bunları "Reel K/Z — geçerli değil" (–) olarak gösterir.
+            if (h.getAssetType() == com.finance.portal.common.domain.AssetType.FUTURE) {
+                continue;
+            }
+
             BigDecimal cost = h.getTotalCost();
             BigDecimal marketValue = h.getMarketValue();
             if (cost == null || marketValue == null || cost.signum() <= 0) continue;

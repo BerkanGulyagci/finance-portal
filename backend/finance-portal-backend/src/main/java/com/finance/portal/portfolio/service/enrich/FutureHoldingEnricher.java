@@ -116,12 +116,26 @@ public class FutureHoldingEnricher {
         holding.setCurrentPrice(current);
         holding.setMarketValue(mv);
         holding.setProfitLoss(pnl);
+
+        // VİOP "Toplam Maliyet" semantiği = YATIRILAN TEMİNAT (kullanıcının cebinden çıkan para),
+        // NOT qty × entry (spot mantığı — VİOP'ta tam fiyatı ödemezsin, sadece teminatı bağlarsın).
+        // Builder qty × entry'i öncelikli set ediyor; burada override ediyoruz. Bu sayede:
+        //   - Portföy "Toplam Maliyet" toplamı = açık pozisyonlar için bağlanan toplam teminat ✓
+        //   - "Reel K/Z" hesabı (mv − totalCost) anlamlı kalır (önceden +1350% gibi absürt sonuçlar)
+        //   - K/Z % hesabı = pnl / teminat = gerçek getiri oranı
+        holding.setTotalCost(marginPosted);
+
         holding.setCurrency(spec.currency() != null ? spec.currency() : "TRY");
         holding.setName(d.getName() != null ? d.getName() : contractName);
         LocalDateTime asOf = PortfolioDateTimeParse.parseLenient(d.getTime());
         holding.setAsOf(asOf != null ? asOf : LocalDateTime.now());
 
-        holding.setChangePercent(d.getChangePercent());
+        // Günlük yüzde — SHORT için yön çevrilir (fiyat düşüşü = SHORT için kar)
+        BigDecimal changePct = d.getChangePercent();
+        if (changePct != null) {
+            BigDecimal dirSign = valuationService.directionSign(direction);
+            holding.setChangePercent(changePct.multiply(dirSign));
+        }
         holding.setDayHigh(d.getHigh());
         holding.setDayLow(d.getLow());
 
@@ -135,9 +149,14 @@ public class FutureHoldingEnricher {
             holding.setViopDirection("LONG"); // geriye uyumluluk
         }
 
+        // Günlük "change" (kontrat başına TL fark) — direction-aware:
+        //   LONG : (current − prevSettle) × multiplier        — fiyat ↑ = kar
+        //   SHORT: (current − prevSettle) × multiplier × −1   — fiyat ↓ = kar (= LONG'un tersi)
+        // Frontend bu değeri qty ile çarpıp günlük K/Z'yi hesaplar; direction'ı tekrar uygulamaz.
         BigDecimal prevSet = d.getPrevSettlementPrice();
         if (prevSet != null) {
-            holding.setChange(current.subtract(prevSet).multiply(multiplier)
+            BigDecimal dirSign = valuationService.directionSign(direction);
+            holding.setChange(current.subtract(prevSet).multiply(multiplier).multiply(dirSign)
                     .setScale(MONEY_SCALE, RoundingMode.HALF_UP));
         }
 

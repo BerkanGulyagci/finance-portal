@@ -68,6 +68,11 @@ public class PortfolioPerformanceCalculator {
                 .comparing(PortfolioTransaction::getTransactionDate, Comparator.nullsLast(Comparator.naturalOrder()))
                 .thenComparing(PortfolioTransaction::getId, Comparator.nullsLast(Comparator.naturalOrder())));
 
+        // Tarihsel davranış: caller'ın set'ini mutate eder (sembol fiyatsız ise eklenir),
+        // PortfolioPerformanceServiceTest bu mutation'ı bekliyor. null güvenliği için fallback.
+        Set<String> excludedKeys = excludedPositionKeys != null
+                ? excludedPositionKeys : new HashSet<>();
+
         Map<String, HoldingAccumulator> openPositions = new LinkedHashMap<>();
         List<PortfolioPerformancePoint> points = new ArrayList<>();
 
@@ -86,7 +91,27 @@ public class PortfolioPerformanceCalculator {
                     break;
                 }
                 String key = positionKey(tx);
-                if (!excludedPositionKeys.contains(key)) {
+                // VİOP pozisyonları geçmiş performans grafiğinden hariç:
+                // bu calculator (qty × güncel fiyat) modeli kullanır, ne multiplier ne marginRate
+                // ne de direction'ı bilir → SHORT pozisyonda fiyat yükselirse mv yükselir (TERS yön).
+                // FUTURE'ı dahil etmek grafiği ciddi şekilde yanıltır; doğru entegrasyon
+                // ViopValuationService + spec lookup gerektirir (gelecekte yapılacak).
+                if (tx.getAssetType() == AssetType.FUTURE) {
+                    if (!excludedKeys.contains(key)) {
+                        excludedKeys.add(key);
+                        if (excludedAssetsOut != null) {
+                            excludedAssetsOut.add(new ExcludedPerformanceAsset(
+                                    displaySymbol(tx),
+                                    tx.getAssetType(),
+                                    "VİOP pozisyonları geçmiş performans grafiğinden hariç tutulur"
+                                            + " (kaldıraçlı + mark-to-market — doğru entegrasyon yapılana kadar)."
+                            ));
+                        }
+                    }
+                    txIndex++;
+                    continue;
+                }
+                if (!excludedKeys.contains(key)) {
                     final String dsym = displaySymbol(tx);
                     final boolean isGold = tx.getAssetType() == AssetType.BOND && isGoldBondSymbol(dsym);
                     openPositions.computeIfAbsent(key, k -> new HoldingAccumulator(
@@ -104,7 +129,7 @@ public class PortfolioPerformanceCalculator {
 
             for (Map.Entry<String, HoldingAccumulator> e : openPositions.entrySet()) {
                 String key = e.getKey();
-                if (excludedPositionKeys.contains(key)) {
+                if (excludedKeys.contains(key)) {
                     continue;
                 }
                 HoldingAccumulator acc = e.getValue();
@@ -146,10 +171,10 @@ public class PortfolioPerformanceCalculator {
         // Tüm dönem boyunca tutulduğu halde hiç fiyatı bulunamayan varlıkları "hariç tutuldu" işaretle.
         if (excludedAssetsOut != null) {
             for (String key : heldKeys) {
-                if (!contributedKeys.contains(key) && !excludedPositionKeys.contains(key)) {
+                if (!contributedKeys.contains(key) && !excludedKeys.contains(key)) {
                     HoldingAccumulator acc = seenAccumulators.get(key);
                     if (acc != null) {
-                        markExcluded(excludedAssetsOut, excludedPositionKeys, acc);
+                        markExcluded(excludedAssetsOut, excludedKeys, acc);
                     }
                 }
             }
