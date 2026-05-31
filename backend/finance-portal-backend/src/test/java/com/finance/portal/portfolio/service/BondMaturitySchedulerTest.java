@@ -3,8 +3,10 @@ package com.finance.portal.portfolio.service;
 import com.finance.portal.admin.application.model.AdminUserView;
 import com.finance.portal.admin.application.port.KeycloakUserAdminPort;
 import com.finance.portal.common.domain.AssetType;
+import com.finance.portal.market.application.bond.eurobond.EurobondService;
 import com.finance.portal.market.application.bond.evds.EvdsBondInstrument;
 import com.finance.portal.market.application.bond.evds.EvdsBondService;
+import com.finance.portal.market.application.gold.GoldMarketService;
 import com.finance.portal.notification.application.service.NotificationService;
 import com.finance.portal.notification.domain.NotificationType;
 import com.finance.portal.portfolio.domain.Portfolio;
@@ -40,6 +42,8 @@ class BondMaturitySchedulerTest {
 
     @Mock PortfolioRepository portfolioRepository;
     @Mock EvdsBondService evdsBondService;
+    @Mock EurobondService eurobondService;
+    @Mock GoldMarketService goldMarketService;
     @Mock NotificationService notificationService;
     @Mock KeycloakUserAdminPort keycloakUserAdminPort;
 
@@ -48,7 +52,7 @@ class BondMaturitySchedulerTest {
     @BeforeEach
     void setUp() {
         scheduler = new BondMaturityScheduler(portfolioRepository, evdsBondService,
-                notificationService, keycloakUserAdminPort);
+                eurobondService, goldMarketService, notificationService, keycloakUserAdminPort);
     }
 
     private static Portfolio portfolio(String userId, String name) {
