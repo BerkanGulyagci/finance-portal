@@ -10,8 +10,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -107,6 +109,23 @@ public class EvdsBondService {
     public List<EvdsBondInstrument> refreshEvdsBondsAll() {
         log.info("[EvdsBondService] refreshEvdsBondsAll (warm-up) — bonds.list cache'i yenileniyor.");
         return loadAllBonds();
+    }
+
+    /**
+     * Tüm EVDS DİBS cache'lerini boşaltır (list / detail / history / active-series).
+     *
+     * <p>Maturity parser fix (TR[BTD]DDMMYY code-based) gibi tek seferlik
+     * deploy-sonrası temizlik için kullanılır — TTL'in (6h) dolmasını beklemeden
+     * cache'in yeni verilerle dolmasını sağlar.
+     */
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "market.evds.bonds.list",           allEntries = true),
+            @CacheEvict(cacheNames = "market.evds.bonds.detail",         allEntries = true),
+            @CacheEvict(cacheNames = "market.evds.bonds.history",        allEntries = true),
+            @CacheEvict(cacheNames = "market.evds.bonds.active-series",  allEntries = true)
+    })
+    public void evictAllBondCaches() {
+        log.info("[EvdsBondService] evictAllBondCaches — tüm DİBS cache'leri boşaltıldı.");
     }
 
     private List<EvdsBondInstrument> loadAllBonds() {
@@ -259,16 +278,14 @@ public class EvdsBondService {
         List<EvdsSeriesInfo> active = allSeries.stream()
                 .filter(EvdsSeriesInfo::isValueSeries)
                 .filter(s -> {
-                    LocalDate maturity = s.parseMaturityDateFromName();
-                    if (maturity == null) {
-                        // SERIE_NAME'den parse edilemezse END_DATE'e bak
-                        maturity = s.getEndDate();
-                    }
+                    // Precedence: SERIE_NAME parantezi → instrument kodu → END_DATE (son çare).
+                    LocalDate maturity = resolveMaturityDate(s.extractInstrumentCode(), s);
                     // maturityDate >= today ise aktif
                     return maturity != null && !maturity.isBefore(today);
                 })
                 .sorted(Comparator.comparing(s -> {
                     LocalDate m = s.parseMaturityDateFromName();
+                    if (m == null) m = EvdsSeriesInfo.parseMaturityDateFromCode(s.extractInstrumentCode());
                     return m != null ? m : LocalDate.MAX;
                 }))
                 .collect(Collectors.toList());
@@ -337,10 +354,12 @@ public class EvdsBondService {
         LocalDate issueD = info != null ? info.parseIssueDateFromName() : null;
         if (issueD == null && info != null) issueD = info.getStartDate();
         instrument.setIssueDate(issueD);
-        LocalDate maturityD = info != null ? info.parseMaturityDateFromName() : null;
-        if (maturityD == null && info != null) maturityD = info.getEndDate();
+        // Vade tarihi precedence: SERIE_NAME parantezi → instrument kodu (DD-MM-YY) → END_DATE (son veri tarihi, son çare).
+        // END_DATE bir veri-availability işaretçisidir, gerçek vade DEĞİL — 11 sembolde SERIE_NAME format farklı,
+        // dolayısıyla code-based parse devreye girer.
+        LocalDate maturityD = resolveMaturityDate(instrumentCode, info);
         instrument.setMaturityDate(maturityD);
-        instrument.setRemainingDays(calculateRemainingDays(info, today));
+        instrument.setRemainingDays(calculateRemainingDays(instrumentCode, info, today));
         instrument.setIndicatorValue(indicatorValue);
         instrument.setPreviousValue(previousValue);
         instrument.setDailyChange(dailyChange);
@@ -377,13 +396,33 @@ public class EvdsBondService {
         return "DİBS";
     }
 
-    private int calculateRemainingDays(EvdsSeriesInfo info, LocalDate today) {
-        if (info == null) return 0;
-        LocalDate maturityDate = info.parseMaturityDateFromName();
-        if (maturityDate == null) maturityDate = info.getEndDate();
+    private int calculateRemainingDays(String instrumentCode, EvdsSeriesInfo info, LocalDate today) {
+        LocalDate maturityDate = resolveMaturityDate(instrumentCode, info);
         if (maturityDate == null) return 0;
         long days = today.until(maturityDate, java.time.temporal.ChronoUnit.DAYS);
         return (int) Math.max(0, days);
+    }
+
+    /**
+     * Vade tarihi çözümleme precedence:
+     *  1) SERIE_NAME parantezi ({@link EvdsSeriesInfo#parseMaturityDateFromName()})
+     *  2) Instrument kodu — TR[BTD]DDMMYY... format ({@link EvdsSeriesInfo#parseMaturityDateFromCode(String)})
+     *  3) EVDS END_DATE (son veri-noktası tarihi) — SON ÇARE, gerçek vade DEĞİL,
+     *     veri-availability işaretçisi. Düştüğümüzde warn loglarız.
+     */
+    private LocalDate resolveMaturityDate(String instrumentCode, EvdsSeriesInfo info) {
+        if (info != null) {
+            LocalDate fromName = info.parseMaturityDateFromName();
+            if (fromName != null) return fromName;
+        }
+        LocalDate fromCode = EvdsSeriesInfo.parseMaturityDateFromCode(instrumentCode);
+        if (fromCode != null) return fromCode;
+        LocalDate fromEndDate = info != null ? info.getEndDate() : null;
+        if (fromEndDate != null) {
+            log.warn("[EvdsBondService] Instrument {} maturity falling back to END_DATE " +
+                    "(data-availability marker) — investigate SERIE_NAME format", instrumentCode);
+        }
+        return fromEndDate;
     }
 
     private BigDecimal fetchLatestCouponRate(String instrumentCode,
@@ -423,12 +462,13 @@ public class EvdsBondService {
 
         List<String> activeCodes = seriesInfoMap.values().stream()
                 .filter(s -> {
-                    LocalDate maturity = s.parseMaturityDateFromName();
-                    if (maturity == null) maturity = s.getEndDate();
+                    // Precedence: SERIE_NAME parantezi → instrument kodu → END_DATE (son çare).
+                    LocalDate maturity = resolveMaturityDate(s.extractInstrumentCode(), s);
                     return maturity != null && !maturity.isBefore(today);
                 })
                 .sorted(Comparator.comparing(s -> {
                     LocalDate m = s.parseMaturityDateFromName();
+                    if (m == null) m = EvdsSeriesInfo.parseMaturityDateFromCode(s.extractInstrumentCode());
                     return m != null ? m : LocalDate.MAX;
                 }))
                 .map(EvdsSeriesInfo::extractInstrumentCode)

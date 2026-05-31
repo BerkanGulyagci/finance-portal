@@ -150,6 +150,40 @@ public class EvdsSeriesInfo {
         }
     }
 
+    /**
+     * Instrument kodundan vade tarihini parse eder.
+     * Format: ^TR[BTD](DD)(MM)(YY)[A-Z][A-Z0-9]\d$
+     *
+     * <p>Örnekler:
+     * <pre>
+     *   "TRT240227T25"  → 2027-02-24
+     *   "TRT070727K12"  → 2027-07-07
+     *   "TRT080726K12"  → 2026-07-08
+     *   "TRT160926KA0"  → 2026-09-16 (penultimate harfli outlier)
+     * </pre>
+     *
+     * <p>SERIE_NAME parantezindeki tarih bloğu parse edilemediğinde fallback olarak
+     * kullanılır. END_DATE (son veri-noktası tarihi) maturity ≠ olduğu için bu yöntem
+     * çok daha güvenilir.
+     *
+     * @param instrumentCode kıymet kodu (örn. "TRT240227T25")
+     * @return vade tarihi; kod uyumsuzsa veya tarih geçersizse {@code null}
+     */
+    public static LocalDate parseMaturityDateFromCode(String instrumentCode) {
+        if (instrumentCode == null) return null;
+        Pattern p = Pattern.compile("^TR[BTD](\\d{2})(\\d{2})(\\d{2})[A-Z][A-Z0-9]\\d$");
+        Matcher m = p.matcher(instrumentCode);
+        if (!m.find()) return null;
+        try {
+            int dd = Integer.parseInt(m.group(1));
+            int mm = Integer.parseInt(m.group(2));
+            int yy = Integer.parseInt(m.group(3));
+            return LocalDate.of(2000 + yy, mm, dd);
+        } catch (NumberFormatException | java.time.DateTimeException e) {
+            return null;
+        }
+    }
+
     @Override
     public String toString() {
         return "EvdsSeriesInfo{code='" + seriesCode + "', name='" + seriesName + "', start=" + startDate + ", end=" + endDate + "}";
