@@ -20,6 +20,12 @@ const en = {
   'Portföyünüzün ve piyasaların özeti': 'Overview of your portfolio and the markets',
   'Karşılaştır': 'Compare',
   'Grafik Ekle': 'Add Chart',
+  'Sıfırla': 'Reset',
+  'Varsayılan düzeni geri yükle ve tüm kartları göster':
+    'Restore the default layout and show all cards',
+  'Tüm dashboard düzeniniz varsayılana dönecek ve gizlenen kartlar yeniden gösterilecek. Devam edilsin mi?':
+    'Your entire dashboard layout will be reset to default and hidden cards will be shown again. Continue?',
+  'Dashboard varsayılana sıfırlandı': 'Dashboard reset to default',
   'dashboard': 'dashboard',
   'favoriler': 'favorites',
 

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, X, Bitcoin, LineChart, Layers, ArrowLeftRight, BellPlus } from 'lucide-react';
+import { Plus, X, Bitcoin, LineChart, Layers, ArrowLeftRight, BellPlus, RotateCcw } from 'lucide-react';
 import {
   getMyPortfolios, getWatchlistItems, addWatchlistItem, deleteWatchlistItem, createPortfolio,
 } from '../../api/portfolioApi';
@@ -13,8 +13,12 @@ import {
   WL_CHART_BY_KEY,
 } from '../portfolio';
 import InstrumentSearchModal from '../../components/instrument/InstrumentSearchModal';
-import { readPfCharts, removePfChart, DASH_PF_EVENT } from '../../utils/dashboardCharts';
-import { readWlCharts, removeWlChart, DASH_WL_EVENT } from '../../utils/watchlistDashCharts';
+import {
+  readPfCharts, removePfChart, DASH_PF_EVENT, DASH_PF_CHARTS_KEY,
+} from '../../utils/dashboardCharts';
+import {
+  readWlCharts, removeWlChart, DASH_WL_EVENT, DASH_WL_CHARTS_KEY,
+} from '../../utils/watchlistDashCharts';
 import { prefGet, prefSet } from '../../api/prefs';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -227,6 +231,26 @@ export default function DashboardPage() {
   }
   function resetHiddenPortfolios() { setHiddenPids(new Set()); saveJson(HIDDEN_PF_KEY, []); }
 
+  // Tüm dashboard tercihlerini (düzen, gizli kartlar, eklenen grafikler) varsayılana döndür.
+  function resetDashboard() {
+    const ok = window.confirm(
+      t('Tüm dashboard düzeniniz varsayılana dönecek ve gizlenen kartlar yeniden gösterilecek. Devam edilsin mi?'),
+    );
+    if (!ok) return;
+    // GridBoard düzeni + gizli kartlar
+    prefSet('fp-dashboard-grid-v4:rgl', []);
+    prefSet('fp-dashboard-grid-v4:rgl-hidden', []);
+    // Kullanıcının dashboard'a eklediği grafikler
+    saveJson(CHARTS_KEY, []);
+    prefSet(DASH_PF_CHARTS_KEY, []);
+    prefSet(DASH_WL_CHARTS_KEY, []);
+    // Gizlenen portföyler
+    saveJson(HIDDEN_PF_KEY, []);
+    toast.success(t('Dashboard varsayılana sıfırlandı'));
+    // Yeni başlangıç düzeni türetmek için sayfayı yenile.
+    setTimeout(() => window.location.reload(), 300);
+  }
+
   async function addFavorite(inst) {
     setSearchMode(null);
     try {
@@ -287,13 +311,12 @@ export default function DashboardPage() {
     node: <MarketListCard title={t('Fonlar (TEFAS)')} icon={Layers} accent="#10b981"
       type="FUND" logoKind="letter" defaultRows={fundRows} loading={fundLoading} storageKey="fp-dash-fund-extra" />,
   });
-
   charts.forEach(c => {
     const owner = assetPortfolios.find(p =>
       (p.holdings ?? []).some(h => h.assetType === c.assetType
         && String(h.symbol).toUpperCase() === String(c.symbol).toUpperCase()));
     items.push({
-      key: `chart:${c.assetType}:${c.symbol}`, w: 4, h: 7, noHide: true,
+      key: `chart:${c.assetType}:${c.symbol}`, w: 4, h: 7,
       node: (
         <MiniAssetChart assetType={c.assetType} symbol={c.symbol} name={c.name}
           owner={owner?.name} ownerId={owner?.id} onRemove={() => removeChart(c.assetType, c.symbol)} />
@@ -306,7 +329,7 @@ export default function DashboardPage() {
     if (!entry || !pf) return;
     const Comp = entry.Comp;
     items.push({
-      key: `pf:${pc.portfolioId}:${pc.chartKey}`, w: 4, h: 12, noHide: true,
+      key: `pf:${pc.portfolioId}:${pc.chartKey}`, w: 4, h: 12,
       node: (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3.5 h-full flex flex-col min-w-0">
           <div className="flex items-center justify-between mb-1.5 shrink-0">
@@ -334,7 +357,7 @@ export default function DashboardPage() {
     const wlItems = favorites.filter(f => f.portfolioId === wc.watchlistId);
     const Comp = entry.Comp;
     items.push({
-      key: `wl:${wc.watchlistId}:${wc.chartKind}`, w: entry.w, h: entry.h, noHide: true,
+      key: `wl:${wc.watchlistId}:${wc.chartKind}`, w: entry.w, h: entry.h,
       node: (
         <Comp
           items={wlItems}
@@ -376,6 +399,11 @@ export default function DashboardPage() {
             className="inline-flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-full border border-[#093eaa]/30 text-[#093eaa] text-xs sm:text-sm font-bold hover:bg-[#093eaa]/5 transition-colors">
             <ArrowLeftRight className="w-4 h-4" /> {t('Karşılaştır')}
           </Link>
+          <button onClick={resetDashboard}
+            title={t('Varsayılan düzeni geri yükle ve tüm kartları göster')}
+            className="inline-flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-full border border-gray-200 text-gray-600 text-xs sm:text-sm font-bold hover:bg-gray-50 hover:text-[#093eaa] transition-colors">
+            <RotateCcw className="w-4 h-4" /> {t('Sıfırla')}
+          </button>
           <button onClick={() => setSearchMode('chart')}
             className="inline-flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-full bg-[#093eaa] text-white text-xs sm:text-sm font-bold hover:bg-[#0a2966] transition-colors shadow-sm">
             <Plus className="w-4 h-4" /> {t('Grafik Ekle')}
