@@ -7,6 +7,9 @@ import com.finance.portal.market.application.viop.ViopContract;
 import com.finance.portal.market.application.viop.ViopService;
 import com.finance.portal.market.application.viop.model.ViopChartPoint;
 import com.finance.portal.market.application.viop.model.ViopContractDetail;
+import com.finance.portal.portfolio.application.viop.spec.ViopContractSpec;
+import com.finance.portal.portfolio.application.viop.spec.ViopContractSpecRegistry;
+import com.finance.portal.portfolio.application.viop.valuation.ViopValuationService;
 import com.finance.portal.portfolio.presentation.dto.PortfolioHoldingResponse;
 import com.finance.portal.portfolio.service.support.PortfolioDateTimeParse;
 import com.finance.portal.portfolio.service.support.PortfolioMovingAverage;
@@ -45,10 +48,17 @@ public class FutureHoldingEnricher {
 
     private final ViopService viopService;
     private final ViopChartService viopChartService;
+    private final ViopContractSpecRegistry specRegistry;
+    private final ViopValuationService valuationService;
 
-    public FutureHoldingEnricher(ViopService viopService, ViopChartService viopChartService) {
+    public FutureHoldingEnricher(ViopService viopService,
+                                 ViopChartService viopChartService,
+                                 ViopContractSpecRegistry specRegistry,
+                                 ViopValuationService valuationService) {
         this.viopService = viopService;
         this.viopChartService = viopChartService;
+        this.specRegistry = specRegistry;
+        this.valuationService = valuationService;
     }
 
     public void enrich(PortfolioHoldingResponse holding) {
@@ -81,16 +91,32 @@ public class FutureHoldingEnricher {
             return;
         }
 
-        BigDecimal multiplier = BigDecimal.ONE;
+        // VİOP spec: çarpan + marjin oranı + para birimi YAML'dan
+        ViopContractSpec spec = specRegistry.resolveOrFallback(contractName);
+        BigDecimal multiplier = spec.multiplier();
+        String direction = holding.getViopDirection(); // null = LONG (geriye uyum)
+
         BigDecimal qty = holding.getTotalQuantity() != null ? holding.getTotalQuantity() : BigDecimal.ZERO;
-        BigDecimal mv = qty.multiply(current).multiply(multiplier).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
         BigDecimal totalCost = holding.getTotalCost() != null ? holding.getTotalCost() : BigDecimal.ZERO;
-        BigDecimal pl = mv.subtract(totalCost).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+        BigDecimal avgEntry = holding.getAverageCost() != null ? holding.getAverageCost()
+                : (qty.signum() > 0 ? totalCost.divide(qty, PRICE_SCALE, RoundingMode.HALF_UP) : BigDecimal.ZERO);
+
+        // Notional (risk göstergesi) = qty × güncel fiyat × multiplier
+        BigDecimal notional = valuationService.notional(qty, current, spec);
+        // Margin posted (gerçek bağlı sermaye) = qty × giriş × multiplier × marginRate
+        BigDecimal marginPosted = valuationService.marginPosted(qty, avgEntry, spec);
+        // P&L = (güncel − giriş) × qty × multiplier × yön
+        BigDecimal pnl = valuationService.pnl(qty, avgEntry, current, spec, direction);
+        BigDecimal leverage = valuationService.leverage(notional, marginPosted);
+
+        // Market value PORTFÖY TOPLAMINA = margin + cumulative pnl (notional değil!)
+        // Notional'i toplama eklemek kaldıraçlı pozisyonda portföyü 8-10x şişirir → yanıltıcı.
+        BigDecimal mv = valuationService.portfolioContribution(marginPosted, pnl);
 
         holding.setCurrentPrice(current);
         holding.setMarketValue(mv);
-        holding.setProfitLoss(pl);
-        holding.setCurrency("TRY");
+        holding.setProfitLoss(pnl);
+        holding.setCurrency(spec.currency() != null ? spec.currency() : "TRY");
         holding.setName(d.getName() != null ? d.getName() : contractName);
         LocalDateTime asOf = PortfolioDateTimeParse.parseLenient(d.getTime());
         holding.setAsOf(asOf != null ? asOf : LocalDateTime.now());
@@ -98,6 +124,16 @@ public class FutureHoldingEnricher {
         holding.setChangePercent(d.getChangePercent());
         holding.setDayHigh(d.getHigh());
         holding.setDayLow(d.getLow());
+
+        // VİOP-spesifik alanlar — frontend HoldingsTable + StockDetailPage burada okur
+        holding.setViopMultiplier(multiplier);
+        holding.setViopMarginRate(spec.marginRate());
+        holding.setViopNotional(notional);
+        holding.setViopMarginPosted(marginPosted);
+        holding.setViopLeverage(leverage);
+        if (holding.getViopDirection() == null) {
+            holding.setViopDirection("LONG"); // geriye uyumluluk
+        }
 
         BigDecimal prevSet = d.getPrevSettlementPrice();
         if (prevSet != null) {

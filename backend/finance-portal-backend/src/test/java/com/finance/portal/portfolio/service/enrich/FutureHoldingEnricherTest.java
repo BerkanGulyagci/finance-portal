@@ -6,6 +6,8 @@ import com.finance.portal.market.application.viop.ViopContract;
 import com.finance.portal.market.application.viop.ViopService;
 import com.finance.portal.market.application.viop.model.ViopChartPoint;
 import com.finance.portal.market.application.viop.model.ViopContractDetail;
+import com.finance.portal.portfolio.application.viop.spec.ViopContractSpec;
+import com.finance.portal.portfolio.application.viop.valuation.ViopValuationService;
 import com.finance.portal.portfolio.presentation.dto.PortfolioHoldingResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -13,6 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -31,16 +35,24 @@ import static org.mockito.Mockito.when;
  * kontrat listesi + İş Yatırım grafik kombinasyonunu eski davranışla aynı tutmalı.
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class FutureHoldingEnricherTest {
 
     @Mock ViopService viopService;
     @Mock ViopChartService viopChartService;
+    @Mock com.finance.portal.portfolio.application.viop.spec.ViopContractSpecRegistry specRegistry;
+
+    // Gerçek valuation service — saf math, mocklamak yerine canlı çalıştır (mv = qty × price × multiplier).
+    private final ViopValuationService valuationService = new ViopValuationService();
 
     private FutureHoldingEnricher enricher;
 
     @BeforeEach
     void setUp() {
-        enricher = new FutureHoldingEnricher(viopService, viopChartService);
+        // Tüm sembollere multiplier=1, marginRate=0.15 fallback spec'i verir → eski assertion'lar geçerli kalır.
+        when(specRegistry.resolveOrFallback(org.mockito.ArgumentMatchers.anyString()))
+                .thenAnswer(inv -> ViopContractSpec.fallback(inv.getArgument(0)));
+        enricher = new FutureHoldingEnricher(viopService, viopChartService, specRegistry, valuationService);
     }
 
     private static PortfolioHoldingResponse holding(String symbol, BigDecimal qty, BigDecimal cost) {
@@ -80,7 +92,7 @@ class FutureHoldingEnricherTest {
     // ---- core path ---------------------------------------------------------
 
     @Test
-    @DisplayName("enrich: full enrich — fiyat = lastPrice; mv = qty × price × 1; pl = mv − cost")
+    @DisplayName("enrich: full enrich — VIOP yeni formül: mv = marginPosted + pnl; pnl = (cur−avg)×qty×mult")
     void enrich_fullPath() {
         when(viopChartService.getChart(any(), eq(ViopChartPeriod.ONE_YEAR))).thenReturn(dailyChart(30));
 
@@ -90,13 +102,15 @@ class FutureHoldingEnricherTest {
                 .thenReturn(detail(new BigDecimal("100"), new BigDecimal("99"),
                         new BigDecimal("98"), "F_USDTRY0625"));
 
+        // fallback spec: multiplier=1, marginRate=0.15
         PortfolioHoldingResponse h = holding("F_USDTRY0625", new BigDecimal("3"), new BigDecimal("250"));
         enricher.enrich(h);
 
         assertThat(h.getCurrentPrice()).isEqualByComparingTo("100");
-        // 3 × 100 × 1 = 300.0000
-        assertThat(h.getMarketValue()).isEqualByComparingTo("300.0000");
-        // 300 − 250 = 50.0000
+        // avgEntry = 250/3 ≈ 83.3333; marginPosted = 3 × 83.3333 × 1 × 0.15 = 37.5
+        // pnl = (100 − 83.3333) × 3 × 1 × 1 (LONG) = 50.00
+        // mv = marginPosted + pnl = 37.5 + 50 = 87.50  (NOT 300 — eski "qty×price×mult" formülü kaldıraçlı pozisyonu şişirirdi)
+        assertThat(h.getMarketValue()).isEqualByComparingTo("87.50");
         assertThat(h.getProfitLoss()).isEqualByComparingTo("50.0000");
         assertThat(h.getCurrency()).isEqualTo("TRY");
         assertThat(h.getName()).isEqualTo("F_USDTRY0625");

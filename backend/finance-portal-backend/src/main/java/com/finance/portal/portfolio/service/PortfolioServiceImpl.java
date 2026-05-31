@@ -282,6 +282,11 @@ public class PortfolioServiceImpl implements PortfolioService {
         tx.setPrice(request.getPrice());
         tx.setCommission(commission);
         tx.setTransactionDate(request.getTransactionDate());
+        // VİOP: pozisyon yönü (LONG/SHORT) — yalnız FUTURE için anlamlı, default LONG
+        if (request.getAssetType() == AssetType.FUTURE) {
+            String dir = request.getDirection();
+            tx.setDirection(dir != null && !dir.isBlank() ? dir.trim().toUpperCase() : "LONG");
+        }
 
         portfolio.addTransaction(tx);
         portfolio = portfolioPersistence.savePortfolio(portfolio);

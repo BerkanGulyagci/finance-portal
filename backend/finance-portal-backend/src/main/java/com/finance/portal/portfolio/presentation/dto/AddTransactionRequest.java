@@ -39,4 +39,10 @@ public class AddTransactionRequest {
 
     @NotNull(message = "transactionDate must not be null")
     private LocalDateTime transactionDate;
+
+    /**
+     * VİOP (FUTURE) için pozisyon yönü: "LONG" veya "SHORT". Diğer asset tipleri için
+     * dikkate alınmaz. Null/boş → LONG (geriye uyumluluk; eski transaction'lar LONG sayılır).
+     */
+    private String direction;
 }

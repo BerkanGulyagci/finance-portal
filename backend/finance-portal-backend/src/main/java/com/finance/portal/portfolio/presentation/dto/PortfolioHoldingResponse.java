@@ -85,6 +85,20 @@ public class PortfolioHoldingResponse {
     /** 50-period simple moving average of daily close prices. */
     private BigDecimal ma50;
 
+    // ── VİOP (FUTURE) ek alanları — yalnız assetType=FUTURE için doldurulur ──────
+    /** Bir kontratın temsil ettiği birim sayısı (100 hisse, 10 endeks puanı, 1000 USD, 1 gram, vb.). */
+    private BigDecimal viopMultiplier;
+    /** Başlangıç teminat oranı (decimal, örn. 0.146 = %14.6 — Takasbank PSR). */
+    private BigDecimal viopMarginRate;
+    /** Nominal pozisyon büyüklüğü (qty × güncel fiyat × multiplier) — risk göstergesi. */
+    private BigDecimal viopNotional;
+    /** Bağlanan başlangıç teminatı (qty × giriş fiyatı × multiplier × marginRate) — gerçek cüzdan etkisi. */
+    private BigDecimal viopMarginPosted;
+    /** Kaldıraç (notional / margin) — kaç katı pozisyon kontrol ediliyor. */
+    private BigDecimal viopLeverage;
+    /** Pozisyon yönü: "LONG" (yükselişe oynama) veya "SHORT" (düşüşe oynama). */
+    private String viopDirection;
+
     // ── Transaction date metadata ─────────────────────────────────────────────
     /** Date of the first BUY transaction for this holding. */
     private LocalDateTime firstBuyDate;

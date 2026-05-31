@@ -1,0 +1,458 @@
+# VIOP Contract Specifications
+# ─────────────────────────────
+# Source: user-provided PSR% (from Vakif Yatirim teminat tablosu, validated against Is Yatirim margins ±0.1pp)
+# Multipliers: Is Yatirim VadeliIslemler endpoint (SOZLESME_BUYUKLUGU field)
+# Last sync: 2026-05-31
+# Update cadence: review every 6-12 months; PSR% may drift ~%0.5/month
+#
+# Schema:
+#   code           — underlier code, matched by F_<code>* prefix from contract symbol
+#   assetClass     — SINGLE_STOCK | INDEX | FX | PRECIOUS_METAL | ENERGY | RATE | BOND
+#   multiplier     — contract size (one contract represents this many units)
+#   marginRate     — initial margin as decimal (Takasbank PSR via Vakif)
+#   currency       — TRY or USD (currency of price quote)
+#   settlementType — CASH or PHYSICAL
+
+viop:
+  contract-specs:
+    # ── Single-Stock Futures (multiplier=100, PHYSICAL; BIMAS=200) ──
+    - code: AEFES
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.151
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: AKBNK
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.146
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: AKSEN
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.143
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: ALARK
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.134
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: ARCLK
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.131
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: ASELS
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.158
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: ASTOR
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.161
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: BIMAS
+      assetClass: SINGLE_STOCK
+      multiplier: 200
+      marginRate: 0.127
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: BRSAN
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.166
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: CIMSA
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.134
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: DOAS
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.151
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: DOHOL
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.141
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: EKGYO
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.141
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: ENJSA
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.148
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: ENKAI
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.138
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: EREGL
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.138
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: FROTO
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.141
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: GARAN
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.144
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: GUBRF
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.161
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: HALKB
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.166
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: HEKTS
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.145
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: ISCTR
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.138
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: KCHOL
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.128
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: KONTR
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.158
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: KRDMD
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.134
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: MGROS
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.134
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: ODAS
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.151
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: OYAKC
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.145
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: PETKM
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.143
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: PGSUS
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.141
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: SAHOL
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.141
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: SASA
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.145
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: SISE
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.132
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: SOKM
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.134
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: TAVHL
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.153
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: TCELL
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.131
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: THYAO
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.134
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: TKFEN
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.141
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: TOASO
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.153
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: TRALT
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.161
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: TRMET
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.151
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: TSKB
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.141
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: TTKOM
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.141
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: TUPRS
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.143
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: ULKER
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.137
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: VAKBN
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.141
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: VESTL
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.141
+      currency: TRY
+      settlementType: PHYSICAL
+
+    # ── Index Futures (multiplier=10, CASH; SASX10=1) ──
+    - code: XU030
+      assetClass: INDEX
+      multiplier: 10
+      marginRate: 0.119
+      currency: TRY
+      settlementType: CASH
+    - code: X10XB
+      assetClass: INDEX
+      multiplier: 10
+      marginRate: 0.126
+      currency: TRY
+      settlementType: CASH
+    - code: XLBNK
+      assetClass: INDEX
+      multiplier: 10
+      marginRate: 0.139
+      currency: TRY
+      settlementType: CASH
+    - code: XSD25
+      assetClass: INDEX
+      multiplier: 10
+      marginRate: 0.115
+      currency: TRY
+      settlementType: CASH
+    - code: SASX10
+      assetClass: INDEX
+      multiplier: 1
+      marginRate: 0.057
+      currency: TRY
+      settlementType: CASH
+
+    # ── FX Futures ──
+    - code: USDTRY
+      assetClass: FX
+      multiplier: 1000
+      marginRate: 0.114
+      currency: TRY
+      settlementType: CASH
+    - code: EURTRY
+      assetClass: FX
+      multiplier: 1000
+      marginRate: 0.113
+      currency: TRY
+      settlementType: CASH
+    - code: RUBTRY
+      assetClass: FX
+      multiplier: 100000
+      marginRate: 0.177
+      currency: TRY
+      settlementType: CASH
+    - code: CNHTRY
+      assetClass: FX
+      multiplier: 10000
+      marginRate: 0.107
+      currency: TRY
+      settlementType: CASH
+    - code: EURUSD
+      assetClass: FX
+      multiplier: 1000
+      marginRate: 0.04
+      currency: USD
+      settlementType: CASH
+    - code: GBPUSD
+      assetClass: FX
+      multiplier: 1000
+      marginRate: 0.04
+      currency: USD
+      settlementType: CASH
+
+    # ── Precious Metals ──
+    - code: XAUTRY
+      assetClass: PRECIOUS_METAL
+      multiplier: 1           # 1 gram (mini gold)
+      marginRate: 0.14
+      currency: TRY
+      settlementType: CASH
+    - code: XAUUSD
+      assetClass: PRECIOUS_METAL
+      multiplier: 1           # 1 ounce
+      marginRate: 0.10
+      currency: USD
+      settlementType: CASH
+    - code: XAGUSD
+      assetClass: PRECIOUS_METAL
+      multiplier: 10          # 10 ounces (silver)
+      marginRate: 0.20
+      currency: USD
+      settlementType: CASH
+    - code: XPTUSD
+      assetClass: PRECIOUS_METAL
+      multiplier: 1           # 1 ounce (platinum)
+      marginRate: 0.15
+      currency: USD
+      settlementType: CASH
+    - code: XPDUSD
+      assetClass: PRECIOUS_METAL
+      multiplier: 1           # 1 ounce (palladium)
+      marginRate: 0.18
+      currency: USD
+      settlementType: CASH
+    - code: XCUUSD
+      assetClass: PRECIOUS_METAL
+      multiplier: 0.1         # 0.1 ounce (copper mini)
+      marginRate: 0.081
+      currency: USD
+      settlementType: CASH
+
+    # ── Energy (Baseload Electricity) ──
+    - code: ELCBASM
+      assetClass: ENERGY
+      multiplier: 72          # MWh, monthly baseload
+      marginRate: 0.20
+      currency: TRY
+      settlementType: CASH
+    - code: ELCBASQ
+      assetClass: ENERGY
+      multiplier: 220.8       # MWh, quarterly baseload
+      marginRate: 0.11
+      currency: TRY
+      settlementType: CASH
+    - code: ELCBASY
+      assetClass: ENERGY
+      multiplier: 876         # MWh, yearly baseload
+      marginRate: 0.06
+      currency: TRY
+      settlementType: CASH
+
+    # ── Rate (TLREF) ──
+    # Note: Vade İçi / Vade Dışı is a settlement-window convention, not separate contracts;
+    # same underlying F_TLREF1M* spec, different margin tiers per Vakif teminat tablosu.
+    - code: TLREF_VADE_ICI
+      assetClass: RATE
+      multiplier: 833
+      marginRate: 0.09
+      currency: TRY
+      settlementType: CASH
+    - code: TLREF_VADE_DISI
+      assetClass: RATE
+      multiplier: 833
+      marginRate: 0.082
+      currency: TRY
+      settlementType: CASH
+
+    # ── Bond (DİBS Futures, PHYSICAL on government bonds) ──
+    - code: TRT020926T17
+      assetClass: BOND
+      multiplier: 1000        # nominal TRY per contract
+      marginRate: 0.129
+      currency: TRY
+      settlementType: PHYSICAL
+    - code: TRT131130T14
+      assetClass: BOND
+      multiplier: 1000
+      marginRate: 0.252
+      currency: TRY
+      settlementType: PHYSICAL

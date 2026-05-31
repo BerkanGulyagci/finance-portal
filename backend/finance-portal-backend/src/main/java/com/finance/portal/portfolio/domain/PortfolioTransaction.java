@@ -57,6 +57,14 @@ public class PortfolioTransaction {
     @Column(name = "transaction_date", nullable = false)
     private LocalDateTime transactionDate;
 
+    /**
+     * VİOP pozisyon yönü: "LONG" veya "SHORT". Yalnızca FUTURE asset için kullanılır.
+     * Null = LONG (geriye uyumluluk; eski transaction'lar LONG sayılır).
+     * Domain enum değil, esnek string — ileride OPTION desteği eklenirse genişler.
+     */
+    @Column(name = "direction", length = 10)
+    private String direction;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
