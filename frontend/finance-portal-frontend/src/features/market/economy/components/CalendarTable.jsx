@@ -55,6 +55,9 @@ export default function CalendarTable({ groupedRows }) {
           const d = parseEventTime(e.time);
           const allDay = isAllDay(e.time);
           const meta = e.currency ? FX_META[e.currency] : null;
+          // Flag resolution: currency-mapped country (FX_META) → fallback to raw country code.
+          // flag-icons accepts any ISO 3166-1 alpha-2 directly, so unmapped currencies still get a flag.
+          const flagCc = meta?.cc ?? (e.country ? e.country.toLowerCase() : null);
           const isHoliday = e.impact === 'holiday' || (allDay && e.actual == null && e.estimate == null && e.prev == null);
           const actualHigher = e.actual != null && e.estimate != null && e.actual > e.estimate;
           const actualLower  = e.actual != null && e.estimate != null && e.actual < e.estimate;
@@ -66,7 +69,7 @@ export default function CalendarTable({ groupedRows }) {
               <td className="px-3 py-2 text-xs whitespace-nowrap">
                 <span className="inline-flex items-center gap-1.5">
                   <span className="inline-flex rounded-sm overflow-hidden ring-1 ring-gray-200">
-                    <FlagImg cc={meta?.cc} size={16} />
+                    <FlagImg cc={flagCc} size={16} />
                   </span>
                   <span className="font-semibold text-gray-700">{e.currency || e.country || ''}</span>
                 </span>

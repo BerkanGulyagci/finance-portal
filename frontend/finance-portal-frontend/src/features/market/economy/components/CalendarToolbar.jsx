@@ -1,12 +1,12 @@
 import { Filter, Clock } from 'lucide-react';
 import { useTranslation } from '../../../../context/LanguageContext';
-import { isoDate } from '../utils/calendarHelpers';
+import DateField from '../../../../components/common/DateField';
 
 /**
  * Top toolbar for the Economic Calendar:
  *  - Filters toggle (with active-count badge)
  *  - Quick-range tab strip (Yesterday / Today / Tomorrow / This Week)
- *  - Custom date range pickers
+ *  - M3 custom date pickers (no native <input type="date">)
  *  - Current time indicator
  */
 export default function CalendarToolbar({
@@ -17,31 +17,25 @@ export default function CalendarToolbar({
 }) {
   const { t, language } = useTranslation();
 
-  function handleCustomDate(field, value) {
-    if (!value) return;
-    const d = new Date(value);
-    if (isNaN(d.getTime())) return;
-    onDateChange(field, d);
-  }
-
   return (
-    <div className="p-3 sm:p-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 flex-wrap">
+    <div className="p-3 sm:p-4 border-b border-[#eeedf7] flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 flex-wrap">
       <button
         type="button"
         onClick={onToggleFilters}
         className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
           showFilters || activeFilterCount > 0
             ? 'bg-[#093eaa] text-white border-[#093eaa]'
-            : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+            : 'bg-white text-[#434653] border-[#e2e1eb] hover:bg-[#f3f3fc]'
         }`}
       >
         <Filter className="w-3.5 h-3.5" /> {t('Filtreler')}
         {activeFilterCount > 0 && (
-          <span className="bg-white/30 rounded-full px-1 min-w-[16px] text-center">{activeFilterCount}</span>
+          <span className="bg-white/30 rounded-md px-1 min-w-[16px] text-center">{activeFilterCount}</span>
         )}
       </button>
 
-      <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden">
+      {/* Quick range — M3 segmented buttons (less round) */}
+      <div className="inline-flex rounded-lg border border-[#e2e1eb] overflow-hidden bg-white">
         {[
           { key: 'yesterday', label: t('Dün') },
           { key: 'today',     label: t('Bugün') },
@@ -52,7 +46,7 @@ export default function CalendarToolbar({
             key={r.key}
             onClick={() => onQuickRange(r.key)}
             className={`px-3 py-1.5 text-xs font-bold transition-colors ${
-              quickRange === r.key ? 'bg-[#093eaa] text-white' : 'bg-white text-gray-700 hover:bg-gray-50'
+              quickRange === r.key ? 'bg-[#093eaa] text-white' : 'text-[#434653] hover:bg-[#f3f3fc]'
             }`}
           >
             {r.label}
@@ -60,23 +54,22 @@ export default function CalendarToolbar({
         ))}
       </div>
 
+      {/* M3 date pickers — custom popover, no browser-native chrome */}
       <div className="inline-flex items-center gap-1.5 ml-auto">
-        <input
-          type="date"
-          value={isoDate(fromDate)}
-          onChange={e => handleCustomDate('from', e.target.value)}
-          className="px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs text-gray-700"
+        <DateField
+          value={fromDate}
+          onChange={d => onDateChange('from', d)}
+          max={toDate}
         />
-        <span className="text-xs text-gray-400">–</span>
-        <input
-          type="date"
-          value={isoDate(toDate)}
-          onChange={e => handleCustomDate('to', e.target.value)}
-          className="px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs text-gray-700"
+        <span className="text-xs text-[#747684]">–</span>
+        <DateField
+          value={toDate}
+          onChange={d => onDateChange('to', d)}
+          min={fromDate}
         />
       </div>
 
-      <div className="inline-flex items-center gap-1 text-xs text-gray-500 ml-auto sm:ml-0">
+      <div className="inline-flex items-center gap-1 text-xs text-[#747684] ml-auto sm:ml-0">
         <Clock className="w-3.5 h-3.5" />
         {t('Şuanki Zaman:')} {new Date().toLocaleTimeString(language === 'en' ? 'en-US' : 'tr-TR', { hour: '2-digit', minute: '2-digit' })}
       </div>
