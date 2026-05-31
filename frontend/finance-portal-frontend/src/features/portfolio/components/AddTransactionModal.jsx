@@ -1,10 +1,11 @@
 import { useEffect, useState, useMemo } from 'react';
 import { X, ArrowLeftRight, TrendingUp, TrendingDown } from 'lucide-react';
 import { addTransaction, getPriceAtDate } from '../../../api/portfolioApi';
-import { getViopChart, getEvdsBondDetail, getGlobalBondDetail } from '../../../api/marketApi';
+import { getViopChart, getEvdsBondDetail, getGlobalBondDetail, getViopContractSpec } from '../../../api/marketApi';
 import InstrumentSearchModal from '../../../components/instrument/InstrumentSearchModal';
 import CommodityPriceHint from './CommodityPriceHint';
 import DateTimeField from './DateTimeField';
+import ViopPreviewCard from './future/ViopPreviewCard';
 import { isYahooCommoditySymbol } from '../../../utils/commodityPriceUtils';
 import { getCommodityUnit } from '../utils/commodityUnit';
 import {
@@ -79,7 +80,10 @@ export default function AddTransactionModal({
     price: initPrice(initialInstrument?.price),
     commission: '',
     transactionDate: localNow,
+    direction: 'LONG',       // FUTURE için LONG (default) veya SHORT
   });
+  // VİOP spec: instrument FUTURE olunca backend'den çekilir → ViopPreviewCard'a verilir
+  const [viopSpec, setViopSpec] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -208,6 +212,19 @@ export default function AddTransactionModal({
     return () => { cancelled = true; clearTimeout(handle); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [instrument, form.transactionDate, step]);
+
+  // VİOP: kontrat spec'ini backend'den çek (multiplier + marginRate) — önizleme için.
+  useEffect(() => {
+    if (step !== 'form' || !instrument || !isFutureAssetType(instrument.assetType)) {
+      setViopSpec(null);
+      return undefined;
+    }
+    let cancelled = false;
+    getViopContractSpec(instrument.symbol)
+      .then(s => { if (!cancelled) setViopSpec(s); })
+      .catch(() => { if (!cancelled) setViopSpec(null); });
+    return () => { cancelled = true; };
+  }, [instrument, step]);
 
   // VİOP: kontratın ilk işlem gününü bul → o tarihten öncesi seçilemesin (kontrat o gün açıldı).
   useEffect(() => {
@@ -582,6 +599,8 @@ export default function AddTransactionModal({
         price: pricePayload,
         commission,
         transactionDate: new Date(form.transactionDate).toISOString().replace('Z', ''),
+        // FUTURE için yön (LONG/SHORT) — diğer tür için backend yok sayar
+        ...(isFuture ? { direction: form.direction } : {}),
       });
       onAdded(updated);
       onClose();
@@ -945,6 +964,49 @@ export default function AddTransactionModal({
               </p>
             )}
           </div>
+
+          {/* VİOP: yön seçimi (LONG / SHORT) — sadece FUTURE için */}
+          {isFuture && (
+            <div>
+              <label className="block text-xs font-semibold text-[#434653] mb-1.5">
+                {t('Pozisyon Yönü')} *
+              </label>
+              <div className="flex bg-[#eeedf7] rounded-lg p-1">
+                {[
+                  { value: 'LONG',  label: t('Uzun (LONG)'),  hint: t('Fiyat yukarı giderse kar') },
+                  { value: 'SHORT', label: t('Kısa (SHORT)'), hint: t('Fiyat aşağı giderse kar') },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => set('direction', opt.value)}
+                    title={opt.hint}
+                    className={`flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-bold transition-all ${
+                      form.direction === opt.value
+                        ? opt.value === 'LONG' ? 'bg-emerald-500 text-white shadow-sm' : 'bg-rose-500 text-white shadow-sm'
+                        : 'text-[#434653] hover:bg-[#e2e1eb]'
+                    }`}
+                  >
+                    {opt.value === 'LONG'
+                      ? <TrendingUp className="w-3.5 h-3.5" />
+                      : <TrendingDown className="w-3.5 h-3.5" />}
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* VİOP: canlı önizleme — nominal, teminat, kaldıraç */}
+          {isFuture && (
+            <ViopPreviewCard
+              qty={form.quantity}
+              price={price}
+              direction={form.direction}
+              commission={commission}
+              instrument={viopSpec ? { ...instrument, viopSpec } : instrument}
+            />
+          )}
 
           {/* VIOP kontrat büyüklüğü bilgilendirmesi */}
           {isFuture && (

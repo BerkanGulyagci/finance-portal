@@ -69,6 +69,10 @@ export const ALL_COLS = [
   { key: 'volume',        label: 'Hacim',                 def: false, group: 'Piyasa',  type: 'number' },
   { key: 'week52',        label: '52 Hafta Aralığı',      def: false, group: 'Teknik',  type: 'string' },
   { key: 'trend',         label: 'Trend',                 def: false, group: 'Teknik',  type: 'string' },
+  // VİOP — sadece FUTURE satırlarda anlamlıdır; diğer satırlarda boş gösterilir.
+  { key: 'viopDirection', label: 'VİOP Yön',             def: false, group: 'VİOP',    type: 'string', hint: 'LONG / SHORT' },
+  { key: 'viopMargin',    label: 'VİOP Teminat',          def: false, group: 'VİOP',    type: 'number', hint: 'Yatırılan başlangıç teminatı' },
+  { key: 'viopLeverage',  label: 'VİOP Kaldıraç',         def: false, group: 'VİOP',    type: 'number', hint: 'Notional / Teminat' },
 ];
 
 const DEFAULT_KEYS = [...DEFAULT_DISPLAY_ORDER];
@@ -88,7 +92,7 @@ function loadSavedColumns() {
 }
 
 // Grup sırası popover'da
-const GROUP_ORDER = ['Temel', 'Fiyat', 'K/Z', 'Enflasyona Göre', 'Tarih', 'Piyasa', 'Teknik'];
+const GROUP_ORDER = ['Temel', 'Fiyat', 'K/Z', 'Enflasyona Göre', 'Tarih', 'Piyasa', 'Teknik', 'VİOP'];
 
 /** Seçili kolonları varsayılan sıra + ekstra kolonlar (ALL_COLS sırası) ile döndürür. */
 export function buildVisibleCols(selectedKeys) {
@@ -351,6 +355,12 @@ export function renderCellForExport(key, h) {
       if (trend === 'DOWN') return 'Düşüş';
       return 'Yatay';
     }
+    case 'viopDirection':
+      return h.assetType === 'FUTURE' ? (h.viopDirection ?? 'LONG') : '';
+    case 'viopMargin':
+      return h.assetType === 'FUTURE' ? numProp('viopMarginPosted') : null;
+    case 'viopLeverage':
+      return h.assetType === 'FUTURE' ? numProp('viopLeverage') : null;
     default:
       throw new Error(`renderCellForExport: bilinmeyen kolon "${key}"`);
   }
@@ -384,6 +394,9 @@ function columnHasValueForHolding(key, h) {
         ((h.fiftyTwoWeekLow ?? h.week52Low) != null && (h.fiftyTwoWeekHigh ?? h.week52High) != null)
       );
     case 'trend':          return !!computeTrend(h).signal;
+    case 'viopDirection':  return h.assetType === 'FUTURE';
+    case 'viopMargin':     return h.assetType === 'FUTURE' && h.viopMarginPosted != null;
+    case 'viopLeverage':   return h.assetType === 'FUTURE' && h.viopLeverage != null;
     default:               return true; // temel kolonlar
   }
 }
@@ -493,11 +506,26 @@ function renderCell(key, h, commoditySpots, valuesHidden, t) {
       const isFxBond = h.assetType === 'BOND' && (cat === 'FX_DENOMINATED_BOND' || cat === 'FX_LEASE_CERTIFICATE');
       const isGoldBond = h.assetType === 'BOND' && (cat === 'GOLD_INDEXED_BOND' || cat === 'GOLD_INDEXED_LEASE_CERTIFICATE');
       const isSukuk = h.assetType === 'BOND' && cat.includes('LEASE_CERTIFICATE');
+      const isFutureRow = h.assetType === 'FUTURE';
+      const viopDir = isFutureRow ? String(h.viopDirection ?? 'LONG').toUpperCase() : null;
+      const isShortPos = viopDir === 'SHORT';
       return (
         <div className="inline-flex items-center gap-1 whitespace-nowrap">
           <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md font-semibold">
             {ASSET_LABELS[h.assetType] ? t(ASSET_LABELS[h.assetType]) : h.assetType}
           </span>
+          {isFutureRow && (
+            <span
+              className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                isShortPos
+                  ? 'bg-rose-100 text-rose-700'
+                  : 'bg-emerald-100 text-emerald-700'
+              }`}
+              title={isShortPos ? t('Açığa satış (SHORT) — fiyat düşerse kar') : t('Uzun pozisyon (LONG) — fiyat artarsa kar')}
+            >
+              {isShortPos ? 'S' : 'L'}
+            </span>
+          )}
           {isInfBond && (
             <span
               className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold"
@@ -749,6 +777,53 @@ function renderCell(key, h, commoditySpots, valuesHidden, t) {
 
     case 'trend':
       return <TrendBadge item={h} />;
+
+    case 'viopDirection': {
+      if (h.assetType !== 'FUTURE') return <Dash />;
+      const dir = String(h.viopDirection ?? 'LONG').toUpperCase();
+      const isShort = dir === 'SHORT';
+      return (
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold whitespace-nowrap ${
+          isShort
+            ? 'bg-rose-50 text-rose-700 border border-rose-200'
+            : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+        }`}>
+          {isShort ? <TrendingDown className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />}
+          {isShort ? t('SHORT') : t('LONG')}
+        </span>
+      );
+    }
+
+    case 'viopMargin': {
+      if (h.assetType !== 'FUTURE') return <Dash />;
+      if (valuesHidden) return <span className="text-sm text-gray-500 tracking-widest">{MASK_MONEY}</span>;
+      const m = num(h, 'viopMarginPosted');
+      if (m == null) return <Dash />;
+      const mr = num(h, 'viopMarginRate');
+      return (
+        <span
+          className="text-sm font-semibold whitespace-nowrap"
+          title={mr != null ? t('Marjin oranı: %{pct}', { pct: (mr * 100).toFixed(1) }) : undefined}
+        >
+          {fmtMoneyTwoDecimals(m, cur) ?? <Dash />}
+        </span>
+      );
+    }
+
+    case 'viopLeverage': {
+      if (h.assetType !== 'FUTURE') return <Dash />;
+      const lev = num(h, 'viopLeverage');
+      if (lev == null || lev <= 0) return <Dash />;
+      const mult = num(h, 'viopMultiplier');
+      return (
+        <span
+          className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold tabular-nums"
+          title={mult != null ? t('Sözleşme çarpanı: {mult}', { mult }) : undefined}
+        >
+          {lev.toFixed(1)}x
+        </span>
+      );
+    }
 
     default:
       return <Dash />;

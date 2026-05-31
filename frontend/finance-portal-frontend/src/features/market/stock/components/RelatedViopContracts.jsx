@@ -1,41 +1,42 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { TrendingUp, TrendingDown, ExternalLink, Loader2 } from 'lucide-react';
-import { getViopContractsByUnderlying } from '../../../../api/marketApi';
+import { TrendingUp, TrendingDown, ExternalLink, Loader2, Layers } from 'lucide-react';
+import { getViopContractsByUnderlying, getViopContractSpec } from '../../../../api/marketApi';
 import { parseTrNumber, formatPrice } from '../../../../utils/numberFormat';
 import { useTranslation } from '../../../../context/LanguageContext';
 
 export default function RelatedViopContracts({ symbol }) {
   const { t } = useTranslation();
   const [contracts, setContracts] = useState([]);
+  const [spec, setSpec] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!symbol) {
-      console.log('RelatedViopContracts: symbol yok');
-      return;
-    }
-
-    console.log('RelatedViopContracts: symbol =', symbol);
-
+    if (!symbol) return;
+    let cancelled = false;
     const fetchContracts = async () => {
       try {
         setLoading(true);
         setError(null);
-        console.log('VİOP kontratları çekiliyor:', symbol);
         const data = await getViopContractsByUnderlying(symbol);
-        console.log('VİOP kontratları geldi:', data);
-        setContracts(data);
+        if (cancelled) return;
+        const arr = Array.isArray(data) ? data : [];
+        setContracts(arr);
+        // Spec'i ilk kontrat üzerinden çek — multiplier/marginRate dayanak için sabittir.
+        if (arr.length > 0 && arr[0]?.name) {
+          getViopContractSpec(arr[0].name)
+            .then(s => { if (!cancelled) setSpec(s); })
+            .catch(() => {});
+        }
       } catch (err) {
-        console.error('VİOP kontratları yüklenemedi:', err);
-        setError(err.message);
+        if (!cancelled) setError(err.message);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
-
     fetchContracts();
+    return () => { cancelled = true; };
   }, [symbol]);
 
   if (loading) {
@@ -80,9 +81,20 @@ export default function RelatedViopContracts({ symbol }) {
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-      <h2 className="font-bold text-gray-900 mb-4">
-        {t('İlişkili VİOP Kontratları')}
-      </h2>
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <h2 className="font-bold text-gray-900">
+          {t('İlişkili VİOP Kontratları')}
+        </h2>
+        {spec && spec.multiplier != null && (
+          <span className="inline-flex items-center gap-1.5 text-[11px] text-gray-700 bg-blue-50 border border-blue-200 px-2 py-1 rounded-md">
+            <Layers className="w-3 h-3 text-blue-700" />
+            {t('Çarpan')}: <span className="font-bold tabular-nums">{Number(spec.multiplier)}</span>
+            {spec.marginRate != null && (
+              <> · {t('Marjin')}: <span className="font-bold">%{(Number(spec.marginRate) * 100).toFixed(1)}</span></>
+            )}
+          </span>
+        )}
+      </div>
 
       <div className="space-y-2">
         {contracts.map((contract, index) => {

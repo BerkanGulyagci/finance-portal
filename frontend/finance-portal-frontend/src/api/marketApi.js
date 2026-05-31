@@ -173,6 +173,17 @@ export async function getViopChart(contractName, period = 'ONE_WEEK') {
   return data;
 }
 
+/**
+ * VİOP kontrat spec'i — multiplier, marginRate, currency.
+ * AddTransactionModal canlı önizleme kartı için kullanılır.
+ * Sembol formatları: "F_AKBNK0626" veya Akbank gösterim "USDTRY (30 HAZ 26) VADELI".
+ * Spec bulunamazsa backend güvenli fallback döner (multiplier=1, marginRate=0.15) + found=false.
+ */
+export async function getViopContractSpec(symbol) {
+  const { data } = await client.get('/api/market/viop/spec', { params: { symbol } });
+  return data?.data ?? null;
+}
+
 export async function getFunds(page = 0, size = 20) {
   const { data } = await client.get('/api/market/funds', { params: { page, size } });
   return data.data ?? {};
