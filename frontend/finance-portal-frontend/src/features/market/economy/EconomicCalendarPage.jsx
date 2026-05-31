@@ -19,13 +19,17 @@ const PAGE_SIZE = 50;
 export default function EconomicCalendarPage() {
   const { t } = useTranslation();
 
-  // Default range: 1 year past → 1 month future
+  // Default range: today ± 30 days. Finnhub free tier returns ~20 days of future
+  // events at most (verified empirically), so widening the future window doesn't
+  // help. Past window kept short for fast initial load (cached 1h on backend).
+  // Users can widen the range via the custom date pickers; backend chunks
+  // requests >30 days into 30-day windows transparently.
   const today = useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }, []);
-  const oneYearAgo    = useMemo(() => { const d = new Date(today); d.setFullYear(d.getFullYear() - 1); return d; }, [today]);
-  const oneMonthAhead = useMemo(() => { const d = new Date(today); d.setMonth(d.getMonth() + 1); return d; }, [today]);
+  const thirtyDaysPast  = useMemo(() => { const d = new Date(today); d.setDate(d.getDate() - 30); return d; }, [today]);
+  const thirtyDaysAhead = useMemo(() => { const d = new Date(today); d.setDate(d.getDate() + 30); return d; }, [today]);
 
-  const [fromDate, setFromDate] = useState(oneYearAgo);
-  const [toDate,   setToDate]   = useState(oneMonthAhead);
+  const [fromDate, setFromDate] = useState(thirtyDaysPast);
+  const [toDate,   setToDate]   = useState(thirtyDaysAhead);
   const [events,   setEvents]   = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState('');
