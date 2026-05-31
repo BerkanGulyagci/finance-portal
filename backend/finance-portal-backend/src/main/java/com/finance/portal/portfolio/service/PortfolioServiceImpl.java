@@ -9,6 +9,8 @@ import com.finance.portal.portfolio.domain.PortfolioTransaction;
 import com.finance.portal.portfolio.domain.PortfolioType;
 import com.finance.portal.portfolio.domain.TransactionType;
 import com.finance.portal.portfolio.domain.WatchlistItem;
+import com.finance.portal.portfolio.application.viop.spec.ViopContractSpec;
+import com.finance.portal.portfolio.application.viop.spec.ViopContractSpecRegistry;
 import com.finance.portal.portfolio.application.performance.PortfolioPerformanceResult;
 import com.finance.portal.portfolio.application.whatif.PortfolioWhatIfResult;
 import com.finance.portal.portfolio.application.whatif.WhatIfSeriesResult;
@@ -86,6 +88,7 @@ public class PortfolioServiceImpl implements PortfolioService {
     private final PortfolioWhatIfService whatIfService;
     private final com.finance.portal.market.application.bond.eurobond.EurobondService eurobondService;
     private final com.finance.portal.market.application.bond.evds.EvdsBondService evdsBondService;
+    private final ViopContractSpecRegistry viopSpecRegistry;
 
     public PortfolioServiceImpl(PortfolioPersistencePort portfolioPersistence,
                                 PortfolioCachePort portfolioCache,
@@ -99,7 +102,8 @@ public class PortfolioServiceImpl implements PortfolioService {
                                 PortfolioCurrencyConverter currencyConverter,
                                 PortfolioWhatIfService whatIfService,
                                 com.finance.portal.market.application.bond.eurobond.EurobondService eurobondService,
-                                com.finance.portal.market.application.bond.evds.EvdsBondService evdsBondService) {
+                                com.finance.portal.market.application.bond.evds.EvdsBondService evdsBondService,
+                                ViopContractSpecRegistry viopSpecRegistry) {
         this.portfolioPersistence           = portfolioPersistence;
         this.portfolioCache                 = portfolioCache;
         this.viopService                    = viopService;
@@ -113,6 +117,7 @@ public class PortfolioServiceImpl implements PortfolioService {
         this.whatIfService                  = whatIfService;
         this.eurobondService                = eurobondService;
         this.evdsBondService                = evdsBondService;
+        this.viopSpecRegistry               = viopSpecRegistry;
     }
 
     // ── HOLDINGS portföy işlemleri ────────────────────────────────────────────
@@ -838,6 +843,23 @@ public class PortfolioServiceImpl implements PortfolioService {
         r.setCommission(tx.getCommission());
         r.setTransactionDate(tx.getTransactionDate());
         r.setCreatedAt(tx.getCreatedAt());
+
+        // VİOP zenginleştirme: FUTURE tx için direction (pool) + kontrat çarpan/marjin.
+        // Frontend bu üçüyle (Bug A) Toplam = qty × price × multiplier × marginRate (teminat)
+        // hesaplar ve (Bug B) SHORT pool için persist-edilmiş BUY/SELL etiketini geri çevirir.
+        if (tx.getAssetType() == AssetType.FUTURE) {
+            r.setDirection(tx.getDirection());
+            try {
+                ViopContractSpec spec = viopSpecRegistry.resolveOrFallback(tx.getSymbol());
+                if (spec != null) {
+                    r.setViopMultiplier(spec.multiplier());
+                    r.setViopMarginRate(spec.marginRate());
+                }
+            } catch (Exception ex) {
+                log.debug("VIOP spec lookup failed for symbol={} tx={}: {}",
+                        tx.getSymbol(), tx.getId(), ex.getMessage());
+            }
+        }
         return r;
     }
 

@@ -281,6 +281,8 @@ const en = {
   'Kullanılan tutar': 'Amount used',
   'Hesaplanan miktar': 'Calculated quantity',
   'Toplam ödeme': 'Total payment',
+  'Teminat (cebinden çıkacak)': 'Margin (out-of-pocket)',
+  'VİOP toplam = teminat (qty × fiyat × çarpan × marjin) — kontrat detayında görünür': 'VIOP total = margin (qty × price × multiplier × margin rate) — visible in contract detail',
   'Kalan nakit': 'Remaining cash',
   'Satış tutarı': 'Sell amount',
   'Tahmini net gelir': 'Estimated net income',

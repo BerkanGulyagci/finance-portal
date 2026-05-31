@@ -167,19 +167,35 @@ export default function TransactionsTable({ transactions = [], onDelete, deletin
                 const isBuy = t.transactionType === 'BUY';
                 const isCoupon = t.transactionType === 'COUPON_INCOME';
                 const isBondTx = String(t.assetType ?? '').toUpperCase() === 'BOND';
+                const isFutureTx = String(t.assetType ?? '').toUpperCase() === 'FUTURE';
                 // BOND için "Toplam" = qty × price / 100 (TCMB konvansiyonu).
                 // Altın bond istisnası: birim adet/gram → /100 YOK.
                 // COUPON_INCOME: qty = TL tutar, price = 1.
+                // FUTURE (VİOP): "Toplam" = teminat = qty × fiyat × çarpan × marjin.
+                //   Backend artık viopMultiplier + viopMarginRate alanlarını dolduruyor.
                 const isGoldBondTx = isBondTx && isGoldBondSymbol(t.symbol);
+                // VİOP teminat hesaplanabilirliği: multiplier + marginRate dolu mu?
+                const viopMult = t.viopMultiplier != null ? parseFloat(t.viopMultiplier) : NaN;
+                const viopMargin = t.viopMarginRate != null ? parseFloat(t.viopMarginRate) : NaN;
+                const futureCanCompute = isFutureTx && !isNaN(viopMult) && !isNaN(viopMargin);
                 const total = isCoupon
                   ? parseFloat(t.quantity ?? 0)
-                  : (isBondTx && !isGoldBondTx
-                      ? parseFloat(t.quantity ?? 0) * parseFloat(t.price ?? 0) / 100
-                      : parseFloat(t.quantity ?? 0) * parseFloat(t.price ?? 0));
+                  : (isFutureTx
+                      ? (futureCanCompute
+                          ? parseFloat(t.quantity ?? 0) * parseFloat(t.price ?? 0) * viopMult * viopMargin
+                          : NaN)
+                      : (isBondTx && !isGoldBondTx
+                          ? parseFloat(t.quantity ?? 0) * parseFloat(t.price ?? 0) / 100
+                          : parseFloat(t.quantity ?? 0) * parseFloat(t.price ?? 0)));
+                // Bug B render-side un-flip: persist katmanı VİOP+SHORT için UI BUY/SELL'i
+                // tersine çevirip kaydediyor (accumulator semantiği BUY=+qty, SELL=-qty pool için).
+                // Kullanıcının tıkladığı etiketi geri getirmek için SHORT pool'da işareti çeviriyoruz.
+                const isShortFuture = isFutureTx && String(t.direction ?? '').toUpperCase() === 'SHORT';
+                const displayBuy = isShortFuture ? !isBuy : isBuy;
                 const rowKey = t.id ?? `${t.transactionDate}-${t.symbol}-${t.transactionType}`;
                 const badge = isCoupon
                   ? { label: tr('KUPON'), classes: 'bg-blue-100 text-blue-700', icon: <Coins className="w-3 h-3 inline -mt-0.5 mr-0.5" /> }
-                  : isBuy
+                  : displayBuy
                     ? { label: tr('ALIŞ'), classes: 'bg-emerald-100 text-emerald-700' }
                     : { label: tr('SATIŞ'), classes: 'bg-rose-100 text-rose-700' };
                 return (
@@ -204,7 +220,14 @@ export default function TransactionsTable({ transactions = [], onDelete, deletin
                     <td className="px-4 py-3 text-sm">
                       {isCoupon ? '—' : fmt(t.price)}
                     </td>
-                    <td className="px-4 py-3 text-sm font-semibold">{fmt(total)}</td>
+                    <td
+                      className="px-4 py-3 text-sm font-semibold"
+                      title={isFutureTx ? tr('VİOP toplam = teminat (qty × fiyat × çarpan × marjin)') : undefined}
+                    >
+                      {isFutureTx
+                        ? (futureCanCompute ? fmt(total) : '—')
+                        : fmt(total)}
+                    </td>
                     <td className="px-4 py-3 text-sm text-gray-400">{fmt(t.commission)}</td>
                     <td className="px-4 py-3">
                       {onDelete && (

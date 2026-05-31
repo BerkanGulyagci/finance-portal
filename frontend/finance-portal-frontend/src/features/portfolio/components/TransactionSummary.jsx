@@ -6,7 +6,7 @@ import { fmtWithCcy, fmtNum } from '../utils/transactionFormUtils';
  * Veri yoksa null döner.
  */
 export default function TransactionSummary({
-  isAmountMode, amountCalc, summaryHasError, isBuy, isGold, goldMeta, isBond,
+  isAmountMode, amountCalc, summaryHasError, isBuy, isGold, goldMeta, isBond, isFuture,
   commission, currency, useQtyFloor, availableQty, price, form,
   quantityModeTotal, quantitySellExceedsFund, quantitySellExceedsGold,
   quantitySellExceedsBond, goldPieceQtyInvalid, formatSummaryQty, t,
@@ -154,7 +154,11 @@ export default function TransactionSummary({
                     value={fmtWithCcy(commission, currency)}
                   />
                 )}
-                <SummaryRow label={t('Toplam ödeme')} value={fmtWithCcy(quantityModeTotal.total, currency)} highlight />
+                <SummaryRow
+                  label={isFuture ? t('Teminat (cebinden çıkacak)') : t('Toplam ödeme')}
+                  value={fmtWithCcy(quantityModeTotal.total, currency)}
+                  highlight
+                />
               </>
             ) : (
               <>
@@ -179,7 +183,11 @@ export default function TransactionSummary({
                   />
                 )}
                 <SummaryRow
-                  label={isBond ? t('Net Tahsilat') : t('Tahmini net gelir')}
+                  label={isFuture
+                    ? t('Teminat (cebinden çıkacak)')
+                    : isBond
+                      ? t('Net Tahsilat')
+                      : t('Tahmini net gelir')}
                   value={fmtWithCcy(quantityModeTotal.netIncome, currency)}
                   highlight
                 />

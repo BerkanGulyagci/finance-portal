@@ -490,17 +490,29 @@ export default function AddTransactionModal({
 
   /** "Miktar ile" modunda özet — BUY satır gelirleri veya SELL net geliri.
    *  BOND: TCMB konvansiyonu — fiyat "100 TL nominal üzerinden" → etkin = price/100.
-   *  Altın bond istisnası: birim adet/gram — etkin fiyat = price doğrudan. */
+   *  Altın bond istisnası: birim adet/gram — etkin fiyat = price doğrudan.
+   *  FUTURE (VİOP): "Toplam ödeme" gerçekte teminat = qty × price × multiplier × marginRate.
+   *  Spot kıymetlerin tersine, kontrat değerinin tamamı ödenmez. */
   const quantityModeTotal = useMemo(() => {
     if (isAmountMode) return null;
     const qty = parseFloat(form.quantity);
     if (!qty || !price) return null;
+    if (isFuture) {
+      const mult = Number(viopSpec?.multiplier);
+      const mr = Number(viopSpec?.marginRate);
+      if (!mult || !mr) return null; // spec yüklenmeden teminat hesaplanamaz
+      const margin = qty * price * mult * mr;
+      const pocket = margin + commission; // hem LONG açma hem SHORT açma için cebinden çıkacak: teminat + komisyon
+      return isBuy
+        ? { gross: margin, total: pocket, isFuture: true }
+        : { gross: margin, netIncome: pocket, isFuture: true };
+    }
     const effectivePrice = isGoldBond ? price : (isBond ? price / 100 : price);
     const gross = qty * effectivePrice;
     return isBuy
       ? { gross, total: gross + commission }
       : { gross, netIncome: gross - commission };
-  }, [isAmountMode, form.quantity, price, commission, isBuy, isBond, isGoldBond]);
+  }, [isAmountMode, form.quantity, price, commission, isBuy, isBond, isGoldBond, isFuture, viopSpec]);
 
   // ── submit ──────────────────────────────────────────────────────────────────
 
@@ -1071,6 +1083,7 @@ export default function AddTransactionModal({
             isGold={isGold}
             goldMeta={goldMeta}
             isBond={isBond}
+            isFuture={isFuture}
             commission={commission}
             currency={currency}
             useQtyFloor={useQtyFloor}
