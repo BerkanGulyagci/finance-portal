@@ -265,10 +265,20 @@ export default function AddTransactionModal({
     const norm = (raw) => {
       if (!raw) return null;
       const s = String(raw).trim();
+      // EVDS DİBS: ISO yyyy-MM-dd (LocalDate) → olduğu gibi.
       let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
       if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+      // Eurobond/Business Insider: AMERİKAN M/d/yyyy (örn. "9/20/2021" = 20 Eylül 2021).
+      // group1 = AY, group2 = GÜN. (Daha önce D/M olarak yorumlanıyordu → "2021-20-09" bozuk ISO üretiyordu.)
       m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-      if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+      if (m) {
+        const mo = Number(m[1]);
+        const da = Number(m[2]);
+        if (mo >= 1 && mo <= 12 && da >= 1 && da <= 31) {
+          return `${m[3]}-${String(mo).padStart(2, '0')}-${String(da).padStart(2, '0')}`;
+        }
+        return null;
+      }
       return null;
     };
     const fromInst = norm(instrument.issueDate);
