@@ -44,6 +44,14 @@ public class PortfolioHoldingResponse {
     private BigDecimal currentPrice;
     private BigDecimal marketValue;
     private BigDecimal profitLoss;
+    /**
+     * Açık pozisyon yüzdesel kar/zarar (mv − cost) / cost × 100.
+     * Şu an yalnız BOND enricher'ı backend tarafında doldurur (TÜFE-endeksli + 100-üzeri
+     * %quote birleşimlerinde frontend türetimi cost ölçeği ile uyumsuzluk üretebiliyordu).
+     * Diğer asset tipleri için null kalır; frontend {@code parseUnrealizedChangePercent}
+     * mv/cost'tan kendi türetir.
+     */
+    private BigDecimal profitLossPercent;
     private String currency;
     private LocalDateTime asOf;
 

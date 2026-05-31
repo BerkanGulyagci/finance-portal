@@ -56,16 +56,21 @@ public class PortfolioHoldingsBuilder {
     }
 
     /**
-     * BOND alt-türü "altına dayalı senet" mi? Birim "adet/gram" → {@code /100} uygulanmaz.
-     * EVDS detail lookup; symbol başına bir kez yapılır, hata durumunda false.
+     * BOND fiyatı per-unit nominal (adet/gram veya TÜFE-endeksli nominal TL) cinsinden mi
+     * kote ediliyor? Bu durumda TCMB "100 TL nominal üzerinden %quote" konvansiyonu
+     * UYGULANMAZ — yani builder maliyet hesabında {@code /100} ölçeğini atlar (enricher de
+     * aynı simetri ile mv hesabında atlar; bkz. {@link BondCategory#usesPerUnitNominalQuote()}).
+     * <p>EVDS detail lookup; symbol başına bir kez yapılır, hata durumunda (örn. Eurobond
+     * EVDS'de yok) false → klasik %-of-par konvansiyonu uygulanır.
      */
-    private boolean isGoldBondSymbol(String symbol) {
+    private boolean isParUnscaledBondSymbol(String symbol) {
         if (symbol == null || symbol.isBlank()) return false;
         try {
             EvdsBondInstrument b = evdsBondService.getEvdsBondDetail(symbol);
-            return b != null && b.getCategory() == BondCategory.GOLD_INDEXED_BOND;
+            return b != null && b.getCategory() != null
+                    && b.getCategory().usesPerUnitNominalQuote();
         } catch (Exception e) {
-            log.debug("Gold bond lookup failed for {}: {}", symbol, e.getMessage());
+            log.debug("Par-unscaled bond lookup failed for {}: {}", symbol, e.getMessage());
             return false;
         }
     }
@@ -110,9 +115,11 @@ public class PortfolioHoldingsBuilder {
             String accSymbol = assetType == AssetType.FUTURE
                     ? canonicalFutureDisplaySymbol(sample.getSymbol())
                     : sample.getSymbol();
-            // BOND alt-türü altın senedi mi? Birim "adet/gram", /100 uygulanmaz.
-            boolean isGoldBond = assetType == AssetType.BOND && isGoldBondSymbol(accSymbol);
-            HoldingAccumulator acc = new HoldingAccumulator(accSymbol, assetType, isGoldBond);
+            // BOND fiyat ölçeği: altına dayalı senet (adet/gram) ve TÜFE-endeksli (nominal-endeksli TL)
+            // kategorilerinde /100 UYGULANMAZ — enricher mv hesabı da aynı simetri ile bu kategorilerde
+            // /100'ü atlar (bkz. BondCategory#usesPerUnitNominalQuote).
+            boolean parUnscaledBond = assetType == AssetType.BOND && isParUnscaledBondSymbol(accSymbol);
+            HoldingAccumulator acc = new HoldingAccumulator(accSymbol, assetType, parUnscaledBond);
             for (PortfolioTransaction tx : txs) {
                 acc.apply(tx);
             }
@@ -280,8 +287,11 @@ public class PortfolioHoldingsBuilder {
 
         final String symbol;
         final AssetType assetType;
-        /** Altına dayalı BOND ise birim "adet/gram" — /100 ölçeği UYGULANMAZ. */
-        final boolean isGoldBond;
+        /**
+         * BOND fiyat ölçeği "per-unit nominal" (adet/gram veya TÜFE-endeksli nominal TL) ise true →
+         * {@code /100} ölçeği UYGULANMAZ. {@link BondCategory#usesPerUnitNominalQuote()} ile aynı set.
+         */
+        final boolean parUnscaledBond;
 
         BigDecimal openQuantity = BigDecimal.ZERO;
         BigDecimal openCostBasis = BigDecimal.ZERO;
@@ -305,10 +315,10 @@ public class PortfolioHoldingsBuilder {
          */
         final List<MutableLot> lots = new ArrayList<>();
 
-        HoldingAccumulator(String symbol, AssetType assetType, boolean isGoldBond) {
+        HoldingAccumulator(String symbol, AssetType assetType, boolean parUnscaledBond) {
             this.symbol = symbol;
             this.assetType = assetType;
-            this.isGoldBond = isGoldBond;
+            this.parUnscaledBond = parUnscaledBond;
         }
 
         void apply(PortfolioTransaction tx) {
@@ -327,8 +337,9 @@ public class PortfolioHoldingsBuilder {
             }
 
             // BOND için piyasa konvansiyonu "100 TL nominal üzerinden fiyat" — etkin fiyat = price/100.
-            // İstisna: altın bond (adet/gram bazlı) /100 uygulanmaz.
-            BigDecimal effectivePrice = (assetType == AssetType.BOND && !isGoldBond)
+            // İstisna (parUnscaledBond): altın senedi (adet/gram) ve TÜFE-endeksli aile (nominal-endeksli TL)
+            // — fiyat doğrudan birim üzerinden kote, /100 UYGULANMAZ. Enricher mv hesabı da aynı simetri ile davranır.
+            BigDecimal effectivePrice = (assetType == AssetType.BOND && !parUnscaledBond)
                     ? price.divide(BOND_PAR_SCALE, 12, RoundingMode.HALF_UP)
                     : price;
 

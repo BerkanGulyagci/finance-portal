@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import static com.finance.portal.portfolio.service.enrich.PortfolioEnrichmentMath.MONEY_SCALE;
 import static com.finance.portal.portfolio.service.enrich.PortfolioEnrichmentMath.applyMasFromCloses;
 import static com.finance.portal.portfolio.service.enrich.PortfolioEnrichmentMath.profitLoss;
+import static com.finance.portal.portfolio.service.enrich.PortfolioEnrichmentMath.profitLossPercent;
 
 /**
  * BOND holding zenginleştirmesi. İki tür tahvil var:
@@ -161,20 +162,26 @@ public class BondHoldingEnricher {
         // dış FX çevirisi YAPILMAZ; currency etiketi de TRY kalır (değerler TL).
         // (Kategori rozeti UI'da "EUR/USD" gösterir ama TL hesaba göre.)
 
-        // Altına dayalı senet (Section 4): EVDS "Değer/1 adet" — birim 1 gram has altın.
-        // qty (adet) × price (TL/adet) doğrudan TL piyasa değerini verir, /100 YOK.
-        // (Kullanıcı tercihi: harici gram altın spot ile değiştirme — bond'un kendi EVDS fiyatı kullanılsın.)
-        if (mv != null && category == BondCategory.GOLD_INDEXED_BOND) {
+        // Per-unit nominal quote (altına dayalı + TÜFE-endeksli aile, bkz. BondCategory#usesPerUnitNominalQuote):
+        //   - Altına dayalı senet (Section 4): EVDS "Değer/1 adet" — birim 1 gram has altın, TL/adet.
+        //   - TÜFE-endeksli DT/strip/lease: indicator değeri ZATEN nominal-endeksli TL (ör. TRT070727T13≈1225,
+        //     TRT270127T15≈6500); enflasyon çarpanı seriye gömülü.
+        // Her iki ailede de qty × price doğrudan TL piyasa değerini verir, /100 YOK; cost tarafıyla simetri:
+        // HoldingsBuilder aynı kategoriler için effectivePrice'ı /100 BÖLMEZ → cost da nominal birim üzerinden,
+        // ratio (PL%) doğru kalır. Diğer DİBS/Eurobond/Kira sertifikaları klasik %-of-par konvansiyonunu kullanır.
+        if (mv != null && category != null && category.usesPerUnitNominalQuote()) {
             BigDecimal qty = holding.getTotalQuantity() != null
                     ? holding.getTotalQuantity() : BigDecimal.ZERO;
             mv = qty.multiply(price).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
         }
 
         BigDecimal pl = profitLoss(mv, holding.getTotalCost());
+        BigDecimal plPct = profitLossPercent(mv, holding.getTotalCost());
 
         holding.setCurrentPrice(price);
         holding.setMarketValue(mv);
         holding.setProfitLoss(pl);
+        holding.setProfitLossPercent(plPct);
         // FX-cinsli bondlarda yukarıda zaten setCurrency(fxCurrency) yapıldı; aksi takdirde TRY.
         if (holding.getCurrency() == null || holding.getCurrency().isBlank()) {
             holding.setCurrency("TRY");
@@ -232,10 +239,12 @@ public class BondHoldingEnricher {
         // YAPILMAZ; aksi halde kur çifte sayılıp cost ~FX katı şişerdi (sahte dev zarar). currency = TRY.
         BigDecimal cost = holding.getTotalCost() != null ? holding.getTotalCost() : BigDecimal.ZERO;
         BigDecimal pl = mv.subtract(cost).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+        BigDecimal plPct = profitLossPercent(mv, holding.getTotalCost());
 
         holding.setCurrentPrice(priceTry);
         holding.setMarketValue(mv);
         holding.setProfitLoss(pl);
+        holding.setProfitLossPercent(plPct);
         holding.setCurrency("TRY");
         holding.setName(d.getName() != null ? d.getName() : isin);
         holding.setChangePercent(d.getChangePercent());

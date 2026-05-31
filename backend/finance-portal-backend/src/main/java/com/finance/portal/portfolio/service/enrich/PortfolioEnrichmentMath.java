@@ -61,4 +61,19 @@ public final class PortfolioEnrichmentMath {
         }
         return marketValue.subtract(totalCost).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
     }
+
+    /**
+     * profitLossPercent = (marketValue − totalCost) / totalCost × 100, 2 ondalık (HALF_UP).
+     * Cost {@code ≤ 0} veya mv null ise {@code null} döner.
+     */
+    public static BigDecimal profitLossPercent(BigDecimal marketValue, BigDecimal totalCost) {
+        if (marketValue == null || totalCost == null
+                || totalCost.compareTo(BigDecimal.ZERO) <= 0) {
+            return null;
+        }
+        return marketValue.subtract(totalCost)
+                .divide(totalCost, 10, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100))
+                .setScale(2, RoundingMode.HALF_UP);
+    }
 }

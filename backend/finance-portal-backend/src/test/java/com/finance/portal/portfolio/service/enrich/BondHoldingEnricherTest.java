@@ -225,7 +225,7 @@ class BondHoldingEnricherTest {
     // =========================================================================
 
     @Test
-    @DisplayName("evds TÜFE-endeksli: mv = qty × price / 100 — EVDS değeri zaten nominal, ek TÜFE çarpanı YOK")
+    @DisplayName("evds TÜFE-endeksli: mv = qty × price (per-unit nominal, /100 YOK) — TÜFE çarpanı seriye gömülü")
     void evds_inflationIndexed_usesNominalEvdsValueDirectly() {
         when(eurobondService.currentIsins()).thenReturn(List.of());
 
@@ -237,22 +237,25 @@ class BondHoldingEnricherTest {
         when(evdsBondService.getEvdsBondDetail("TRT070727T13")).thenReturn(bond);
         when(evdsBondService.getEvdsBondHistory(any(), any())).thenReturn(null);
 
-        // 10.000 nominal alış, alış-dönemi nominal TL maliyet 110.063 (≈ 10000 × 1100.6/100).
+        // 10.000 nominal alış, alış-dönemi per-unit nominal TL maliyet 11.006.000 (≈ 10000 × 1100.6, /100 YOK).
+        // Builder de aynı simetri ile parUnscaledBond=true olduğunda /100'ü atlar → cost ve mv aynı birim.
         PortfolioHoldingResponse h = holding("TRT070727T13",
-                new BigDecimal("10000"), new BigDecimal("110063"));
+                new BigDecimal("10000"), new BigDecimal("11006000"));
         h.setFirstBuyDate(java.time.LocalDateTime.of(2026, 3, 1, 0, 0));
         enricher.enrich(h);
 
         assertThat(h.getCurrentPrice()).isEqualByComparingTo("1223.262");
-        // mv = 10000 × 1223.262 / 100 = 122.326,20 (ek çarpan YOK — çifte sayım olmaz)
-        assertThat(h.getMarketValue()).isEqualByComparingTo("122326.2000");
-        // K/Z = 122.326,20 − 110.063 = 12.263,20 (bondun kendi nominal getirisi)
-        assertThat(h.getProfitLoss()).isEqualByComparingTo("12263.2000");
+        // mv = 10000 × 1223.262 = 12.232.620,00 (per-unit nominal — /100 YOK)
+        assertThat(h.getMarketValue()).isEqualByComparingTo("12232620.0000");
+        // K/Z = 12.232.620,00 − 11.006.000 = 1.226.620,00 (bondun kendi nominal getirisi)
+        assertThat(h.getProfitLoss()).isEqualByComparingTo("1226620.0000");
+        // PL% = 1.226.620 / 11.006.000 × 100 ≈ %11,15 (frontend mv/cost ratio'su ile birebir)
+        assertThat(h.getProfitLossPercent()).isEqualByComparingTo("11.15");
         assertThat(h.getCurrency()).isEqualTo("TRY");
     }
 
     @Test
-    @DisplayName("evds TÜFE-strip: deflator hiç çağrılmaz — mv düz nominal qty × price / 100")
+    @DisplayName("evds TÜFE-strip: mv = qty × price (per-unit nominal, /100 YOK) — deflator hiç çağrılmaz")
     void evds_inflationStrip_noDeflatorInteraction() {
         when(eurobondService.currentIsins()).thenReturn(List.of());
 
@@ -263,12 +266,12 @@ class BondHoldingEnricherTest {
         when(evdsBondService.getEvdsBondHistory(any(), any())).thenReturn(null);
 
         PortfolioHoldingResponse h = holding("TRT030626K26",
-                new BigDecimal("10000"), new BigDecimal("900"));
+                new BigDecimal("10000"), new BigDecimal("90000"));
         h.setFirstBuyDate(java.time.LocalDateTime.of(2023, 3, 8, 0, 0));
         enricher.enrich(h);
 
-        // mv = 10.000 × 95 / 100 = 9.500 (deflator artık enjekte bile edilmiyor)
-        assertThat(h.getMarketValue()).isEqualByComparingTo("9500.0000");
+        // mv = 10.000 × 95 = 950.000 (TÜFE-strip per-unit nominal — /100 YOK; deflator artık enjekte edilmiyor)
+        assertThat(h.getMarketValue()).isEqualByComparingTo("950000.0000");
     }
 
     // =========================================================================

@@ -198,6 +198,12 @@ public class PortfolioPerformanceService {
      * Enflasyon (TÜFE) referans çizgisini her noktaya yazar: ilk noktanın piyasa değeri, ilk gün
      * TÜFE'sine göre o günkü TÜFE'yle ölçeklenir → {@code infValue(t) = baseMv × TÜFE(t)/TÜFE(t0)}.
      * "Param sadece enflasyon kadar değerlenseydi" benchmark'ı. TÜFE verisi yoksa alan null kalır.
+     *
+     * <p>TÜFE serisi aylık olduğundan {@code indexValueAt} (en yakın aylık nokta) ile çekersek
+     * 32 günlük performans penceresinde tüm günler aynı aylık noktaya snap'lenir ve referans
+     * çizgi sabitleşir (her noktada {@code infValue == baseMv}). Bunun yerine
+     * {@link InflationDeflatorService#cumulativeFactor(List, LocalDate, LocalDate)}
+     * interpolasyonlu faktörünü kullanırız → günlük noktalar arasında bileşik artış görünür.
      */
     private void applyInflationBaseline(List<PortfolioPerformancePoint> points) {
         if (points == null || points.isEmpty()) {
@@ -217,19 +223,14 @@ public class PortfolioPerformanceService {
                 || first.getMarketValue().signum() <= 0) {
             return;
         }
-        var baseIdxOpt = deflator.indexValueAt(tufe, first.getDate());
-        if (baseIdxOpt.isEmpty()) {
-            return;
-        }
         BigDecimal baseMv = first.getMarketValue();
-        BigDecimal baseIdx = baseIdxOpt.get();
+        LocalDate baseDate = first.getDate();
         for (PortfolioPerformancePoint p : points) {
             if (p.getDate() == null) {
                 continue;
             }
-            deflator.indexValueAt(tufe, p.getDate()).ifPresent(idx -> {
-                BigDecimal v = baseMv.multiply(idx)
-                        .divide(baseIdx, MONEY_SCALE, RoundingMode.HALF_UP);
+            deflator.cumulativeFactor(tufe, baseDate, p.getDate()).ifPresent(f -> {
+                BigDecimal v = baseMv.multiply(f).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
                 p.setInflationValue(v);
             });
         }

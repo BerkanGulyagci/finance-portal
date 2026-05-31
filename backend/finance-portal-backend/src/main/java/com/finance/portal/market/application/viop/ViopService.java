@@ -51,10 +51,14 @@ public class ViopService {
 
     private final ViopContractListPort viopContractListPort;
     private final ViopService self;
+    private final ViopIndexCodeMapper indexCodeMapper;
 
-    public ViopService(ViopContractListPort viopContractListPort, @Lazy ViopService self) {
+    public ViopService(ViopContractListPort viopContractListPort,
+                       @Lazy ViopService self,
+                       ViopIndexCodeMapper indexCodeMapper) {
         this.viopContractListPort = viopContractListPort;
         this.self = self;
+        this.indexCodeMapper = indexCodeMapper;
     }
 
     @Cacheable(cacheNames = "market.viop.contracts", key = "'all'")
@@ -181,7 +185,41 @@ public class ViopService {
         if (needle.isEmpty()) {
             return Optional.empty();
         }
+        // Bazı portföy kayıtları sembolü İş Yatırım kanonik formuyla saklar
+        // (örn. "F_AKBNK0626"). Akbank listesinde bu form bulunmaz (Akbank "AKBNK (30 Haz 26)
+        // Vadeli FIZ." formatı kullanır). F_ prefix tespit edilirse listedeki her kontratın
+        // İş Yatırım kodunu hesaplayıp eşleşeni döndür → enrichment tamamen sessizce başarısız
+        // olup viopMultiplier/marginPosted/marketValue null kalmasın.
+        Optional<ViopContract> isYatirimMatch = findByIsYatirimCode(needle, contracts);
+        if (isYatirimMatch.isPresent()) {
+            return isYatirimMatch;
+        }
         return findContractForPortfolioSymbol(needle, contracts);
+    }
+
+    /**
+     * F_AKBNK0626 gibi İş Yatırım kanonik kodlu sembolü, Akbank listesindeki kontrata bağlar.
+     * Her Akbank ismi ({@code "AKBNK (30 Haz 26) Vadeli FIZ."}) için
+     * {@link ViopIndexCodeMapper#toIsYatirimEndeksCode} F_ kodu üretir; needle'la eşleşeni döner.
+     * Listede ~180 kontrat olduğu için tarama maliyeti ihmal edilebilir (önbellekte sıcak).
+     */
+    private Optional<ViopContract> findByIsYatirimCode(String needle, List<ViopContract> contracts) {
+        if (needle == null || needle.length() < 3) {
+            return Optional.empty();
+        }
+        String upper = needle.toUpperCase(Locale.ROOT);
+        if (!upper.startsWith("F_")) {
+            return Optional.empty();
+        }
+        for (ViopContract c : contracts) {
+            if (c.getName() == null) continue;
+            Optional<String> code = indexCodeMapper.toIsYatirimEndeksCode(c.getName());
+            if (code.isPresent() && code.get().equalsIgnoreCase(upper)) {
+                log.info("VIOP reverse-mapped IsYatirim code '{}' -> Akbank '{}'", upper, c.getName());
+                return Optional.of(c);
+            }
+        }
+        return Optional.empty();
     }
 
     /**

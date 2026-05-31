@@ -208,8 +208,8 @@ class PortfolioRealReturnEnricherTest {
     }
 
     @Test
-    @DisplayName("apply: enflasyon faktörü Optional.empty → satır enflasyon kolonları null kalır")
-    void apply_factorEmpty_skipsRow() {
+    @DisplayName("apply: enflasyon faktörü Optional.empty → singleLot fallback ile factor=1, satır da reel kolonu alır")
+    void apply_factorEmpty_singleLotFallback() {
         PortfolioHoldingResponse h = holding("THYAO", "1000", "1100", "TRY",
                 LocalDate.of(2026, 1, 1));
         PortfolioResponse r = new PortfolioResponse();
@@ -218,9 +218,11 @@ class PortfolioRealReturnEnricherTest {
 
         enricher.apply(r);
 
-        assertThat(h.getRealProfitLoss()).isNull();
-        assertThat(h.getRealProfitLossTry()).isNull();
-        // Yine de toplama factor=1 ile katılır → totalRealPL = 100
+        // P1 Bug 4 fix: faktör boş olsa bile fallbackBuyDate varsa factor=1 kullanılıp
+        // satır reel kolonu hesaplanır (kısa vadeli/yeni pozisyonların boş kalmaması için).
+        assertThat(h.getRealProfitLoss()).isEqualByComparingTo("100.0000");
+        assertThat(h.getRealProfitLossTry()).isEqualByComparingTo("100.0000");
+        // Toplama da factor=1 ile katılır → totalRealPL = 100
         assertThat(r.getTotalRealProfitLoss()).isEqualByComparingTo("100.0000");
     }
 

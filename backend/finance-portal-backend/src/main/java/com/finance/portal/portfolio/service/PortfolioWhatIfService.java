@@ -241,7 +241,6 @@ public class PortfolioWhatIfService {
         BigDecimal assetBase;
         BigDecimal goldBase;
         BigDecimal usdBase;
-        BigDecimal cpiBase;
         BigDecimal usCpiBase;
         BigDecimal bistBase;
         BigDecimal btcBase;
@@ -507,7 +506,8 @@ public class PortfolioWhatIfService {
             }
             p.goldBase = goldAvail ? floorVal(goldMap, p.date) : null;
             p.usdBase = usdAvail ? floorVal(usdMap, p.date) : null;
-            p.cpiBase = inflAvail ? deflator.indexValueAt(tufe, p.date).orElse(null) : null;
+            // TÜFE baz değeri artık SeriesPos'ta saklanmıyor — interpolasyonlu
+            // cumulativeFactor(tufe, p.date, t) anlık olarak hesaplıyor (bkz. bug 8).
             p.usCpiBase = usCpiAvail ? deflator.indexValueAt(usCpi, p.date).orElse(null) : null;
             p.bistBase = bistAvail ? floorVal(bistMap, p.date) : null;
             p.btcBase = btcAvail ? floorVal(btcMap, p.date) : null;
@@ -526,7 +526,7 @@ public class PortfolioWhatIfService {
             BigDecimal bistT = bistAvail ? floorVal(bistMap, t) : null;
             BigDecimal btcT = btcAvail ? floorVal(btcMap, t) : null;
             BigDecimal gspcT = sp500Avail ? floorVal(gspcMap, t) : null;
-            BigDecimal cpiT = inflAvail ? deflator.indexValueAt(tufe, t).orElse(null) : null;
+            // TÜFE: artık t-anlık nokta değil, cumulativeFactor(buyDate, t) ile hesaplanıyor.
             BigDecimal usCpiT = usCpiAvail ? deflator.indexValueAt(usCpi, t).orElse(null) : null;
             Map<String, BigDecimal> benchT = new HashMap<>();
             for (var e : benchMaps.entrySet()) {
@@ -595,8 +595,15 @@ public class PortfolioWhatIfService {
                 if (usdAvail && positive(usdT) && positive(p.usdBase)) {
                     usd = usd.add(ratio(p.costTl, usdT, p.usdBase)); anyU = true;
                 }
-                if (inflAvail && positive(cpiT) && positive(p.cpiBase)) {
-                    infl = infl.add(ratio(p.costTl, cpiT, p.cpiBase)); anyI = true;
+                if (inflAvail) {
+                    // İnterpolasyonlu faktör — aylık seriye snap'lenmeden günlük/aylık t'ler
+                    // arasında smoothly artar. {@code indexValueAt}'in en yakın aylık noktaya
+                    // snap yapması nedeniyle bug 8: aynı ay içindeki t'ler için cpiT==cpiBase
+                    // → factor=1 → enflasyon çizgisi cost'ta sabit kalıyordu.
+                    var f = deflator.cumulativeFactor(tufe, p.date, t);
+                    if (f.isPresent() && f.get().signum() > 0) {
+                        infl = infl.add(p.costTl.multiply(f.get())); anyI = true;
+                    }
                 }
                 if (usCpiAvail && positive(usCpiT) && positive(p.usCpiBase) && positive(usdT) && positive(p.usdBase)) {
                     // ABD enflasyonu (TL): (ABD CPI oranı) × (USD/TRY oranı)

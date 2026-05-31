@@ -214,13 +214,7 @@ public class PortfolioRealReturnEnricher {
                                              LocalDate fallbackBuyDate,
                                              List<EconomySeriesPoint> series) {
         if (lots == null || lots.isEmpty()) {
-            // Eski davranış — eski tx verisi henüz lot taşımıyor olabilir.
-            if (fallbackBuyDate == null) {
-                return null;
-            }
-            return deflator.cumulativeFactor(series, fallbackBuyDate)
-                    .map(f -> new LotInflation(totalCost.multiply(f), f))
-                    .orElse(null);
+            return singleLotFallback(totalCost, fallbackBuyDate, series);
         }
         BigDecimal realCostSum = BigDecimal.ZERO;
         BigDecimal costSum = BigDecimal.ZERO;
@@ -241,7 +235,12 @@ public class PortfolioRealReturnEnricher {
                 weightedFactorNum = weightedFactorNum.add(c);
             }
         }
-        if (!anyFactor || costSum.signum() <= 0) return null;
+        // Lot path yetersizse (hiç geçerli lot yok, hiç faktör hesaplanamadı, vb.) FUTURE
+        // branch'iyle aynı mantıkta single-lot fallback'e düş — böylece kısa-vadeli/yeni
+        // pozisyonlarda da satır reel kolonları boş kalmaz.
+        if (!anyFactor || costSum.signum() <= 0) {
+            return singleLotFallback(totalCost, fallbackBuyDate, series);
+        }
         BigDecimal weighted = weightedFactorNum.divide(costSum, MathContext.DECIMAL64);
         // realCost'u verilen toplam cost'la (kuruşçu yuvarlama farkı için) yeniden ölçekle
         // ki frame'ler arası tutarlılık bozulmasın.
@@ -249,6 +248,20 @@ public class PortfolioRealReturnEnricher {
                 .multiply(totalCost)
                 .divide(costSum, MathContext.DECIMAL64);
         return new LotInflation(scaledRealCost, weighted);
+    }
+
+    /**
+     * Lot yokken (veya hiçbir lot için faktör hesaplanamazken) tek lot gibi davran:
+     * fallbackBuyDate'ten bugüne TÜFE/CPI faktörüyle totalCost'u şişir. Faktör yoksa
+     * (çok eski / çok yeni tarih) reel=nominal say — toplam bozulmasın, FUTURE branch ile aynı.
+     */
+    private LotInflation singleLotFallback(BigDecimal totalCost,
+                                           LocalDate fallbackBuyDate,
+                                           List<EconomySeriesPoint> series) {
+        if (totalCost == null || totalCost.signum() <= 0) return null;
+        if (fallbackBuyDate == null) return null;
+        BigDecimal f = deflator.cumulativeFactor(series, fallbackBuyDate).orElse(BigDecimal.ONE);
+        return new LotInflation(totalCost.multiply(f), f);
     }
 
     /** (mv / base − 1) × 100, yüzde olarak. */

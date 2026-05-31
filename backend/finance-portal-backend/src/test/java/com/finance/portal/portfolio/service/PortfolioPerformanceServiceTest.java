@@ -251,13 +251,16 @@ class PortfolioPerformanceServiceTest {
                 point(LocalDate.of(2026, 2, 1), "1100")));
         when(calculator.calculate(any(), any(), any(), any(), any(), any())).thenReturn(stubbed);
 
-        // TÜFE: Ocak=100, Şubat=110 → 10% yıllık enflasyon, baseline 1000 → 1100
+        // TÜFE: Ocak=100, Şubat=110 → 10% yıllık enflasyon, baseline 1000 → 1100.
+        // Servis interpolasyonlu cumulativeFactor(series, baseDate, t) kullanır (bkz. bug 9 fix):
+        //   factor(Jan 1 → Jan 1) = 1.00 → infValue = 1000
+        //   factor(Jan 1 → Feb 1) = 1.10 → infValue = 1100
         when(deflator.tufeSeries()).thenReturn(List.of(
                 new EconomySeriesPoint("2026-01-01", new BigDecimal("100"), 0L)));
-        when(deflator.indexValueAt(any(), eq(LocalDate.of(2026, 1, 1))))
-                .thenReturn(Optional.of(new BigDecimal("100")));
-        when(deflator.indexValueAt(any(), eq(LocalDate.of(2026, 2, 1))))
-                .thenReturn(Optional.of(new BigDecimal("110")));
+        when(deflator.cumulativeFactor(any(), eq(LocalDate.of(2026, 1, 1)), eq(LocalDate.of(2026, 1, 1))))
+                .thenReturn(Optional.of(new BigDecimal("1.00")));
+        when(deflator.cumulativeFactor(any(), eq(LocalDate.of(2026, 1, 1)), eq(LocalDate.of(2026, 2, 1))))
+                .thenReturn(Optional.of(new BigDecimal("1.10")));
 
         PortfolioPerformanceResult r = service.getPerformance(USER_ID, PORTFOLIO_ID, "1Y", "VALUE");
 

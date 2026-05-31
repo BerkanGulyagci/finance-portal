@@ -126,4 +126,23 @@ public enum BondCategory {
                 || this == GOLD_INDEXED_LEASE_CERTIFICATE
                 || this == FX_LEASE_CERTIFICATE;
     }
+
+    /**
+     * EVDS "Gösterge Değeri" doğrudan bir birim (adet / gram / endekslenmiş nominal TL)
+     * cinsinden kote ediliyor mu? Bu kategorilerde TCMB'nin "100 TL nominal üzerinden"
+     * yüzde-quote konvansiyonu UYGULANMAZ — yani holdings hem cost hem mv hesabında
+     * {@code /100} ölçeği atlamalıdır:
+     * <ul>
+     *   <li>{@link #GOLD_INDEXED_BOND}: birim 1 gram has altın, fiyat TL/gram (binlerce TL).</li>
+     *   <li>TÜFE-endeksli aile: indicator değeri ZATEN ihraçtan bugüne enflasyonla büyütülmüş
+     *       nominal TL — kullanıcı da modal/autofill'de bu nominal-endeksli TL'yi girer
+     *       (TRT070727T13 ~1225, TRT270127T15 ~6500). /100 uygulanırsa hem cost hem mv
+     *       100× küçülür; uygulanmazsa ikisi de büyük ama tutarlı, PL% aynı.</li>
+     * </ul>
+     * Aksi takdirde (Tier 1 TL, Eurobond, FX_DENOMINATED, kira sertifikaları): klasik
+     * % nominal quote → {@code /100} uygulanır.
+     */
+    public boolean usesPerUnitNominalQuote() {
+        return this == GOLD_INDEXED_BOND || isInflationIndexed();
+    }
 }

@@ -65,7 +65,7 @@ public class GoldHoldingEnricher {
             asOf = PortfolioDateTimeParse.parseLenient(spot.getUpdatedAt());
         }
 
-        String upper = holding.getSymbol().toUpperCase(Locale.ROOT);
+        String upper = normalizeGoldSymbol(holding.getSymbol());
         BigDecimal price;
         String currency;
         BigDecimal change = null;
@@ -167,6 +167,30 @@ public class GoldHoldingEnricher {
         if (spot.getQuantityKg() != null) {
             holding.setVolume(spot.getQuantityKg().longValue());
         }
+    }
+
+    /**
+     * Sembol formlarını canonical anahtara çevirir. Eski/yeni veri tutarsızlığını tolere eder:
+     *   "GRAM" → "GRAM"; "GOLD:GRAM_TRY" → "GRAM"; "GOLD:ONS_USD" / "GOLD" → "GOLD";
+     *   "GOLD:CEYREK" → "CEYREK" vb. Bilinmeyenler upper-case haliyle döner ve mevcut
+     *   switch default'una düşer (UnsupportedOperationException; dispatcher tarafından
+     *   sessizce ele alınır).
+     */
+    static String normalizeGoldSymbol(String raw) {
+        if (raw == null) return "";
+        String upper = raw.trim().toUpperCase(Locale.ROOT);
+        if (upper.isEmpty()) return upper;
+        // "GOLD:..." biçimini (modal/search varyantları) suffix'e indir
+        if (upper.startsWith("GOLD:")) {
+            String suffix = upper.substring("GOLD:".length());
+            // Kategori suffix'leri (GRAM_TRY, ONS_USD, ONS_TRY, USD_ONS): GRAM_TRY → gram altın TL.
+            return switch (suffix) {
+                case "", "GOLD", "ONS", "ONS_USD", "ONS_TRY", "USD_ONS", "TRY_ONS" -> "GOLD";
+                case "GRAM", "GRAM_TRY", "TRY_GRAM" -> "GRAM";
+                default -> suffix; // CEYREK / YARIM / TAM / ATA / 14AYAR / 22AYAR vb. doğrudan
+            };
+        }
+        return upper;
     }
 
     static String goldHoldingDisplayName(String upper) {
