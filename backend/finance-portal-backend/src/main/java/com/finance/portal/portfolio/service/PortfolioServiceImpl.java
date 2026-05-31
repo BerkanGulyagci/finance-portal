@@ -3,6 +3,8 @@ package com.finance.portal.portfolio.service;
 import com.finance.portal.common.application.logging.BusinessLogSupport;
 import com.finance.portal.common.application.logging.CentralBusinessLogService;
 import com.finance.portal.common.domain.AssetType;
+import com.finance.portal.market.application.bond.evds.EvdsBondInstrument;
+import com.finance.portal.market.application.bond.evds.model.BondCategory;
 import com.finance.portal.market.application.viop.ViopService;
 import com.finance.portal.portfolio.domain.Portfolio;
 import com.finance.portal.portfolio.domain.PortfolioTransaction;
@@ -859,6 +861,25 @@ public class PortfolioServiceImpl implements PortfolioService {
                 log.debug("VIOP spec lookup failed for symbol={} tx={}: {}",
                         tx.getSymbol(), tx.getId(), ex.getMessage());
             }
+        }
+
+        // BOND nominal ölçek katsayısı: işlem listesindeki "Toplam" hesabı için.
+        //   - Altına dayalı senet (GOLD_INDEXED_BOND): birim 1 gram has altın → bölme YOK (parScale = 1).
+        //   - Diğer tüm DİBS / Eurobond / TÜFE-endeksli / kira sertifikaları: TCMB "100 TL nominal
+        //     üzerinden temiz fiyat" konvansiyonu → parScale = 100.
+        // EvdsBondService.getEvdsBondDetail @Cacheable olduğundan per-tx çağrı maliyetsizdir.
+        if (tx.getAssetType() == AssetType.BOND) {
+            BigDecimal parScale = new BigDecimal("100");
+            try {
+                EvdsBondInstrument bond = evdsBondService.getEvdsBondDetail(tx.getSymbol());
+                if (bond != null && bond.getCategory() == BondCategory.GOLD_INDEXED_BOND) {
+                    parScale = BigDecimal.ONE;
+                }
+            } catch (Exception ex) {
+                log.debug("Bond category lookup failed for symbol={} tx={}: {} — defaulting parScale=100",
+                        tx.getSymbol(), tx.getId(), ex.getMessage());
+            }
+            r.setBondParScale(parScale);
         }
         return r;
     }

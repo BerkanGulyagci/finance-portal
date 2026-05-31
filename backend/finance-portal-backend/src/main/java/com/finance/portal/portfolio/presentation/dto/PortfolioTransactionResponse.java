@@ -31,4 +31,16 @@ public class PortfolioTransactionResponse {
     private BigDecimal viopMultiplier;
     /** VİOP başlangıç teminat oranı (marginRate). Yalnızca FUTURE için doludur; diğerleri null. */
     private BigDecimal viopMarginRate;
+
+    /**
+     * BOND nominal ölçek katsayısı (par scale). Yalnızca BOND için doludur; diğerleri null.
+     * <ul>
+     *   <li>{@code 100} — Klasik DİBS / Eurobond / TÜFE-endeksli / kira sertifikası: TCMB
+     *       konvansiyonu "100 TL nominal üzerinden temiz fiyat" → {@code Toplam = qty × price / 100}.</li>
+     *   <li>{@code 1} — Altına dayalı senet ({@link com.finance.portal.market.application.bond.evds.model.BondCategory#GOLD_INDEXED_BOND}):
+     *       birim 1 gram has altın, fiyat TL/gram → {@code Toplam = qty × price} (bölme yok).</li>
+     * </ul>
+     * Frontend BU alanı işlem-satırı "Toplam" hesabında bölücü olarak kullanır.
+     */
+    private BigDecimal bondParScale;
 }

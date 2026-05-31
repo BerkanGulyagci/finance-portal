@@ -47,10 +47,8 @@ function txBondMix(transactions) {
  *   transactions: PortfolioTransactionResponse[]
  *   onDelete(txId): void
  *   deletingId: string | null
- *   goldBondSymbols: Set<string> — altın bond ISIN'leri (BOND /100 istisnası); opsiyonel
  */
-export default function TransactionsTable({ transactions = [], onDelete, deletingId, goldBondSymbols }) {
-  const isGoldBondSymbol = (sym) => goldBondSymbols instanceof Set && goldBondSymbols.has(String(sym ?? '').toUpperCase());
+export default function TransactionsTable({ transactions = [], onDelete, deletingId }) {
   const { t: tr } = useTranslation();
 
   // ── Filtreler ────────────────────────────────────────────────────────────
@@ -84,8 +82,12 @@ export default function TransactionsTable({ transactions = [], onDelete, deletin
   }
 
   const mix = txBondMix(filtered);
+  // BOND tx için "Toplam" = qty × price / bondParScale (backend doldurur):
+  //   - Klasik DİBS/Eurobond/TÜFE/kira sertifikası → bondParScale = 100 (TCMB %-of-par konvansiyonu).
+  //   - Altına dayalı senet (GOLD_INDEXED_BOND)     → bondParScale = 1 (birim 1 gram has altın, TL/gram).
+  // Header "BİRİM FİYAT" her iki konvansiyonu da kapsar; "(/100)" suffix'i artık yok.
   const priceHeader = mix.onlyBond
-    ? tr('Birim Fiyat (/100)')
+    ? tr('Birim Fiyat')
     : mix.mixed
       ? tr('Fiyat / Birim Fiyat')
       : tr('Fiyat');
@@ -168,12 +170,19 @@ export default function TransactionsTable({ transactions = [], onDelete, deletin
                 const isCoupon = t.transactionType === 'COUPON_INCOME';
                 const isBondTx = String(t.assetType ?? '').toUpperCase() === 'BOND';
                 const isFutureTx = String(t.assetType ?? '').toUpperCase() === 'FUTURE';
-                // BOND için "Toplam" = qty × price / 100 (TCMB konvansiyonu).
-                // Altın bond istisnası: birim adet/gram → /100 YOK.
+                // BOND için "Toplam" = qty × price / bondParScale (backend doldurur).
+                //   - Klasik DİBS / Eurobond / TÜFE-endeksli / kira sertifikası → parScale = 100
+                //     (TCMB "100 TL nominal üzerinden temiz fiyat" konvansiyonu).
+                //   - Altına dayalı senet (GOLD_INDEXED_BOND) → parScale = 1
+                //     (birim 1 gram has altın, fiyat TL/gram → bölme yok).
+                // Eski sürüm sembol-seti üzerinden tahmin yapıyordu; artık per-tx alan
+                // (bondParScale) kullanıyoruz → tek-tip ve doğru.
                 // COUPON_INCOME: qty = TL tutar, price = 1.
                 // FUTURE (VİOP): "Toplam" = teminat = qty × fiyat × çarpan × marjin.
                 //   Backend artık viopMultiplier + viopMarginRate alanlarını dolduruyor.
-                const isGoldBondTx = isBondTx && isGoldBondSymbol(t.symbol);
+                const bondParScale = isBondTx
+                  ? (t.bondParScale != null ? parseFloat(t.bondParScale) : 100)
+                  : 1;
                 // VİOP teminat hesaplanabilirliği: multiplier + marginRate dolu mu?
                 const viopMult = t.viopMultiplier != null ? parseFloat(t.viopMultiplier) : NaN;
                 const viopMargin = t.viopMarginRate != null ? parseFloat(t.viopMarginRate) : NaN;
@@ -184,8 +193,8 @@ export default function TransactionsTable({ transactions = [], onDelete, deletin
                       ? (futureCanCompute
                           ? parseFloat(t.quantity ?? 0) * parseFloat(t.price ?? 0) * viopMult * viopMargin
                           : NaN)
-                      : (isBondTx && !isGoldBondTx
-                          ? parseFloat(t.quantity ?? 0) * parseFloat(t.price ?? 0) / 100
+                      : (isBondTx
+                          ? parseFloat(t.quantity ?? 0) * parseFloat(t.price ?? 0) / (bondParScale || 1)
                           : parseFloat(t.quantity ?? 0) * parseFloat(t.price ?? 0)));
                 // Bug B render-side un-flip: persist katmanı VİOP+SHORT için UI BUY/SELL'i
                 // tersine çevirip kaydediyor (accumulator semantiği BUY=+qty, SELL=-qty pool için).
