@@ -28,6 +28,7 @@ import PortfoliosCard from './components/PortfoliosCard';
 import RecentTransactionsCard from './components/RecentTransactionsCard';
 import PersonalNewsCard from './components/PersonalNewsCard';
 import MarketListCard from './components/MarketListCard';
+import MarketMoversCard from './components/MarketMoversCard';
 import EconomyCard from './components/EconomyCard';
 import FavoritesCard from './components/FavoritesCard';
 import { num } from './utils/dashUtils';
@@ -287,6 +288,7 @@ export default function DashboardPage() {
     node: <MarketListCard title={t('Fonlar (TEFAS)')} icon={Layers} accent="#10b981"
       type="FUND" logoKind="letter" defaultRows={fundRows} loading={fundLoading} storageKey="fp-dash-fund-extra" />,
   });
+  items.push({ key: 'movers', w: 4, h: 8, node: <MarketMoversCard /> });
 
   charts.forEach(c => {
     const owner = assetPortfolios.find(p =>

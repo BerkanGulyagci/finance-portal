@@ -250,6 +250,12 @@ public class CacheConfig {
                 .withCacheConfiguration("market.commodity.spot", marketCommoditySpotCacheConfig)
                 .withCacheConfiguration("market.commodity.history", marketCommodityHistoryCacheConfig)
                 .withCacheConfiguration("cryptoMarketsCache", cryptoMarketsCacheConfig)
+                // Piyasanın hareketlileri (movers) — cache'li listelerden türetilir; 120 sn intraday tazelik için yeterli
+                .withCacheConfiguration("market.movers",
+                        RedisCacheConfiguration.defaultCacheConfig()
+                                .entryTtl(Duration.ofSeconds(120))
+                                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(
+                                        new GenericJackson2JsonRedisSerializer())))
                 .withCacheConfiguration("market.crypto.chart", cryptoChartCacheConfig)
                 .withCacheConfiguration("market.crypto.ohlc", cryptoChartCacheConfig)
                 .withCacheConfiguration("market.crypto.binance.candles", cryptoChartCacheConfig)

@@ -415,6 +415,15 @@ export async function getEconomyCharts() {
 }
 
 /**
+ * Piyasanın hareketlileri — günün en çok yükselen/düşen enstrümanları (tüm piyasa, portföyden bağımsız).
+ * GET /api/market/movers?limit=5 → [{ key, label, gainers:[mover], losers:[mover] }]
+ */
+export async function getMarketMovers(limit = 5) {
+  const { data } = await client.get('/api/market/movers', { params: { limit } });
+  return data.data ?? [];
+}
+
+/**
  * Güncel kredi faiz oranları (ihtiyaç/taşıt/konut/ticari) — kredi taksit hesaplayıcısı için.
  * GET /api/market/economy/loan-rates
  */

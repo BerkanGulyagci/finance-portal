@@ -62,6 +62,12 @@ const en = {
   'Hisse Senetleri': 'Stocks',
   'Fonlar (TEFAS)': 'Funds (TEFAS)',
 
+  // Piyasanın Hareketlileri (Movers)
+  'Piyasanın Hareketlileri': 'Market Movers',
+  'En Çok Yükselenler': 'Top Gainers',
+  'En Çok Düşenler': 'Top Losers',
+  'BIST Hisse': 'BIST Stocks',
+
   // Ekonomi Göstergeleri
   'Ekonomi Göstergeleri': 'Economic Indicators',
   'Enflasyon (TÜFE, yıllık)': 'Inflation (CPI, annual)',
