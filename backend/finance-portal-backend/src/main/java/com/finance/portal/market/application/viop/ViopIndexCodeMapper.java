@@ -32,9 +32,46 @@ public class ViopIndexCodeMapper {
      * Grup 4: yıl (2 rakam)
      */
     private static final Pattern FUTURES_PATTERN = Pattern.compile(
-            "^([A-ZÇĞİÖŞÜ0-9]{4,7})\\s*\\((\\d{2})\\s+(\\S+)\\s+(\\d{2})\\).*(?i)vadeli",
+            // 4..8 — ELCBAS05 / ELCBASQ3 gibi vade prefix'inde kodlanmış 8 karakterli sembolleri de kapsar
+            "^([A-ZÇĞİÖŞÜ0-9]{4,8})\\s*\\((\\d{2})\\s+(\\S+)\\s+(\\d{2})\\).*(?i)vadeli",
             Pattern.UNICODE_CHARACTER_CLASS
     );
+
+    /**
+     * ELCBAS aylık sözleşmesi — "ELCBAS{MM} (DD Ay YY) Vadeli" formatı. Vade ayı/yılı
+     * sembol prefix'inde değil parantezde gelir. Ay token'ı bu parantezden çözülür.
+     */
+    private static final Pattern ELCBAS_MONTHLY_PATTERN = Pattern.compile(
+            "^ELCBAS\\d{2}\\s*\\(\\d{2}\\s+(\\S+)\\s+(\\d{2})\\).*(?i)vadeli",
+            Pattern.UNICODE_CHARACTER_CLASS
+    );
+
+    /** ELCBAS quarterly — "ELCBASQ{1-4} (DD Ay YY) Vadeli". Vade quarter prefix'te, yıl parantezde. */
+    private static final Pattern ELCBAS_QUARTERLY_PATTERN = Pattern.compile(
+            "^ELCBASQ(\\d)\\s*\\(\\d{2}\\s+\\S+\\s+(\\d{2})\\).*(?i)vadeli",
+            Pattern.UNICODE_CHARACTER_CLASS
+    );
+
+    /** ELCBAS yıllık — "ELCBASY (DD Ay YY) Vadeli" — vade yılı sadece YY. */
+    private static final Pattern ELCBAS_YEARLY_PATTERN = Pattern.compile(
+            "^ELCBASY\\s*\\(\\d{2}\\s+\\S+\\s+(\\d{2})\\).*(?i)vadeli",
+            Pattern.UNICODE_CHARACTER_CLASS
+    );
+
+    /**
+     * Akbank kısa adı → İş Yatırım underlier kodu. Bazı Akbank kısa adları İş Yatırım
+     * kütüğündeki underlier ile birebir aynı değil — örn. GAUTRY (Akbank) = XAUTRYM (İş Yatırım,
+     * 1 gr mini-altın TL). İş Yatırım grafik endpoint'i F_GAUTRY0626 sorgusuna boş döner, F_XAUTRYM0626
+     * sorgusuna gerçek veri döner.
+     */
+    private static final Map<String, String> AKBANK_TO_ISYATIRIM_UNDERLIER = Map.of(
+            "GAUTRY", "XAUTRYM"
+    );
+
+    private static String aliasUnderlying(String akbankUnderlier) {
+        if (akbankUnderlier == null) return null;
+        return AKBANK_TO_ISYATIRIM_UNDERLIER.getOrDefault(akbankUnderlier, akbankUnderlier);
+    }
 
     /** Opsiyon sözleşmesi tanıma — "Call" veya "Put" içerir */
     private static final Pattern OPTION_PATTERN = Pattern.compile(
@@ -167,13 +204,20 @@ public class ViopIndexCodeMapper {
             return Optional.empty();
         }
 
+        // ELCBAS özel formatları — vade prefix'te encode edilmiş, generic mapper kullanılamaz.
+        Optional<String> elcbas = tryElcbas(trimmed);
+        if (elcbas.isPresent()) {
+            log.debug("ELCBAS mapped '{}' -> '{}'", contractName, elcbas.get());
+            return elcbas;
+        }
+
         Matcher matcher = FUTURES_PATTERN.matcher(trimmed);
         if (!matcher.find()) {
             log.debug("Contract name does not match futures pattern: '{}'", contractName);
             return Optional.empty();
         }
 
-        String underlying = matcher.group(1).toUpperCase();
+        String underlying = aliasUnderlying(matcher.group(1).toUpperCase());
         String monthRaw   = matcher.group(3);
         String year       = matcher.group(4);
 
@@ -186,6 +230,39 @@ public class ViopIndexCodeMapper {
         String endeksCode = "F_" + underlying + monthCode + year;
         log.debug("Mapped '{}' -> '{}'", contractName, endeksCode);
         return Optional.of(endeksCode);
+    }
+
+    /**
+     * ELCBAS (elektrik) sözleşmeleri için Akbank → İş Yatırım kod çevirimi.
+     * Vade Akbank sembol prefix'inde kodlanmış (örn. ELCBAS05 = aylık prefix, ELCBASQ3 = Q3,
+     * ELCBASY = yıllık) ve parantezde sadece vade-sonu tarihi var.
+     *
+     * Backend resolver pattern'leri:
+     *   F_ELCBASQ{quarter}{YY} → quarterly
+     *   F_ELCBASY{YY}          → yearly
+     *   F_ELCBAS{MM}{YY}       → monthly
+     */
+    private Optional<String> tryElcbas(String contractName) {
+        Matcher q = ELCBAS_QUARTERLY_PATTERN.matcher(contractName);
+        if (q.find()) {
+            String quarter = q.group(1);
+            String year    = q.group(2);
+            return Optional.of("F_ELCBASQ" + quarter + year);
+        }
+        Matcher y = ELCBAS_YEARLY_PATTERN.matcher(contractName);
+        if (y.find()) {
+            return Optional.of("F_ELCBASY" + y.group(1));
+        }
+        Matcher m = ELCBAS_MONTHLY_PATTERN.matcher(contractName);
+        if (m.find()) {
+            // Sembol prefix'i ELCBAS05/06 vb. — vade ayını parantezdeki ay token'ından çöz
+            // (Akbank gösterimde ay her zaman parantezdeki "DD Ay YY" alanında doğru).
+            String monthCode = resolveMonth(m.group(1));
+            if (monthCode == null) return Optional.empty();
+            String year = m.group(2);
+            return Optional.of("F_ELCBAS" + monthCode + year);
+        }
+        return Optional.empty();
     }
 
     public boolean isSupportedFuture(String contractName) {

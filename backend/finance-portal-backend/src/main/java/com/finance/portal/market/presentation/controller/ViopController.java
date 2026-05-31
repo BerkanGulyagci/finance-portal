@@ -2,6 +2,7 @@ package com.finance.portal.market.presentation.controller;
 
 import com.finance.portal.common.presentation.dto.ApiResponse;
 import com.finance.portal.market.application.viop.ViopContract;
+import com.finance.portal.market.application.viop.ViopIndexCodeMapper;
 import com.finance.portal.market.application.viop.ViopService;
 import com.finance.portal.portfolio.application.viop.spec.ViopContractSpec;
 import com.finance.portal.portfolio.application.viop.spec.ViopContractSpecRegistry;
@@ -25,10 +26,14 @@ public class ViopController {
 
     private final ViopService viopService;
     private final ViopContractSpecRegistry specRegistry;
+    private final ViopIndexCodeMapper indexCodeMapper;
 
-    public ViopController(ViopService viopService, ViopContractSpecRegistry specRegistry) {
+    public ViopController(ViopService viopService,
+                          ViopContractSpecRegistry specRegistry,
+                          ViopIndexCodeMapper indexCodeMapper) {
         this.viopService = viopService;
         this.specRegistry = specRegistry;
+        this.indexCodeMapper = indexCodeMapper;
     }
 
     @GetMapping
@@ -52,6 +57,8 @@ public class ViopController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> getSpec(@RequestParam String symbol) {
         ViopContractSpec spec = specRegistry.resolveOrFallback(symbol);
         boolean found = specRegistry.resolveBySymbol(symbol).isPresent();
+        // İş Yatırım endeks kodu (F_XXXMMYY) — kullanıcı detay sayfasında BIST resmi kodu görsün
+        String isYatirimCode = indexCodeMapper.toIsYatirimEndeksCode(symbol).orElse(null);
         Map<String, Object> dto = new HashMap<>();
         dto.put("code", spec.code());
         dto.put("assetClass", spec.assetClass() != null ? spec.assetClass().name() : null);
@@ -60,6 +67,7 @@ public class ViopController {
         dto.put("currency", spec.currency());
         dto.put("settlementType", spec.settlementType() != null ? spec.settlementType().name() : null);
         dto.put("found", found);
+        dto.put("isYatirimCode", isYatirimCode);     // ör. "F_AKBNK0626"; null = Akbank format değil
         return ResponseEntity.ok(ApiResponse.success(dto, "VIOP contract spec"));
     }
 }

@@ -184,4 +184,54 @@ class ViopIndexCodeMapperTest {
         assertThat(mapper.isSupportedFuture("AKBNK Mayis 2026 Call 72.00 E")).isFalse();
         assertThat(mapper.isSupportedFuture("THYAO Mayis 2026 Put 330.00 E")).isFalse();
     }
+
+    // ── Akbank → İş Yatırım underlier alias ───────────────────────────────────
+
+    @ParameterizedTest(name = "Akbank ''{0}'' -> İş Yatırım ''{1}''")
+    @DisplayName("GAUTRY (Akbank kısa adı) XAUTRYM'e alias edilmeli (İş Yatırım F_GAUTRY... boş döner)")
+    @CsvSource({
+            "GAUTRY (30 Haz 26) Vadeli, F_XAUTRYM0626",
+            "GAUTRY (31 Ağu 26) Vadeli, F_XAUTRYM0826",
+            "GAUTRY (30 Eki 26) Vadeli, F_XAUTRYM1026",
+    })
+    void shouldAliasGautryToXautrym(String contractName, String expectedCode) {
+        assertThat(mapper.toIsYatirimEndeksCode(contractName))
+                .isPresent()
+                .hasValue(expectedCode);
+    }
+
+    // ── ELCBAS (elektrik) — vade prefix'te encoded ───────────────────────────
+
+    @ParameterizedTest(name = "ELCBAS aylık ''{0}'' -> ''{1}''")
+    @DisplayName("ELCBAS aylık: vade ayı parantezdeki tarihten çözülmeli (ELCBAS{ay}{yıl})")
+    @CsvSource({
+            "ELCBAS05 (01 Haz 26) Vadeli, F_ELCBAS0626",
+            "ELCBAS06 (30 Haz 26) Vadeli, F_ELCBAS0626",
+            "ELCBAS07 (31 Tem 26) Vadeli, F_ELCBAS0726",
+    })
+    void shouldMapElcbasMonthly(String contractName, String expectedCode) {
+        assertThat(mapper.toIsYatirimEndeksCode(contractName))
+                .isPresent()
+                .hasValue(expectedCode);
+    }
+
+    @ParameterizedTest(name = "ELCBAS quarterly ''{0}'' -> ''{1}''")
+    @DisplayName("ELCBAS quarterly: F_ELCBASQ{quarter}{yıl} formatı")
+    @CsvSource({
+            "ELCBASQ3 (29 Haz 26) Vadeli, F_ELCBASQ326",
+            "ELCBASQ4 (29 Eyl 26) Vadeli, F_ELCBASQ426",
+            "ELCBASQ1 (29 Ara 26) Vadeli, F_ELCBASQ126",
+    })
+    void shouldMapElcbasQuarterly(String contractName, String expectedCode) {
+        assertThat(mapper.toIsYatirimEndeksCode(contractName))
+                .isPresent()
+                .hasValue(expectedCode);
+    }
+
+    @Test
+    @DisplayName("ELCBAS yıllık: F_ELCBASY{yıl}")
+    void shouldMapElcbasYearly() {
+        assertThat(mapper.toIsYatirimEndeksCode("ELCBASY (29 Ara 26) Vadeli"))
+                .hasValue("F_ELCBASY26");
+    }
 }

@@ -376,6 +376,17 @@ viop:
       marginRate: 0.14
       currency: TRY
       settlementType: CASH
+    # Akbank "GAUTRY" kısa adı XAUTRYM (mini-altın TL, 1 gram) sözleşmesinin
+    # marketing adıdır — BIST resmi kodu XAUTRYM. Spec lookup'ta "GAUTRY" anahtarıyla
+    # arandığında doğrudan eşleşsin diye XAUTRY ile aynı değerleri taşıyan ayrı entry.
+    # Akbank-gösterim → İş Yatırım kod çevirimi ViopIndexCodeMapper'da
+    # AKBANK_TO_ISYATIRIM_UNDERLIER ile XAUTRYM'e remap edilir.
+    - code: GAUTRY
+      assetClass: PRECIOUS_METAL
+      multiplier: 1           # 1 gram (XAUTRY ile aynı kontrat)
+      marginRate: 0.14
+      currency: TRY
+      settlementType: CASH
     - code: XAUUSD
       assetClass: PRECIOUS_METAL
       multiplier: 1           # 1 ounce

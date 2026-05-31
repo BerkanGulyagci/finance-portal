@@ -65,12 +65,20 @@ public class ViopChartService {
     public List<ViopChartPoint> getChart(String contractName, ViopChartPeriod period) {
         String normalizedName = TurkishCharFixer.fix(contractName.trim());
 
-        String endeksCode = indexCodeMapper.toIsYatirimEndeksCode(normalizedName)
-                .orElseThrow(() -> {
-                    log.warn("Unsupported VIOP contract for chart: '{}'", contractName);
-                    return new UnsupportedViopContractException(
-                            "Bu VİOP sözleşmesi için İş Yatırım grafik kodu üretilemedi: " + normalizedName);
-                });
+        // Input "F_XXX..." formatında ise zaten İş Yatırım endeks kodu — Akbank parser'a sokma.
+        // Bu sayede portföy holdings storage'ta "F_AKBNK0626" gibi sembol tutulan eski transaction'lar
+        // veya RelatedViopContracts gibi UI'lar Akbank canonical alabilirse doğrudan çağrı atabilir.
+        String endeksCode;
+        if (normalizedName.toUpperCase(java.util.Locale.ENGLISH).startsWith("F_")) {
+            endeksCode = normalizedName.toUpperCase(java.util.Locale.ENGLISH);
+        } else {
+            endeksCode = indexCodeMapper.toIsYatirimEndeksCode(normalizedName)
+                    .orElseThrow(() -> {
+                        log.warn("Unsupported VIOP contract for chart: '{}'", contractName);
+                        return new UnsupportedViopContractException(
+                                "Bu VİOP sözleşmesi için İş Yatırım grafik kodu üretilemedi: " + normalizedName);
+                    });
+        }
 
         String key = endeksCode + "|" + period.name();
         long now = System.currentTimeMillis();
