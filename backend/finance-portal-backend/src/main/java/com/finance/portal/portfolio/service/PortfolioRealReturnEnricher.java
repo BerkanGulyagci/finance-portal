@@ -136,6 +136,16 @@ public class PortfolioRealReturnEnricher {
             boolean isUsd = isUsdCurrency(cur);
             LocalDate buyDate = h.getFirstBuyDate() != null ? h.getFirstBuyDate().toLocalDate() : null;
 
+            // BOND için kupon stok-tipi step-up: Reel K/Z hesabında "güncel değer" =
+            // marketValue + ŞimdiyeKadarKiKuponlar. AddCouponIncomeRequest TL kupon tutarı
+            // saklar → couponsTl her zaman TRY. Native frame'de yalnız TRY pozisyon için
+            // doğrudan eklenir (USD eurobond gibi non-TRY native bond'larda kupon currency
+            // ayrımı yok → native frame boost'u atlanır, TL frame'de doğru kalır).
+            BigDecimal coupons = (h.getAssetType() == com.finance.portal.common.domain.AssetType.BOND
+                    && h.getSumCouponIncome() != null)
+                    ? h.getSumCouponIncome() : BigDecimal.ZERO;
+            BigDecimal couponsNative = (coupons.signum() > 0 && isTry) ? coupons : BigDecimal.ZERO;
+
             // Çoklu BUY'da firstBuyDate kullanmak en eski tarihten TÜM cost'u şişirir →
             // gerçek dışı kayıp gösterir. Her açık BUY lotunu (SELL'lerce orantısal küçültülmüş
             // halde) kendi alış tarihinden bugüne ayrı faktörle çarpıp toplarız.
@@ -147,8 +157,9 @@ public class PortfolioRealReturnEnricher {
             if (nativeSeries != null && !nativeSeries.isEmpty()) {
                 LotInflation natFrame = computeLotInflation(lots, cost, buyDate, nativeSeries);
                 if (natFrame != null) {
-                    h.setRealProfitLoss(marketValue.subtract(natFrame.realCost).setScale(MONEY_SCALE, RoundingMode.HALF_UP));
-                    h.setRealProfitLossPercent(pct(marketValue, natFrame.realCost));
+                    BigDecimal mvAdj = marketValue.add(couponsNative);
+                    h.setRealProfitLoss(mvAdj.subtract(natFrame.realCost).setScale(MONEY_SCALE, RoundingMode.HALF_UP));
+                    h.setRealProfitLossPercent(pct(mvAdj, natFrame.realCost));
                     h.setInflationSincePercent(natFrame.weightedFactor.subtract(BigDecimal.ONE)
                             .multiply(HUNDRED).setScale(PCT_SCALE, RoundingMode.HALF_UP));
                     h.setInflationSource(nativeSource);
@@ -160,13 +171,16 @@ public class PortfolioRealReturnEnricher {
             BigDecimal mvTl = currencyConverter.toTry(marketValue, cur);
             if (costTl == null || mvTl == null || costTl.signum() <= 0) continue;
 
+            // Kupon TL'de saklanıyor → TL frame'de doğrudan eklenir.
+            BigDecimal mvTlAdj = mvTl.add(coupons);
+
             // TÜFE çerçevesinde lots'ı TL'ye çeviriyoruz (cost-bazında oran korunur).
             LotInflation tlFrame = computeLotInflation(lots, costTl, buyDate, tufe);
 
             // 2a) Satır kolonları: yalnız hesaplanabilen enflasyon faktörüyle (yeni alımda "–").
             if (tlFrame != null) {
-                h.setRealProfitLossTry(mvTl.subtract(tlFrame.realCost).setScale(MONEY_SCALE, RoundingMode.HALF_UP));
-                h.setRealProfitLossPercentTry(pct(mvTl, tlFrame.realCost));
+                h.setRealProfitLossTry(mvTlAdj.subtract(tlFrame.realCost).setScale(MONEY_SCALE, RoundingMode.HALF_UP));
+                h.setRealProfitLossPercentTry(pct(mvTlAdj, tlFrame.realCost));
                 h.setInflationSinceTryPercent(tlFrame.weightedFactor.subtract(BigDecimal.ONE)
                         .multiply(HUNDRED).setScale(PCT_SCALE, RoundingMode.HALF_UP));
             }
@@ -175,7 +189,7 @@ public class PortfolioRealReturnEnricher {
             // Böylece toplam Reel K/Z, nominal Açık K/Z ile AYNI varlık kümesini kapsar → karşılaştırılabilir.
             BigDecimal realCostTlTotal = tlFrame != null ? tlFrame.realCost : costTl;
             sumRealCostTl = sumRealCostTl.add(realCostTlTotal);
-            sumRealPlTl = sumRealPlTl.add(mvTl.subtract(realCostTlTotal));
+            sumRealPlTl = sumRealPlTl.add(mvTlAdj.subtract(realCostTlTotal));
             anyTl = true;
         }
 

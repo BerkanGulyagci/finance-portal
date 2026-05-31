@@ -157,6 +157,22 @@ public class PortfolioHoldingResponse {
     private List<CostLot> openCostLots;
 
     /**
+     * BOND için: bu açık pozisyona kayıtlı tüm COUPON_INCOME işlemlerinin TL toplamı.
+     * Reel K/Z hesabında (marketValue + sumCouponIncome − inflatedCost) ile birlikte kullanılır
+     * ve What-if "Gerçek" çizgisinde her ödeme tarihinde step-up sağlanır. Diğer asset tiplerinde
+     * null; BOND için kupon yoksa 0 olabilir. {@code realizedGainLoss} ile karışmasın diye AYRI
+     * tutulur (realizedGainLoss SELL P/L + kupon karışımı; bu alan sadece kupon).
+     */
+    private BigDecimal sumCouponIncome;
+
+    /**
+     * BOND için: kupon ödeme olayları (tarih + TL tutar). What-if "Gerçek" çizgisi her olayın
+     * tarihinde step-up uygular (date ≤ t koşulu). Yalnız backend hesabı için — JSON'a yansımaz.
+     */
+    @JsonIgnore
+    private List<CouponEvent> couponEvents;
+
+    /**
      * {@link #openCostLots} elemanı: alış tarihi + maliyet katkısı (varlığın kendi para biriminde)
      * + kalan nominal/adet (SELL'de maliyetle aynı oranda küçülür). {@code qty}, What-if "Gerçek"
      * çizgisinin gerçek piyasa değerini (qty × fiyat) hesaplaması için gerekir; eski/test verisinde
@@ -167,4 +183,9 @@ public class PortfolioHoldingResponse {
             this(buyDate, cost, null);
         }
     }
+
+    /**
+     * Tek bir kupon ödemesi: ödeme tarihi + TL tutar. {@link #couponEvents} elemanı.
+     */
+    public record CouponEvent(LocalDate date, BigDecimal amountTl) {}
 }

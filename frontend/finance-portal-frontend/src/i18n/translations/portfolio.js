@@ -114,6 +114,9 @@ const en = {
   'Emtia': 'Commodity',
   'DİBS': 'Bond',
 
+  // HoldingsTable BOND quantity suffix — TCMB nominal convention
+  'TL nominal': 'TRY nominal',
+
   // HoldingsDetail
   'Portföy Özeti': 'Portfolio Summary',
   'Değerleri göster': 'Show values',

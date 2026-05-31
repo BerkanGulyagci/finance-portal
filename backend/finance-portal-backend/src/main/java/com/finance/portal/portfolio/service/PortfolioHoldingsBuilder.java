@@ -187,6 +187,14 @@ public class PortfolioHoldingsBuilder {
             holding.setFirstBuyDate(acc.firstBuyDate);
             holding.setLastTransactionDate(txs.get(txs.size() - 1).getTransactionDate());
             holding.setOpenCostLots(acc.snapshotLots());
+            // BOND için kupon sum + ödeme olaylarını DTO'ya yansıt: Reel K/Z (mv + sumCoupons − inflatedCost)
+            // ve What-if "Gerçek" çizgisi (her ödeme tarihinde step-up) için gerek var. Diğer asset
+            // tiplerinde acc.couponIncomeSum hep ZERO + couponEvents boş kalır → field null/sıfır verilir
+            // sorun yaratmaz.
+            if (acc.assetType == AssetType.BOND) {
+                holding.setSumCouponIncome(acc.couponIncomeSum.setScale(MONEY_SCALE, RoundingMode.HALF_UP));
+                holding.setCouponEvents(new ArrayList<>(acc.couponEvents));
+            }
 
             // VİOP: pozisyon yönü transaction'lardan kalıt — grouping key direction'ı içerdiği
             // için bir holding içindeki tüm txs zaten aynı yönde olur.
@@ -299,6 +307,14 @@ public class PortfolioHoldingsBuilder {
         BigDecimal realizedGainLossSum = BigDecimal.ZERO;
         BigDecimal totalSoldCostBasis = BigDecimal.ZERO;
         /**
+         * BOND COUPON_INCOME işlemlerinden gelen toplam TL kupon geliri. realizedGainLossSum
+         * ile karışmasın diye AYRI tutulur — Reel K/Z ve What-if "Gerçek" çizgisinde tek-yönlü
+         * step-up için gerek var; SELL P/L ile karıştırmak çift-sayım yaratır.
+         */
+        BigDecimal couponIncomeSum = BigDecimal.ZERO;
+        /** Kupon ödeme olayları: tarih + TL tutar. What-if step-up tarihleri için. */
+        final List<PortfolioHoldingResponse.CouponEvent> couponEvents = new ArrayList<>();
+        /**
          * Hiç SELL yapılmadan önce yatırılan toplam BUY maliyeti — kapalı pozisyon (özellikle BOND
          * vade itfası sonrası) için "Toplam yatırım vs realized" görüntüsünde kullanılır.
          * SELL ile azalmaz; sadece BUY ile büyür.
@@ -329,9 +345,17 @@ public class PortfolioHoldingsBuilder {
 
             // COUPON_INCOME: pozisyondan bağımsız realized gelir kaydı.
             // Konvansiyon: quantity = TL kupon tutarı, price = 1; realized += qty × price = amount.
+            // Ayrıca couponIncomeSum + couponEvents'e de eklenir ki Reel K/Z ve What-if "Gerçek"
+            // çizgisi (kapalı pozisyonun realizedGainLossSum'ından bağımsız olarak) kupon step-up'ını
+            // uygulayabilsin.
             if (tx.getTransactionType() == TransactionType.COUPON_INCOME) {
                 BigDecimal income = qty.multiply(price);
                 realizedGainLossSum = realizedGainLossSum.add(income);
+                couponIncomeSum = couponIncomeSum.add(income);
+                if (txDate != null) {
+                    couponEvents.add(new PortfolioHoldingResponse.CouponEvent(
+                            txDate.toLocalDate(), income));
+                }
                 anySell = true; // realized alanları DTO'ya yansısın
                 return;
             }

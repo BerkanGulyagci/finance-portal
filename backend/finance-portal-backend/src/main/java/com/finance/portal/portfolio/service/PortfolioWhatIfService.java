@@ -77,8 +77,12 @@ public class PortfolioWhatIfService {
         this.currencyConverter = currencyConverter;
     }
 
-    /** Bir pozisyonun kıyas verisi: TL maliyet, bugünkü TL değer, ilk alış tarihi. */
-    private record Pos(BigDecimal costTl, BigDecimal mvTl, LocalDate date) {}
+    /**
+     * Bir pozisyonun kıyas verisi: TL maliyet, bugünkü TL değer, ilk alış tarihi,
+     * + BOND için bugüne kadar alınan TL kupon toplamı (sıfırdan büyükse "Gerçek" değere eklenir;
+     * Reel K/Z ile aynı kupon-step-up mantığı).
+     */
+    private record Pos(BigDecimal costTl, BigDecimal mvTl, LocalDate date, BigDecimal sumCouponsTl) {}
 
     private record DateRate(LocalDate date, double rate) {}
 
@@ -106,14 +110,21 @@ public class PortfolioWhatIfService {
                 skipped++;
                 continue;
             }
+            // BOND için kümülatif TL kupon — "Gerçek" değer mvTl + sumCouponsTl olur (Reel K/Z
+            // ile aynı mantık). Diğer asset tiplerinde 0.
+            BigDecimal sumCouponsTl =
+                    (h.getAssetType() == AssetType.BOND && h.getSumCouponIncome() != null)
+                            ? h.getSumCouponIncome() : BigDecimal.ZERO;
             // "Gerçek" = pozisyonun gerçek piyasa değeri (mvTl = toTry(holding.marketValue)). BOND'larda
             // da cost ve MV artık tutarlı TL (eurobond cost FX çevirimi kaldırıldı) → ekstra ratio
             // düzeltmesine gerek yok; actualReturn = mvTl/costTl doğrudan Holdings getirisidir.
             // Çoklu BUY'da her lot kendi alış tarihinden senaryo faktörüyle çarpılır.
             // Tek lot ya da lot bilgisi yoksa eski tek-Pos davranışı korunur.
+            // KUPON: holding seviyesinde bir kez sayılmalı → yalnız İLK lot için sumCouponsTl
+            // taşırız; diğer lotların sumCouponsTl alanı ZERO bırakılır.
             List<PortfolioHoldingResponse.CostLot> lots = h.getOpenCostLots();
             if (lots == null || lots.isEmpty()) {
-                positions.add(new Pos(costTl, mvTl, date));
+                positions.add(new Pos(costTl, mvTl, date, sumCouponsTl));
             } else {
                 // MV proportional bölüştürme: lot.costTl × totalMv / totalCost
                 BigDecimal totalLotCostNative = BigDecimal.ZERO;
@@ -123,15 +134,19 @@ public class PortfolioWhatIfService {
                     }
                 }
                 if (totalLotCostNative.signum() <= 0) {
-                    positions.add(new Pos(costTl, mvTl, date));
+                    positions.add(new Pos(costTl, mvTl, date, sumCouponsTl));
                 } else {
+                    boolean firstLot = true;
                     for (PortfolioHoldingResponse.CostLot lot : lots) {
                         if (lot.cost() == null || lot.cost().signum() <= 0 || lot.buyDate() == null) continue;
                         BigDecimal lotCostTl = currencyConverter.toTry(lot.cost(), h.getCurrency());
                         if (lotCostTl == null || lotCostTl.signum() <= 0) continue;
                         BigDecimal lotMvTl = mvTl.multiply(lotCostTl)
                                 .divide(costTl, MathContext.DECIMAL64);
-                        positions.add(new Pos(lotCostTl, lotMvTl, lot.buyDate()));
+                        // Kupon toplamını yalnız ilk lot taşır — holding seviyesi tek seferlik.
+                        BigDecimal lotCoupons = firstLot ? sumCouponsTl : BigDecimal.ZERO;
+                        firstLot = false;
+                        positions.add(new Pos(lotCostTl, lotMvTl, lot.buyDate(), lotCoupons));
                         if (lot.buyDate().isBefore(earliest)) {
                             earliest = lot.buyDate();
                         }
@@ -139,7 +154,8 @@ public class PortfolioWhatIfService {
                 }
             }
             totalCost = totalCost.add(costTl);
-            actualValue = actualValue.add(mvTl);
+            // BOND'da kupon stok-tipi step-up: actualValue (snapshot) = mvTl + sumCouponsTl.
+            actualValue = actualValue.add(mvTl).add(sumCouponsTl);
             if (date.isBefore(earliest)) {
                 earliest = date;
             }
@@ -244,6 +260,12 @@ public class PortfolioWhatIfService {
          * ile parite. Historical (today öncesi) noktalar yine seriden gelir.
          */
         BigDecimal spotTodayMv;
+        /**
+         * BOND için: holding seviyesindeki kupon ödeme olayları (tarih + TL tutar).
+         * Yalnız bir holding'in İLK lotuna iliştirilir; diğer lotlarda boş kalır → çift sayım
+         * olmaz. "Gerçek" çizgisinde her t için Σ(amountTl : event.date ≤ t) eklenir.
+         */
+        List<PortfolioHoldingResponse.CouponEvent> couponEvents;
         BigDecimal assetBase;
         BigDecimal goldBase;
         BigDecimal usdBase;
@@ -338,13 +360,21 @@ public class PortfolioWhatIfService {
             // noktasında bunu tercih eder (eskimiş seri-close değerini bypass eder, ör. TEFAS
             // gün-sonu fiyatı henüz publish olmadığında). Lots'a bölüşürken cost-orantılı dağıtırız.
             BigDecimal totalMvTl = currencyConverter.toTry(h.getMarketValue(), h.getCurrency());
+            // BOND için: holding seviyesindeki kupon olayları — yalnız İLK lota ekle (çift sayım
+            // olmasın). Yalnız non-null + non-empty olduğunda taşınır.
+            List<PortfolioHoldingResponse.CouponEvent> couponEvents =
+                    (h.getAssetType() == AssetType.BOND && h.getCouponEvents() != null
+                            && !h.getCouponEvents().isEmpty())
+                            ? h.getCouponEvents() : null;
             if (lots == null || lots.isEmpty()) {
                 SeriesPos sp = new SeriesPos(costTl, date, assetSeries);
                 sp.effQty = effQtyOf(h.getTotalQuantity(), parScale);
                 sp.spotTodayMv = totalMvTl;
+                sp.couponEvents = couponEvents;
                 positions.add(sp);
             } else {
                 // Lot-bazlı: totalMv'i lotCostTl/costTl oranıyla dağıt → lots toplamı = totalMv.
+                boolean firstLot = true;
                 for (PortfolioHoldingResponse.CostLot lot : lots) {
                     if (lot.cost() == null || lot.cost().signum() <= 0 || lot.buyDate() == null) continue;
                     BigDecimal lotCostTl = currencyConverter.toTry(lot.cost(), h.getCurrency());
@@ -354,6 +384,10 @@ public class PortfolioWhatIfService {
                     if (totalMvTl != null && totalMvTl.signum() > 0 && costTl.signum() > 0) {
                         sp.spotTodayMv = totalMvTl.multiply(lotCostTl)
                                 .divide(costTl, MathContext.DECIMAL64);
+                    }
+                    if (firstLot) {
+                        sp.couponEvents = couponEvents;
+                        firstLot = false;
                     }
                     positions.add(sp);
                     if (lot.buyDate().isBefore(earliest)) {
@@ -614,6 +648,18 @@ public class PortfolioWhatIfService {
                                 ? v.multiply(p.effQty)
                                 : ratio(p.costTl, v, p.assetBase));
                         anyA = true;
+                    }
+                }
+                // BOND kupon step-up: holding seviyesindeki couponEvents yalnız ilk lota iliştirilmiş.
+                // t ≥ ödeme tarihi olan tüm kuponları (TL) "Gerçek"e ekle → ödeme günlerinde step-up
+                // şekli. Tarihsel "Gerçek" çizgisinin ödenmiş kuponları gözardı etmemesi için.
+                if (p.couponEvents != null && !p.couponEvents.isEmpty()) {
+                    for (PortfolioHoldingResponse.CouponEvent ev : p.couponEvents) {
+                        if (ev.date() != null && ev.amountTl() != null
+                                && !ev.date().isAfter(t) && ev.amountTl().signum() > 0) {
+                            actual = actual.add(ev.amountTl());
+                            anyA = true;
+                        }
                     }
                 }
                 if (goldAvail && positive(goldT) && positive(p.goldBase)) {
