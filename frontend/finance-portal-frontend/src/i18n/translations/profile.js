@@ -65,6 +65,35 @@ const en = {
     'Password could not be changed. You can try via Keycloak Account Settings.',
   'Mevcut şifre hatalı.': 'Current password is incorrect.',
   'Şifre güncellenemedi. Lütfen tekrar deneyin.': 'Could not update password. Please try again.',
+
+  // MarginAlertSettings (VİOP teminat uyarısı kartı — Profil sağ kolon)
+  'Teminat Uyarısı (VİOP)': 'Margin Alert (Futures)',
+  'Açık VİOP pozisyonlarının marjin oranı bu eşiğin altına düşerse bildirim ve e-posta alırsınız. 0 = kapalı.':
+    'You will receive notifications and email if the margin ratio of any open futures position falls below this threshold. 0 = disabled.',
+  'Marjin oranı eşik (%)': 'Margin ratio threshold (%)',
+  'Kapalı': 'Off',
+  'Hızlı seç:': 'Quick pick:',
+  'Teminat uyarısı kaydedildi.': 'Margin alert saved.',
+  'Eski sistemden kalan MARGIN_RATIO alarmlarınızı': 'You can clean up legacy MARGIN_RATIO alarms from your',
+  'Alarmlarım sayfasından': 'Alarms page',
+  'temizleyebilirsiniz.': '.',
+
+  // AlarmCreateModal — eski sistem etiketi
+  'Teminat Oranı (VİOP) — Eski Sistem': 'Margin Ratio (Futures) — Legacy',
+  'Teminat uyarıları artık Profil sayfasından tek noktadan yönetilir.':
+    'Margin alerts are now managed centrally from the Profile page.',
+  'Profil': 'Profile',
+
+  // AlarmsManager — eski sistem rozeti
+  '(eski sistem)': '(legacy)',
+  'Eski sistem alarmları düzenlenemez. Yeni alarm Profil sayfasından yapılır.':
+    'Legacy alarms cannot be edited. Configure new margin alerts from the Profile page.',
+
+  // AlarmsPage description (yeni iki cümle)
+  'Fiyat koşulu sağlandığında uygulama-içi bildirim ve onaylı e-postanıza mail alırsınız.':
+    'When the price condition is met you will receive an in-app notification and an email to your verified address.',
+  'VİOP teminat uyarıları için Profil sayfasındaki Teminat Uyarısı bölümünü kullanın.':
+    'For futures margin alerts use the Margin Alert section on the Profile page.',
 };
 
 export default { en };

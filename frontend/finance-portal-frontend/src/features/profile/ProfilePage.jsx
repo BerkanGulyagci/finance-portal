@@ -10,6 +10,7 @@ import {
   ProfilePasswordModal,
 } from './components/ProfileAccountModals';
 import TickerCustomizer from './components/TickerCustomizer';
+import MarginAlertSettings from './components/MarginAlertSettings';
 import NewsletterModal from '../../components/shared/NewsletterModal';
 import SupportTicketsCard from './components/SupportTicketsCard';
 import { getNewsletter } from '../../api/newsletterApi';
@@ -265,6 +266,8 @@ export default function ProfilePage() {
             {/* Sağ — piyasa şeridi + bülten */}
             <div className="lg:col-span-1 min-w-0 space-y-5">
               <TickerCustomizer />
+
+              <MarginAlertSettings />
 
               <section className="m3-card p-3 sm:p-6">
                 <CardHeader

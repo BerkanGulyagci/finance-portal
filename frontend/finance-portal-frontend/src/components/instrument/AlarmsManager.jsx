@@ -127,7 +127,9 @@ export default function AlarmsManager({ compact = false }) {
         </div>
       ) : (
         <div className="space-y-2">
-          {list.map(a => (
+          {list.map(a => {
+            const isLegacyMargin = a.metric === 'MARGIN_RATIO';
+            return (
             <div key={a.id} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-gray-200 hover:border-gray-300 transition-all">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -136,6 +138,14 @@ export default function AlarmsManager({ compact = false }) {
                     {t(ASSET_LABEL[a.assetType] ?? a.assetType)}
                   </span>
                   <StatusBadge status={a.status} t={t} />
+                  {isLegacyMargin && (
+                    <span
+                      title={t('Teminat uyarıları artık Profil sayfasından tek noktadan yönetilir.')}
+                      className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-amber-50 text-amber-700 border-amber-200"
+                    >
+                      {t('(eski sistem)')}
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs text-gray-500 mt-0.5">
                   {t('Bu alarm')} {t(METRIC_WORD[a.metric] ?? 'fiyat')}{' '}
@@ -151,8 +161,9 @@ export default function AlarmsManager({ compact = false }) {
                 )}
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
-                <button onClick={() => setEditAlarm(a)} disabled={busyId === a.id}
-                  title={t('Düzenle')} className="p-2 sm:p-1.5 rounded-lg text-gray-400 hover:text-[#093eaa] hover:bg-[#093eaa]/5 transition-colors disabled:opacity-40">
+                <button onClick={() => setEditAlarm(a)} disabled={busyId === a.id || isLegacyMargin}
+                  title={isLegacyMargin ? t('Eski sistem alarmları düzenlenemez. Yeni alarm Profil sayfasından yapılır.') : t('Düzenle')}
+                  className="p-2 sm:p-1.5 rounded-lg text-gray-400 hover:text-[#093eaa] hover:bg-[#093eaa]/5 transition-colors disabled:opacity-40">
                   <Pencil className="w-4 h-4" />
                 </button>
                 <button onClick={() => togglePause(a)} disabled={busyId === a.id || a.status === 'TRIGGERED'}
@@ -166,7 +177,8 @@ export default function AlarmsManager({ compact = false }) {
                 </button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

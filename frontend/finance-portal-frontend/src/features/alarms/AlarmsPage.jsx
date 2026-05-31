@@ -18,7 +18,9 @@ export default function AlarmsPage() {
           {t('Alarmlarımı Düzenle')}
         </h1>
         <p className="text-sm text-gray-500 mt-2 pl-5">
-          {t('Fiyat veya VİOP teminat oranı koşulu sağlandığında uygulama-içi bildirim ve onaylı e-postanıza mail alırsınız.')}
+          {t('Fiyat koşulu sağlandığında uygulama-içi bildirim ve onaylı e-postanıza mail alırsınız.')}
+          {' '}
+          {t('VİOP teminat uyarıları için Profil sayfasındaki Teminat Uyarısı bölümünü kullanın.')}
         </p>
       </div>
 

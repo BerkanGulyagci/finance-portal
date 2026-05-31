@@ -184,36 +184,35 @@ export default function AlarmCreateModal({ instrument, alarm, onClose, onSaved, 
         </div>
 
         <form onSubmit={handleSubmit} className="p-3 sm:p-6 space-y-4 sm:space-y-5">
-          {/* Alarm türü — sadece FUTURE'da MARGIN_RATIO görünür. Edit modunda metrik değiştirilemez (alarm semantiği değişmesin). */}
-          {(isFuture || isMarginMetric) && (
+          {/* Alarm türü — MARGIN_RATIO yalnızca edit modunda (eski sistem) gösterilir; yeni oluşturmada PRICE sabit. */}
+          {editMode && isMarginMetric && (
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1.5">{t('Alarm Türü')}</label>
               <div className="relative">
                 <select
                   value={metric}
-                  onChange={e => onMetricChange(e.target.value)}
-                  disabled={editMode}
-                  className="w-full appearance-none px-3 py-2.5 pr-9 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30 focus:border-[#093eaa] disabled:bg-gray-50 disabled:text-gray-500"
+                  disabled
+                  className="w-full appearance-none px-3 py-2.5 pr-9 border border-gray-200 rounded-xl text-sm bg-gray-50 text-gray-500 focus:outline-none"
                 >
-                  <option value="PRICE">{t('Fiyat')}</option>
-                  {(isFuture || metric === 'MARGIN_RATIO') && (
-                    <option value="MARGIN_RATIO">{t('Teminat Oranı (VİOP)')}</option>
-                  )}
+                  <option value="MARGIN_RATIO">{t('Teminat Oranı (VİOP) — Eski Sistem')}</option>
                 </select>
                 <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               </div>
-              {editMode && (
-                <p className="mt-1 text-[11px] text-gray-400">
-                  {t('Mevcut alarmın türü değiştirilemez. Farklı bir alarm türü için yeni alarm oluşturun.')}
-                </p>
-              )}
+              <p className="mt-1 text-[11px] text-gray-400">
+                {t('Teminat uyarıları artık Profil sayfasından tek noktadan yönetilir.')}
+              </p>
             </div>
           )}
 
-          {nonFutureMarginWarning && (
-            <div className="flex items-start gap-2 text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+          {!editMode && isFuture && (
+            <div className="flex items-start gap-2 text-xs text-[#093eaa] bg-[#093eaa]/5 border border-[#093eaa]/15 rounded-lg px-3 py-2">
               <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <span>{t('Teminat oranı alarmı yalnızca VİOP (FUTURE) enstrümanlarında çalışır.')}</span>
+              <span>
+                {t('Teminat uyarıları artık Profil sayfasından tek noktadan yönetilir.')}{' '}
+                <Link to="/profile" onClick={onClose} className="font-semibold underline">
+                  {t('Profil')}
+                </Link>
+              </span>
             </div>
           )}
 
