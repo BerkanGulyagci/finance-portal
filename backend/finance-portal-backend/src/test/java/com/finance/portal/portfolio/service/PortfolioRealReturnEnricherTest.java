@@ -124,7 +124,7 @@ class PortfolioRealReturnEnricherTest {
         PortfolioResponse r = new PortfolioResponse();
         r.setHoldings(List.of(h));
         // Faktör 1.20 (%20 enflasyon) → reel cost 1200, marketValue 1500 → real PL 300
-        when(deflator.cumulativeFactor(any(), eq(LocalDate.of(2026, 1, 1))))
+        when(deflator.cumulativeFactor(any(), eq(LocalDate.of(2026, 1, 1)), any()))
                 .thenReturn(Optional.of(new BigDecimal("1.20")));
 
         enricher.apply(r);
@@ -148,7 +148,7 @@ class PortfolioRealReturnEnricherTest {
                 LocalDate.of(2026, 1, 1));
         PortfolioResponse r = new PortfolioResponse();
         r.setHoldings(List.of(h));
-        when(deflator.cumulativeFactor(any(), any())).thenReturn(Optional.of(new BigDecimal("1.10")));
+        when(deflator.cumulativeFactor(any(), any(), any())).thenReturn(Optional.of(new BigDecimal("1.10")));
 
         enricher.apply(r);
 
@@ -161,7 +161,7 @@ class PortfolioRealReturnEnricherTest {
         when(deflator.usCpiSeries()).thenReturn(List.of(
                 new EconomySeriesPoint("2026-01-01", new BigDecimal("250"), 0L)));
         // Native (USD): ABD CPI; TL çerçeve için TÜFE
-        when(deflator.cumulativeFactor(any(), any())).thenReturn(Optional.of(new BigDecimal("1.03")));
+        when(deflator.cumulativeFactor(any(), any(), any())).thenReturn(Optional.of(new BigDecimal("1.03")));
         PortfolioHoldingResponse h = holding("AAPL", "100", "120", "USD",
                 LocalDate.of(2026, 1, 1));
         PortfolioResponse r = new PortfolioResponse();
@@ -179,7 +179,7 @@ class PortfolioRealReturnEnricherTest {
     void apply_usdtAlias_treatedAsUsd() {
         when(deflator.usCpiSeries()).thenReturn(List.of(
                 new EconomySeriesPoint("2026-01-01", new BigDecimal("250"), 0L)));
-        when(deflator.cumulativeFactor(any(), any())).thenReturn(Optional.of(new BigDecimal("1.02")));
+        when(deflator.cumulativeFactor(any(), any(), any())).thenReturn(Optional.of(new BigDecimal("1.02")));
         PortfolioHoldingResponse h = holding("BTC", "1000", "1200", "USDT",
                 LocalDate.of(2026, 1, 1));
         PortfolioResponse r = new PortfolioResponse();
@@ -214,7 +214,7 @@ class PortfolioRealReturnEnricherTest {
                 LocalDate.of(2026, 1, 1));
         PortfolioResponse r = new PortfolioResponse();
         r.setHoldings(List.of(h));
-        when(deflator.cumulativeFactor(any(), any())).thenReturn(Optional.empty());
+        when(deflator.cumulativeFactor(any(), any(), any())).thenReturn(Optional.empty());
 
         enricher.apply(r);
 
@@ -244,7 +244,7 @@ class PortfolioRealReturnEnricherTest {
     @Test
     @DisplayName("apply: birden çok holding → toplam reel K/Z ağırlıklı %'si doğru")
     void apply_multipleHoldings_aggregatesTotal() {
-        when(deflator.cumulativeFactor(any(), any())).thenReturn(Optional.of(new BigDecimal("1.10")));
+        when(deflator.cumulativeFactor(any(), any(), any())).thenReturn(Optional.of(new BigDecimal("1.10")));
         PortfolioHoldingResponse a = holding("A", "1000", "1300", "TRY", LocalDate.of(2026, 1, 1));
         PortfolioHoldingResponse b = holding("B", "2000", "2400", "TRY", LocalDate.of(2026, 1, 1));
         PortfolioResponse r = new PortfolioResponse();
@@ -277,9 +277,9 @@ class PortfolioRealReturnEnricherTest {
         PortfolioResponse r = new PortfolioResponse();
         r.setHoldings(List.of(h));
 
-        when(deflator.cumulativeFactor(any(), eq(oldDate)))
+        when(deflator.cumulativeFactor(any(), eq(oldDate), any()))
                 .thenReturn(Optional.of(new BigDecimal("1.50"))); // eski lot: %50 enflasyon
-        when(deflator.cumulativeFactor(any(), eq(newDate)))
+        when(deflator.cumulativeFactor(any(), eq(newDate), any()))
                 .thenReturn(Optional.of(new BigDecimal("1.10"))); // yeni lot: %10 enflasyon
 
         enricher.apply(r);
@@ -301,7 +301,7 @@ class PortfolioRealReturnEnricherTest {
         h.setOpenCostLots(null); // veya boş — eski tx data
         PortfolioResponse r = new PortfolioResponse();
         r.setHoldings(List.of(h));
-        when(deflator.cumulativeFactor(any(), eq(LocalDate.of(2026, 1, 1))))
+        when(deflator.cumulativeFactor(any(), eq(LocalDate.of(2026, 1, 1)), any()))
                 .thenReturn(Optional.of(new BigDecimal("1.20")));
 
         enricher.apply(r);
@@ -320,7 +320,7 @@ class PortfolioRealReturnEnricherTest {
         ));
         PortfolioResponse r = new PortfolioResponse();
         r.setHoldings(List.of(h));
-        when(deflator.cumulativeFactor(any(), eq(buyDate)))
+        when(deflator.cumulativeFactor(any(), eq(buyDate), any()))
                 .thenReturn(Optional.of(new BigDecimal("1.20")));
 
         enricher.apply(r);
@@ -343,9 +343,9 @@ class PortfolioRealReturnEnricherTest {
         PortfolioResponse r = new PortfolioResponse();
         r.setHoldings(List.of(h));
 
-        when(deflator.cumulativeFactor(any(), eq(oldDate)))
+        when(deflator.cumulativeFactor(any(), eq(oldDate), any()))
                 .thenReturn(Optional.of(new BigDecimal("1.50")));
-        when(deflator.cumulativeFactor(any(), eq(newDate)))
+        when(deflator.cumulativeFactor(any(), eq(newDate), any()))
                 .thenReturn(Optional.empty()); // newDate için seri yok
 
         enricher.apply(r);
