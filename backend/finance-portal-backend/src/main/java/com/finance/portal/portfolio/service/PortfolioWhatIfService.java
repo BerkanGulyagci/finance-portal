@@ -499,6 +499,12 @@ public class PortfolioWhatIfService {
             if (p.assetBase != null && p.assetBase.signum() > 0) {
                 actualAvail = true;
             }
+            // FUTURE: tarihsel kapanış yok ama canlı nominal MV varsa "Gerçek" çizgisi
+            // sentetik olarak (cost → futureNotionalMv) doğrusal interpolasyonla çizilir
+            // → actualAvail=true.
+            if (p.isFuture && positive(p.futureNotionalMv)) {
+                actualAvail = true;
+            }
             p.goldBase = goldAvail ? floorVal(goldMap, p.date) : null;
             p.usdBase = usdAvail ? floorVal(usdMap, p.date) : null;
             p.cpiBase = inflAvail ? deflator.indexValueAt(tufe, p.date).orElse(null) : null;
@@ -541,12 +547,26 @@ public class PortfolioWhatIfService {
                 cost = cost.add(p.costTl);
 
                 if (p.isFuture) {
-                    // FUTURE: tarihsel kapanış yok. t bugün/ileri ve canlı nominal MV varsa onu
-                    // kullan (mark-to-market); aksi halde eski ratio fallback'iyle (assetBase var
-                    // ise) yaklaşıklaştır. positive(futureNotionalMv) yoksa katkı verme.
+                    // FUTURE: tarihsel kapanış serisi yok (kaldıraçlı + günlük M2M). "Gerçek"
+                    // çizgisi sentetik olarak şu mantıkla doldurulur:
+                    //   • t = alış tarihi → cost (teminat)
+                    //   • t = bugün / ileri → futureNotionalMv (canlı M2M)
+                    //   • aradaki noktalar → costTl ile futureNotionalMv arasında doğrusal
+                    //     interpolasyon (gün bazında).
+                    // Böylece Gerçek serisi tüm geçmiş için emitlenir (Holdings ile parite:
+                    // bugün noktası = M2M nominal değer). futureNotionalMv yoksa katkı verme.
                     BigDecimal contrib = null;
-                    if (!t.isBefore(today) && positive(p.futureNotionalMv)) {
-                        contrib = p.futureNotionalMv;
+                    if (positive(p.futureNotionalMv)) {
+                        if (!t.isBefore(today)) {
+                            contrib = p.futureNotionalMv;
+                        } else if (!t.isBefore(p.date)) {
+                            long total = Math.max(1L, ChronoUnit.DAYS.between(p.date, today));
+                            long elapsed = Math.max(0L, ChronoUnit.DAYS.between(p.date, t));
+                            BigDecimal frac = BigDecimal.valueOf(elapsed)
+                                    .divide(BigDecimal.valueOf(total), MathContext.DECIMAL64);
+                            BigDecimal delta = p.futureNotionalMv.subtract(p.costTl);
+                            contrib = p.costTl.add(delta.multiply(frac));
+                        }
                     } else if (positive(p.assetBase)) {
                         BigDecimal v = floorVal(p.assetSeries, t);
                         if (positive(v)) {

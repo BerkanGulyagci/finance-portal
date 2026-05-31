@@ -1,6 +1,6 @@
 import { Fragment, useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Settings2, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Plus, Coins } from 'lucide-react';
+import { Settings2, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Plus, Coins, Info } from 'lucide-react';
 import TrendBadge from '../../../components/common/TrendBadge';
 import { computeTrend } from '../../../utils/trendUtils';
 import { getWatchlistDetailPath } from '../constants/watchlistMarketRoutes';
@@ -72,6 +72,7 @@ export const ALL_COLS = [
   // VİOP — sadece FUTURE satırlarda anlamlıdır; diğer satırlarda boş gösterilir.
   { key: 'viopDirection', label: 'VİOP Yön',             def: false, group: 'VİOP',    type: 'string', hint: 'LONG / SHORT' },
   { key: 'viopMargin',    label: 'VİOP Teminat',          def: false, group: 'VİOP',    type: 'number', hint: 'Yatırılan başlangıç teminatı' },
+  { key: 'viopNominal',   label: 'VİOP Nominal',          def: false, group: 'VİOP',    type: 'number', hint: 'Sözleşmenin tam piyasa büyüklüğü qty × fiyat × çarpan; toplama EKLENMEZ — referans için' },
   { key: 'viopLeverage',  label: 'VİOP Kaldıraç',         def: false, group: 'VİOP',    type: 'number', hint: 'Notional / Teminat' },
 ];
 
@@ -359,6 +360,8 @@ export function renderCellForExport(key, h) {
       return h.assetType === 'FUTURE' ? (h.viopDirection ?? 'LONG') : '';
     case 'viopMargin':
       return h.assetType === 'FUTURE' ? numProp('viopMarginPosted') : null;
+    case 'viopNominal':
+      return h.assetType === 'FUTURE' ? numProp('viopNotional') : null;
     case 'viopLeverage':
       return h.assetType === 'FUTURE' ? numProp('viopLeverage') : null;
     default:
@@ -396,6 +399,7 @@ function columnHasValueForHolding(key, h) {
     case 'trend':          return !!computeTrend(h).signal;
     case 'viopDirection':  return h.assetType === 'FUTURE';
     case 'viopMargin':     return h.assetType === 'FUTURE' && h.viopMarginPosted != null;
+    case 'viopNominal':    return h.assetType === 'FUTURE' && h.viopNotional != null;
     case 'viopLeverage':   return h.assetType === 'FUTURE' && h.viopLeverage != null;
     default:               return true; // temel kolonlar
   }
@@ -806,6 +810,22 @@ function renderCell(key, h, commoditySpots, valuesHidden, t) {
           title={mr != null ? t('Marjin oranı: %{pct}', { pct: (mr * 100).toFixed(1) }) : undefined}
         >
           {fmtMoneyTwoDecimals(m, cur) ?? <Dash />}
+        </span>
+      );
+    }
+
+    case 'viopNominal': {
+      if (h.assetType !== 'FUTURE') return <Dash />;
+      if (valuesHidden) return <span className="text-sm text-gray-500 tracking-widest">{MASK_MONEY}</span>;
+      const notional = num(h, 'viopNotional');
+      if (notional == null) return <Dash />;
+      return (
+        <span
+          className="inline-flex items-center gap-1 text-sm text-slate-600 whitespace-nowrap tabular-nums cursor-help"
+          title={t('Sözleşmenin tam piyasa büyüklüğü (adet × fiyat × çarpan). Sadece referans değer — portföy toplamına EKLENMEZ.')}
+        >
+          {fmtMoneyTwoDecimals(notional, cur) ?? <Dash />}
+          <Info className="w-3 h-3 text-slate-400" />
         </span>
       );
     }
