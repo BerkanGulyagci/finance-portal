@@ -30,7 +30,13 @@ class PortfolioHoldingsBuilderTest {
     void setUp() {
         enrichmentPort = mock(HoldingMarketEnrichmentPort.class);
         evdsBondService = mock(com.finance.portal.market.application.bond.evds.EvdsBondService.class);
-        builder = new PortfolioHoldingsBuilder(enrichmentPort, evdsBondService);
+        var specRegistry = mock(com.finance.portal.portfolio.application.viop.spec.ViopContractSpecRegistry.class);
+        // Mevcut testlerin hepsi STOCK/BOND/FUND için → FUTURE yolu vurulmaz, lenient stub yeter.
+        org.mockito.Mockito.lenient()
+                .when(specRegistry.resolveOrFallback(org.mockito.ArgumentMatchers.anyString()))
+                .thenAnswer(inv -> com.finance.portal.portfolio.application.viop.spec.ViopContractSpec
+                        .fallback(inv.getArgument(0)));
+        builder = new PortfolioHoldingsBuilder(enrichmentPort, evdsBondService, specRegistry);
     }
 
     // ------------------------------ boş / null girdi ------------------------------

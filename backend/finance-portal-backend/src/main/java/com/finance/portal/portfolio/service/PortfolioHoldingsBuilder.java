@@ -5,6 +5,8 @@ import com.finance.portal.market.application.bond.evds.EvdsBondInstrument;
 import com.finance.portal.market.application.bond.evds.EvdsBondService;
 import com.finance.portal.market.application.bond.evds.model.BondCategory;
 import com.finance.portal.market.application.viop.ViopService;
+import com.finance.portal.portfolio.application.viop.spec.ViopContractSpec;
+import com.finance.portal.portfolio.application.viop.spec.ViopContractSpecRegistry;
 import com.finance.portal.portfolio.domain.PortfolioTransaction;
 import com.finance.portal.portfolio.domain.TransactionType;
 import com.finance.portal.portfolio.application.port.HoldingMarketEnrichmentPort;
@@ -43,11 +45,14 @@ public class PortfolioHoldingsBuilder {
 
     private final HoldingMarketEnrichmentPort holdingMarketEnrichment;
     private final EvdsBondService evdsBondService;
+    private final ViopContractSpecRegistry viopSpecRegistry;
 
     public PortfolioHoldingsBuilder(HoldingMarketEnrichmentPort holdingMarketEnrichment,
-                                    EvdsBondService evdsBondService) {
+                                    EvdsBondService evdsBondService,
+                                    ViopContractSpecRegistry viopSpecRegistry) {
         this.holdingMarketEnrichment = holdingMarketEnrichment;
         this.evdsBondService = evdsBondService;
+        this.viopSpecRegistry = viopSpecRegistry;
     }
 
     /**
@@ -111,9 +116,21 @@ public class PortfolioHoldingsBuilder {
             if (acc.openQuantity.compareTo(BigDecimal.ZERO) <= 0) {
                 // Tamamen kapatılmış pozisyon: realizedGainLossSum portföy toplamına dahil edilir.
                 if (acc.anySell && acc.realizedGainLossSum.signum() != 0) {
+                    BigDecimal realized = acc.realizedGainLossSum;
+                    // FUTURE: accumulator spot mantığıyla hesapladı (multiplier yok, dir yok).
+                    // Holding direction-grouped olduğundan tüm SELL'ler aynı dir + multiplier paylaşır,
+                    // tek seferde çevirebiliriz: realized_correct = spot × multiplier × directionSign.
+                    if (acc.assetType == AssetType.FUTURE) {
+                        ViopContractSpec spec = viopSpecRegistry.resolveOrFallback(acc.symbol);
+                        String dir = !txs.isEmpty() && txs.get(0).getDirection() != null
+                                ? txs.get(0).getDirection().trim().toUpperCase() : "LONG";
+                        BigDecimal dirSign = "SHORT".equals(dir)
+                                ? BigDecimal.ONE.negate() : BigDecimal.ONE;
+                        realized = realized.multiply(spec.multiplier()).multiply(dirSign);
+                    }
                     closed.add(new ClosedPositionRealized(
                             acc.symbol, acc.assetType,
-                            acc.realizedGainLossSum.setScale(MONEY_SCALE, RoundingMode.HALF_UP),
+                            realized.setScale(MONEY_SCALE, RoundingMode.HALF_UP),
                             guessNativeCurrency(acc.symbol, acc.assetType)));
                 }
                 // BOND için ek olarak: kapalı satırı holding listesinde de göster (kullanıcı

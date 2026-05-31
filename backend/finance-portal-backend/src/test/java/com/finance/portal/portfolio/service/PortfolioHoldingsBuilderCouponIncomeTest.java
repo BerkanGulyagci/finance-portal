@@ -29,7 +29,9 @@ class PortfolioHoldingsBuilderCouponIncomeTest {
         HoldingMarketEnrichmentPort noopEnrichment = h -> { /* no-op */ };
         com.finance.portal.market.application.bond.evds.EvdsBondService evdsMock =
                 org.mockito.Mockito.mock(com.finance.portal.market.application.bond.evds.EvdsBondService.class);
-        builder = new PortfolioHoldingsBuilder(noopEnrichment, evdsMock);
+        var specMock = org.mockito.Mockito.mock(
+                com.finance.portal.portfolio.application.viop.spec.ViopContractSpecRegistry.class);
+        builder = new PortfolioHoldingsBuilder(noopEnrichment, evdsMock, specMock);
     }
 
     private static PortfolioTransaction tx(TransactionType type, BigDecimal qty, BigDecimal price,
