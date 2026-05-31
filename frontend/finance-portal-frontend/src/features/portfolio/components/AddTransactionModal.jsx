@@ -37,6 +37,8 @@ import {
   currencySymbol,
   formatGroupedInput,
   parseGroupedInput,
+  mapUiToBackendTransactionType,
+  isFutureClosingTrade,
 } from '../utils/transactionFormUtils';
 
 // ── component ──────────────────────────────────────────────────────────────────
@@ -318,11 +320,28 @@ export default function AddTransactionModal({
   const isBuy      = form.transactionType === 'BUY';
   const isAmountMode = form.inputMode === 'amount';
 
-  /** Eldeki açık pozisyon (SELL validasyonu için) */
+  /**
+   * Eldeki açık pozisyon. FUTURE için yöne göre AYRI havuz:
+   *   form.direction=LONG  → mevcut LONG pozisyon qty'si
+   *   form.direction=SHORT → mevcut SHORT pozisyon qty'si
+   * Diğer asset tipleri direction'dan etkilenmez.
+   *
+   * AÇMA işleminde (Alış+Long, Satış+Short) availableQty kontrol edilmez (yeni pozisyon);
+   * KAPAMA işleminde (Satış+Long, Alış+Short) qty availableQty'i aşamaz.
+   */
   const availableQty = useMemo(
-    () => findAvailableQty(holdings, instrument?.symbol, instrument?.assetType),
-    [holdings, instrument?.symbol, instrument?.assetType],
+    () => findAvailableQty(
+      holdings,
+      instrument?.symbol,
+      instrument?.assetType,
+      isFutureAssetType(instrument?.assetType) ? form.direction : null,
+    ),
+    [holdings, instrument?.symbol, instrument?.assetType, form.direction],
   );
+
+  // Future-kapama mı (mevcut pozisyondan azaltma) yoksa açma mı (yeni miktar serbest)?
+  const isFutureClosing = isFutureAssetType(instrument?.assetType)
+    && isFutureClosingTrade(form.transactionType, form.direction);
 
   /**
    * "Tutar ile" modunda hesaplamalar — BUY ve SELL için ayrı mantık.
@@ -567,6 +586,16 @@ export default function AddTransactionModal({
           setError(t('Kontrat adedi tam sayı olmalıdır; küsuratlı kontrat girilemez.'));
           return;
         }
+        // FUTURE kapatma (Satış+Long veya Alış+Short): kapatılacak miktar mevcut havuzu aşamaz.
+        // Açma için (Alış+Long, Satış+Short) availableQty kontrolü uygulanmaz.
+        if (isFutureClosing && availableQty != null && q > availableQty) {
+          setError(t('Kapatılacak miktar ({q}) mevcut {dir} pozisyonunu ({avail}) aşıyor.', {
+            q,
+            dir: (form.direction || 'LONG').toUpperCase(),
+            avail: availableQty,
+          }));
+          return;
+        }
       }
       if (isGold && goldMeta && !isValidGoldQuantity(q, goldMeta.floorQty)) {
         setError(t('Bu altın türünde miktar tam adet olmalıdır.'));
@@ -591,10 +620,19 @@ export default function AddTransactionModal({
     try {
       const pricePayload =
         isFund && Number.isFinite(price) ? Math.round(price * 1e6) / 1e6 : price;
+      // VİOP'ta UI semantiği (Alış+Yön kombosu) ile backend semantiği (BUY=+qty / SELL=-qty)
+      // farklıdır: SHORT açma kullanıcıya "Satış" butonuyla yapılır ama backend'de BUY +qty olarak
+      // saklanır. mapUiToBackendTransactionType bu çevirmeyi yapar; diğer asset tipleri için no-op.
+      const backendTxType = mapUiToBackendTransactionType(
+        form.transactionType,
+        form.direction,
+        instrument.assetType,
+      );
+
       const updated = await addTransaction(portfolioId, {
         symbol: instrument.symbol,
         assetType: instrument.assetType,
-        transactionType: form.transactionType,
+        transactionType: backendTxType,
         quantity: finalQuantity,
         price: pricePayload,
         commission,
@@ -997,7 +1035,7 @@ export default function AddTransactionModal({
             </div>
           )}
 
-          {/* VİOP: canlı önizleme — nominal, teminat, kaldıraç */}
+          {/* VİOP: canlı önizleme — nominal, teminat, kaldıraç + açma/kapama göstergesi */}
           {isFuture && (
             <ViopPreviewCard
               qty={form.quantity}
@@ -1005,6 +1043,8 @@ export default function AddTransactionModal({
               direction={form.direction}
               commission={commission}
               instrument={viopSpec ? { ...instrument, viopSpec } : instrument}
+              intent={isFutureClosing ? 'CLOSE' : 'OPEN'}
+              availableQty={availableQty}
             />
           )}
 

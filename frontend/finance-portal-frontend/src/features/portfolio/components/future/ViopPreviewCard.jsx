@@ -19,7 +19,11 @@ import { notional, marginPosted, pnl as pnlMath, leverage as leverageMath } from
  * instrument.contractMultiplier / contractMarginRate gibi yedeklerden okunur.
  * Spec yoksa "Sözleşme bilgileri yüklenemedi" uyarısı gösterilir.
  */
-export default function ViopPreviewCard({ qty, price, direction = 'LONG', commission, instrument }) {
+export default function ViopPreviewCard({
+  qty, price, direction = 'LONG', commission, instrument,
+  intent = 'OPEN',            // 'OPEN' = pozisyon açılıyor, 'CLOSE' = mevcutu kapama
+  availableQty = null,        // CLOSE durumunda eldeki pozisyon miktarı (uyarı için)
+}) {
   const { t } = useTranslation();
 
   const spec = useMemo(() => {
@@ -52,9 +56,29 @@ export default function ViopPreviewCard({ qty, price, direction = 'LONG', commis
 
   return (
     <div className="rounded-xl border border-[#c4c5d5] bg-[#f3f3fc] p-3 space-y-2">
-      <div className="flex items-center gap-2 text-[11px] font-bold text-[#434653] uppercase tracking-wider">
-        {t('İşlem Önizlemesi')}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="text-[11px] font-bold text-[#434653] uppercase tracking-wider">
+          {t('İşlem Önizlemesi')}
+        </div>
+        {/* Açma / Kapama rozeti — kullanıcı kafa karışıklığı yaşamasın */}
+        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+          intent === 'CLOSE'
+            ? 'bg-amber-100 text-amber-800 border border-amber-200'
+            : 'bg-[#093eaa]/[0.10] text-[#093eaa] border border-[#093eaa]/30'
+        }`}>
+          {intent === 'CLOSE' ? t('Pozisyon Kapatma') : t('Pozisyon Açma')}
+        </span>
       </div>
+      {/* Kapama durumu açıklaması: hangi havuzdan ne kadar kapatıldığını göster */}
+      {intent === 'CLOSE' && availableQty != null && (
+        <div className="text-[11px] text-[#434653] leading-snug -mt-1">
+          {t('Eldeki {dir} pozisyon: {avail} kontrat — bu işlemle {q} kontrat kapatılacak.', {
+            dir: (direction || 'LONG').toUpperCase() === 'SHORT' ? 'SHORT' : 'LONG',
+            avail: availableQty,
+            q: Number(qty) || 0,
+          })}
+        </div>
+      )}
 
       <div className="flex items-center gap-2 text-[12px]">
         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold text-[11px] ${

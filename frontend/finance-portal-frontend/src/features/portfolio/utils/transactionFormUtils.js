@@ -125,18 +125,66 @@ export function initPrice(p) {
   return Number.isFinite(n) && n > 0 ? String(p) : '';
 }
 
-/** holdings listesinden sembol + assetType eşleşen açık pozisyon miktarını döndürür */
-export function findAvailableQty(holdings, symbol, assetType) {
+/**
+ * holdings listesinden sembol + assetType eşleşen açık pozisyon miktarını döndürür.
+ *
+ * FUTURE için direction parametresi gerekir — backend LONG ve SHORT pozisyonları
+ * AYRI holding olarak gönderir, bu yüzden "kaç adet LONG açık?" ile "kaç adet SHORT açık?"
+ * birbirinden ayrılmalı. direction null/verilmeyince eski davranış (toplam) korunur.
+ */
+export function findAvailableQty(holdings, symbol, assetType, direction = null) {
   if (!holdings?.length || !symbol || !assetType) return null;
   const sym = symbol.toUpperCase();
-  const match = holdings.find(
-    h =>
-      (h.symbol ?? '').toUpperCase() === sym &&
-      (h.assetType ?? '') === assetType,
-  );
+  const isFuture = String(assetType).toUpperCase() === 'FUTURE';
+  const wantDir = direction ? String(direction).toUpperCase() : null;
+  const match = holdings.find(h => {
+    if ((h.symbol ?? '').toUpperCase() !== sym) return false;
+    if ((h.assetType ?? '') !== assetType) return false;
+    if (isFuture && wantDir) {
+      const hDir = String(h.viopDirection ?? 'LONG').toUpperCase();
+      return hDir === wantDir;
+    }
+    return true;
+  });
   if (!match) return null;
   const n = parseFloat(match.totalQuantity);
   return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+/**
+ * VİOP'ta kullanıcının seçtiği UI semantiği (Alış/Satış + LONG/SHORT) backend'in
+ * transactionType (BUY/SELL = qty ekle/çıkar) modeline çevrilir:
+ *
+ *   UI: Alış + LONG  → BUY   (LONG aç: +qty)
+ *   UI: Satış + LONG → SELL  (LONG kapat: -qty)
+ *   UI: Satış + SHORT → BUY   (SHORT aç: SHORT havuzuna +qty)
+ *   UI: Alış + SHORT → SELL  (SHORT kapat: SHORT havuzundan -qty)
+ *
+ * Backend BUY=+qty, SELL=-qty semantiği direction'dan bağımsız uygular; SHORT için
+ * UI buton anlamı tersine döner. Mevcut data uyumlu kalır.
+ */
+export function mapUiToBackendTransactionType(uiType, direction, assetType) {
+  if (String(assetType ?? '').toUpperCase() !== 'FUTURE') return uiType;
+  const dir = String(direction ?? 'LONG').toUpperCase();
+  if (dir !== 'SHORT') return uiType;
+  // SHORT için UI Alış ↔ backend SELL, UI Satış ↔ backend BUY
+  return uiType === 'BUY' ? 'SELL' : 'BUY';
+}
+
+/**
+ * VİOP işlemi kapatma mı (mevcut pozisyondan azaltma) yoksa açma mı (yeni pozisyon)?
+ *
+ *   Satış + LONG → kapatma (LONG havuzundan azaltma)
+ *   Alış + SHORT → kapatma (SHORT havuzundan azaltma)
+ *   Alış + LONG / Satış + SHORT → açma (kontrol yok, yeni miktar)
+ *
+ * Kapatma durumunda availableQty kontrolü uygulanır; açma serbesttir.
+ */
+export function isFutureClosingTrade(uiType, direction) {
+  const dir = String(direction ?? 'LONG').toUpperCase();
+  if (dir === 'LONG'  && uiType === 'SELL') return true;
+  if (dir === 'SHORT' && uiType === 'BUY')  return true;
+  return false;
 }
 
 /** Fon: kullanıcı genelde tutar ile işlem yapar → varsayılan "Tutar ile". Diğerleri miktar. */

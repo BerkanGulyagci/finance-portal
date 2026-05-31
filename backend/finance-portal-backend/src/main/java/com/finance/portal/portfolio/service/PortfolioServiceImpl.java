@@ -232,8 +232,14 @@ public class PortfolioServiceImpl implements PortfolioService {
         }
 
         if (request.getTransactionType() == TransactionType.SELL) {
+            // FUTURE için kapatma kontrolü direction-aware: SHORT havuzundan kapatma SHORT
+            // pozisyondan azaltır, LONG havuzunun varlığı buna engel olmamalı.
+            String validateDirection = request.getAssetType() == AssetType.FUTURE
+                    ? (request.getDirection() != null && !request.getDirection().isBlank()
+                            ? request.getDirection().trim().toUpperCase() : "LONG")
+                    : null;
             validateSellQuantity(portfolio.getTransactions(), normalizedSymbol,
-                    request.getAssetType(), request.getQuantity());
+                    request.getAssetType(), request.getQuantity(), validateDirection);
         }
 
         // VIOP alımları için vade kontrolü: vadesi geçmiş kontrat satın alınamaz
@@ -862,11 +868,20 @@ public class PortfolioServiceImpl implements PortfolioService {
     }
     // ── SELL validation ───────────────────────────────────────────────────────
 
+    /**
+     * Satış / pozisyon kapatma kontrolü.
+     *
+     * @param direction FUTURE için pozisyon havuzu (LONG veya SHORT); diğer tipler için null.
+     *                  FUTURE'da LONG ve SHORT pozisyonlar ayrı tutulduğundan kapatma kontrolü
+     *                  yalnız aynı yöndeki pozisyona karşı yapılır — LONG havuzu boş diye
+     *                  SHORT kapatma engellenmemeli.
+     */
     private void validateSellQuantity(List<PortfolioTransaction> existing,
                                       String symbol, AssetType assetType,
-                                      BigDecimal sellQty) {
+                                      BigDecimal sellQty, String direction) {
         BigDecimal currentQty = existing.stream()
                 .filter(tx -> transactionSymbolMatches(assetType, symbol, tx.getSymbol(), tx.getAssetType()))
+                .filter(tx -> matchesFutureDirection(tx, assetType, direction))
                 .reduce(BigDecimal.ZERO, (acc, tx) -> {
                     if (tx.getTransactionType() == TransactionType.BUY) {
                         return acc.add(tx.getQuantity());
@@ -877,16 +892,27 @@ public class PortfolioServiceImpl implements PortfolioService {
 
         if (sellQty.compareTo(currentQty) > 0) {
             String shown = symbol != null ? symbol : "varlık";
+            String dirSuffix = (assetType == AssetType.FUTURE && direction != null)
+                    ? " (" + direction + " havuzu)" : "";
             String userMessage;
             if (currentQty.signum() <= 0) {
-                userMessage = "Bu " + shown + " için portföyünüzde satılabilecek miktar yok. "
-                        + "Önce alış işlemi eklemelisiniz.";
+                userMessage = "Bu " + shown + dirSuffix + " için portföyünüzde kapatılabilecek pozisyon yok. "
+                        + "Önce açış işlemi eklemelisiniz.";
             } else {
                 userMessage = "Yetersiz miktar: portföyünüzde " + stripTrailingZeros(currentQty) + " adet "
-                        + shown + " var, " + stripTrailingZeros(sellQty) + " adet satmaya çalıştınız.";
+                        + shown + dirSuffix + " var, " + stripTrailingZeros(sellQty)
+                        + " adet kapatmaya çalıştınız.";
             }
             throw new IllegalArgumentException(userMessage);
         }
+    }
+
+    /** FUTURE için transaction'ın direction'ı talep edilen havuzla aynı mı? Diğer asset tipleri için always-true. */
+    private static boolean matchesFutureDirection(PortfolioTransaction tx, AssetType assetType, String direction) {
+        if (assetType != AssetType.FUTURE || direction == null) return true;
+        String txDir = tx.getDirection();
+        String txDirNorm = (txDir != null && !txDir.isBlank()) ? txDir.trim().toUpperCase() : "LONG";
+        return txDirNorm.equals(direction);
     }
 
     /**
