@@ -454,6 +454,35 @@ const en = {
   // PortfolioTypeProfitLossChart
   'Varlık Türü Bazlı Kar/Zarar': 'Profit/Loss by Asset Type',
   'Kategorilere göre toplam açık kar/zarar (marketValue − totalCost).': 'Total open P/L by category (marketValue − totalCost).',
+
+  // VİOP margin-call (HoldingsTable + AlarmCreateModal + notifications)
+  'Teminat Durumu': 'Margin Status',
+  'Sağlıklı / Uyarı / Kritik — başlangıç teminatına göre kalan özsermaye oranı (Equity / InitialMargin)':
+    'Healthy / Warning / Critical — remaining equity vs. initial margin (Equity / InitialMargin)',
+  'Teminat oranı: %{pct}. Gerçek brokerlerde {brokerThreshold}% altında margin call gelir.':
+    'Margin ratio: {pct}%. Real brokers issue a margin call below {brokerThreshold}%.',
+  'Teminat sağlığı bilinmiyor.': 'Margin health unknown.',
+  'Teminat Eriyor': 'Margin Eroding',
+  'TEHLİKE': 'DANGER',
+  'Alarm Türü': 'Alarm Type',
+  'Teminat Oranı (VİOP)': 'Margin Ratio (Futures)',
+  'Teminat Oranı': 'Margin Ratio',
+  'Mevcut alarmın türü değiştirilemez. Farklı bir alarm türü için yeni alarm oluşturun.':
+    'Existing alarm type cannot be changed. Create a new alarm for a different type.',
+  'Teminat oranı alarmı yalnızca VİOP (FUTURE) enstrümanları için kurulabilir.':
+    'Margin-ratio alarms can only be set on futures (VIOP) instruments.',
+  'Teminat oranı alarmı yalnızca VİOP (FUTURE) enstrümanlarında çalışır.':
+    'Margin-ratio alarms only work on futures (VIOP) instruments.',
+  'Teminat alarmları yalnız "altına inerse" mantığıyla çalışır.':
+    'Margin alarms only fire on "falls below" semantics.',
+  'Eşik {min}% ile {max}% arasında olmalı.': 'Threshold must be between {min}% and {max}%.',
+  'Teminat oranı bu eşiğin altına düşerse uyarı e-postası ve bildirim alacaksınız.':
+    'You will receive an email and notification if margin ratio drops below this threshold.',
+  'Hızlı seç:': 'Quick pick:',
+  'Şu anki teminat oranı:': 'Current margin ratio:',
+  'teminat oranı': 'margin ratio',
+  'Fiyat veya VİOP teminat oranı koşulu sağlandığında uygulama-içi bildirim ve onaylı e-postanıza mail alırsınız.':
+    'You will receive in-app notifications and email when a price or VIOP margin-ratio condition is met.',
 };
 
 export default { en };

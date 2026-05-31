@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Bell, Mail, MailWarning, Trash2, CheckCheck } from 'lucide-react';
+import { ArrowLeft, Bell, Mail, MailWarning, Trash2, CheckCheck, AlertTriangle } from 'lucide-react';
 import {
   getNotifications, markNotificationRead, markAllNotificationsRead, deleteNotification,
 } from '../../api/notificationApi';
@@ -26,6 +26,15 @@ function emailBadge(status, t) {
 function fmtDate(s) {
   if (!s) return '';
   try { return new Date(s).toLocaleString('tr-TR'); } catch { return s; }
+}
+
+// Bildirim türüne göre baş ikonu — MARGIN_CALL kritik teminat uyarısı (kırmızı uyarı üçgeni).
+// Diğer türlerde null döner → varsayılan başlık (ikonsuz) gösterilir.
+function typeIcon(type) {
+  if (type === 'MARGIN_CALL') {
+    return <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" aria-label="Teminat Uyarısı" />;
+  }
+  return null;
 }
 
 export default function NotificationsPage() {
@@ -93,13 +102,18 @@ export default function NotificationsPage() {
                 key={n.id}
                 onMouseEnter={() => onRead(n)}
                 className={`p-4 rounded-xl border transition-all ${
-                  n.read ? 'border-gray-100 bg-white' : 'border-[#093eaa]/20 bg-[#093eaa]/[0.03]'
+                  n.type === 'MARGIN_CALL'
+                    ? (n.read ? 'border-rose-100 bg-white' : 'border-rose-300/60 bg-rose-50/40')
+                    : (n.read ? 'border-gray-100 bg-white' : 'border-[#093eaa]/20 bg-[#093eaa]/[0.03]')
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      {!n.read && <span className="w-2 h-2 rounded-full bg-[#093eaa] flex-shrink-0" />}
+                      {!n.read && (
+                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${n.type === 'MARGIN_CALL' ? 'bg-rose-500' : 'bg-[#093eaa]'}`} />
+                      )}
+                      {typeIcon(n.type)}
                       <span className="font-bold text-gray-900">{n.title}</span>
                     </div>
                     <p className="text-sm text-gray-600 mt-1 leading-relaxed">{n.body}</p>

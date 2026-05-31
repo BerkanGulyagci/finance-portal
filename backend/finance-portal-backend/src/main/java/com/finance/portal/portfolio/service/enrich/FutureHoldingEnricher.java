@@ -151,6 +151,14 @@ public class FutureHoldingEnricher {
             holding.setViopDirection("LONG"); // geriye uyumluluk
         }
 
+        // Teminat sağlığı: (margin + pnl) / margin = equity / initialMargin.
+        // 1.0 = tam, 0.5 = yarısı yendi, 0 = tükendi, negatif = margin call (alarmı tetikler).
+        // mv burada zaten portfolioContribution = marginPosted + pnl (equity) olarak hesaplandı.
+        BigDecimal marginRatio = (marginPosted != null && marginPosted.signum() > 0)
+                ? mv.divide(marginPosted, 4, RoundingMode.HALF_UP) : null;
+        holding.setMarginRatio(marginRatio);
+        holding.setMarginStatus(classifyMarginStatus(marginRatio));
+
         // Not: Realized P/L FUTURE düzeltmesi (multiplier × dirSign) Builder'da yapılır.
         // Enricher PortfolioServiceImpl tarafından parallel cache amacıyla BİR KEZ DAHA
         // çağrılır → idempotent olmayan read+multiply+write burada 1000× bug üretir.
@@ -238,6 +246,27 @@ public class FutureHoldingEnricher {
         if (ma50 != null) {
             holding.setMa50(ma50);
         }
+    }
+
+    /**
+     * Teminat oranını üç bantta sınıflar:
+     * <ul>
+     *   <li>{@code HEALTHY} — oran &gt; 0.50 (teminatın yarısından fazlası sağlam)</li>
+     *   <li>{@code WARNING} — 0.25 &lt; oran ≤ 0.50 (yarısı yendi, dikkat)</li>
+     *   <li>{@code CRITICAL} — oran ≤ 0.25 (negatif/margin call dahil)</li>
+     * </ul>
+     */
+    private static String classifyMarginStatus(BigDecimal ratio) {
+        if (ratio == null) {
+            return null;
+        }
+        if (ratio.compareTo(new BigDecimal("0.50")) > 0) {
+            return "HEALTHY";
+        }
+        if (ratio.compareTo(new BigDecimal("0.25")) > 0) {
+            return "WARNING";
+        }
+        return "CRITICAL";
     }
 
     private static LocalDate chartPointToLocalDate(ViopChartPoint p) {

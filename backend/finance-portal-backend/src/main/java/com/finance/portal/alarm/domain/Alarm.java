@@ -54,10 +54,26 @@ public class Alarm {
     @Column(name = "metric", nullable = false, length = 20)
     private AlarmMetric metric;
 
+    /**
+     * Eşiğin hangi yönde aşılması alarmı tetikleyecek.
+     * <p>{@code metric=MARGIN_RATIO} için semantik daima {@code BELOW}'dur — teminat oranı düştükçe
+     * margin call riski artar; AlarmService.create() bu kuralı validate eder, AlarmCreateModal
+     * frontend'inde yön dropdown'u kilitlenir.</p>
+     */
     @Enumerated(EnumType.STRING)
     @Column(name = "direction", nullable = false, length = 10)
     private AlarmDirection direction;
 
+    /**
+     * Eşik değeri. Metrik'e göre yorumlanır:
+     * <ul>
+     *   <li>{@code PRICE} — enstrümanın doğal birimi (TL/USD/EUR)</li>
+     *   <li>{@code CHANGE_PERCENT} — yüzde (5.0 = %5)</li>
+     *   <li>{@code VOLUME} — lot/adet</li>
+     *   <li>{@code MARGIN_RATIO} — decimal 0–1 aralığı (0.50 = %50). Frontend kullanıcı %50 yazar,
+     *       handleSubmit'te /100 yapıp gönderir; FutureHoldingEnricher.viopMarginRatio aynı ölçeği üretir.</li>
+     * </ul>
+     */
     @Column(name = "threshold", nullable = false, precision = 24, scale = 8)
     private BigDecimal threshold;
 

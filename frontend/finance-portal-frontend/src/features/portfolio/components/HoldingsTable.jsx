@@ -1,6 +1,6 @@
 import { Fragment, useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Settings2, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Plus, Coins, Info } from 'lucide-react';
+import { Settings2, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Plus, Coins, Info, AlertTriangle } from 'lucide-react';
 import TrendBadge from '../../../components/common/TrendBadge';
 import { computeTrend } from '../../../utils/trendUtils';
 import { getWatchlistDetailPath } from '../constants/watchlistMarketRoutes';
@@ -27,6 +27,12 @@ export const DEFAULT_DISPLAY_ORDER = [
   'unrealizedPct',
   'dailyPct',
 ];
+
+/** VİOP holding'i bulunan kullanıcılarda varsayılan olarak eklenen ek kolonlar
+ *  ("teminat durumu"). Saf hisse/fon portföylerinde header kalabalık olmasın diye
+ *  yalnız FUTURE varsa otomatik açılır; kullanıcı sonra column editor'dan kalıcı
+ *  seçim yapabilir (localStorage saklar). */
+const FUTURE_DEFAULT_EXTRAS = ['marginStatus'];
 
 /** Kullanıcının seçtiği kolonlar tarayıcıda saklanır (sonraki girişte korunur). */
 const COLS_STORAGE_KEY = 'fp.holdings.columns.v1';
@@ -74,6 +80,7 @@ export const ALL_COLS = [
   { key: 'viopMargin',    label: 'VİOP Teminat',          def: false, group: 'VİOP',    type: 'number', hint: 'Yatırılan başlangıç teminatı' },
   { key: 'viopNominal',   label: 'VİOP Nominal',          def: false, group: 'VİOP',    type: 'number', hint: 'Sözleşmenin tam piyasa büyüklüğü qty × fiyat × çarpan; toplama EKLENMEZ — referans için' },
   { key: 'viopLeverage',  label: 'VİOP Kaldıraç',         def: false, group: 'VİOP',    type: 'number', hint: 'Notional / Teminat' },
+  { key: 'marginStatus',  label: 'Teminat Durumu',        def: true,  group: 'VİOP',    type: 'string', hint: 'Sağlıklı / Uyarı / Kritik — başlangıç teminatına göre kalan özsermaye oranı (Equity / InitialMargin)' },
 ];
 
 const DEFAULT_KEYS = [...DEFAULT_DISPLAY_ORDER];
@@ -364,6 +371,8 @@ export function renderCellForExport(key, h) {
       return h.assetType === 'FUTURE' ? numProp('viopNotional') : null;
     case 'viopLeverage':
       return h.assetType === 'FUTURE' ? numProp('viopLeverage') : null;
+    case 'marginStatus':
+      return h.assetType === 'FUTURE' ? (h.marginStatus ?? '') : '';
     default:
       throw new Error(`renderCellForExport: bilinmeyen kolon "${key}"`);
   }
@@ -401,6 +410,7 @@ function columnHasValueForHolding(key, h) {
     case 'viopMargin':     return h.assetType === 'FUTURE' && h.viopMarginPosted != null;
     case 'viopNominal':    return h.assetType === 'FUTURE' && h.viopNotional != null;
     case 'viopLeverage':   return h.assetType === 'FUTURE' && h.viopLeverage != null;
+    case 'marginStatus':   return h.assetType === 'FUTURE' && h.marginStatus != null;
     default:               return true; // temel kolonlar
   }
 }
@@ -855,6 +865,58 @@ function renderCell(key, h, commoditySpots, valuesHidden, t) {
       );
     }
 
+    case 'marginStatus': {
+      if (h.assetType !== 'FUTURE') return <Dash />;
+      const status = h.marginStatus;
+      const ratio = num(h, 'marginRatio');
+      if (!status) return <Dash />;
+      const pct = ratio != null ? (ratio * 100) : null;
+      const pctText = pct != null
+        ? pct.toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 1 })
+        : null;
+      const tooltip = pct != null
+        ? t('Teminat oranı: %{pct}. Gerçek brokerlerde {brokerThreshold}% altında margin call gelir.', {
+            pct: pctText,
+            brokerThreshold: 25,
+          })
+        : t('Teminat sağlığı bilinmiyor.');
+
+      if (status === 'HEALTHY') {
+        return (
+          <span
+            className="inline-flex items-center gap-1.5 text-xs text-emerald-700 whitespace-nowrap"
+            title={tooltip}
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" />
+            {pctText != null && <span className="tabular-nums font-semibold">%{pctText}</span>}
+          </span>
+        );
+      }
+      if (status === 'WARNING') {
+        return (
+          <span
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap"
+            title={tooltip}
+          >
+            <AlertTriangle className="w-3 h-3" />
+            {pctText != null ? <span className="tabular-nums">%{pctText}</span> : null}
+            <span>— {t('Teminat Eriyor')}</span>
+          </span>
+        );
+      }
+      // CRITICAL
+      return (
+        <span
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold bg-rose-50 text-rose-700 border border-rose-300 whitespace-nowrap fp-margin-pulse"
+          title={tooltip}
+        >
+          <AlertTriangle className="w-3 h-3" />
+          {pctText != null ? <span className="tabular-nums">%{pctText}</span> : null}
+          <span>— {t('TEHLİKE')}</span>
+        </span>
+      );
+    }
+
     default:
       return <Dash />;
   }
@@ -1002,7 +1064,20 @@ export default function HoldingsTable({
   onSelectedKeysChange = null, // Excel/PDF export "ekranda seçili kolonlar" — parent'a scalar selectedKeys yansıtır
 }) {
   const { t } = useTranslation();
-  const [selectedKeys, setSelectedKeys] = useState(() => loadSavedColumns() ?? DEFAULT_KEYS);
+  // İlk açılışta: kaydedilmiş seçim yoksa varsayılan kümeyi al; ek olarak portföyde VİOP
+  // varsa "teminat durumu" sütununu otomatik ekle (kullanıcı sonra editör'den kaldırabilir).
+  const [selectedKeys, setSelectedKeys] = useState(() => {
+    const saved = loadSavedColumns();
+    if (saved) return saved;
+    const base = [...DEFAULT_KEYS];
+    const hasFuture = holdings.some(h => String(h?.assetType ?? '').toUpperCase() === 'FUTURE');
+    if (hasFuture) {
+      for (const k of FUTURE_DEFAULT_EXTRAS) {
+        if (!base.includes(k) && base.length < MAX_COLS) base.push(k);
+      }
+    }
+    return base;
+  });
   const [editorOpen, setEditorOpen]     = useState(false);
   const [expandedKeys, setExpandedKeys] = useState(() => new Set());
   const [couponModalSymbol, setCouponModalSymbol] = useState(null);

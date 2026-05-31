@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell } from 'lucide-react';
+import { Bell, AlertTriangle } from 'lucide-react';
 import { getUnreadCount, getNotifications, markNotificationRead } from '../../api/notificationApi';
 import { useTranslation } from '../../context/LanguageContext';
 
@@ -86,16 +86,28 @@ export default function NotificationBell() {
             ) : items.length === 0 ? (
               <p className="text-xs text-gray-400 py-6 text-center">{t('Henüz bildiriminiz yok.')}</p>
             ) : (
-              items.map(n => (
-                <button key={n.id} onClick={() => openItem(n)}
-                  className={`w-full text-left px-4 py-2.5 hover:bg-gray-50 transition-colors flex gap-2 ${n.read ? '' : 'bg-[#093eaa]/[0.03]'}`}>
-                  <span className={`mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0 ${n.read ? 'bg-transparent' : 'bg-[#093eaa]'}`} />
-                  <span className="min-w-0">
-                    <span className="block text-sm font-semibold text-gray-900 truncate">{n.title}</span>
-                    <span className="block text-xs text-gray-400 mt-0.5">{fmtTime(n.createdAt)}</span>
-                  </span>
-                </button>
-              ))
+              items.map(n => {
+                const isMarginCall = n.type === 'MARGIN_CALL';
+                const dotCls = n.read
+                  ? 'bg-transparent'
+                  : (isMarginCall ? 'bg-rose-500' : 'bg-[#093eaa]');
+                const bgCls = n.read
+                  ? ''
+                  : (isMarginCall ? 'bg-rose-50/40' : 'bg-[#093eaa]/[0.03]');
+                return (
+                  <button key={n.id} onClick={() => openItem(n)}
+                    className={`w-full text-left px-4 py-2.5 hover:bg-gray-50 transition-colors flex gap-2 ${bgCls}`}>
+                    <span className={`mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotCls}`} />
+                    <span className="min-w-0">
+                      <span className="flex items-center gap-1.5">
+                        {isMarginCall && <AlertTriangle className="w-3.5 h-3.5 text-rose-600 flex-shrink-0" />}
+                        <span className="block text-sm font-semibold text-gray-900 truncate">{n.title}</span>
+                      </span>
+                      <span className="block text-xs text-gray-400 mt-0.5">{fmtTime(n.createdAt)}</span>
+                    </span>
+                  </button>
+                );
+              })
             )}
           </div>
           <div className="border-t border-gray-100 mt-1 pt-1">

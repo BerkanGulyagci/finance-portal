@@ -7,8 +7,8 @@ import { useToast } from '../../context/ToastContext';
 import AlarmCreateModal from './AlarmCreateModal';
 import InstrumentSearchModal from './InstrumentSearchModal';
 
-const METRIC_LABEL = { PRICE: 'Fiyat', CHANGE_PERCENT: 'Değişim', VOLUME: 'Hacim' };
-const METRIC_WORD = { PRICE: 'fiyat', CHANGE_PERCENT: 'değişim', VOLUME: 'hacim' };
+const METRIC_LABEL = { PRICE: 'Fiyat', CHANGE_PERCENT: 'Değişim', VOLUME: 'Hacim', MARGIN_RATIO: 'Teminat Oranı' };
+const METRIC_WORD = { PRICE: 'fiyat', CHANGE_PERCENT: 'değişim', VOLUME: 'hacim', MARGIN_RATIO: 'teminat oranı' };
 const ASSET_LABEL = {
   STOCK: 'Hisse', FUND: 'Fon', FX: 'Döviz', FUTURE: 'Vadeli',
   CRYPTO: 'Kripto', GOLD: 'Altın', COMMODITY: 'Emtia', BOND: 'Tahvil',
@@ -20,11 +20,21 @@ function fmt(v) {
   return Number.isFinite(n) ? n.toLocaleString('tr-TR', { maximumFractionDigits: 6 }) : '-';
 }
 
-// Eşik/değer son eki: % (değişim), boş (hacim) ya da " ₺"/" $" (fiyat — backend currencySymbol)
+// Eşik/değer son eki: % (değişim ve teminat oranı), boş (hacim) ya da " ₺"/" $" (fiyat).
 function unitSuffix(a) {
   if (a.metric === 'CHANGE_PERCENT') return '%';
+  if (a.metric === 'MARGIN_RATIO') return '%';
   if (a.metric === 'VOLUME') return '';
   return a.currencySymbol ? ` ${a.currencySymbol}` : '';
+}
+
+// MARGIN_RATIO için backend 0-1 ondalık tutar; ekrana yüzde olarak çevirmek gerekir.
+function displayValueFor(metric, v) {
+  if (v == null) return v;
+  const n = Number(v);
+  if (!Number.isFinite(n)) return v;
+  if (metric === 'MARGIN_RATIO') return n * 100;
+  return n;
 }
 
 function StatusBadge({ status, t }) {
@@ -129,11 +139,11 @@ export default function AlarmsManager({ compact = false }) {
                 </div>
                 <p className="text-xs text-gray-500 mt-0.5">
                   {t('Bu alarm')} {t(METRIC_WORD[a.metric] ?? 'fiyat')}{' '}
-                  <span className="font-semibold text-gray-700">{fmt(a.threshold)}{unitSuffix(a)}</span>{t("'nin")}{' '}
+                  <span className="font-semibold text-gray-700">{fmt(displayValueFor(a.metric, a.threshold))}{unitSuffix(a)}</span>{t("'nin")}{' '}
                   {a.direction === 'ABOVE' ? t('üzerine çıkarsa') : t('altına inerse')} {t('tetiklenecektir.')}
                   {a.frequency === 'RECURRING' && <span className="ml-1 text-gray-400">· {t('sürekli')}</span>}
                   {a.lastObservedValue != null && (
-                    <span className="ml-1 text-gray-400">· {t('şu an')}: {fmt(a.lastObservedValue)}{unitSuffix(a)}</span>
+                    <span className="ml-1 text-gray-400">· {t('şu an')}: {fmt(displayValueFor(a.metric, a.lastObservedValue))}{unitSuffix(a)}</span>
                   )}
                 </p>
                 {a.note && (

@@ -74,6 +74,8 @@ public class AlarmService {
         a.setFrequency(parseFrequency(req.getFrequency()));
         a.setNote(req.getNote());
         a.setStatus(AlarmStatus.ACTIVE);
+        // MARGIN_RATIO yalnız VİOP (FUTURE) için anlamlı; yön daima BELOW (oran düştükçe risk artar).
+        validateMarginAlarm(a);
         Alarm saved = alarmRepository.save(a);
         Span.current().setAttribute(SPAN_ATTR_ALARM_ID, String.valueOf(saved.getId()));
         audit(BusinessLogSupport.EVENT_ALARM_CREATED, BusinessLogSupport.ACTION_CREATE, saved);
@@ -119,9 +121,38 @@ public class AlarmService {
             }
             a.setStatus(newStatus);
         }
+        // Metric/direction güncellenmişse MARGIN_RATIO invariant'ını koru.
+        validateMarginAlarm(a);
         Alarm saved = alarmRepository.save(a);
         audit(BusinessLogSupport.EVENT_ALARM_UPDATED, BusinessLogSupport.ACTION_UPDATE, saved);
         return saved;
+    }
+
+    /**
+     * MARGIN_RATIO invariant'larını doğrular:
+     * <ul>
+     *   <li>assetType yalnız FUTURE olabilir — diğer tiplerde teminat oranı kavramı yok.</li>
+     *   <li>direction daima BELOW olmalı — oran düştükçe margin call riski oluşur.</li>
+     *   <li>threshold 0–1 (decimal) aralığında olmalı; frontend % girişini /100 yapıp gönderir.</li>
+     * </ul>
+     */
+    private static void validateMarginAlarm(Alarm a) {
+        if (a.getMetric() != AlarmMetric.MARGIN_RATIO) {
+            return;
+        }
+        if (a.getAssetType() != AssetType.FUTURE) {
+            throw new IllegalArgumentException(
+                    "MARGIN_RATIO alarm only valid for FUTURE asset type, got: " + a.getAssetType());
+        }
+        if (a.getDirection() != AlarmDirection.BELOW) {
+            throw new IllegalArgumentException(
+                    "MARGIN_RATIO alarm direction must be BELOW (margin calls trigger on drop)");
+        }
+        BigDecimal t = a.getThreshold();
+        if (t == null || t.signum() <= 0 || t.compareTo(BigDecimal.ONE) > 0) {
+            throw new IllegalArgumentException(
+                    "MARGIN_RATIO threshold must be a decimal in (0, 1], got: " + t);
+        }
     }
 
     @WithSpan("AlarmService.delete")

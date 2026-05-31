@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { X, Bell, ChevronDown } from 'lucide-react';
+import { X, Bell, ChevronDown, AlertTriangle } from 'lucide-react';
 import { createAlarm, updateAlarm } from '../../api/alarmApi';
 import { useTranslation } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
@@ -9,6 +9,11 @@ const FREQUENCIES = [
   { key: 'ONCE', label: 'Tek Seferlik' },
   { key: 'RECURRING', label: 'Sürekli' },
 ];
+
+// MARGIN_RATIO için hızlı eşik presetleri (kullanıcı seviye seçer; tipik margin call %25).
+const MARGIN_PRESETS = [25, 50, 75];
+const MARGIN_MIN = 5;
+const MARGIN_MAX = 95;
 
 // Sayı çöz: virgül varsa TR biçimi (nokta=binlik, virgül=ondalık); yoksa noktayı ondalık say.
 // "3,2"→3.2, "3.2"→3.2, "1.234,56"→1234.56, "₺3,20"→3.2
@@ -39,12 +44,16 @@ function currencySymbol(assetType, symbol) {
 }
 
 /**
- * Alarm oluşturma/düzenleme modalı. Görseldeki mantık: Durum (Fiyat/Değişim/Hacim) +
- * Üzerine Çıkarsa / Altına İnerse + eşik değeri + sıklık (Tek Seferlik / Sürekli).
+ * Alarm oluşturma/düzenleme modalı.
  *
- * @param instrument { assetType, symbol, name, price }  (oluşturma)
- * @param alarm      mevcut alarm                          (düzenleme — verilirse edit modu)
- * @param onSaved    kaydedildiğinde çağrılır (create veya update)
+ * İki alarm metriği:
+ *   - PRICE         → her enstrümanda. Eşik = mutlak fiyat. Yön = ABOVE/BELOW.
+ *   - MARGIN_RATIO  → SADECE FUTURE (VİOP). Eşik UI'da %25-%95 arası tam sayı; backend'e
+ *                     0-1 ondalık olarak gönderilir (örn. UI %25 → API 0.25). Yön = BELOW
+ *                     (sabit; teminat oranı eşiğin altına düştüğünde tetiklenir).
+ *
+ * @param instrument { assetType, symbol, name, price, marginRatio?, marginStatus? }
+ * @param alarm      mevcut alarm (verilirse edit modu)
  */
 export default function AlarmCreateModal({ instrument, alarm, onClose, onSaved, onCreated }) {
   const { t } = useTranslation();
@@ -55,37 +64,86 @@ export default function AlarmCreateModal({ instrument, alarm, onClose, onSaved, 
     ? { assetType: alarm.assetType, symbol: alarm.symbol, name: alarm.instrumentName || alarm.symbol, price: null }
     : instrument;
 
+  const isFuture = String(inst?.assetType ?? '').toUpperCase() === 'FUTURE';
   const currentPrice = inst?.price != null && Number.isFinite(Number(inst.price)) ? Number(inst.price) : null;
+  const currentMarginRatio = !editMode && inst?.marginRatio != null && Number.isFinite(Number(inst.marginRatio))
+    ? Number(inst.marginRatio)
+    : null;
 
-  // Alarm yalnız fiyat üzerinedir (değişim/hacim kaldırıldı). Düzenlemede mevcut metrik korunur.
-  const metric = alarm?.metric || 'PRICE';
+  const [metric, setMetric] = useState(alarm?.metric || 'PRICE');
   const [direction, setDirection] = useState(alarm?.direction || 'ABOVE');
-  const [threshold, setThreshold] = useState(
-    alarm?.threshold != null ? fmtTr(alarm.threshold) : (currentPrice != null ? fmtTr(currentPrice) : '')
-  );
+  // Eşik string olarak tutulur (TR/EN biçim toleransı için). MARGIN_RATIO durumunda 0-100
+  // yüzde olarak girilir; backend'e gönderirken /100 ile 0-1 ondalığa çevrilir.
+  const [threshold, setThreshold] = useState(() => {
+    if (alarm?.threshold != null) {
+      if (alarm.metric === 'MARGIN_RATIO') {
+        return fmtTr(Number(alarm.threshold) * 100);
+      }
+      return fmtTr(alarm.threshold);
+    }
+    return currentPrice != null ? fmtTr(currentPrice) : '';
+  });
   const [frequency, setFrequency] = useState(alarm?.frequency || 'ONCE');
   const [note, setNote] = useState(alarm?.note || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const cur = currencySymbol(inst?.assetType, inst?.symbol);
-  const suffix = metric === 'CHANGE_PERCENT' ? '%' : (metric === 'VOLUME' ? '' : cur);
+  const suffix = metric === 'MARGIN_RATIO' ? '%' : cur;
+  const isMarginMetric = metric === 'MARGIN_RATIO';
+  const nonFutureMarginWarning = isMarginMetric && !isFuture;
 
   const displayName = inst?.name || inst?.symbol;
+
+  // Metrik değişimini idare et: MARGIN_RATIO'ya geçince yönü BELOW'a kilitle, eşiği %50 yap.
+  // PRICE'a geri dönüşte mevcut fiyatı tekrar öner.
+  function onMetricChange(next) {
+    setMetric(next);
+    setError('');
+    if (next === 'MARGIN_RATIO') {
+      setDirection('BELOW');
+      setThreshold(prev => {
+        const parsed = parseNumeric(prev);
+        // Eğer mevcut değer fiyat artığı (büyük sayı) ise temizle
+        if (parsed == null || parsed > MARGIN_MAX || parsed < MARGIN_MIN) return '50';
+        return prev;
+      });
+    } else if (next === 'PRICE') {
+      if (currentPrice != null) setThreshold(fmtTr(currentPrice));
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+
+    if (isMarginMetric && !isFuture) {
+      setError(t('Teminat oranı alarmı yalnızca VİOP (FUTURE) enstrümanları için kurulabilir.'));
+      return;
+    }
+
     const value = parseNumeric(threshold);
     if (value == null) {
       setError(t('Lütfen geçerli bir değer girin.'));
       return;
     }
+
+    let payloadThreshold = value;
+    if (isMarginMetric) {
+      if (value < MARGIN_MIN || value > MARGIN_MAX) {
+        setError(t('Eşik {min}% ile {max}% arasında olmalı.', { min: MARGIN_MIN, max: MARGIN_MAX }));
+        return;
+      }
+      payloadThreshold = value / 100; // backend 0-1 ondalık bekliyor
+    }
+
     setLoading(true);
     try {
       const trimmedNote = note.trim();
+      // MARGIN_RATIO her zaman BELOW; PRICE için kullanıcının seçtiği yön.
+      const finalDirection = isMarginMetric ? 'BELOW' : direction;
       if (editMode) {
-        await updateAlarm(alarm.id, { metric, direction, threshold: value, frequency, note: trimmedNote });
+        await updateAlarm(alarm.id, { metric, direction: finalDirection, threshold: payloadThreshold, frequency, note: trimmedNote });
         toast.success(t('Alarm güncellendi.'));
       } else {
         await createAlarm({
@@ -93,8 +151,8 @@ export default function AlarmCreateModal({ instrument, alarm, onClose, onSaved, 
           symbol: inst.symbol,
           instrumentName: displayName,
           metric,
-          direction,
-          threshold: value,
+          direction: finalDirection,
+          threshold: payloadThreshold,
           frequency,
           note: trimmedNote,
         });
@@ -126,21 +184,60 @@ export default function AlarmCreateModal({ instrument, alarm, onClose, onSaved, 
         </div>
 
         <form onSubmit={handleSubmit} className="p-3 sm:p-6 space-y-4 sm:space-y-5">
+          {/* Alarm türü — sadece FUTURE'da MARGIN_RATIO görünür. Edit modunda metrik değiştirilemez (alarm semantiği değişmesin). */}
+          {(isFuture || isMarginMetric) && (
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1.5">{t('Alarm Türü')}</label>
+              <div className="relative">
+                <select
+                  value={metric}
+                  onChange={e => onMetricChange(e.target.value)}
+                  disabled={editMode}
+                  className="w-full appearance-none px-3 py-2.5 pr-9 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30 focus:border-[#093eaa] disabled:bg-gray-50 disabled:text-gray-500"
+                >
+                  <option value="PRICE">{t('Fiyat')}</option>
+                  {(isFuture || metric === 'MARGIN_RATIO') && (
+                    <option value="MARGIN_RATIO">{t('Teminat Oranı (VİOP)')}</option>
+                  )}
+                </select>
+                <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              </div>
+              {editMode && (
+                <p className="mt-1 text-[11px] text-gray-400">
+                  {t('Mevcut alarmın türü değiştirilemez. Farklı bir alarm türü için yeni alarm oluşturun.')}
+                </p>
+              )}
+            </div>
+          )}
+
+          {nonFutureMarginWarning && (
+            <div className="flex items-start gap-2 text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>{t('Teminat oranı alarmı yalnızca VİOP (FUTURE) enstrümanlarında çalışır.')}</span>
+            </div>
+          )}
+
           {/* Yön + eşik */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1.5">{t('Koşul')}</label>
               <div className="relative">
                 <select
-                  value={direction}
+                  value={isMarginMetric ? 'BELOW' : direction}
                   onChange={e => setDirection(e.target.value)}
-                  className="w-full appearance-none px-3 py-2.5 pr-9 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30 focus:border-[#093eaa]"
+                  disabled={isMarginMetric}
+                  className="w-full appearance-none px-3 py-2.5 pr-9 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30 focus:border-[#093eaa] disabled:bg-gray-50 disabled:text-gray-500"
                 >
                   <option value="ABOVE">{t('Üzerine Çıkarsa')}</option>
                   <option value="BELOW">{t('Altına İnerse')}</option>
                 </select>
                 <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               </div>
+              {isMarginMetric && (
+                <p className="mt-1 text-[10px] text-gray-400">
+                  {t('Teminat alarmları yalnız "altına inerse" mantığıyla çalışır.')}
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1.5">{t('Değer')}</label>
@@ -150,7 +247,7 @@ export default function AlarmCreateModal({ instrument, alarm, onClose, onSaved, 
                   inputMode="decimal"
                   value={threshold}
                   onChange={e => setThreshold(e.target.value)}
-                  placeholder="0,00"
+                  placeholder={isMarginMetric ? '50' : '0,00'}
                   className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30 focus:border-[#093eaa]"
                 />
                 {suffix && (
@@ -160,9 +257,45 @@ export default function AlarmCreateModal({ instrument, alarm, onClose, onSaved, 
             </div>
           </div>
 
-          {metric === 'PRICE' && currentPrice != null && (
+          {/* MARGIN_RATIO hızlı eşik presetleri */}
+          {isMarginMetric && (
+            <div className="-mt-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[11px] text-gray-500 font-semibold mr-1">{t('Hızlı seç:')}</span>
+                {MARGIN_PRESETS.map(p => {
+                  const active = parseNumeric(threshold) === p;
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setThreshold(String(p))}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-bold border transition-colors ${
+                        active
+                          ? 'border-[#093eaa] bg-[#093eaa]/5 text-[#093eaa]'
+                          : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      %{p}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-1.5 text-[11px] text-gray-400">
+                {t('Teminat oranı bu eşiğin altına düşerse uyarı e-postası ve bildirim alacaksınız.')}
+              </p>
+            </div>
+          )}
+
+          {!isMarginMetric && currentPrice != null && (
             <p className="-mt-2 text-xs text-gray-400">
               {t('Şu anki fiyat:')} <span className="font-semibold text-gray-600">{currentPrice.toLocaleString('tr-TR')}{cur ? ` ${cur}` : ''}</span>
+            </p>
+          )}
+
+          {isMarginMetric && currentMarginRatio != null && (
+            <p className="-mt-2 text-xs text-gray-400">
+              {t('Şu anki teminat oranı:')}{' '}
+              <span className="font-semibold text-gray-600">%{(currentMarginRatio * 100).toLocaleString('tr-TR', { maximumFractionDigits: 1 })}</span>
             </p>
           )}
 
@@ -213,7 +346,7 @@ export default function AlarmCreateModal({ instrument, alarm, onClose, onSaved, 
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || nonFutureMarginWarning}
             className="w-full px-4 py-2.5 rounded-xl bg-[#093eaa] text-white font-bold text-sm hover:bg-[#0a2966] disabled:opacity-50 transition-colors"
           >
             {loading ? t('Kaydediliyor…') : editMode ? t('Kaydet') : t('Oluştur')}

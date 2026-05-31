@@ -32,6 +32,7 @@ public final class BusinessLogSupport {
     public static final String EVENT_ALARM_UPDATED = "ALARM_UPDATED";
     public static final String EVENT_ALARM_DELETED = "ALARM_DELETED";
     public static final String EVENT_ALARM_TRIGGERED = "ALARM_TRIGGERED";
+    public static final String EVENT_MARGIN_CALL_TRIGGERED = "MARGIN_CALL_TRIGGERED";
     public static final String EVENT_NOTIFICATION_CREATED = "NOTIFICATION_CREATED";
     public static final String EVENT_NEWSLETTER_SUBSCRIBED = "NEWSLETTER_SUBSCRIBED";
     public static final String EVENT_NEWSLETTER_UNSUBSCRIBED = "NEWSLETTER_UNSUBSCRIBED";

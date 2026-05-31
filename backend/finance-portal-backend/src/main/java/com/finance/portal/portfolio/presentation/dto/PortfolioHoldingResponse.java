@@ -106,6 +106,17 @@ public class PortfolioHoldingResponse {
     private BigDecimal viopLeverage;
     /** Pozisyon yönü: "LONG" (yükselişe oynama) veya "SHORT" (düşüşe oynama). */
     private String viopDirection;
+    /**
+     * Teminat sağlığı: (başlangıç teminatı + birikmiş K/Z) / başlangıç teminatı.
+     * 1.00 = teminat full, 0.50 = yarısı yendi, 0.00 = tamamen tükendi, negatif = margin call.
+     * Yalnız FUTURE (VİOP) için doldurulur, diğer tiplerde null.
+     */
+    private BigDecimal marginRatio;
+    /**
+     * Teminat durum etiketi: HEALTHY (oran>0.50), WARNING (0.25–0.50), CRITICAL (≤0.25, negatif dahil).
+     * Frontend HoldingsTable kırmızı/sarı/yeşil rozet göstermek için kullanır. FUTURE dışında null.
+     */
+    private String marginStatus;
 
     // ── Transaction date metadata ─────────────────────────────────────────────
     /** Date of the first BUY transaction for this holding. */

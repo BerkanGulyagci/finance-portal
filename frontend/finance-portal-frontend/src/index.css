@@ -104,9 +104,19 @@ body {
 .m3-state:hover::after  { opacity: 0.08; }
 .m3-state:active::after { opacity: 0.12; }
 
+/* VİOP teminat-kritik rozet için yumuşak pulse — kullanıcı dikkati ister ama göz yakmaz */
+@keyframes fp-margin-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.45); }
+  70%  { box-shadow: 0 0 0 6px rgba(225, 29, 72, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0); }
+}
+.fp-margin-pulse {
+  animation: fp-margin-pulse 1.8s cubic-bezier(0.2, 0, 0, 1) infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .m3-fade-in, .m3-fade-up, .m3-scale-in, .m3-slide-right, .m3-pop,
-  .m3-stagger > *, .m3-skeleton {
+  .m3-stagger > *, .m3-skeleton, .fp-margin-pulse {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;

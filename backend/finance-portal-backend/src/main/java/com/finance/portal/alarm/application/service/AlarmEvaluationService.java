@@ -7,6 +7,7 @@ import com.finance.portal.alarm.application.port.AlarmNotificationPort;
 import com.finance.portal.alarm.domain.Alarm;
 import com.finance.portal.alarm.domain.AlarmDirection;
 import com.finance.portal.alarm.domain.AlarmFrequency;
+import com.finance.portal.alarm.domain.AlarmMetric;
 import com.finance.portal.alarm.domain.AlarmStatus;
 import com.finance.portal.alarm.repository.AlarmRepository;
 import com.finance.portal.common.application.logging.BusinessLogSupport;
@@ -85,6 +86,11 @@ public class AlarmEvaluationService {
     private void evaluateOne(Alarm alarm) {
         Span.current().setAttribute("alarm.id", String.valueOf(alarm.getId()));
         Span.current().setAttribute("alarm.symbol", String.valueOf(alarm.getSymbol()));
+        // MARGIN_RATIO kullanıcı pozisyonuna bağlı (qty/giriş fiyatı/direction) — jenerik market probe
+        // bunu üretemez. Ayrı MarginAlarmEvaluator tarafından değerlendirilir.
+        if (alarm.getMetric() == AlarmMetric.MARGIN_RATIO) {
+            return;
+        }
         AlarmMarketSnapshot snapshot = marketDataPort.probe(alarm.getAssetType(), alarm.getSymbol());
         if (snapshot == null) {
             return;
