@@ -1194,14 +1194,12 @@ export default function HoldingsTable({
               const isBond = String(h.assetType ?? '').toUpperCase() === 'BOND';
               const isClosed = !!h.closed;
               const coupons = isBond ? (couponsBySymbol.get(h.symbol) || []) : [];
-              // Sadece kupon ödeyen kategorilerde expand + Kupon Ekle göster.
-              const COUPON_PAYING = new Set([
-                'FIXED_COUPON_BOND','TLREF_INDEXED_BOND','INFLATION_INDEXED_BOND',
-                'GOLD_INDEXED_BOND','FX_DENOMINATED_BOND',
-                'LEASE_CERTIFICATE','INFLATION_INDEXED_LEASE_CERTIFICATE',
-                'GOLD_INDEXED_LEASE_CERTIFICATE','FX_LEASE_CERTIFICATE',
-              ]);
-              const isCouponPaying = isBond && COUPON_PAYING.has(String(h.category ?? ''));
+              // Kupon Ekle butonu: tüm açık BOND pozisyonlarında (DİBS + Eurobond) görünür.
+              // Eurobond kategorisi backend'de set edilmediği için kategori filtresi kaldırıldı;
+              // kuponsuz bonolarda kullanıcı zaten butona basmaz. Quantity > 0 koşulu pozisyon
+              // kapanmadıysa zaten sağlanır (isClosed ile aynı kapı).
+              const hasOpenQty = Number(h.totalQuantity ?? h.quantity ?? 0) > 0;
+              const isCouponPaying = isBond && hasOpenQty;
               const canExpand = isBond && (coupons.length > 0 || (portfolioId && !isClosed && isCouponPaying));
               const expanded = expandedKeys.has(rowKey);
               const rowClass = isClosed
@@ -1234,34 +1232,20 @@ export default function HoldingsTable({
                       </td>
                     ))}
                   </tr>
-                  {isBond && expanded && (() => {
-                    // Sadece periyodik kupon ÖDEYEN kategorilerde "Kupon Ekle" butonu görünür.
-                    // Kuponsuz bondlar (Hazine Bonosu, kuponsuz DT, stripler) periyodik ödeme yapmaz.
-                    const couponPayingCategories = new Set([
-                      'FIXED_COUPON_BOND',
-                      'TLREF_INDEXED_BOND',
-                      'INFLATION_INDEXED_BOND',
-                      'GOLD_INDEXED_BOND',
-                      'FX_DENOMINATED_BOND',
-                      'LEASE_CERTIFICATE',
-                      'INFLATION_INDEXED_LEASE_CERTIFICATE',
-                      'GOLD_INDEXED_LEASE_CERTIFICATE',
-                      'FX_LEASE_CERTIFICATE',
-                    ]);
-                    const isCouponPaying = couponPayingCategories.has(String(h.category ?? ''));
-                    return (
-                      <tr className="bg-gray-50/40">
-                        <td colSpan={(hasAnyBond ? 1 : 0) + visibleCols.length} className="px-4 py-3">
-                          <BondExpandPanel
-                            coupons={coupons}
-                            canAddCoupon={!!portfolioId && !isClosed && isCouponPaying}
-                            onAddCoupon={() => setCouponModalSymbol(h.symbol)}
-                            t={t}
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })()}
+                  {isBond && expanded && (
+                    // "Kupon Ekle" butonu: tüm açık BOND pozisyonlarında (DİBS + Eurobond).
+                    // Outer scope'taki isCouponPaying'i kullan — DRY ve eurobond için de açılır.
+                    <tr className="bg-gray-50/40">
+                      <td colSpan={(hasAnyBond ? 1 : 0) + visibleCols.length} className="px-4 py-3">
+                        <BondExpandPanel
+                          coupons={coupons}
+                          canAddCoupon={!!portfolioId && !isClosed && isCouponPaying}
+                          onAddCoupon={() => setCouponModalSymbol(h.symbol)}
+                          t={t}
+                        />
+                      </td>
+                    </tr>
+                  )}
                 </Fragment>
               );
             })}

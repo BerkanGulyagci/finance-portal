@@ -6,6 +6,7 @@ import { useTranslation } from '../../../context/LanguageContext';
 import {
   extractApiErrorMessage,
   formatGroupedInput,
+  isEurobondInstrument,
   parseGroupedInput,
 } from '../utils/transactionFormUtils';
 
@@ -35,6 +36,12 @@ export default function CouponIncomeModal({ portfolioId, holding, onClose, onAdd
   const name = holding?.name ?? symbol;
   const couponRate = holding?.couponRate ?? null;
   const nominalQty = holding?.totalQuantity ?? null;
+  const isEurobond = isEurobondInstrument({
+    assetType: holding?.assetType,
+    symbol: holding?.symbol,
+    subType: holding?.subType,
+    isEurobond: holding?.isEurobond,
+  });
   // Tahmini yıllık kupon (basit, kullanıcıya referans için)
   const estimatedAnnualCoupon = nominalQty != null && couponRate != null
     ? (parseFloat(nominalQty) * parseFloat(couponRate)) / 100
@@ -135,6 +142,11 @@ export default function CouponIncomeModal({ portfolioId, holding, onClose, onAdd
             <p className="mt-1 text-[11px] text-[#747684] leading-snug">
               {t('Brüt tutarı girin (vergi/stopaj dahil değil — basit kayıt).')}
             </p>
+            {isEurobond && (
+              <p className="mt-1 text-[11px] italic text-[#747684] leading-snug">
+                {t('Banka USD/EUR yatırırsa o gün gelen TL karşılığını giriniz.')}
+              </p>
+            )}
           </div>
 
           {/* Tarih */}

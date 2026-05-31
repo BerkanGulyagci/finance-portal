@@ -483,6 +483,10 @@ const en = {
   'teminat oranı': 'margin ratio',
   'Fiyat veya VİOP teminat oranı koşulu sağlandığında uygulama-içi bildirim ve onaylı e-postanıza mail alırsınız.':
     'You will receive in-app notifications and email when a price or VIOP margin-ratio condition is met.',
+
+  // CouponIncomeModal — eurobond hint (bondCouponEurobondHint)
+  'Banka USD/EUR yatırırsa o gün gelen TL karşılığını giriniz.':
+    'If your bank credits USD/EUR, enter the TRY equivalent received that day.',
 };
 
 export default { en };
