@@ -238,6 +238,12 @@ public class PortfolioWhatIfService {
         BigDecimal futureNotionalMv;
         /** FUTURE özel-yol: tarihsel seri yok, MV doğrudan nominal değerden gelir. */
         boolean isFuture;
+        /**
+         * SPOT pozisyonlar için "bugün" snapshot'ı (TL marketValue). Bugün noktasında, eskimiş
+         * günlük-close serisinin son değeri yerine bunu kullanırız → Holdings/summary actualValue
+         * ile parite. Historical (today öncesi) noktalar yine seriden gelir.
+         */
+        BigDecimal spotTodayMv;
         BigDecimal assetBase;
         BigDecimal goldBase;
         BigDecimal usdBase;
@@ -328,17 +334,27 @@ public class PortfolioWhatIfService {
             // Çoklu BUY → her lot ayrı SeriesPos (kendi alış tarihinden). Tek lot ya da lot bilgisi
             // yoksa eski tek-pos davranışı. effQty (= qty/parScale) "Gerçek"in gerçek MV'sini verir.
             BigDecimal parScale = bondParScale(h);
+            // SPOT için "bugün" MV (TL) — Holdings/summary ile aynı kaynak. computeSeries today
+            // noktasında bunu tercih eder (eskimiş seri-close değerini bypass eder, ör. TEFAS
+            // gün-sonu fiyatı henüz publish olmadığında). Lots'a bölüşürken cost-orantılı dağıtırız.
+            BigDecimal totalMvTl = currencyConverter.toTry(h.getMarketValue(), h.getCurrency());
             if (lots == null || lots.isEmpty()) {
                 SeriesPos sp = new SeriesPos(costTl, date, assetSeries);
                 sp.effQty = effQtyOf(h.getTotalQuantity(), parScale);
+                sp.spotTodayMv = totalMvTl;
                 positions.add(sp);
             } else {
+                // Lot-bazlı: totalMv'i lotCostTl/costTl oranıyla dağıt → lots toplamı = totalMv.
                 for (PortfolioHoldingResponse.CostLot lot : lots) {
                     if (lot.cost() == null || lot.cost().signum() <= 0 || lot.buyDate() == null) continue;
                     BigDecimal lotCostTl = currencyConverter.toTry(lot.cost(), h.getCurrency());
                     if (lotCostTl == null || lotCostTl.signum() <= 0) continue;
                     SeriesPos sp = new SeriesPos(lotCostTl, lot.buyDate(), assetSeries);
                     sp.effQty = effQtyOf(lot.qty(), parScale);
+                    if (totalMvTl != null && totalMvTl.signum() > 0 && costTl.signum() > 0) {
+                        sp.spotTodayMv = totalMvTl.multiply(lotCostTl)
+                                .divide(costTl, MathContext.DECIMAL64);
+                    }
                     positions.add(sp);
                     if (lot.buyDate().isBefore(earliest)) {
                         earliest = lot.buyDate();
@@ -504,6 +520,11 @@ public class PortfolioWhatIfService {
             if (p.isFuture && positive(p.futureNotionalMv)) {
                 actualAvail = true;
             }
+            // SPOT: tarihsel seri yoksa bile bugünkü MV varsa "Gerçek" çizgisi en az today
+            // noktasında emit edilir (Holdings/summary ile parite garantisi).
+            if (!p.isFuture && positive(p.spotTodayMv)) {
+                actualAvail = true;
+            }
             p.goldBase = goldAvail ? floorVal(goldMap, p.date) : null;
             p.usdBase = usdAvail ? floorVal(usdMap, p.date) : null;
             // TÜFE baz değeri artık SeriesPos'ta saklanmıyor — interpolasyonlu
@@ -577,6 +598,12 @@ public class PortfolioWhatIfService {
                         actual = actual.add(contrib);
                         anyA = true;
                     }
+                } else if (!t.isBefore(today) && positive(p.spotTodayMv)) {
+                    // "Bugün" (ve ileri) noktası → Holdings/summary actualValue ile parite için
+                    // h.marketValue snapshot'ını kullan (TEFAS gün-sonu close gibi eskimiş seri
+                    // değerlerini bypass eder). Historical (today öncesi) noktalar yine seriden.
+                    actual = actual.add(p.spotTodayMv);
+                    anyA = true;
                 } else if (actualAvail && positive(p.assetBase)) {
                     BigDecimal v = floorVal(p.assetSeries, t);
                     if (positive(v)) {
