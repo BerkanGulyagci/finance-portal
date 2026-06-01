@@ -85,8 +85,8 @@ export default function AuthCallbackPage() {
     }
 
     exchangeCodeForToken(code, state)
-      .then(({ access_token, id_token }) => {
-        login(access_token, id_token);
+      .then(({ access_token, id_token, refresh_token }) => {
+        login(access_token, id_token, refresh_token);
         navigate('/dashboard', { replace: true });
       })
       .catch(err => {

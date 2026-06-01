@@ -145,11 +145,35 @@ export async function exchangeCodeForToken(code, state) {
     return {
       access_token: data.access_token,
       refresh_token: data.refresh_token ?? null,
+      id_token: data.id_token ?? null,
       expires_in: data.expires_in,
     };
   } catch (err) {
     throw new Error('Token alınamadı. Lütfen tekrar giriş yapın.');
   }
+}
+
+/**
+ * Refresh token ile yeni access token alır (sessiz oturum yenileme).
+ * Keycloak refresh token'ı rotasyona sokabilir; yeni refresh_token dönerse onu kullan,
+ * dönmezse eldekini koru. Hata fırlatırsa (refresh token süresi dolmuş/iptal) çağıran
+ * oturumu sonlandırır.
+ */
+export async function refreshAccessToken(refreshToken) {
+  const body = new URLSearchParams({
+    grant_type: 'refresh_token',
+    client_id: CLIENT_ID,
+    refresh_token: refreshToken,
+  });
+  const { data } = await axios.post(TOKEN_ENDPOINT, body.toString(), {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  });
+  return {
+    access_token: data.access_token,
+    refresh_token: data.refresh_token ?? refreshToken,
+    id_token: data.id_token ?? null,
+    expires_in: data.expires_in,
+  };
 }
 
 /**

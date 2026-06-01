@@ -128,6 +128,8 @@ services:
       - "5433:5432"
     volumes:
       - finance_portal_pgdata:/var/lib/postgresql/data
+      # Boş data dizininde (ilk init) `keycloak` DB'sini yaratır; mevcut volume'da atlanır.
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     networks:
       - finance-portal-network
     healthcheck:
@@ -144,7 +146,8 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
     container_name: finance-portal-keycloak
-    command: ["start-dev"]
+    # --import-realm: docker/keycloak/import/*.json'u BOŞ Keycloak'a yükler (mevcut realm atlanır).
+    command: ["start-dev", "--import-realm"]
     env_file:
       - path: .env.local
         required: false
@@ -164,6 +167,8 @@ services:
       KC_SPI_THEME_CACHE_TEMPLATES: "false"
     volumes:
       - ./docker/keycloak/themes:/opt/keycloak/themes
+      # Realm auto-import kaynağı (yeni makinede realm export'u buraya scp ile konur).
+      - ./docker/keycloak/import:/opt/keycloak/data/import
     ports:
       - "8081:8080"
     depends_on:
