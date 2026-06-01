@@ -14,6 +14,7 @@ import com.finance.portal.portfolio.presentation.dto.PortfolioResponse;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.instrumentation.annotations.SpanAttribute;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -33,9 +34,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.IdentityHashMap;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 
 /**
@@ -67,6 +73,17 @@ public class PortfolioWhatIfService {
     private final EconomyDataPort economyDataPort;
     private final PortfolioCurrencyConverter currencyConverter;
 
+    /**
+     * "Ne Olurdu?" serisindeki BAĞIMSIZ dış çağrıları (her pozisyonun fiyat serisi + 8 paylaşılan
+     * piyasa/ekonomi serisi + benchmark'lar) paralel çekmek için küçük havuz. Aksi halde hepsi
+     * SIRALI çalışır; büyük portföyde toplam süre onlarca saniyeye çıkar (her dış API ~birkaç sn).
+     */
+    private final ExecutorService whatIfExecutor = Executors.newFixedThreadPool(8, r -> {
+        Thread t = new Thread(r, "whatif-fetch");
+        t.setDaemon(true);
+        return t;
+    });
+
     public PortfolioWhatIfService(InflationDeflatorService deflator,
                                   PortfolioHistoricalPricePort pricePort,
                                   EconomyDataPort economyDataPort,
@@ -75,6 +92,31 @@ public class PortfolioWhatIfService {
         this.pricePort = pricePort;
         this.economyDataPort = economyDataPort;
         this.currencyConverter = currencyConverter;
+    }
+
+    @PreDestroy
+    void shutdownExecutor() {
+        whatIfExecutor.shutdownNow();
+    }
+
+    // ── Global seri cache ───────────────────────────────────────────────────────
+    // gold/usd/tufe/uscpi/deposit/bist/btc/gspc serileri TÜM portföyler için AYNI (global)
+    // ve gün içinde yavaş değişir. İlk çekimden sonra TTL boyunca cache'ten → her what-if'te
+    // 8 yavaş dış çağrı tekrarlanmaz (özellikle BTC Yahoo-fallback gibi ~26 sn'lik pole'lar).
+    private record CachedSeries(Object value, long expiresAt) {}
+    private final Map<String, CachedSeries> globalSeriesCache = new ConcurrentHashMap<>();
+    private static final long GLOBAL_CACHE_TTL_MS = 30L * 60 * 1000; // 30 dk
+
+    @SuppressWarnings("unchecked")
+    private <T> T cachedGlobal(String key, java.util.function.Supplier<T> supplier) {
+        long now = System.currentTimeMillis();
+        CachedSeries c = globalSeriesCache.get(key);
+        if (c != null && c.expiresAt() > now) {
+            return (T) c.value();
+        }
+        T v = supplier.get();
+        globalSeriesCache.put(key, new CachedSeries(v, now + GLOBAL_CACHE_TTL_MS));
+        return v;
     }
 
     /**
@@ -309,6 +351,10 @@ public class PortfolioWhatIfService {
         List<SeriesPos> positions = new ArrayList<>();
         LocalDate earliest = today;
         String singleLabel = null;
+        // Per-holding tarihsel fiyat serilerini PARALEL ön-çek (aksi halde döngü her holding için
+        // SIRALI dış API çağrısı yapardı → büyük portföyde onlarca saniye). Döngü map'ten okur.
+        Map<PortfolioHoldingResponse, NavigableMap<LocalDate, BigDecimal>> seriesByHolding =
+                prefetchHoldingSeries(holdings, today, filterAssetType, filterSymbol, single);
         for (PortfolioHoldingResponse h : holdings) {
             if (single && !matches(h, filterAssetType, filterSymbol)) {
                 continue;
@@ -335,24 +381,9 @@ public class PortfolioWhatIfService {
                 }
                 continue;
             }
-            // Asset series tüm holding için bir kez çekilir — lots aynı seriyi paylaşır.
-            // Earliest lot tarihi 10 gün geriden çekim penceresi başlangıcı olur.
-            LocalDate fetchFrom = date;
+            // Asset serisi prefetchHoldingSeries ile PARALEL ön-çekildi — burada yalnız oku.
             List<PortfolioHoldingResponse.CostLot> lots = h.getOpenCostLots();
-            if (lots != null && !lots.isEmpty()) {
-                for (PortfolioHoldingResponse.CostLot lot : lots) {
-                    if (lot.buyDate() != null && lot.buyDate().isBefore(fetchFrom)) {
-                        fetchFrom = lot.buyDate();
-                    }
-                }
-            }
-            NavigableMap<LocalDate, BigDecimal> assetSeries;
-            try {
-                assetSeries = pricePort.fetchDailyClosePrices(
-                        h.getAssetType(), h.getSymbol(), fetchFrom.minusDays(10), today).orElse(null);
-            } catch (Exception e) {
-                assetSeries = null;
-            }
+            NavigableMap<LocalDate, BigDecimal> assetSeries = seriesByHolding.get(h);
             // Çoklu BUY → her lot ayrı SeriesPos (kendi alış tarihinden). Tek lot ya da lot bilgisi
             // yoksa eski tek-pos davranışı. effQty (= qty/parScale) "Gerçek"in gerçek MV'sini verir.
             BigDecimal parScale = bondParScale(h);
@@ -403,6 +434,54 @@ public class PortfolioWhatIfService {
             }
         }
         return new PositionBundle(positions, earliest, singleLabel);
+    }
+
+    /**
+     * Per-holding tarihsel fiyat serilerini PARALEL ön-çeker (buildPositions döngüsü sonucu map'ten
+     * okur). Sıralı çekimde her holding ayrı dış API çağrısıydı → büyük portföyde süre lineer
+     * artıyordu. buildPositions ile AYNI filtreyi uygular (single+matches, geçerli cost/date,
+     * FUTURE atla) → map anahtarları döngüde işlenen holding'lerle birebir. Çekim penceresi = en
+     * erken lot/alış tarihi − 10 gün. {@code safePrice} hata/boşta null döner (IdentityHashMap
+     * null değer kabul eder; döngüde assetSeries null = eski davranış).
+     */
+    private Map<PortfolioHoldingResponse, NavigableMap<LocalDate, BigDecimal>> prefetchHoldingSeries(
+            List<PortfolioHoldingResponse> holdings, LocalDate today,
+            String filterAssetType, String filterSymbol, boolean single) {
+        Map<PortfolioHoldingResponse, CompletableFuture<NavigableMap<LocalDate, BigDecimal>>> futures =
+                new IdentityHashMap<>();
+        for (PortfolioHoldingResponse h : holdings) {
+            if (single && !matches(h, filterAssetType, filterSymbol)) {
+                continue;
+            }
+            if (h.getAssetType() == AssetType.FUTURE) {
+                continue; // vadeli: tarihsel kapanış serisi yok (mark-to-market)
+            }
+            BigDecimal costTl = currencyConverter.toTry(h.getTotalCost(), h.getCurrency());
+            LocalDate date = h.getFirstBuyDate() != null ? h.getFirstBuyDate().toLocalDate() : null;
+            if (costTl == null || costTl.signum() <= 0 || date == null) {
+                continue;
+            }
+            LocalDate fetchFrom = date;
+            List<PortfolioHoldingResponse.CostLot> lots = h.getOpenCostLots();
+            if (lots != null) {
+                for (PortfolioHoldingResponse.CostLot lot : lots) {
+                    if (lot.buyDate() != null && lot.buyDate().isBefore(fetchFrom)) {
+                        fetchFrom = lot.buyDate();
+                    }
+                }
+            }
+            // Per-pozisyon seri de TTL cache'lenir (aynı sembol+pencere gün içinde değişmez) →
+            // 2.+ what-if çağrısında dış fetch tekrarlanmaz. Anahtar sembol+alış-penceresi bazlı.
+            final LocalDate ff = fetchFrom;
+            final AssetType at = h.getAssetType();
+            final String sym = h.getSymbol();
+            futures.put(h, CompletableFuture.supplyAsync(
+                    () -> cachedGlobal("pos:" + at + ":" + sym + ":" + ff,
+                            () -> safePrice(at, sym, ff.minusDays(10), today)), whatIfExecutor));
+        }
+        Map<PortfolioHoldingResponse, NavigableMap<LocalDate, BigDecimal>> out = new IdentityHashMap<>();
+        futures.forEach((h, f) -> out.put(h, f.join()));
+        return out;
     }
 
     /** BOND (altın bond hariç) fiyatı 100 nominal üzerinden kote → parScale 100; diğer türler 1. */
@@ -510,22 +589,46 @@ public class PortfolioWhatIfService {
             return result;
         }
 
-        LocalDate from = earliest.minusDays(14);
-        final List<EconomySeriesPoint> tufe = safe(() -> deflator.tufeSeries());
-        final List<EconomySeriesPoint> usCpi = safe(() -> deflator.usCpiSeries());
-        final NavigableMap<LocalDate, BigDecimal> goldMap = safePrice(AssetType.GOLD, "GRAM", from, today);
-        final NavigableMap<LocalDate, BigDecimal> usdMap = safePrice(AssetType.FX, "USD", from, today);
-        final List<DateRate> rates = depositRates(from, today);
-        // Portföy dışı benchmark'lar — BIST100/Bitcoin TL; S&P500 USD (×USD/TRY ile TL'ye çevrilir).
-        final NavigableMap<LocalDate, BigDecimal> bistMap = safePrice(AssetType.STOCK, "XU100.IS", from, today);
-        final NavigableMap<LocalDate, BigDecimal> btcMap = safePrice(AssetType.CRYPTO, "BTC", from, today);
-        final NavigableMap<LocalDate, BigDecimal> gspcMap = safePrice(AssetType.STOCK, "^GSPC", from, today);
+        // Global seri penceresi = max(earliest−14g, today−15y). Normal portföy KENDİ alış
+        // tarihinden çeker (ör. 2021 → BTC Binance'ta = hızlı, Yahoo-fallback YOK). Yalnız bozuk
+        // çok-eski tarihli veri (ör. yanlış 2004 alış) 15 yıl tabanına çekilir → 22 yıllık fetch
+        // önlenir. Cache anahtarına pencere eklenir (dönen data pencereye bağlı).
+        final LocalDate evFrom = earliest.minusDays(14);
+        final LocalDate floor15 = today.minusYears(15);
+        final LocalDate globalFrom = evFrom.isBefore(floor15) ? floor15 : evFrom;
+        final String gw = ":" + globalFrom;
+        // Paylaşılan piyasa/ekonomi serileri BAĞIMSIZ → paralel çek + TTL cache (ilk çağrıdan
+        // sonra tekrarlanmaz). TÜFE/US-CPI tam geçmiş döner → pencereden bağımsız anahtar.
+        var fTufe  = CompletableFuture.supplyAsync(() -> cachedGlobal("tufe", () -> safe(() -> deflator.tufeSeries())), whatIfExecutor);
+        var fUsCpi = CompletableFuture.supplyAsync(() -> cachedGlobal("uscpi", () -> safe(() -> deflator.usCpiSeries())), whatIfExecutor);
+        var fGold  = CompletableFuture.supplyAsync(() -> cachedGlobal("gold" + gw, () -> safePrice(AssetType.GOLD, "GRAM", globalFrom, today)), whatIfExecutor);
+        var fUsd   = CompletableFuture.supplyAsync(() -> cachedGlobal("usd" + gw, () -> safePrice(AssetType.FX, "USD", globalFrom, today)), whatIfExecutor);
+        var fRates = CompletableFuture.supplyAsync(() -> cachedGlobal("deposit" + gw, () -> depositRates(globalFrom, today)), whatIfExecutor);
+        var fBist  = CompletableFuture.supplyAsync(() -> cachedGlobal("bist" + gw, () -> safePrice(AssetType.STOCK, "XU100.IS", globalFrom, today)), whatIfExecutor);
+        var fBtc   = CompletableFuture.supplyAsync(() -> cachedGlobal("btc" + gw, () -> safePrice(AssetType.CRYPTO, "BTC", globalFrom, today)), whatIfExecutor);
+        var fGspc  = CompletableFuture.supplyAsync(() -> cachedGlobal("gspc" + gw, () -> safePrice(AssetType.STOCK, "^GSPC", globalFrom, today)), whatIfExecutor);
 
-        // Kullanıcı-eklemeli serbest kıyaslar (tüm türler; USD olanlar ×USD/TRY ile TL'ye çevrilir).
+        // Kullanıcı-eklemeli serbest kıyaslar — paralel + sembol+pencere bazlı TTL cache.
+        final List<BenchSpec> benchSpecs = parseBenchmarks(benchmarkSpecs);
+        final Map<String, CompletableFuture<NavigableMap<LocalDate, BigDecimal>>> benchFutures = new LinkedHashMap<>();
+        for (BenchSpec b : benchSpecs) {
+            benchFutures.put(b.id(), CompletableFuture.supplyAsync(
+                    () -> cachedGlobal("bench:" + b.id() + gw, () -> safePrice(b.type(), b.symbol(), globalFrom, today)), whatIfExecutor));
+        }
+
+        final List<EconomySeriesPoint> tufe = fTufe.join();
+        final List<EconomySeriesPoint> usCpi = fUsCpi.join();
+        final NavigableMap<LocalDate, BigDecimal> goldMap = fGold.join();
+        final NavigableMap<LocalDate, BigDecimal> usdMap = fUsd.join();
+        final List<DateRate> rates = fRates.join();
+        final NavigableMap<LocalDate, BigDecimal> bistMap = fBist.join();
+        final NavigableMap<LocalDate, BigDecimal> btcMap = fBtc.join();
+        final NavigableMap<LocalDate, BigDecimal> gspcMap = fGspc.join();
+
         final Map<String, NavigableMap<LocalDate, BigDecimal>> benchMaps = new LinkedHashMap<>();
         final Map<String, Boolean> benchNeedsFx = new HashMap<>();
-        for (BenchSpec b : parseBenchmarks(benchmarkSpecs)) {
-            NavigableMap<LocalDate, BigDecimal> m = safePrice(b.type(), b.symbol(), from, today);
+        for (BenchSpec b : benchSpecs) {
+            NavigableMap<LocalDate, BigDecimal> m = benchFutures.get(b.id()).join();
             if (m != null && !m.isEmpty()) {
                 benchMaps.put(b.id(), m);
                 benchNeedsFx.put(b.id(), b.needsFx());
