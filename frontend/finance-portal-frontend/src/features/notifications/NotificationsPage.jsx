@@ -60,14 +60,23 @@ export default function NotificationsPage() {
 
   async function onRead(n) {
     if (n.read) return;
-    try { await markNotificationRead(n.id); refresh(); } catch { /* yut */ }
+    // Hover ile okundu işaretle: tüm listeyi refetch ETME (refresh() loading=true
+    // yapıp listeyi "Yükleniyor"a düşürür → hover'da rahatsız edici flash). Tek
+    // öğeyi yerinde güncelle.
+    try {
+      await markNotificationRead(n.id);
+      setItems(prev => prev.map(x => (x.id === n.id ? { ...x, read: true } : x)));
+    } catch { /* yut */ }
   }
   async function onReadAll() {
     try { await markAllNotificationsRead(); toast.success(t('Tümü okundu işaretlendi.')); refresh(); }
     catch { toast.error(t('İşlem başarısız.')); }
   }
   async function onDelete(n) {
-    try { await deleteNotification(n.id); refresh(); } catch { toast.error(t('Silinemedi.')); }
+    try {
+      await deleteNotification(n.id);
+      setItems(prev => prev.filter(x => x.id !== n.id));
+    } catch { toast.error(t('Silinemedi.')); }
   }
 
   const unread = items.filter(n => !n.read).length;

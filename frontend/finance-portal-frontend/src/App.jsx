@@ -3,6 +3,7 @@ import { ToastProvider } from './context/ToastContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { WatchlistProvider } from './context/WatchlistContext';
 import { PreferencesProvider } from './context/PreferencesContext';
+import { ThemeProvider } from './context/ThemeContext';
 import AppRouter from './router/AppRouter';
 
 export default function App() {
@@ -12,7 +13,9 @@ export default function App() {
         <ToastProvider>
           <WatchlistProvider>
             <PreferencesProvider>
-              <AppRouter />
+              <ThemeProvider>
+                <AppRouter />
+              </ThemeProvider>
             </PreferencesProvider>
           </WatchlistProvider>
         </ToastProvider>

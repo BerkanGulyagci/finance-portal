@@ -38,7 +38,7 @@ export default function EChartsCompareChart({ chartData, seriesDefs }) {
       );
 
       const option = {
-        backgroundColor: '#ffffff',
+        backgroundColor: 'transparent',
         animation: false,
         grid: { top: 20, right: 60, bottom: 80, left: 70 },
         xAxis: {

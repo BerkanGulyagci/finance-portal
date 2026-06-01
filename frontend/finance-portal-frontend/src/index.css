@@ -195,3 +195,316 @@ body {
     border: 1px solid transparent;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KOYU MOD (Dark Mode)
+   <html class="dark"> olunca devreye girer (ThemeContext yönetir).
+   Yaklaşım: CSS değişkenleri + m3-* bileşenleri + sık kullanılan hardcoded
+   Tailwind palet sınıfları .dark altında override edilir → component dosyaları
+   DEĞİŞTİRİLMEDEN tüm uygulama koyu moda uyum sağlar. (Unlayered kurallar
+   Tailwind'in @layer utilities'inden cascade'de önceliklidir.)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Tailwind v4 dark variant — gelecekte dark:* yardımcılarını .dark class'ına bağlar */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* 1) Semantik CSS değişkenleri (body, *, var(--...) kullananlar otomatik döner) */
+.dark {
+  --background: #0f1115;
+  --foreground: #e6e7ea;
+  --card: #1a1c22;
+  --card-foreground: #e6e7ea;
+  --primary: #3b6fe0;
+  --primary-foreground: #ffffff;
+  --muted: #23252c;
+  --muted-foreground: #9aa3b2;
+  --border: #2c2f38;
+  --ring: #3b6fe0;
+}
+
+/* 2) M3 bileşen sınıfları */
+.dark .m3-card { background: #1a1c22; border-color: #2c2f38; }
+.dark .m3-icon-chip { background: #1e2a44; color: #7aa2ff; }
+.dark .m3-btn-filled { background: #2557d6; color: #ffffff; }
+.dark .m3-btn-filled:hover:not(:disabled) { background: #3b6fe0; }
+.dark .m3-btn-tonal { background: #1e2a44; color: #b9cdf5; }
+.dark .m3-btn-tonal:hover:not(:disabled) { background: #24345a; }
+.dark .m3-btn-outlined { background: #1a1c22; color: #d6d8de; border-color: #3a3d47; }
+.dark .m3-btn-outlined:hover:not(:disabled) { background: #23252c; border-color: #4a4d57; }
+.dark .m3-btn-text { color: #7aa2ff; }
+.dark .m3-btn-text:hover:not(:disabled) { background: rgba(122, 162, 255, 0.12); }
+.dark .m3-skeleton {
+  background: linear-gradient(90deg, #23252c 25%, #2c2f38 37%, #23252c 63%);
+  background-size: 200% 100%;
+}
+
+/* 3) Sık kullanılan hardcoded Tailwind palet sınıfları (component'ler değişmeden) */
+/* Yüzeyler — beyaz/açık kartlar koyu yüzeye */
+.dark .bg-white { background-color: #1a1c22; }
+.dark .bg-\[\#f3f3fc\],
+.dark .bg-\[\#f8fafc\],
+.dark .bg-\[\#f4f6fb\],
+.dark .bg-\[\#eef1f6\] { background-color: #23252c; }
+.dark .bg-gray-50, .dark .bg-slate-50,
+.dark .bg-gray-100, .dark .bg-slate-100 { background-color: #23252c; }
+/* Metin — koyu tonlar açık griye */
+.dark .text-\[\#1a1b22\],
+.dark .text-\[\#1a1c1e\],
+.dark .text-\[\#0f172a\] { color: #e6e7ea; }
+.dark .text-\[\#434653\],
+.dark .text-\[\#505f76\],
+.dark .text-\[\#5a6472\],
+.dark .text-\[\#3b3f47\] { color: #c2c7d0; }
+.dark .text-\[\#747684\],
+.dark .text-\[\#9aa6b6\],
+.dark .text-\[\#64748b\] { color: #8a93a1; }
+.dark .text-gray-900, .dark .text-slate-900,
+.dark .text-gray-800, .dark .text-slate-800 { color: #e6e7ea; }
+.dark .text-gray-700, .dark .text-slate-700,
+.dark .text-gray-600, .dark .text-slate-600 { color: #c2c7d0; }
+.dark .text-gray-500, .dark .text-slate-500,
+.dark .text-gray-400, .dark .text-slate-400 { color: #8a93a1; }
+/* Marka mavisi metin — koyu zeminde okunur açık maviye */
+.dark .text-\[\#093eaa\],
+.dark .text-\[\#0b347f\] { color: #7aa2ff; }
+/* Kenarlıklar */
+.dark .border-\[\#e2e1eb\],
+.dark .border-\[\#e2e8f0\],
+.dark .border-\[\#c4c5d5\],
+.dark .border-\[\#e6e8ef\] { border-color: #2c2f38; }
+.dark .border-gray-100, .dark .border-slate-100,
+.dark .border-gray-200, .dark .border-slate-200 { border-color: #2c2f38; }
+.dark .border-\[\#093eaa\] { border-color: #3b6fe0; }
+/* Satır ayraçları (divide-*) */
+.dark .divide-gray-50 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color: #2c2f38; }
+
+/* ── Tema toggle (segmentli Sun | Moon) ─────────────────────────────────────
+   Görsel: ikiye bölünmüş hap; sol=Güneş (açık), sağ=Ay (koyu). Aktif tema
+   vurgulu "knob" kazanır, pasif ikon soluk. Kendi class'larıyla yazıldı; böylece
+   yukarıdaki global ".dark" renk override'larından ETKİLENMEZ — renkler hem açık
+   hem koyu modda burada elle tanımlı. display SET EDİLMEZ (görünürlük Header'daki
+   "hidden sm:inline-flex" utility'sine bırakılır). */
+.theme-toggle {
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 9999px;
+  background: #eef1f6;
+  border: 1px solid #e2e8f0;
+}
+.dark .theme-toggle { background: #23252c; border-color: #2c2f38; }
+
+.theme-toggle__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 26px;
+  border-radius: 9999px;
+  color: #8a93a1;
+  cursor: pointer;
+  transition: background-color .18s ease, color .18s ease, box-shadow .18s ease;
+}
+.theme-toggle__btn:hover { color: #5a6472; }
+.dark .theme-toggle__btn:hover { color: #c2c7d0; }
+
+/* Aktif segment (geçerli tema) — açık modda beyaz knob/marka mavisi güneş,
+   koyu modda koyu knob/açık mavi ay. */
+.theme-toggle__btn--active {
+  background: #ffffff;
+  color: #093eaa;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .12);
+}
+.dark .theme-toggle__btn--active {
+  background: #0f1115;
+  color: #7aa2ff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .45);
+}
+
+/* ── 4) Status (durum) renkleri — koyu mod ──────────────────────────────────
+   Tailwind named palet (blue/emerald/amber/rose/violet ...). Açık 50/100 zeminler
+   hue-tintli koyu zemine; koyu 600-900 metinler okunur açık tona; 100-300 kenarlıklar
+   hue-tintli koyu kenarlığa. Doygun solid zeminler (500/600/700) ve {renk}-50 açık
+   metinler (renkli buton üstünde) DOKUNULMAZ. */
+
+/* Zeminler 50 → koyu hue-tint */
+.dark .bg-blue-50, .dark .bg-sky-50, .dark .bg-cyan-50, .dark .bg-indigo-50 { background-color: #172033; }
+.dark .bg-emerald-50, .dark .bg-green-50, .dark .bg-teal-50, .dark .bg-lime-50 { background-color: #152620; }
+.dark .bg-amber-50, .dark .bg-yellow-50, .dark .bg-orange-50 { background-color: #272014; }
+.dark .bg-rose-50, .dark .bg-red-50, .dark .bg-pink-50, .dark .bg-fuchsia-50 { background-color: #2a181c; }
+.dark .bg-violet-50, .dark .bg-purple-50 { background-color: #221a30; }
+.dark .bg-zinc-50, .dark .bg-neutral-50, .dark .bg-stone-50 { background-color: #23252c; }
+/* Zeminler 100 → biraz daha açık koyu hue-tint */
+.dark .bg-blue-100, .dark .bg-sky-100, .dark .bg-cyan-100, .dark .bg-indigo-100 { background-color: #1d2a44; }
+.dark .bg-emerald-100, .dark .bg-green-100, .dark .bg-teal-100, .dark .bg-lime-100 { background-color: #1a3328; }
+.dark .bg-amber-100, .dark .bg-yellow-100, .dark .bg-orange-100 { background-color: #332a16; }
+.dark .bg-rose-100, .dark .bg-red-100, .dark .bg-pink-100, .dark .bg-fuchsia-100 { background-color: #3a2025; }
+.dark .bg-violet-100, .dark .bg-purple-100 { background-color: #2c2240; }
+.dark .bg-zinc-100, .dark .bg-zinc-200, .dark .bg-neutral-100, .dark .bg-stone-100 { background-color: #2c2f38; }
+
+/* Koyu renkli metinler 600-900 → okunur açık hue */
+.dark .text-blue-600, .dark .text-blue-700, .dark .text-blue-800, .dark .text-blue-900,
+.dark .text-sky-600, .dark .text-sky-700, .dark .text-sky-800, .dark .text-sky-900,
+.dark .text-cyan-700, .dark .text-cyan-800,
+.dark .text-indigo-600, .dark .text-indigo-700, .dark .text-indigo-800, .dark .text-indigo-900 { color: #8ab0ff; }
+.dark .text-emerald-600, .dark .text-emerald-700, .dark .text-emerald-800, .dark .text-emerald-900,
+.dark .text-green-600, .dark .text-green-700, .dark .text-green-800,
+.dark .text-teal-700, .dark .text-teal-900, .dark .text-lime-700 { color: #5fd0a0; }
+.dark .text-amber-600, .dark .text-amber-700, .dark .text-amber-800, .dark .text-amber-900,
+.dark .text-yellow-700, .dark .text-yellow-800,
+.dark .text-orange-600, .dark .text-orange-700 { color: #f3c969; }
+.dark .text-rose-600, .dark .text-rose-700, .dark .text-rose-800, .dark .text-rose-900,
+.dark .text-red-600, .dark .text-red-700, .dark .text-red-800 { color: #f7a3a3; }
+.dark .text-violet-600, .dark .text-violet-700, .dark .text-violet-900,
+.dark .text-purple-700 { color: #c9b3f5; }
+.dark .text-zinc-700 { color: #c2c7d0; }
+/* 400 vurgu metinleri (renkli zemin üzerinde değilse) biraz yumuşat */
+.dark .text-rose-400 { color: #f7a3a3; }
+.dark .text-emerald-400 { color: #5fd0a0; }
+.dark .text-amber-400 { color: #f3c969; }
+
+/* Renkli kenarlıklar 100-300 → koyu hue-tint */
+.dark .border-blue-100, .dark .border-blue-200, .dark .border-sky-50, .dark .border-sky-100, .dark .border-sky-200,
+.dark .border-cyan-100, .dark .border-indigo-200 { border-color: #24345a; }
+.dark .border-emerald-50, .dark .border-emerald-100, .dark .border-emerald-300, .dark .border-green-200 { border-color: #1f3a2e; }
+.dark .border-amber-50, .dark .border-amber-100, .dark .border-amber-200, .dark .border-amber-300,
+.dark .border-yellow-100, .dark .border-yellow-200, .dark .border-orange-50, .dark .border-orange-200 { border-color: #3a3018; }
+.dark .border-rose-50, .dark .border-rose-100, .dark .border-rose-200, .dark .border-rose-300,
+.dark .border-red-100, .dark .border-red-200 { border-color: #4a2630; }
+.dark .border-violet-100, .dark .border-violet-200, .dark .border-purple-200, .dark .border-indigo-200 { border-color: #332650; }
+
+/* 5) Eksik açık hex yüzeyler (envanterden) */
+/* Neredeyse beyaz yüzeyler → kart koyusu */
+.dark .bg-\[\#f6f8fc\], .dark .bg-\[\#f5f6f8\], .dark .bg-\[\#fafbfd\], .dark .bg-\[\#fafafe\],
+.dark .bg-\[\#f8f9fc\], .dark .bg-\[\#f8f8fc\], .dark .bg-\[\#eef0f6\] { background-color: #1a1c22; }
+/* Açık mavi/mor tint (seçili/info durumları) → koyu mavi tint */
+.dark .bg-\[\#eef2f8\], .dark .bg-\[\#eef4ff\], .dark .bg-\[\#eeedf7\], .dark .bg-\[\#eef2fc\],
+.dark .bg-\[\#e3eaf6\], .dark .bg-\[\#e7eefb\], .dark .bg-\[\#e8e7f1\], .dark .bg-\[\#d8e3f9\],
+.dark .bg-\[\#d0e1fb\] { background-color: #1e2a44; }
+/* Gri dolgular → kenarlık grisi */
+.dark .bg-\[\#e2e1eb\], .dark .bg-\[\#d1d5db\], .dark .bg-\[\#c4c5d5\], .dark .bg-\[\#9a9bab\] { background-color: #2c2f38; }
+/* Eksik hex kenarlıklar */
+.dark .border-\[\#eef2f8\], .dark .border-\[\#eeedf7\], .dark .border-\[\#dbe6ff\], .dark .border-\[\#f1f5f9\] { border-color: #2c2f38; }
+.dark .divide-\[\#f1f5f9\] > :not([hidden]) ~ :not([hidden]) { border-color: #2c2f38; }
+/* Eksik hex metinler */
+.dark .text-\[\#9aa0a6\], .dark .text-\[\#9a9bab\] { color: #8a93a1; }
+.dark .text-\[\#7c3aed\] { color: #c9b3f5; }
+/* Eksik hex ring (odak/seçim) */
+.dark .ring-\[\#e2e8f0\] { --tw-ring-color: #2c2f38; }
+
+/* 6) Açık gradyan durakları → koyu hue */
+.dark .from-blue-50 { --tw-gradient-from: #172033 var(--tw-gradient-from-position); }
+.dark .to-blue-100 { --tw-gradient-to: #1d2a44 var(--tw-gradient-to-position); }
+.dark .from-rose-50 { --tw-gradient-from: #2a181c var(--tw-gradient-from-position); }
+.dark .from-rose-400 { --tw-gradient-from: #5a2a35 var(--tw-gradient-from-position); }
+.dark .from-emerald-400 { --tw-gradient-from: #1f4a37 var(--tw-gradient-from-position); }
+.dark .to-emerald-50 { --tw-gradient-to: #152620 var(--tw-gradient-to-position); }
+.dark .to-emerald-400 { --tw-gradient-to: #1f4a37 var(--tw-gradient-to-position); }
+
+/* ── 7) Variant state'ler (hover / focus / group-hover / active) ─────────────
+   Bunlar ayrı selector'lara derlenir (.hover\:bg-x:hover) → yukarıdaki .dark .bg-x
+   kuralları YAKALAMAZ. Aksi halde koyu modda hover/focus'ta açık renk "flash"
+   olur. Base override'larla aynı koyu değerlere eşlenir. Doygun/marka mavisi
+   hover'lar (mavi butonlar) DOKUNULMAZ — koyu zeminde zaten doğru. */
+
+/* Yüzey hover'ları (açık → koyu hover, kartlardan bir tık açık) */
+.dark .hover\:bg-white:hover,
+.dark .hover\:bg-\[\#f3f3fc\]:hover,
+.dark .hover\:bg-\[\#f6f8fc\]:hover,
+.dark .hover\:bg-gray-50:hover { background-color: #23252c; }
+.dark .hover\:bg-gray-100:hover,
+.dark .active\:bg-gray-100:active,
+.dark .hover\:bg-\[\#e2e1eb\]:hover { background-color: #2c2f38; }
+.dark .hover\:bg-gray-200:hover,
+.dark .active\:bg-gray-200:active { background-color: #343742; }
+/* Açık mavi tint hover'lar (seçili/info) → koyu mavi hover */
+.dark .hover\:bg-\[\#eef2f8\]:hover,
+.dark .hover\:bg-\[\#eef2fc\]:hover,
+.dark .hover\:bg-\[\#eef4ff\]:hover,
+.dark .hover\:bg-\[\#e3eaf6\]:hover,
+.dark .hover\:bg-\[\#d8e3f9\]:hover,
+.dark .group:hover .group-hover\:bg-\[\#d0e1fb\] { background-color: #24345a; }
+
+/* Status zemin hover'ları (açık → koyu hue-tint, base ile aynı) */
+.dark .hover\:bg-blue-50:hover, .dark .hover\:bg-sky-50:hover, .dark .hover\:bg-indigo-50:hover { background-color: #172033; }
+.dark .hover\:bg-blue-100:hover { background-color: #1d2a44; }
+.dark .hover\:bg-emerald-50:hover { background-color: #152620; }
+.dark .hover\:bg-emerald-100:hover { background-color: #1a3328; }
+.dark .hover\:bg-amber-50:hover, .dark .hover\:bg-orange-50:hover { background-color: #272014; }
+.dark .hover\:bg-amber-100:hover { background-color: #332a16; }
+.dark .hover\:bg-rose-50:hover, .dark .hover\:bg-red-50:hover { background-color: #2a181c; }
+.dark .hover\:bg-rose-100:hover { background-color: #3a2025; }
+.dark .hover\:bg-violet-50:hover, .dark .hover\:bg-purple-50:hover { background-color: #221a30; }
+
+/* Metin hover'ları (koyu → okunur açık ton) */
+.dark .hover\:text-\[\#093eaa\]:hover,
+.dark .group:hover .group-hover\:text-\[\#093eaa\] { color: #7aa2ff; }
+.dark .group:hover .group-hover\:text-blue-600,
+.dark .group:hover .group-hover\:text-blue-900 { color: #8ab0ff; }
+.dark .hover\:text-\[\#1a1b22\]:hover,
+.dark .hover\:text-gray-800:hover { color: #e6e7ea; }
+.dark .hover\:text-\[\#434653\]:hover,
+.dark .hover\:text-gray-600:hover,
+.dark .hover\:text-gray-700:hover { color: #c2c7d0; }
+.dark .hover\:text-\[\#7c3aed\]:hover { color: #c9b3f5; }
+.dark .hover\:text-amber-400:hover, .dark .hover\:text-amber-600:hover { color: #f3c969; }
+.dark .hover\:text-rose-600:hover, .dark .hover\:text-red-800:hover { color: #f7a3a3; }
+
+/* Kenarlık + ring hover/focus (marka mavisi → koyuda görünür mavi) */
+.dark .hover\:border-\[\#093eaa\]:hover,
+.dark .focus\:border-\[\#093eaa\]:focus,
+.dark .focus\:border-\[\#002a7d\]:focus { border-color: #3b6fe0; }
+.dark .focus\:ring-\[\#093eaa\]:focus,
+.dark .focus\:ring-\[\#002a7d\]:focus,
+.dark .focus-visible\:ring-\[\#093eaa\]:focus-visible { --tw-ring-color: #3b6fe0; }
+.dark .hover\:border-\[\#c4c5d5\]:hover,
+.dark .hover\:border-gray-300:hover { border-color: #3a3d47; }
+.dark .hover\:border-blue-200:hover { border-color: #24345a; }
+.dark .hover\:border-emerald-300:hover { border-color: #1f3a2e; }
+.dark .hover\:border-red-200:hover, .dark .hover\:border-rose-300:hover { border-color: #4a2630; }
+.dark .hover\:border-\[\#7c3aed\]:hover { border-color: #8b6fd8; }
+
+/* ── 8) Opacity modifier'lı renkler (bg-white/90 gibi) ───────────────────────
+   "/XX" opacity modifier'ı AYRI bir class üretir (.bg-white\/90) → yukarıdaki
+   .dark .bg-white onu yakalamaz. Aksi halde donut merkezi (bg-white/90), cam
+   yüzeyler ve mover kolonları (bg-gray-50/40) koyu modda BEYAZ kalır. */
+.dark .bg-white\/90 { background-color: rgba(26, 28, 34, 0.9); }
+.dark .bg-white\/80 { background-color: rgba(26, 28, 34, 0.8); }
+.dark .bg-white\/70 { background-color: rgba(26, 28, 34, 0.7); }
+.dark .bg-white\/60 { background-color: rgba(26, 28, 34, 0.6); }
+.dark .bg-white\/30 { background-color: rgba(26, 28, 34, 0.5); }
+.dark .bg-white\/25 { background-color: rgba(26, 28, 34, 0.45); }
+.dark .bg-gray-50\/40 { background-color: rgba(35, 37, 44, 0.5); }
+.dark .bg-gray-50\/50 { background-color: rgba(35, 37, 44, 0.5); }
+.dark .bg-gray-50\/60 { background-color: rgba(35, 37, 44, 0.6); }
+.dark .bg-gray-50\/80 { background-color: rgba(35, 37, 44, 0.8); }
+.dark .bg-gray-100\/80 { background-color: rgba(44, 47, 56, 0.85); }
+.dark .bg-gray-100\/60 { background-color: rgba(44, 47, 56, 0.6); }
+.dark .bg-gray-100\/40 { background-color: rgba(44, 47, 56, 0.45); }
+/* Gri dolgu tonları (importance noktaları, çubuklar) */
+.dark .bg-gray-200 { background-color: #2c2f38; }
+.dark .bg-gray-300 { background-color: #3a3d47; }
+/* Status opacity tint'leri */
+.dark .bg-sky-50\/50, .dark .bg-sky-50\/80, .dark .bg-blue-50\/50, .dark .bg-blue-50\/60 { background-color: #172033; }
+.dark .hover\:bg-sky-50\/50:hover { background-color: #172033; }
+.dark .bg-rose-50\/40 { background-color: #2a181c; }
+.dark .bg-emerald-50\/60 { background-color: #152620; }
+/* Ring / siyah kenarlık opacity */
+.dark .ring-gray-100\/80 { --tw-ring-color: #2c2f38; }
+.dark .border-black\/10 { border-color: rgba(255, 255, 255, 0.1); }
+/* Arbitrary-hex opacity yüzeyler (modal tab bar bg-[#f3f3fc]/60 vb.) */
+.dark .bg-\[\#f3f3fc\]\/60, .dark .bg-\[\#f3f3fc\]\/50 { background-color: rgba(35, 37, 44, 0.6); }
+.dark .border-rose-300\/60 { border-color: #4a2630; }
+.dark .border-\[\#10b981\]\/60 { border-color: #1f4a37; }
+
+/* ── 9) En koyu ton metinler (-950) — rozetlerde kullanılıyor ────────────────
+   COMMODITY/GOLD/FUTURE rozetleri text-amber-950/yellow-950/orange-950 ile;
+   -950 override edilmeyince koyu-kahve zeminde görünmez metin oluyordu. */
+.dark .text-blue-950, .dark .text-sky-950, .dark .text-indigo-950, .dark .text-cyan-950 { color: #8ab0ff; }
+.dark .text-emerald-950, .dark .text-green-950, .dark .text-teal-950 { color: #5fd0a0; }
+.dark .text-amber-950, .dark .text-yellow-950, .dark .text-orange-950 { color: #f3c969; }
+.dark .text-rose-950, .dark .text-red-950, .dark .text-pink-950 { color: #f7a3a3; }
+.dark .text-violet-950, .dark .text-purple-950 { color: #c9b3f5; }
+.dark .text-slate-950 { color: #e6e7ea; }

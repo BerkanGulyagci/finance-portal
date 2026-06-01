@@ -57,7 +57,7 @@ function EChartsCompareChart({ chartData, instruments, formatDate }) {
       }));
 
       const option = {
-        backgroundColor: '#ffffff',
+        backgroundColor: 'transparent',
         animation: false,
         grid: { top: 20, right: 20, bottom: 80, left: 70 },
         xAxis: {

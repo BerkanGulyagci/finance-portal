@@ -6,6 +6,7 @@ import { useTranslation } from '../../context/LanguageContext';
 import { getMyPortfolios } from '../../api/portfolioApi';
 import SearchBox from './SearchBox';
 import NotificationBell from './NotificationBell';
+import ThemeToggle from './ThemeToggle';
 
 // ── Generic Dropdown ──────────────────────────────────────────────────────────
 function NavDropdown({ menu, onClose, t }) {
@@ -420,6 +421,9 @@ export function Header() {
             {/* Language toggle — bayraklı geçiş */}
             <LanguageToggle className="hidden sm:inline-flex" />
 
+            {/* Açık/Koyu mod geçişi */}
+            <ThemeToggle className="hidden sm:inline-flex" />
+
             {isAuthenticated && (
               <div className="hidden sm:block">
                 <NotificationBell />
@@ -498,6 +502,7 @@ export function Header() {
               </span>
             </Link>
             <div className="flex items-center gap-1">
+              <ThemeToggle className="inline-flex" />
               <LanguageToggle />
               <button
                 type="button"

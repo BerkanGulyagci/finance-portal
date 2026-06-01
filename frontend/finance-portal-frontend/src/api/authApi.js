@@ -91,6 +91,16 @@ export async function redirectToLogin(event) {
     code_challenge_method: 'S256',
   });
 
+  // Keycloak temasını app ile senkronlamak için temayı URL'de taşı. Kaynak doğruluk
+  // localStorage 'app_theme' (toggle bunu kesin yazar) — cross-port cookie'ye bağlı
+  // kalmaz. Keycloak teması (template.ftl) bu paramı okuyup login ekranını boyar.
+  let themePref = null;
+  try {
+    const raw = localStorage.getItem('app_theme');
+    if (raw) themePref = JSON.parse(raw);
+  } catch { /* yoksay */ }
+  if (themePref === 'dark' || themePref === 'light') params.set('ui_theme', themePref);
+
   window.location.assign(`${AUTH_ENDPOINT}?${params}`);
 }
 

@@ -63,7 +63,7 @@ function IndexChart({ symbol, label }) {
       const color = isUp ? '#10b981' : '#ef4444';
 
       chart.setOption({
-        backgroundColor: '#ffffff',
+        backgroundColor: 'transparent',
         animation: false,
         grid: { top: 16, right: 16, bottom: 80, left: 72 },
         xAxis: {
@@ -177,7 +177,7 @@ function IndexChart({ symbol, label }) {
       {/* Loading overlay — chart div her zaman DOM'da kalır */}
       <div style={{ position: 'relative', height: 260 }}>
         {loading && (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', zIndex: 10 }}>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card, #fff)', zIndex: 10 }}>
             <div className="flex gap-1.5">
               <div className="w-2 h-2 bg-[#093eaa] rounded-full animate-bounce" />
               <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
