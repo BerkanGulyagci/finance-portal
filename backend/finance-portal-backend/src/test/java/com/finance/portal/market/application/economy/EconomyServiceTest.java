@@ -238,6 +238,6 @@ class EconomyServiceTest {
                 .collect(java.util.stream.Collectors.groupingBy(
                         EconomyIndicator::getKey, java.util.stream.Collectors.counting()));
 
-        assertThat(counts.values()).allMatch(c -> c == 1L);
+        assertThat(counts.values()).isNotEmpty().allMatch(c -> c == 1L);
     }
 }

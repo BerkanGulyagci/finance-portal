@@ -227,7 +227,7 @@ class NewsAggregatorServiceTest {
 
         NewsQueryResult r = service.query(null, null, null, "GLOBAL", null, null, 1, 20, "tr");
 
-        assertThat(r.items()).allMatch(a -> a.getTitle().startsWith("TR:"));
+        assertThat(r.items()).isNotEmpty().allMatch(a -> a.getTitle().startsWith("TR:"));
         verify(translationPort, never()).translate(anyString(), eq("tr"), anyString());
     }
 
