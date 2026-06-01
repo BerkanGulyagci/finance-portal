@@ -195,25 +195,29 @@ function pickGoldSpotPrice(symbol, g) {
 
 // ── Veri çekme fonksiyonları ──────────────────────────────────────────────────
 
-async function fetchAll(type) {
+async function fetchAll(type, onPartial) {
   try {
     if (type === 'STOCK') {
       // Tüm hisseleri çek — büyük sayfa boyutu (backend max'ı kabul eder) + TÜM sayfalar (kapama yok)
       try {
+        const mapStock = s => ({ symbol: s.symbol, name: s.name ?? s.symbol });
         const firstRes = await client.get('/api/market/stocks', { params: { page: 0, size: 200 } });
         const data0 = firstRes.data?.data;
         const size = data0?.size || 200;
         const totalPages = data0?.totalPages ?? 1;
-        const results = [...(data0?.content ?? [])];
+        const firstMapped = (data0?.content ?? []).map(mapStock).filter(s => s.symbol);
+        // İlk sayfayı hemen göster — kullanıcı tüm sayfalar bitene kadar beklemesin.
+        onPartial?.(firstMapped);
+        const results = [...firstMapped];
         if (totalPages > 1) {
           const rest = await Promise.all(
             Array.from({ length: totalPages - 1 }, (_, i) =>
               client.get('/api/market/stocks', { params: { page: i + 1, size } })
             )
           );
-          rest.forEach(r => results.push(...(r.data?.data?.content ?? [])));
+          rest.forEach(r => results.push(...(r.data?.data?.content ?? []).map(mapStock).filter(s => s.symbol)));
         }
-        return results.map(s => ({ symbol: s.symbol, name: s.name ?? s.symbol })).filter(s => s.symbol);
+        return results;
       } catch {
         return [];
       }
@@ -340,6 +344,18 @@ async function fetchAll(type) {
 
     if (type === 'BOND') {
       // DİBS (EVDS) + Eurobond (Hazine dış borç). Aynı sekmede ikisi de aranır/eklenir; assetType=BOND.
+      const mapBond = b => ({
+        symbol: b.instrumentCode ?? '',
+        name: b.instrumentCode ?? '',
+        type: b.type ?? null,
+        category: b.category ?? null,           // BondCategory (Tier 2/3 modal uyarıları için)
+        currency: b.currency ?? null,
+        cbrtCode: b.cbrtCode ?? null,
+        issueDate: b.issueDate ?? null,        // ihraç tarihi — modalda ihraç-öncesi alım engeli için
+        maturityDate: b.maturityDate ?? null,
+        couponRate: b.couponRate != null ? Number(b.couponRate) : null,
+        indicatorValue: b.indicatorValue != null ? Number(b.indicatorValue) : null,
+      });
       let evds = [];
       try {
         const bondParams = (p, s) => ({ page: p, size: s, sortBy: 'maturityDate', sortDir: 'asc' });
@@ -347,27 +363,18 @@ async function fetchAll(type) {
         const d0 = firstRes.data?.data;
         const size = d0?.size || 100;
         const totalPages = d0?.totalPages ?? 1;
-        const items = [...(d0?.items ?? [])];
+        const firstMapped = (d0?.items ?? []).map(mapBond).filter(b => b.symbol);
+        // İlk DİBS sayfasını hemen göster — 11 sayfa + eurobondlar bitene kadar beklenmesin.
+        onPartial?.(firstMapped);
+        evds = [...firstMapped];
         if (totalPages > 1) {
           const rest = await Promise.all(
             Array.from({ length: totalPages - 1 }, (_, i) =>
               client.get('/api/market/bonds/evds', { params: bondParams(i + 1, size) }),
             ),
           );
-          rest.forEach(r => items.push(...(r.data?.data?.items ?? [])));
+          rest.forEach(r => evds.push(...(r.data?.data?.items ?? []).map(mapBond).filter(b => b.symbol)));
         }
-        evds = items.map(b => ({
-          symbol: b.instrumentCode ?? '',
-          name: b.instrumentCode ?? '',
-          type: b.type ?? null,
-          category: b.category ?? null,           // BondCategory (Tier 2/3 modal uyarıları için)
-          currency: b.currency ?? null,
-          cbrtCode: b.cbrtCode ?? null,
-          issueDate: b.issueDate ?? null,        // ihraç tarihi — modalda ihraç-öncesi alım engeli için
-          maturityDate: b.maturityDate ?? null,
-          couponRate: b.couponRate != null ? Number(b.couponRate) : null,
-          indicatorValue: b.indicatorValue != null ? Number(b.indicatorValue) : null,
-        })).filter(b => b.symbol);
       } catch { /* fallback */ }
 
       let euro = [];
@@ -522,9 +529,9 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
     setLoading(true);
     setDisplayed([]);
     setPage(1);
-    try {
-      let items = TYPE_CACHE.get(type);
-      if (!items) { items = await fetchAll(type); TYPE_CACHE.set(type, items); }
+
+    // Bir öğe kümesini state'e yansıt (COMMODITY hariç ilk sayfayı göster).
+    const applyItems = (items) => {
       setAllItems(items);
       if (type === 'COMMODITY') {
         setDisplayed([]);
@@ -535,11 +542,31 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
         setDisplayed(filtered.slice(0, PAGE_SIZE));
         setHasMore(filtered.length > PAGE_SIZE);
       }
+    };
+
+    try {
+      const cached = TYPE_CACHE.get(type);
+      if (cached) {
+        applyItems(cached);
+        setLoading(false);
+        return;
+      }
+      // Progressive: ilk sayfa gelince hemen göster (loading kapanır), kalanı arka planda yüklenir.
+      let shownPartial = false;
+      const onPartial = (partial) => {
+        if (!partial || partial.length === 0) return;
+        applyItems(partial);
+        setLoading(false);
+        shownPartial = true;
+      };
+      const items = await fetchAll(type, onPartial);
+      TYPE_CACHE.set(type, items);
+      applyItems(items); // tam liste — arama tüm enstrümanlarda çalışsın
+      if (!shownPartial) setLoading(false);
     } catch {
       setAllItems([]);
       setDisplayed([]);
       setHasMore(false);
-    } finally {
       setLoading(false);
     }
   }, []);
