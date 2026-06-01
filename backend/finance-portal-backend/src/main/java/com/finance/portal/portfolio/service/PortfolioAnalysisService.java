@@ -58,15 +58,18 @@ public class PortfolioAnalysisService {
     private final PortfolioService portfolioService;
     private final PortfolioWhatIfService whatIfService;
     private final PortfolioCurrencyConverter currencyConverter;
+    private final PortfolioStressTestService stressTestService;
     private final PortfolioAiNarrator narrator;
 
     public PortfolioAnalysisService(PortfolioService portfolioService,
                                     PortfolioWhatIfService whatIfService,
                                     PortfolioCurrencyConverter currencyConverter,
+                                    PortfolioStressTestService stressTestService,
                                     PortfolioAiNarrator narrator) {
         this.portfolioService = portfolioService;
         this.whatIfService = whatIfService;
         this.currencyConverter = currencyConverter;
+        this.stressTestService = stressTestService;
         this.narrator = narrator;
     }
 
@@ -131,6 +134,14 @@ public class PortfolioAnalysisService {
         r.setRiskMetrics(metrics);
         r.setBenchmarks(buildBenchmarks(pts));
         r.setInflationSincePercent(benchmarkReturn(pts, WhatIfSeriesPoint::getInflation));
+
+        // ── Tarihsel stres testleri (mevcut dağılımı 2008/2018/2020 krizlerine uygula) ─
+        try {
+            r.setStressTests(stressTestService.compute(typeWeightFractions(rows, totalValue)));
+        } catch (Exception e) {
+            log.warn("Stres testleri hesaplanamadı (degrade): {}", e.getMessage());
+            r.setStressTests(List.of());
+        }
 
         // ── Skorlar (şeffaf formül) ─────────────────────────────────────────────
         computeScores(r, rows, totalValue, concentration, metrics);
@@ -380,6 +391,19 @@ public class PortfolioAnalysisService {
         r.setHealthScore((int) Math.round(clamp(health, 0, 100)));
         r.setHealthLabel(health >= 66 ? "Sağlıklı" : health >= 33 ? "Orta" : "Zayıf");
         r.setHealthFactors(healthFactors);
+    }
+
+    /** Varlık tipi (enum adı) → portföy ağırlığı (kesir 0-1) — stres testi proxy'leri için. */
+    private static Map<String, Double> typeWeightFractions(List<HoldingTry> rows, BigDecimal total) {
+        Map<String, Double> out = new LinkedHashMap<>();
+        double t = total.doubleValue();
+        if (t <= 0) {
+            return out;
+        }
+        for (HoldingTry row : rows) {
+            out.merge(typeName(row.h().getAssetType()), row.mvTry().doubleValue() / t, Double::sum);
+        }
+        return out;
     }
 
     private double assetTypeRiskComponent(List<HoldingTry> rows, BigDecimal total) {

@@ -37,6 +37,7 @@ class PortfolioAnalysisServiceTest {
     @Mock private PortfolioService portfolioService;
     @Mock private PortfolioWhatIfService whatIfService;
     @Mock private PortfolioCurrencyConverter currencyConverter;
+    @Mock private PortfolioStressTestService stressTestService;
     @Mock private PortfolioAiNarrator narrator;
 
     @InjectMocks private PortfolioAnalysisService service;
@@ -48,6 +49,7 @@ class PortfolioAnalysisServiceTest {
         // toTry: TRY varsayımı (identity).
         when(currencyConverter.toTry(any(), any())).thenAnswer(inv -> inv.getArgument(0));
         when(narrator.generate(any(), any(), any(), any())).thenReturn("Test yorum raporu.");
+        when(stressTestService.compute(any())).thenReturn(java.util.List.of());
         when(portfolioService.getPortfolioById(eq("u1"), eq(pid))).thenReturn(samplePortfolio());
         when(whatIfService.computeSeries(any(), any(), any(), any())).thenReturn(sampleSeries());
     }

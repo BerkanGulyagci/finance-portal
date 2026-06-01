@@ -8,6 +8,7 @@ import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResu
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.AssetReturn;
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.BenchmarkItem;
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.RiskMetrics;
+import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.StressTest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -123,6 +124,15 @@ public class PortfolioAiNarrator {
             for (BenchmarkItem bm : r.getBenchmarks()) {
                 b.append("    ").append(bm.label()).append(": %").append(pct(bm.returnPercent()))
                         .append(" (fark %").append(pct(bm.deltaVsPortfolio())).append(")\n");
+            }
+        }
+        if (r.getStressTests() != null && !r.getStressTests().isEmpty()) {
+            b.append("- Tarihsel stres testleri (mevcut dağılımın o krizdeki tahmini etkisi):\n");
+            for (StressTest st : r.getStressTests()) {
+                if (st.available()) {
+                    b.append("    ").append(st.label()).append(" (").append(st.period()).append("): %")
+                            .append(pct(st.impactPercent())).append("\n");
+                }
             }
         }
         b.append("\nBu metriklere göre yukarıdaki yapıda bir Türkçe analiz raporu yaz.");

@@ -65,6 +65,9 @@ public class PortfolioAiAnalysisResult {
     // ── Benchmark karşılaştırması ───────────────────────────────────────────────
     private List<BenchmarkItem> benchmarks;
 
+    // ── Tarihsel stres testleri (2008/2018/2020 krizleri) ───────────────────────
+    private List<StressTest> stressTests;
+
     // ── Değer zaman serisi (grafik) ─────────────────────────────────────────────
     private List<SeriesPoint> valueSeries;
 
@@ -102,4 +105,8 @@ public class PortfolioAiAnalysisResult {
 
     /** Değer serisi noktası: tarih + gerçek değer (TL) + o ana kadarki maliyet (TL). */
     public record SeriesPoint(LocalDate date, BigDecimal value, BigDecimal cost) {}
+
+    /** Tarihsel stres testi: mevcut dağılımın o krizdeki tahmini etkisi (%). available=false ise temsil edilemedi. */
+    public record StressTest(String key, String label, String period, BigDecimal impactPercent,
+                             String note, boolean available) {}
 }

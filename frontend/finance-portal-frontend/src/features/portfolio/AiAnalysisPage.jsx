@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft, Sparkles, ShieldAlert, HeartPulse, PieChart as PieIcon,
-  TrendingUp, TrendingDown, Scale, AlertTriangle, Info,
+  TrendingUp, TrendingDown, Scale, AlertTriangle, Info, History,
 } from 'lucide-react';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend,
@@ -253,6 +253,26 @@ export default function AiAnalysisPage() {
           Yeşil/kırmızı = ilgili aracın aynı dönemdeki getirisi; lacivert = senin portföyün. Portföyün bir aracı geçtiyse o araçtan iyisin.
         </p>
       </Card>
+
+      {/* Tarihsel stres testleri */}
+      {data.stressTests?.some((s) => s.available) && (
+        <Card title="Tarihsel Stres Testleri — Mevcut portföyün kriz dayanıklılığı" icon={<History className="w-4 h-4 text-[#093eaa]" />}>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {data.stressTests.filter((s) => s.available).map((s) => (
+              <div key={s.key} className="bg-gray-50 rounded-lg p-4 text-center">
+                <div className="text-xs font-semibold text-gray-600">{s.label}</div>
+                <div className="text-[10px] text-gray-400 mb-1">{s.period}</div>
+                <div className={`text-2xl font-extrabold ${signClass(s.impactPercent)}`}>{fmtPct(s.impactPercent)}</div>
+                {s.note && <div className="text-[10px] text-gray-400 mt-1">{s.note}</div>}
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] text-gray-400 mt-2 leading-snug">
+            Mevcut varlık dağılımın o dönemde nasıl etkilenirdi (varlık-tipi proxy'leriyle tahmin).
+            Pozitif = kazanç (ör. kur krizinde döviz/altın ağırlığı yükselir).
+          </p>
+        </Card>
+      )}
 
       {/* En çok kazandıran / kaybettiren */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
