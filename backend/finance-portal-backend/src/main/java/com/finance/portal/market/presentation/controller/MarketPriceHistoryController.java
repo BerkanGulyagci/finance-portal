@@ -5,6 +5,9 @@ import com.finance.portal.common.presentation.dto.ApiResponse;
 import com.finance.portal.market.application.economy.InflationDeflatorService;
 import com.finance.portal.market.application.economy.model.EconomySeriesPoint;
 import com.finance.portal.market.application.economy.port.EconomyDataPort;
+import com.finance.portal.market.application.indicator.BistIndexService;
+import com.finance.portal.market.application.stock.model.YahooChartSnapshot;
+import com.finance.portal.market.application.stock.model.YahooQuoteSeries;
 import com.finance.portal.portfolio.application.port.PortfolioHistoricalPricePort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -43,13 +46,16 @@ public class MarketPriceHistoryController {
     private final PortfolioHistoricalPricePort pricePort;
     private final InflationDeflatorService deflator;
     private final EconomyDataPort economyDataPort;
+    private final BistIndexService bistIndexService;
 
     public MarketPriceHistoryController(PortfolioHistoricalPricePort pricePort,
                                         InflationDeflatorService deflator,
-                                        EconomyDataPort economyDataPort) {
+                                        EconomyDataPort economyDataPort,
+                                        BistIndexService bistIndexService) {
         this.pricePort = pricePort;
         this.deflator = deflator;
         this.economyDataPort = economyDataPort;
+        this.bistIndexService = bistIndexService;
     }
 
     @GetMapping("/price-history")
@@ -102,8 +108,9 @@ public class MarketPriceHistoryController {
     private PriceHistoryResponse buildIndicator(String symbol, LocalDate from, LocalDate to) {
         List<Long> ts = new ArrayList<>();
         List<BigDecimal> cp = new ArrayList<>();
+        String upper = symbol.trim().toUpperCase(Locale.ROOT);
         try {
-            switch (symbol.trim().toUpperCase(Locale.ROOT)) {
+            switch (upper) {
                 case "TUFE" -> {
                     List<EconomySeriesPoint> tufe = safe(deflator.tufeSeries());
                     for (EconomySeriesPoint p : tufe) {
@@ -117,12 +124,50 @@ public class MarketPriceHistoryController {
                 }
                 case "USCPI_TRY" -> emitUsCpiTry(from, to, ts, cp);
                 case "DEPOSIT" -> emitDeposit(from, to, ts, cp);
-                default -> { }
+                default -> {
+                    // BIST endeksleri (XU100/XU030/XU050) Yahoo'dan günlük kapanış serisi olarak.
+                    if (bistIndexService.supports(upper)) {
+                        emitBistIndex(upper, from, to, ts, cp);
+                    }
+                }
             }
         } catch (Exception ignored) {
             // veri yoksa boş
         }
         return new PriceHistoryResponse(ts, cp);
+    }
+
+    /**
+     * BIST endeks serisini {@link BistIndexService} üzerinden çeker (^XU100, ^XU030, ^XU050 — Yahoo).
+     * Servis 60 dk önbellek + hata-toleranslı; çağıran (frontend ticker) boş yanıtta öğeyi atlar.
+     */
+    private void emitBistIndex(String upperSymbol, LocalDate from, LocalDate to,
+                               List<Long> ts, List<BigDecimal> cp) {
+        Optional<YahooChartSnapshot> snapshot = bistIndexService.fetchChart(upperSymbol, from, to);
+        if (snapshot.isEmpty()) {
+            return;
+        }
+        YahooChartSnapshot chart = snapshot.get();
+        List<Long> stamps = chart.getTimestamps();
+        YahooQuoteSeries quote = chart.getQuote();
+        if (stamps == null || stamps.isEmpty() || quote == null || quote.getClose() == null) {
+            return;
+        }
+        List<BigDecimal> closes = quote.getClose();
+        int n = Math.min(stamps.size(), closes.size());
+        for (int i = 0; i < n; i++) {
+            Long sec = stamps.get(i);
+            BigDecimal close = closes.get(i);
+            if (sec == null || close == null || close.signum() <= 0) {
+                continue;
+            }
+            LocalDate d = toDate(sec);
+            if (d.isBefore(from) || d.isAfter(to)) {
+                continue;
+            }
+            ts.add(sec);
+            cp.add(close);
+        }
     }
 
     /** ABD enflasyonu (TL alım gücü) = ABD CPI endeksi × USD/TRY — aylık örnekler. */

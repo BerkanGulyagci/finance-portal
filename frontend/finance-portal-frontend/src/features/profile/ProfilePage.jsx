@@ -216,13 +216,13 @@ export default function ProfilePage() {
           </section>
 
           {/* ── İçerik ızgarası ──
-              2 kolon (lg+): sol → Hesap Bilgileri + Bülten Aboneliği,
-                              sağ → Destek Talepleri + TickerCustomizer.
-              Bu dağılım, sağ kolonun büyük "Destek Talepleri" listesini
-              sol kolonun büyük "Hesap Bilgileri" kartıyla dengeler;
-              küçük kartlar (Bülten, Ticker) altta hizalanır. */}
+              2 kolon (lg+): sol → Hesap Bilgileri + Bülten Aboneliği + Piyasa Şeridi,
+                              sağ → Destek Talepleri (tek başına).
+              Sağdaki uzun Destek Talepleri listesi, sol kolondaki üç kompakt
+              kart yığınıyla dengelenir; sol kolon kartları üst üste eşit
+              hizalanır ve her iki kolon items-start ile üstten başlar. */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-5 items-start">
-            {/* Sol — hesap bilgileri + bülten */}
+            {/* Sol — hesap bilgileri + bülten + piyasa şeridi özelleştirici */}
             <div className="space-y-3 sm:space-y-5 min-w-0">
               <section className="m3-card p-3 sm:p-6">
                 <CardHeader
@@ -285,15 +285,15 @@ export default function ProfilePage() {
                   </button>
                 </div>
               </section>
+
+              <TickerCustomizer />
             </div>
 
-            {/* Sağ — destek talepleri + piyasa şeridi */}
+            {/* Sağ — destek talepleri (uzun liste; tek başına sağ kolonu doldurur) */}
             <div className="min-w-0 space-y-3 sm:space-y-5">
               <div id="support-tickets" className="scroll-mt-24">
                 <SupportTicketsCard />
               </div>
-
-              <TickerCustomizer />
             </div>
           </div>
         </div>

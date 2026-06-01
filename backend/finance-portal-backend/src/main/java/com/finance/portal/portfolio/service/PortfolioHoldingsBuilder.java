@@ -84,12 +84,40 @@ public class PortfolioHoldingsBuilder {
     }
 
     /**
+     * Inline (seri) zenginleştirmeli varyant — tek portföy detayında ya da paralel fan-out
+     * gerekmeyen senaryolarda kullanılır. Liste (çoklu portföy) yolu için
+     * {@link #buildWithClosed(List, boolean)} skip-inline modunda + paralel
+     * {@link #enrichHolding(PortfolioHoldingResponse)} fan-out kullanılır.
+     */
+    public BuildResult buildWithClosed(List<PortfolioTransaction> transactions) {
+        return buildWithClosed(transactions, false);
+    }
+
+    /**
+     * Tek bir holding'i canlı fiyatla zenginleştirir. Liste endpoint'inde
+     * {@link #buildWithClosed(List, boolean)} skip-inline-enrich modunda kullanıldığında
+     * çağıran taraf bu yardımcı ile tüm portföylerin holding'lerini tek paralel dalgaya bağlar
+     * → seri (sum_i N_i) outbound çağrı yerine min(toplam, pool_size) duvar-saati.
+     */
+    public void enrichHolding(PortfolioHoldingResponse holding) {
+        holdingMarketEnrichment.enrich(holding);
+    }
+
+    /**
      * {@link #build(List)} ile aynı sonucu döndürür ama tamamen kapatılmış pozisyonların
      * (openQuantity ≤ 0) realizedGainLoss toplamını da sembol×assetType bazlı sezgisel
      * para biriminde ayrıca verir. Açık holding listesi davranışı değişmez — kapatılmış
      * pozisyonlar yine sonuç listesinde gösterilmez.
+     *
+     * @param skipInlineEnrich true verilirse her holding için inline (seri)
+     *   {@code holdingMarketEnrichment.enrich(holding)} çağrısı atlanır → çağıran taraf
+     *   tüm portföylerin holding'lerini tek seferde paralel fan-out edebilir (liste endpoint'i).
+     *   marketValue/profitLoss/lastPrice gibi alanlar zenginleştirme yapılana kadar boş kalır;
+     *   diğer tüm offline alanlar (realized K/Z, kupon, lots, tarihler, viop yönü) yine de
+     *   doldurulur (idempotent yazma — Enricher bu alanlara dokunmaz).
      */
-    public BuildResult buildWithClosed(List<PortfolioTransaction> transactions) {
+    public BuildResult buildWithClosed(List<PortfolioTransaction> transactions,
+                                       boolean skipInlineEnrich) {
         if (transactions == null || transactions.isEmpty()) {
             return new BuildResult(new ArrayList<>(), List.of());
         }
@@ -243,7 +271,9 @@ public class PortfolioHoldingsBuilder {
                 }
             }
 
-            holdingMarketEnrichment.enrich(holding);
+            if (!skipInlineEnrich) {
+                holdingMarketEnrichment.enrich(holding);
+            }
             result.add(holding);
         }
 

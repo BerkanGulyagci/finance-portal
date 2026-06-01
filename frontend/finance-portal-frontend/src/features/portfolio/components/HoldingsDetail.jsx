@@ -45,12 +45,14 @@ function positionDailyGainLoss(h) {
   return null;
 }
 
-const TABS = [
+const BASE_TABS = [
   { key: 'holdings', label: 'Varlıklar' },
   { key: 'transactions', label: 'İşlemler' },
   { key: 'charts', label: 'Grafikler' },
   { key: 'stats', label: 'Fırsat Maliyeti' },
 ];
+// "Teminat Uyarısı" sekmesi yalnız portföyde açık VİOP pozisyonu varsa eklenir
+// (HoldingsDetail içinde useMemo ile derlenir, hasFutures değişince yeniden hesaplanır).
 // Tab labels translated via t() at render site below.
 
 function SummaryRow({ label, value, subValue, positive, dotColor, tooltip }) {
@@ -153,12 +155,27 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
   }, [initialInstrument, onInitialInstrumentConsumed]);
 
   const holdingsRows = portfolio.holdings ?? [];
-  // Bu portföyde açık VİOP pozisyonu var mı? Varsa marjin-uyarı kartını göster.
+  // Bu portföyde açık VİOP pozisyonu var mı? Varsa "Teminat Uyarısı" sekmesini ekle.
   // Eşik kullanıcı-seviyesi (prefSetSync); yalnız UI bu bağlamda anlamlı.
   const hasFutures = useMemo(
     () => holdingsRows.some(h => String(h?.assetType).toUpperCase() === 'FUTURE'),
     [holdingsRows],
   );
+
+  // VİOP varsa sekme listesine "Teminat Uyarısı"nı ekle. hasFutures değişince yeniden derlenir.
+  const tabs = useMemo(() => {
+    const list = [...BASE_TABS];
+    if (hasFutures) list.push({ key: 'marginAlert', label: 'Teminat Uyarısı' });
+    return list;
+  }, [hasFutures]);
+
+  // Kullanıcı VİOP pozisyonu olmayan duruma geçtiyse (örn. son FUTURE'u kapattı) ve aktif sekme
+  // "marginAlert" ise sekmeyi varsayılana ("holdings") düşür — boş içerik / kayıp sekme önlenir.
+  useEffect(() => {
+    if (activeTab === 'marginAlert' && !hasFutures) {
+      setActiveTab('holdings');
+    }
+  }, [hasFutures, activeTab]);
   const [commoditySpots, setCommoditySpots] = useState({});
   const currency = portfolio.currency || 'TRY';
 
@@ -405,21 +422,10 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
         </div>
       </div>
 
-      {/* VİOP Teminat Uyarısı — yalnız bu portföyde açık FUTURE pozisyonu varsa görünür.
-          Eşik kullanıcı seviyesi (margin_alert_threshold_pct) — burada konuya bağlı bağlamda gösterilir. */}
-      {hasFutures && (
-        <div>
-          <MarginAlertSettings />
-          <p className="text-[11px] text-gray-500 mt-2 px-1">
-            {t('Bu eşik tüm portföylerinizdeki tüm VİOP pozisyonları için geçerlidir.')}
-          </p>
-        </div>
-      )}
-
-      {/* Pozisyon Ekle + Sekmeler */}
+      {/* Pozisyon Ekle + Sekmeler — VİOP varsa "Teminat Uyarısı" sekmesi de listede yer alır. */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex gap-2 flex-wrap">
-          {TABS.map(tab => (
+          {tabs.map(tab => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
@@ -477,6 +483,14 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
             valuesHidden={valuesHidden}
             currency={currency}
           />
+        )}
+        {activeTab === 'marginAlert' && hasFutures && (
+          <div className="p-4">
+            <MarginAlertSettings />
+            <p className="text-[11px] text-gray-500 mt-2">
+              {t('Bu eşik tüm portföylerinizdeki tüm VİOP pozisyonları için geçerlidir.')}
+            </p>
+          </div>
         )}
       </div>
     </div>

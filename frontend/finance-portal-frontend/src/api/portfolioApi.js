@@ -2,9 +2,49 @@ import client from '../lib/http';
 
 // ── Portfolio CRUD ────────────────────────────────────────────────────────────
 
-export async function getMyPortfolios() {
-  const { data: wrapper } = await client.get('/api/portfolios');
-  return wrapper.data;
+/**
+ * `getMyPortfolios()` 6 ayrı yerden çağrılıyor (PortfolioPage, DashboardPage,
+ * Header PortfolioNavMenu, InstrumentActionButtons, InstrumentTargetModal,
+ * WatchlistContext) — paylaşılan cache olmadığı için her route geçişinde tüm
+ * tüketiciler eşzamanlı /api/portfolios çağırıyor → backend liste cache HIT olsa
+ * bile network round-trip + JSON parse tekrarlanır, cache MISS'te ise N paralel
+ * cold-start yarar.
+ *
+ * Bu modül-düzeyi memoizer iki şey yapar:
+ *   1) IN-FLIGHT dedup: aktif bir Promise varsa hepsi aynı Promise'ı paylaşır.
+ *   2) 15s TTL cache: son sonucu döndürür → eşzamanlı sayfa render'larında
+ *      backend'e dokunmaz.
+ *
+ * Her mutasyon (create/update/delete portföy, add/delete tx, kupon, watchlist
+ * write) `bustMyPortfoliosCache()` çağırır — anlık tazelik. TTL yalnızca
+ * salt-okunur navigasyonda gevşek bir tampondur.
+ */
+let _portfoliosCache = null;     // { at: number, data: Array }
+let _portfoliosInFlight = null;  // Promise<Array> | null
+const PORTFOLIOS_TTL_MS = 15_000;
+
+export function bustMyPortfoliosCache() {
+  _portfoliosCache = null;
+  _portfoliosInFlight = null;
+}
+
+export async function getMyPortfolios({ force = false } = {}) {
+  if (!force && _portfoliosCache && (Date.now() - _portfoliosCache.at) < PORTFOLIOS_TTL_MS) {
+    return _portfoliosCache.data;
+  }
+  if (_portfoliosInFlight) {
+    return _portfoliosInFlight;
+  }
+  _portfoliosInFlight = client.get('/api/portfolios')
+    .then(({ data: wrapper }) => {
+      const data = wrapper.data;
+      _portfoliosCache = { at: Date.now(), data };
+      return data;
+    })
+    .finally(() => {
+      _portfoliosInFlight = null;
+    });
+  return _portfoliosInFlight;
 }
 
 export async function getPortfolioById(portfolioId) {
@@ -15,17 +55,20 @@ export async function getPortfolioById(portfolioId) {
 export async function createPortfolio(payload) {
   // payload: { name, description, currency, portfolioType }
   const { data: wrapper } = await client.post('/api/portfolios', payload);
+  bustMyPortfoliosCache();
   return wrapper.data;
 }
 
 export async function updatePortfolio(portfolioId, payload) {
   // payload: { name, description }
   const { data: wrapper } = await client.patch(`/api/portfolios/${portfolioId}`, payload);
+  bustMyPortfoliosCache();
   return wrapper.data;
 }
 
 export async function deletePortfolio(portfolioId) {
   const { data: wrapper } = await client.delete(`/api/portfolios/${portfolioId}`);
+  bustMyPortfoliosCache();
   return wrapper.data;
 }
 
@@ -36,6 +79,7 @@ export async function addTransaction(portfolioId, payload) {
     `/api/portfolios/${portfolioId}/transactions`,
     payload
   );
+  bustMyPortfoliosCache();
   return wrapper.data;
 }
 
@@ -54,6 +98,7 @@ export async function deleteTransaction(portfolioId, transactionId) {
   const { data: wrapper } = await client.delete(
     `/api/portfolios/${portfolioId}/transactions/${transactionId}`
   );
+  bustMyPortfoliosCache();
   return wrapper.data;
 }
 
@@ -67,6 +112,7 @@ export async function addCouponIncome(portfolioId, payload) {
     `/api/portfolios/${portfolioId}/coupon-income`,
     payload
   );
+  bustMyPortfoliosCache();
   return wrapper.data;
 }
 
@@ -119,6 +165,7 @@ export async function addWatchlistItem(portfolioId, payload) {
     `/api/portfolios/${portfolioId}/watchlist`,
     payload
   );
+  bustMyPortfoliosCache();
   return wrapper.data;
 }
 
@@ -126,5 +173,6 @@ export async function deleteWatchlistItem(portfolioId, itemId) {
   const { data: wrapper } = await client.delete(
     `/api/portfolios/${portfolioId}/watchlist/${itemId}`
   );
+  bustMyPortfoliosCache();
   return wrapper.data;
 }

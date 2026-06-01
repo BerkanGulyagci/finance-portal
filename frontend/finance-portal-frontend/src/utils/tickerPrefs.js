@@ -23,6 +23,14 @@ export const TICKER_CATALOG = [
     ],
   },
   {
+    group: 'Endeksler (BIST)',
+    items: [
+      { key: 'bist:XU100', label: 'BIST 100' },
+      { key: 'bist:XU030', label: 'BIST 30' },
+      { key: 'bist:XU050', label: 'BIST 50' },
+    ],
+  },
+  {
     group: 'Altın',
     items: [{ key: 'gold:ons', label: 'ALTIN/ONS' }],
   },

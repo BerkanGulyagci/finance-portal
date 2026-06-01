@@ -66,8 +66,29 @@ const en = {
   'Mevcut şifre hatalı.': 'Current password is incorrect.',
   'Şifre güncellenemedi. Lütfen tekrar deneyin.': 'Could not update password. Please try again.',
 
+  // TickerCustomizer — kategori başlıkları + UI metinleri
+  'Piyasa Şeridini Özelleştir': 'Customize Market Ticker',
+  'Sayfanın üstündeki piyasa şeridinde hangi varlıkların görüneceğini seçin.':
+    'Choose which assets appear on the market ticker at the top of the page.',
+  'TCMB Döviz': 'CBRT FX',
+  'Banka Kurları': 'Bank FX',
+  'Endeksler (BIST)': 'Indices (BIST)',
+  'Altın': 'Gold',
+  'Kripto': 'Crypto',
+  'Ekonomi': 'Economy',
+  'Hepsi': 'All',
+  'Hiçbiri': 'None',
+  'Eklediğin Varlıklar': 'Added Assets',
+  'Varlık Ekle': 'Add Asset',
+  'Şeride istediğin hisse, kripto, döviz, altın, fon… ekleyebilirsin.':
+    'You can add any stock, crypto, FX, gold or fund to the ticker.',
+  'Kaldır': 'Remove',
+  'şerit': 'ticker',
+
   // MarginAlertSettings (VİOP teminat uyarısı kartı — Profil sağ kolon)
   'Teminat Uyarısı (VİOP)': 'Margin Alert (Futures)',
+  // HoldingsDetail — yeni sekme adı
+  'Teminat Uyarısı': 'Margin Alert',
   'Açık VİOP pozisyonlarının marjin oranı bu eşiğin altına düşerse bildirim ve e-posta alırsınız. 0 = kapalı.':
     'You will receive notifications and email if the margin ratio of any open futures position falls below this threshold. 0 = disabled.',
   'Marjin oranı eşik (%)': 'Margin ratio threshold (%)',

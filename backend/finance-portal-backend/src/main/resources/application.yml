@@ -326,7 +326,12 @@ cache:
   news:
     ttl-seconds: ${NEWS_CACHE_TTL_SECONDS:300}
   portfolio:
-    list-ttl-seconds: ${CACHE_PORTFOLIO_LIST_TTL_SECONDS:30}
+    # 30 → 120: liste yolu artık paralel zenginleştirme yapıyor ama yine de I/O ağırlıklı
+    # (sum_i N_i dış çağrı). Mutation'lar (add/update/delete tx + portföy) zaten liste key'ini
+    # evict ettiği için tazelik korunur — yalnızca read-only navigasyonda bayatlık penceresi
+    # 30s'den 120s'e büyür; bu da 6 paralel front-end caller'a (Header/Dashboard/Page/...) cache
+    # HIT döndürür. Detay TTL ile simetrik (120s).
+    list-ttl-seconds: ${CACHE_PORTFOLIO_LIST_TTL_SECONDS:120}
     # Detay cache HIT'te artık re-enrich edilmeden döner → fiyatlar en fazla bu kadar bayat olabilir.
     # 120 sn: piyasa cache'leri (60sn-6sa) yanında kabul edilebilir + refresh'ler anında. Al/sat cache'i evict eder.
     detail-ttl-seconds: ${CACHE_PORTFOLIO_DETAIL_TTL_SECONDS:120}

@@ -313,6 +313,36 @@ export function MarketTicker() {
           });
         });
 
+        // BIST endeksleri (XU100/XU030/XU050) — backend INDICATOR pseudo-türünden Yahoo'dan günlük seri.
+        // Backend desteklemiyorsa boş seri döner; öğeyi sessizce atlarız (frontend hata göstermez).
+        await Promise.all(
+          ['XU100', 'XU030', 'XU050'].map(async (sym) => {
+            try {
+              const data = await getMarketPriceHistory('INDICATOR', sym, '1M');
+              const closes = (data?.closePrices ?? []).map(Number).filter(v => Number.isFinite(v) && v > 0);
+              if (closes.length < 1) return;
+              const last = closes[closes.length - 1];
+              const first = closes[0];
+              const pct = first ? ((last - first) / first) * 100 : null;
+              const spark = closes.length >= 2 ? downsample(closes, 28) : trendSparkline(last, pct ?? 0);
+              const label = sym === 'XU100' ? 'BIST 100' : sym === 'XU030' ? 'BIST 30' : 'BIST 50';
+              result.push({
+                key: `bist:${sym}`,
+                label,
+                value: last.toLocaleString('tr-TR', { maximumFractionDigits: 2 }),
+                change: pct != null && Math.abs(pct) > 1e-6 ? pct : null,
+                dir: dirFromChangePct(pct),
+                spark,
+              });
+            } catch {
+              // BIST endeksi alınamadı — sessizce atla (örn. backend henüz desteklemiyorsa)
+              if (typeof console !== 'undefined') {
+                console.warn(`[MarketTicker] BIST index fetch failed: ${sym}`);
+              }
+            }
+          })
+        );
+
         // Ekonomi göstergeleri (TÜFE/faiz/ÜFE/mevduat) — günlük değişim/sparkline yok, yalnız değer (%).
         const eco = await getEconomicIndicators().catch(() => null);
         if (eco) {

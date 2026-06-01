@@ -634,12 +634,82 @@ public class PortfolioServiceImpl implements PortfolioService {
     @Transactional(readOnly = true)
     public List<PortfolioResponse> getUserPortfolios(String userId) {
         return portfolioCache.getPortfolioList(userId).orElseGet(() -> {
-            List<PortfolioResponse> list = portfolioPersistence.findByUserId(userId).stream()
-                    .map(this::toPortfolioResponse)
-                    .collect(Collectors.toList());
-            portfolioCache.putPortfolioList(userId, list);
-            return list;
+            // Liste yolu (çoklu portföy): inline seri zenginleştirme dramatik bir kuyruk yaratır
+            // (sum_i N_i ardışık dış çağrı + cache lookup). İki aşamalı plan:
+            //   1) Her portföy için holdings'i "deferred" modda kur (offline alanlar dolu,
+            //      marketValue/profitLoss null).
+            //   2) TÜM portföylerin holding'lerini düzleştirip enrichExecutor üzerinde tek
+            //      paralel dalga (pool=8) ile zenginleştir → duvar-saati ≈ max(en yavaş holding)
+            //      yerine sum.
+            //   3) Her portföy için zenginleştirme sonrası totaller + reel getiri.
+            // Detay endpoint'i (zaten paralel) aynı havuzu kullanır; ayrı ayrı çağrıldıklarında
+            // birbirini engellemez (havuz I/O-bound, 8 thread aktif sırada bekler).
+            List<Portfolio> portfolios = portfolioPersistence.findByUserId(userId);
+            int n = portfolios.size();
+            List<PortfolioResponse> responses = new ArrayList<>(n);
+            List<PortfolioHoldingsBuilder.BuildResult> builds = new ArrayList<>(n);
+            for (Portfolio p : portfolios) {
+                PortfolioHoldingsBuilder.BuildResult built =
+                        holdingsBuilder.buildWithClosed(p.getTransactions(), true);
+                builds.add(built);
+                responses.add(buildDeferredResponseShell(p, built.holdings()));
+            }
+            // Tek paralel dalga: tüm portföylerin TÜM holding'leri (havuz=8, daemon)
+            List<CompletableFuture<Void>> futures = new ArrayList<>();
+            for (PortfolioResponse r : responses) {
+                List<PortfolioHoldingResponse> hs = r.getHoldings();
+                if (hs == null || hs.isEmpty()) continue;
+                for (PortfolioHoldingResponse h : hs) {
+                    futures.add(CompletableFuture.runAsync(() -> {
+                        try {
+                            holdingsBuilder.enrichHolding(h);
+                        } catch (Exception ex) {
+                            log.debug("Holding enrich failed for {}: {}", h.getSymbol(), ex.getMessage());
+                        }
+                    }, enrichExecutor));
+                }
+            }
+            if (!futures.isEmpty()) {
+                CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+            }
+            // Enrich sonrası: totaller + reel getiri
+            for (int i = 0; i < n; i++) {
+                finalizePortfolioTotals(responses.get(i), builds.get(i).closedRealized());
+            }
+            portfolioCache.putPortfolioList(userId, responses);
+            return responses;
         });
+    }
+
+    /**
+     * Liste endpoint'inin "deferred" yolu için kabuk PortfolioResponse — holdings çoktan
+     * builder'dan geldi (skipInlineEnrich=true), bu metod sadece DTO alanlarını ve transactions
+     * listesini doldurur. Totaller ve reel getiri çağrılmaz; bunlar paralel enrich tamamlanınca
+     * {@link #finalizePortfolioTotals} ile uygulanır.
+     */
+    private PortfolioResponse buildDeferredResponseShell(Portfolio portfolio,
+                                                         List<PortfolioHoldingResponse> holdings) {
+        List<PortfolioTransactionResponse> txResponses = portfolio.getTransactions().stream()
+                .sorted(java.util.Comparator
+                        .comparing(PortfolioTransaction::getTransactionDate).reversed()
+                        .thenComparing(PortfolioTransaction::getCreatedAt,
+                                java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())))
+                .map(this::toTransactionResponse)
+                .collect(Collectors.toList());
+        PortfolioResponse response = new PortfolioResponse();
+        response.setId(portfolio.getId());
+        response.setName(portfolio.getName());
+        response.setDescription(portfolio.getDescription());
+        response.setCurrency(portfolio.getCurrency());
+        response.setPortfolioType(portfolio.getPortfolioType());
+        response.setCreatedAt(portfolio.getCreatedAt());
+        response.setUpdatedAt(portfolio.getUpdatedAt());
+        response.setTransactions(txResponses);
+        response.setHoldings(holdings);
+        if (portfolio.getPortfolioType() == PortfolioType.WATCHLIST) {
+            response.setWatchlistItemCount(portfolioPersistence.countWatchlistByPortfolioId(portfolio.getId()));
+        }
+        return response;
     }
 
     // ── WATCHLIST işlemleri ───────────────────────────────────────────────────
@@ -763,6 +833,12 @@ public class PortfolioServiceImpl implements PortfolioService {
 
     // ── Mapping helpers ───────────────────────────────────────────────────────
 
+    /**
+     * Klasik (detay / mutation) yolu: holdings inline (seri) enrich edilir, sonra totaller
+     * ve reel getiri hesaplanır. Liste endpoint'i (çoklu portföy) bu yolu KULLANMAZ —
+     * onun yerine {@link #buildDeferredResponseShell} + paralel fan-out +
+     * {@link #finalizePortfolioTotals} üçlüsünü kullanır.
+     */
     private PortfolioResponse toPortfolioResponse(Portfolio portfolio) {
         List<PortfolioTransactionResponse> txResponses = portfolio.getTransactions().stream()
                 .sorted(java.util.Comparator
@@ -774,6 +850,37 @@ public class PortfolioServiceImpl implements PortfolioService {
 
         PortfolioHoldingsBuilder.BuildResult built = holdingsBuilder.buildWithClosed(portfolio.getTransactions());
         List<PortfolioHoldingResponse> holdings = built.holdings();
+
+        PortfolioResponse response = new PortfolioResponse();
+        response.setId(portfolio.getId());
+        response.setName(portfolio.getName());
+        response.setDescription(portfolio.getDescription());
+        response.setCurrency(portfolio.getCurrency());
+        response.setPortfolioType(portfolio.getPortfolioType());
+        response.setCreatedAt(portfolio.getCreatedAt());
+        response.setUpdatedAt(portfolio.getUpdatedAt());
+        response.setTransactions(txResponses);
+        response.setHoldings(holdings);
+
+        // Holdings inline enrich edildi → totalları + reel getiriyi hemen hesapla.
+        finalizePortfolioTotals(response, built.closedRealized());
+
+        if (portfolio.getPortfolioType() == PortfolioType.WATCHLIST) {
+            response.setWatchlistItemCount(portfolioPersistence.countWatchlistByPortfolioId(portfolio.getId()));
+        }
+
+        return response;
+    }
+
+    /**
+     * Holdings zenginleştirildikten SONRA çağrılmalı — totaller marketValue/profitLoss üzerinden
+     * hesaplanır, sonra reel getiri uygulanır. Deferred path (liste endpoint'i) bunu paralel
+     * fan-out tamamlanınca her portföy için çağırır.
+     */
+    private void finalizePortfolioTotals(PortfolioResponse response,
+                                         List<PortfolioHoldingsBuilder.ClosedPositionRealized> closed) {
+        List<PortfolioHoldingResponse> holdings = response.getHoldings() != null
+                ? response.getHoldings() : List.of();
 
         // Para birimi-duyarlı toplamlar: her varlık TL'ye çevrilip toplanır (USD hisse vb.
         // doğrudan TL toplamına eklenmesin diye). Tümü TL ise çarpan 1 → davranış değişmez.
@@ -802,23 +909,14 @@ public class PortfolioServiceImpl implements PortfolioService {
                 .map(h -> currencyConverter.toTry(h.getRealizedGainLoss(), h.getCurrency()))
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal closedRealized = built.closedRealized().stream()
+        BigDecimal closedRealized = (closed == null ? List.<PortfolioHoldingsBuilder.ClosedPositionRealized>of() : closed)
+                .stream()
                 .map(c -> currencyConverter.toTry(c.realizedGainLoss(), c.currency()))
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal totalRealizedProfitLoss = openRealized.add(closedRealized)
                 .setScale(MONEY_SCALE, RoundingMode.HALF_UP);
 
-        PortfolioResponse response = new PortfolioResponse();
-        response.setId(portfolio.getId());
-        response.setName(portfolio.getName());
-        response.setDescription(portfolio.getDescription());
-        response.setCurrency(portfolio.getCurrency());
-        response.setPortfolioType(portfolio.getPortfolioType());
-        response.setCreatedAt(portfolio.getCreatedAt());
-        response.setUpdatedAt(portfolio.getUpdatedAt());
-        response.setTransactions(txResponses);
-        response.setHoldings(holdings);
         response.setTotalCost(totalCost);
         response.setTotalMarketValue(totalMarketValue);
         response.setTotalProfitLoss(totalProfitLoss);
@@ -826,12 +924,6 @@ public class PortfolioServiceImpl implements PortfolioService {
 
         // Enflasyona göre düzeltilmiş reel getiri alanlarını ekle (TL pozisyonlar)
         realReturnEnricher.apply(response);
-
-        if (portfolio.getPortfolioType() == PortfolioType.WATCHLIST) {
-            response.setWatchlistItemCount(portfolioPersistence.countWatchlistByPortfolioId(portfolio.getId()));
-        }
-
-        return response;
     }
 
     private PortfolioTransactionResponse toTransactionResponse(PortfolioTransaction tx) {

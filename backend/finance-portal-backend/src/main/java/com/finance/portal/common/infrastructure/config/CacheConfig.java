@@ -261,6 +261,13 @@ public class CacheConfig {
                 .withCacheConfiguration("market.crypto.binance.candles", cryptoChartCacheConfig)
                 .withCacheConfiguration("market.crypto.yahoo.ohlc", cryptoChartCacheConfig)
                 .withCacheConfiguration("market.crypto.yahoo.chart", cryptoChartCacheConfig)
+                // BIST endeksleri (XU100/XU030/XU050) Yahoo'dan günlük seri — 60 dk önbellek
+                // (endeksler intraday yavaş hareket eder, ticker kullanımına yeterli).
+                .withCacheConfiguration("market.bistIndex.history",
+                        RedisCacheConfiguration.defaultCacheConfig()
+                                .entryTtl(Duration.ofMinutes(60))
+                                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(
+                                        new GenericJackson2JsonRedisSerializer())))
                 .withCacheConfiguration("market.evds.bonds.active-series",
                         RedisCacheConfiguration.defaultCacheConfig()
                                 .entryTtl(Duration.ofSeconds(evdsBondsActiveSeriesTtlSeconds))
