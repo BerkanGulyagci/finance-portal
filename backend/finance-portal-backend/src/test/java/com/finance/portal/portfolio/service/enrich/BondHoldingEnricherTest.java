@@ -225,37 +225,37 @@ class BondHoldingEnricherTest {
     // =========================================================================
 
     @Test
-    @DisplayName("evds TÜFE-endeksli: mv = qty × price (per-unit nominal, /100 YOK) — TÜFE çarpanı seriye gömülü")
+    @DisplayName("evds TÜFE-endeksli: mv = qty × price / 100 (clean price, /100 VAR) — sadece GOLD /100 atlar")
     void evds_inflationIndexed_usesNominalEvdsValueDirectly() {
         when(eurobondService.currentIsins()).thenReturn(List.of());
 
         EvdsBondInstrument bond = new EvdsBondInstrument();
-        // EVDS Gösterge Değeri zaten nominal/endeksli — ihraçtan bugüne enflasyonu içinde taşır.
+        // EVDS Gösterge Değeri 100 nominal başına clean price'tır (TÜFE endekslemesi kupon/itfada tahakkuk eder).
         bond.setIndicatorValue(new BigDecimal("1223.262"));
         bond.setCategory(BondCategory.INFLATION_INDEXED_BOND);
         bond.setType("Devlet Tahvili");
         when(evdsBondService.getEvdsBondDetail("TRT070727T13")).thenReturn(bond);
         when(evdsBondService.getEvdsBondHistory(any(), any())).thenReturn(null);
 
-        // 10.000 nominal alış, alış-dönemi per-unit nominal TL maliyet 11.006.000 (≈ 10000 × 1100.6, /100 YOK).
-        // Builder de aynı simetri ile parUnscaledBond=true olduğunda /100'ü atlar → cost ve mv aynı birim.
+        // 10.000 nominal alış, /100 konvansiyonu ile maliyet 110.060 (= 10000 × 1100.6 / 100).
+        // cbe6965: usesPerUnitNominalQuote() yalnız GOLD_INDEXED_BOND için true → TÜFE ailesi /100 path'inde.
         PortfolioHoldingResponse h = holding("TRT070727T13",
-                new BigDecimal("10000"), new BigDecimal("11006000"));
+                new BigDecimal("10000"), new BigDecimal("110060"));
         h.setFirstBuyDate(java.time.LocalDateTime.of(2026, 3, 1, 0, 0));
         enricher.enrich(h);
 
         assertThat(h.getCurrentPrice()).isEqualByComparingTo("1223.262");
-        // mv = 10000 × 1223.262 = 12.232.620,00 (per-unit nominal — /100 YOK)
-        assertThat(h.getMarketValue()).isEqualByComparingTo("12232620.0000");
-        // K/Z = 12.232.620,00 − 11.006.000 = 1.226.620,00 (bondun kendi nominal getirisi)
-        assertThat(h.getProfitLoss()).isEqualByComparingTo("1226620.0000");
-        // PL% = 1.226.620 / 11.006.000 × 100 ≈ %11,15 (frontend mv/cost ratio'su ile birebir)
+        // mv = 10000 × 1223.262 / 100 = 122.326,20 (clean price — /100 VAR)
+        assertThat(h.getMarketValue()).isEqualByComparingTo("122326.2000");
+        // K/Z = 122.326,20 − 110.060 = 12.266,20 (bondun kendi nominal getirisi)
+        assertThat(h.getProfitLoss()).isEqualByComparingTo("12266.2000");
+        // PL% = 12.266,20 / 110.060 × 100 ≈ %11,15 (frontend mv/cost ratio'su ile birebir)
         assertThat(h.getProfitLossPercent()).isEqualByComparingTo("11.15");
         assertThat(h.getCurrency()).isEqualTo("TRY");
     }
 
     @Test
-    @DisplayName("evds TÜFE-strip: mv = qty × price (per-unit nominal, /100 YOK) — deflator hiç çağrılmaz")
+    @DisplayName("evds TÜFE-strip: mv = qty × price / 100 (clean price, /100 VAR) — deflator hiç çağrılmaz")
     void evds_inflationStrip_noDeflatorInteraction() {
         when(eurobondService.currentIsins()).thenReturn(List.of());
 
@@ -266,12 +266,12 @@ class BondHoldingEnricherTest {
         when(evdsBondService.getEvdsBondHistory(any(), any())).thenReturn(null);
 
         PortfolioHoldingResponse h = holding("TRT030626K26",
-                new BigDecimal("10000"), new BigDecimal("90000"));
+                new BigDecimal("10000"), new BigDecimal("9000"));
         h.setFirstBuyDate(java.time.LocalDateTime.of(2023, 3, 8, 0, 0));
         enricher.enrich(h);
 
-        // mv = 10.000 × 95 = 950.000 (TÜFE-strip per-unit nominal — /100 YOK; deflator artık enjekte edilmiyor)
-        assertThat(h.getMarketValue()).isEqualByComparingTo("950000.0000");
+        // mv = 10.000 × 95 / 100 = 9.500 (TÜFE-strip de clean-price /100 path'inde; deflator enjekte edilmez)
+        assertThat(h.getMarketValue()).isEqualByComparingTo("9500.0000");
     }
 
     // =========================================================================
