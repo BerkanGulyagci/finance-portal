@@ -726,10 +726,10 @@ export default function AddTransactionModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1a1b22]/30 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl border border-[#e2e1eb] w-full max-w-md text-[#1a1b22] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-xl shadow-2xl border border-[#e2e1eb] w-full max-w-md max-h-[90vh] text-[#1a1b22] flex flex-col overflow-hidden">
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#e2e1eb]">
+        {/* Header — shrink-0: form içeriği uzasa bile sıkışmaz, sabit kalır. */}
+        <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-[#e2e1eb]">
           <div>
             <h2 className="font-bold text-lg">{t('İşlem Ekle')}</h2>
             <p className="text-sm text-[#434653]">
@@ -760,7 +760,7 @@ export default function AddTransactionModal({
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-3 sm:space-y-4 overflow-y-auto flex-1 min-h-0">
 
           {/* BUY / SELL — M3 segmented */}
           <div className="flex bg-[#eeedf7] rounded-lg p-1">
@@ -1114,8 +1114,10 @@ export default function AddTransactionModal({
             <p className="text-rose-700 text-sm bg-rose-50 px-3 py-2 rounded-lg">{error}</p>
           )}
 
-          {/* Butonlar */}
-          <div className="flex gap-3 pt-1">
+          {/* Butonlar — sticky footer: uzun içerik (ör. VİOP formu) kayarken
+              İptal / Onayla butonları her zaman görünür kalır. -mx/px ile form
+              dolgusunu tarafıyla hizalanır, üst kenarda ince ayraç çizgisi. */}
+          <div className="flex gap-3 pt-3 sticky bottom-0 bg-white -mx-4 px-4 sm:-mx-6 sm:px-6 pb-1 border-t border-[#e2e1eb]">
             <button
               type="button"
               onClick={onClose}

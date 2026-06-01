@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { ShieldAlert, Save } from 'lucide-react';
 import { prefGet, prefSetSync } from '../../../api/prefs';
 import { useTranslation } from '../../../context/LanguageContext';
@@ -187,14 +186,6 @@ export default function MarginAlertSettings() {
             {saving ? t('Kaydediliyor...') : t('Kaydet')}
           </button>
         </div>
-
-        <p className="text-[11px] text-gray-400">
-          {t('Eski sistemden kalan MARGIN_RATIO alarmlarınızı')}{' '}
-          <Link to="/alarms" className="font-semibold text-[#093eaa] hover:underline">
-            {t('Alarmlarım sayfasından')}
-          </Link>{' '}
-          {t('temizleyebilirsiniz.')}
-        </p>
       </div>
     </section>
   );

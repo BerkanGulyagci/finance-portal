@@ -10,7 +10,6 @@ import {
   ProfilePasswordModal,
 } from './components/ProfileAccountModals';
 import TickerCustomizer from './components/TickerCustomizer';
-import MarginAlertSettings from './components/MarginAlertSettings';
 import NewsletterModal from '../../components/shared/NewsletterModal';
 import SupportTicketsCard from './components/SupportTicketsCard';
 import { getNewsletter } from '../../api/newsletterApi';
@@ -216,10 +215,15 @@ export default function ProfilePage() {
             </div>
           </section>
 
-          {/* ── İçerik ızgarası ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-5 items-start">
-            {/* Sol — hesap bilgileri + destek talepleri */}
-            <div className="lg:col-span-2 space-y-5 min-w-0">
+          {/* ── İçerik ızgarası ──
+              2 kolon (lg+): sol → Hesap Bilgileri + Bülten Aboneliği,
+                              sağ → Destek Talepleri + TickerCustomizer.
+              Bu dağılım, sağ kolonun büyük "Destek Talepleri" listesini
+              sol kolonun büyük "Hesap Bilgileri" kartıyla dengeler;
+              küçük kartlar (Bülten, Ticker) altta hizalanır. */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-5 items-start">
+            {/* Sol — hesap bilgileri + bülten */}
+            <div className="space-y-3 sm:space-y-5 min-w-0">
               <section className="m3-card p-3 sm:p-6">
                 <CardHeader
                   icon={IdCard}
@@ -258,17 +262,6 @@ export default function ProfilePage() {
                 )}
               </section>
 
-              <div id="support-tickets" className="scroll-mt-24">
-                <SupportTicketsCard />
-              </div>
-            </div>
-
-            {/* Sağ — piyasa şeridi + bülten */}
-            <div className="lg:col-span-1 min-w-0 space-y-5">
-              <TickerCustomizer />
-
-              <MarginAlertSettings />
-
               <section className="m3-card p-3 sm:p-6">
                 <CardHeader
                   icon={Mail}
@@ -292,6 +285,15 @@ export default function ProfilePage() {
                   </button>
                 </div>
               </section>
+            </div>
+
+            {/* Sağ — destek talepleri + piyasa şeridi */}
+            <div className="min-w-0 space-y-3 sm:space-y-5">
+              <div id="support-tickets" className="scroll-mt-24">
+                <SupportTicketsCard />
+              </div>
+
+              <TickerCustomizer />
             </div>
           </div>
         </div>

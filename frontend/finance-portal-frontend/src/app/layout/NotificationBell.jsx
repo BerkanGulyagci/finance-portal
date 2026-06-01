@@ -3,12 +3,16 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Bell, AlertTriangle } from 'lucide-react';
 import { getUnreadCount, getNotifications, markNotificationRead } from '../../api/notificationApi';
 import { useTranslation } from '../../context/LanguageContext';
+import { parseBackendDate } from '../../utils/dateUtils';
 
 const POLL_MS = 45000;
 
+// Backend LocalDateTime TZ-belirteçsiz gelir; parseBackendDate UTC olarak yorumlar,
+// toLocaleString kullanıcının yereline (Europe/Istanbul = +3) çevirir.
 function fmtTime(s) {
-  if (!s) return '';
-  try { return new Date(s).toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' }); }
+  const d = parseBackendDate(s);
+  if (!d) return '';
+  try { return d.toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' }); }
   catch { return ''; }
 }
 

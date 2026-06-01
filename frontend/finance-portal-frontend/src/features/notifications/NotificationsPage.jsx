@@ -6,6 +6,7 @@ import {
 } from '../../api/notificationApi';
 import { useTranslation } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
+import { parseBackendDate } from '../../utils/dateUtils';
 
 function emailBadge(status, t) {
   const map = {
@@ -23,9 +24,13 @@ function emailBadge(status, t) {
   );
 }
 
+// Backend LocalDateTime TZ-belirteçsiz gelir; parseBackendDate UTC olarak yorumlar,
+// toLocaleString kullanıcının yereline (Europe/Istanbul = +3) çevirir.
 function fmtDate(s) {
-  if (!s) return '';
-  try { return new Date(s).toLocaleString('tr-TR'); } catch { return s; }
+  const d = parseBackendDate(s);
+  if (!d) return s || '';
+  try { return d.toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'medium' }); }
+  catch { return d.toLocaleString('tr-TR'); }
 }
 
 // Bildirim türüne göre baş ikonu — MARGIN_CALL kritik teminat uyarısı (kırmızı uyarı üçgeni).

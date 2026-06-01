@@ -74,9 +74,8 @@ const en = {
   'Kapalı': 'Off',
   'Hızlı seç:': 'Quick pick:',
   'Teminat uyarısı kaydedildi.': 'Margin alert saved.',
-  'Eski sistemden kalan MARGIN_RATIO alarmlarınızı': 'You can clean up legacy MARGIN_RATIO alarms from your',
-  'Alarmlarım sayfasından': 'Alarms page',
-  'temizleyebilirsiniz.': '.',
+  'Bu eşik tüm portföylerinizdeki tüm VİOP pozisyonları için geçerlidir.':
+    'This threshold applies to all open futures positions across all your portfolios.',
 
   // AlarmCreateModal — eski sistem etiketi
   'Teminat Oranı (VİOP) — Eski Sistem': 'Margin Ratio (Futures) — Legacy',

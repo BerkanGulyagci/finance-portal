@@ -6,6 +6,7 @@ import AddTransactionModal from './AddTransactionModal';
 import PortfolioPerformanceChart from './PortfolioPerformanceChart';
 import PortfolioAnalyticsSection from './analytics/PortfolioAnalyticsSection';
 import PortfolioStatsSummary from './analytics/PortfolioStatsSummary';
+import MarginAlertSettings from '../../profile/components/MarginAlertSettings';
 import { deleteTransaction, getPortfolioById } from '../../../api/portfolioApi';
 import { getCommoditySpot, getFxTcmb, getCryptos, getGoldSpot } from '../../../api/marketApi';
 import { isYahooCommoditySymbol } from '../../../utils/commodityPriceUtils';
@@ -152,6 +153,12 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
   }, [initialInstrument, onInitialInstrumentConsumed]);
 
   const holdingsRows = portfolio.holdings ?? [];
+  // Bu portföyde açık VİOP pozisyonu var mı? Varsa marjin-uyarı kartını göster.
+  // Eşik kullanıcı-seviyesi (prefSetSync); yalnız UI bu bağlamda anlamlı.
+  const hasFutures = useMemo(
+    () => holdingsRows.some(h => String(h?.assetType).toUpperCase() === 'FUTURE'),
+    [holdingsRows],
+  );
   const [commoditySpots, setCommoditySpots] = useState({});
   const currency = portfolio.currency || 'TRY';
 
@@ -397,6 +404,17 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
           </div>
         </div>
       </div>
+
+      {/* VİOP Teminat Uyarısı — yalnız bu portföyde açık FUTURE pozisyonu varsa görünür.
+          Eşik kullanıcı seviyesi (margin_alert_threshold_pct) — burada konuya bağlı bağlamda gösterilir. */}
+      {hasFutures && (
+        <div>
+          <MarginAlertSettings />
+          <p className="text-[11px] text-gray-500 mt-2 px-1">
+            {t('Bu eşik tüm portföylerinizdeki tüm VİOP pozisyonları için geçerlidir.')}
+          </p>
+        </div>
+      )}
 
       {/* Pozisyon Ekle + Sekmeler */}
       <div className="flex items-center justify-between flex-wrap gap-3">
