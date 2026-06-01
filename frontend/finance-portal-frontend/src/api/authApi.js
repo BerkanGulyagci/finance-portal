@@ -184,7 +184,9 @@ export function logoutRedirect(idToken) {
     client_id: CLIENT_ID,
     post_logout_redirect_uri: 'http://localhost:5173/',
   });
-  if (idToken) params.set('id_token_hint', idToken);
+  // id_token_hint kasıtlı GÖNDERİLMİYOR: Keycloak görünür logout akışını göstersin ve oturumu
+  // güvenle sonlandırsın. (id_token_hint, access token yenilendiğinde bayatlayıp Keycloak'ın
+  // logout'u reddetmesine/atlamasına yol açabiliyordu — client_id + post_logout_redirect_uri yeterli.)
   window.location.href = `${LOGOUT_ENDPOINT}?${params}`;
 }
 
