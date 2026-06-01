@@ -1,6 +1,5 @@
 package com.finance.portal.portfolio.presentation.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.finance.portal.common.domain.AssetType;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -162,9 +161,9 @@ public class PortfolioHoldingResponse {
      * Average-cost mantığıyla aynı: her SELL pre-sell openQty'ye göre tüm lotları orantısal
      * şekilde küçültür. Reel K/Z ve What-if hesabı her lotu kendi alış tarihinden bugüne ayrı
      * şekilde enflasyon/scenario faktörüyle çarpar (çoklu BUY'da firstBuyDate ile sapma giderilir).
-     * Sadece backend hesabı içindir → JSON çıktısına yansımaz.
+     * Redis cache'ine de SERIALIZE EDİLMELİ: What-if cache'lenmiş portföyü okur; @JsonIgnore olursa
+     * cache-hit'te lot'lar kaybolur ve What-if firstBuyDate'e düşüp çok-lotlu pozisyonda sapar.
      */
-    @JsonIgnore
     private List<CostLot> openCostLots;
 
     /**
@@ -178,9 +177,9 @@ public class PortfolioHoldingResponse {
 
     /**
      * BOND için: kupon ödeme olayları (tarih + TL tutar). What-if "Gerçek" çizgisi her olayın
-     * tarihinde step-up uygular (date ≤ t koşulu). Yalnız backend hesabı için — JSON'a yansımaz.
+     * tarihinde step-up uygular (date ≤ t koşulu). Redis cache'ine de serialize edilmeli (What-if
+     * cache'ten okur; aksi halde bond "Gerçek" çizgisi kupon step-up'larını kaybeder).
      */
-    @JsonIgnore
     private List<CouponEvent> couponEvents;
 
     /**
