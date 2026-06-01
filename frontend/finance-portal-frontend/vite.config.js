@@ -15,4 +15,12 @@ export default defineConfig({
       },
     },
   },
+  // Vitest — birim/komponent testleri. `npm run test` (vitest run) ile CI'da koşar.
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.js'],
+    include: ['src/**/*.{test,spec}.{js,jsx}'],
+    css: false,
+  },
 })

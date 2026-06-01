@@ -1,11 +1,13 @@
 # Finance Portal — Continuous Integration
 #
-# Runs on every push and pull request targeting main. Two independent jobs
+# Runs on every push and pull request targeting main. Independent jobs
 # execute in parallel on Ubuntu runners:
 #   1) backend-test    — Java 21, Maven verify (Surefire unit + Failsafe IT
 #                        with Testcontainers Postgres + WireMock for Binance).
 #                        Uploads the JaCoCo coverage report as an artifact.
-#   2) frontend-build  — Node 20, npm ci + Vite production build
+#   2) log-consumer    — Java 21, Maven verify for the separate Kafka→OpenSearch
+#                        log-consumer microservice (compile + tests).
+#   3) frontend        — Node 20, npm ci + Vitest unit tests + Vite production build
 #
 # Testcontainers needs a Docker daemon; ubuntu-latest GitHub runners ship
 # with Docker pre-installed.
@@ -70,8 +72,29 @@ jobs:
             backend/finance-portal-backend/target/failsafe-reports/
           retention-days: 7
 
-  frontend-build:
-    name: Frontend (Node 20 + Vite)
+  log-consumer:
+    name: Log Consumer (Java 21 + Maven)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: log-consumer
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      # log-consumer has no Maven wrapper; ubuntu-latest ships a system Maven.
+      - name: Build and test (mvn verify)
+        run: mvn -B --no-transfer-progress verify
+
+  frontend:
+    name: Frontend (Node 20 + Vitest + Vite)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -89,6 +112,9 @@ jobs:
 
       - name: Install dependencies (npm ci)
         run: npm ci
+
+      - name: Unit tests (Vitest)
+        run: npm run test
 
       - name: Build (npm run build)
         run: npm run build
