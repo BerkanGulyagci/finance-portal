@@ -16,6 +16,7 @@ import io.opentelemetry.instrumentation.annotations.SpanAttribute;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
@@ -71,6 +72,18 @@ public class MarketFxService {
                 .collect(Collectors.toList());
 
         return new FxLatestRates("tcmb", "official", "TRY", tcmbData.getDate(), rates);
+    }
+
+    /**
+     * Warm-up için: TCMB güncel kur cache'ini ('default' key) atomik tazeler.
+     * {@code MarketListCacheWarmupService} periyodik çağırır → kullanıcı isteği soğuk TCMB çekimine
+     * HİÇ düşmez (6sa TTL boyunca hep sıcak; TCMB her TL-çevriminin temeli). Self-invoke ile
+     * read metodunun @Cacheable'ı bypass edilir; @CachePut taze sonucu read ile AYNI 'default'
+     * anahtarına atomik yazar (evict→reload boşluğu yok). LKG ikinci savunma hattı olarak altta kalır.
+     */
+    @CachePut(cacheNames = "market.fx.tcmb.latest", key = "'default'")
+    public FxLatestRates refreshTcmbLatest() {
+        return getTcmbLatestRates(null);
     }
 
     @Cacheable(

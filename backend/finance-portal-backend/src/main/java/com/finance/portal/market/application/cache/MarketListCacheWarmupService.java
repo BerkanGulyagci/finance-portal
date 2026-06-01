@@ -3,7 +3,9 @@ package com.finance.portal.market.application.cache;
 import com.finance.portal.common.application.logging.CentralIntegrationLogService;
 import com.finance.portal.common.application.logging.IntegrationLogSupport;
 import com.finance.portal.market.application.bond.evds.EvdsBondService;
+import com.finance.portal.market.application.economy.InflationDeflatorService;
 import com.finance.portal.market.application.funds.service.RasyonetFundService;
+import com.finance.portal.market.application.service.MarketFxService;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,13 +38,19 @@ public class MarketListCacheWarmupService {
 
     private final EvdsBondService evdsBondService;
     private final RasyonetFundService rasyonetFundService;
+    private final MarketFxService marketFxService;
+    private final InflationDeflatorService inflationDeflatorService;
     private final CentralIntegrationLogService integrationLogService;
 
     public MarketListCacheWarmupService(EvdsBondService evdsBondService,
                                         RasyonetFundService rasyonetFundService,
+                                        MarketFxService marketFxService,
+                                        InflationDeflatorService inflationDeflatorService,
                                         CentralIntegrationLogService integrationLogService) {
         this.evdsBondService = evdsBondService;
         this.rasyonetFundService = rasyonetFundService;
+        this.marketFxService = marketFxService;
+        this.inflationDeflatorService = inflationDeflatorService;
         this.integrationLogService = integrationLogService;
     }
 
@@ -51,6 +59,10 @@ public class MarketListCacheWarmupService {
     @EventListener(ApplicationReadyEvent.class)
     public void warmupOnStartup() {
         log.info("Market list cache warmup (startup) starting...");
+        // Hızlı + kritik backbone'lar ÖNCE (TCMB FX her TL-çevriminin, TÜFE reel-getiri/what-if'in
+        // temeli) → yavaş bonds (~45s) arkasında beklemesinler; ilk kullanıcı soğuk-fetch ödemesin.
+        warmFxTcmb();
+        warmEconomy();
         warmBonds();
         warmFunds();
     }
@@ -71,6 +83,24 @@ public class MarketListCacheWarmupService {
     public void scheduledFundsWarmup() {
         log.info("Market funds list cache scheduled refresh starting...");
         warmFunds();
+    }
+
+    // ── TCMB FX latest: 2 saatte bir (cache TTL 6 saat) — her TL-çevriminin temeli ──
+    @Scheduled(fixedDelayString = "${market.warmup.fx.fixed-delay-ms:7200000}",
+               initialDelayString = "${market.warmup.fx.initial-delay-ms:7200000}")
+    @SchedulerLock(name = "market-fx-tcmb-warmup", lockAtMostFor = "PT5M", lockAtLeastFor = "PT1M")
+    public void scheduledFxWarmup() {
+        log.info("Market FX (TCMB) cache scheduled refresh starting...");
+        warmFxTcmb();
+    }
+
+    // ── TÜFE / ABD CPI serisi: 4 saatte bir (cache TTL 6 saat) — reel-getiri + what-if temeli ──
+    @Scheduled(fixedDelayString = "${market.warmup.economy.fixed-delay-ms:14400000}",
+               initialDelayString = "${market.warmup.economy.initial-delay-ms:14400000}")
+    @SchedulerLock(name = "market-economy-warmup", lockAtMostFor = "PT5M", lockAtLeastFor = "PT1M")
+    public void scheduledEconomyWarmup() {
+        log.info("Market economy (TÜFE/CPI) series cache scheduled refresh starting...");
+        warmEconomy();
     }
 
     // ── Internal ─────────────────────────────────────────────────────────────────
@@ -100,6 +130,27 @@ public class MarketListCacheWarmupService {
         if (fail > 0) {
             publishFailure("market_funds_list_warmup", IntegrationLogSupport.PROVIDER_RASYONET,
                     fail + " fund category warmup(s) failed");
+        }
+    }
+
+    private void warmFxTcmb() {
+        try {
+            int n = marketFxService.refreshTcmbLatest().getRates().size();
+            log.info("Market FX (TCMB) cache warmed: {} rates.", n);
+        } catch (Exception e) {
+            log.warn("Market FX (TCMB) cache warmup failed: {}", e.getMessage());
+            publishFailure("market_fx_tcmb_warmup", IntegrationLogSupport.PROVIDER_TCMB, e.getMessage());
+        }
+    }
+
+    private void warmEconomy() {
+        try {
+            int tufe = inflationDeflatorService.refreshTufeSeries().size();
+            int cpi = inflationDeflatorService.refreshUsCpiSeries().size();
+            log.info("Market economy series cache warmed: TÜFE {} pts, US-CPI {} pts.", tufe, cpi);
+        } catch (Exception e) {
+            log.warn("Market economy series cache warmup failed: {}", e.getMessage());
+            publishFailure("market_economy_warmup", IntegrationLogSupport.PROVIDER_EVDS, e.getMessage());
         }
     }
 

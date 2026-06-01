@@ -7,6 +7,7 @@ import com.finance.portal.market.application.economy.port.EconomyDataPort;
 import com.finance.portal.market.application.economy.port.FredDataPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
@@ -84,6 +85,23 @@ public class InflationDeflatorService {
                 () -> fredDataPort.fetchSeries(US_CPI_CODE, SERIES_START, LocalDate.now()));
         log.info("[InflationDeflator] ABD CPI serisi yüklendi — {} nokta", pts.size());
         return pts;
+    }
+
+    /**
+     * Warm-up için: TÜFE serisi cache'ini ('tufe.series') atomik tazeler.
+     * {@code MarketListCacheWarmupService} periyodik çağırır → reel-getiri/what-if soğuk EVDS
+     * çekimine düşmez (TÜFE serisi her portföy reel-getiri + what-if hesabının temeli). Self-invoke
+     * ile read metodunun @Cacheable'ı bypass; @CachePut taze seriyi read ile AYNI anahtara yazar.
+     */
+    @CachePut(cacheNames = "market.economy", key = "'tufe.series'")
+    public List<EconomySeriesPoint> refreshTufeSeries() {
+        return tufeSeries();
+    }
+
+    /** Warm-up için: ABD CPI serisi cache'ini ('uscpi.series') atomik tazeler ({@link #refreshTufeSeries} eşi). */
+    @CachePut(cacheNames = "market.economy", key = "'uscpi.series'")
+    public List<EconomySeriesPoint> refreshUsCpiSeries() {
+        return usCpiSeries();
     }
 
     /**
