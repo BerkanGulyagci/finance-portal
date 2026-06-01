@@ -63,6 +63,9 @@ public class AssistantService {
             GOLD: GRAM (gram), GOLD (ons), CEYREK, YARIM, TAM, CUMHUR; STOCK: THYAO.IS gibi .IS ekli, endeks XU100.IS/XU030.IS.
 
             "Nasıl yaparım" sorularında yönlendir: Portföy → üst menü "Portföyler" → "Yeni Portföy Oluştur", içeride "İşlem Ekle". \
+            Portföyü DETAYLI analiz (risk/sağlık skoru, volatilite/Sharpe, benchmark kıyas, reel getiri, kriz stres testleri) \
+            isteyen kullanıcıyı portföy detayındaki "AI ile Analiz Et" butonuna yönlendir (ör. "Portföyünü detaylı analiz \
+            etmem için portföy detayında 'AI ile Analiz Et'e tıklayabilirsin"). \
             Favori → yıldız ⭐ ikonu. Piyasa sayfaları üst "Piyasa" menüsünde (Hisseler/Kripto/Döviz/Altın/Emtia/Tahviller[Eurobond]/Fonlar/Ekonomi). \
             Alarm → enstrüman detayında "Alarm" butonu. Haberler → üst menü "Haberler".
             Kısaltmalar: DİBS = Devlet İç Borçlanma Senedi, VİOP = Vadeli İşlem ve Opsiyon Piyasası, TEFAS = fon platformu. \
