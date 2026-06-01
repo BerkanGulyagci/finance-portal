@@ -4,7 +4,11 @@ import com.finance.portal.market.application.stock.model.YahooChartSnapshot;
 import com.finance.portal.market.application.stock.port.YahooStockPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -58,6 +62,39 @@ public class BistIndexService {
     /** Verilen sembol (XU100/XU030/XU050) bu servisle desteklenir mi? */
     public boolean supports(String upperSymbol) {
         return upperSymbol != null && YAHOO_SYMBOLS.containsKey(upperSymbol.trim().toUpperCase(Locale.ROOT));
+    }
+
+    /**
+     * Uygulama hazır olduğunda BIST endeks cache'ini bir kez boşalt.
+     *
+     * <p>Geçmişte {@code ^XU100} (caret prefix) sembol formatı kullanılıyordu — Yahoo bu formatı
+     * 200 ile yanıtlasa da {@code timestamps=null} / {@code quote.close=null} boş bir snapshot
+     * döndürüyor; Spring @Cacheable ise bu boş yanıtı 60 dk önbelleğe yazıyordu. Sembol
+     * formatı {@code XU100.IS} olarak düzeltildiğinde bile, stale Redis girdileri MarketTicker'ın
+     * istediği {@code 1mo} range cache key'ini doldurmaya devam ediyordu ve BIST kartları
+     * ticker'dan sessizce düşüyordu.</p>
+     *
+     * <p>Self-healing yaklaşımı: startup'ta tüm {@code market.bistIndex.history} girdileri
+     * temizlenir, sonraki istek taze veriyi yeni sembol formatıyla doldurur. Gelecekteki
+     * sembol/format değişiklikleri için manuel {@code redis-cli DEL} gerekmez.</p>
+     */
+    @EventListener(ApplicationReadyEvent.class)
+    @CacheEvict(cacheNames = "market.bistIndex.history", allEntries = true)
+    public void evictStaleCachesOnStartup() {
+        log.info("BIST index history cache evicted on startup (defends against stale pre-XU100.IS entries)");
+    }
+
+    /**
+     * BIST endeks cache'ini saatlik temizle.
+     *
+     * <p>Cache TTL'i zaten 60 dk olsa da; bu schedule (a) TTL drift'ine karşı koruma sağlar,
+     * (b) silver/precious/commodity ile aynı kalıpta tutarlılık kazandırır, (c) Yahoo geçici
+     * olarak boş yanıt verirse bir sonraki tetiklemede taze çekim garanti edilir.</p>
+     */
+    @Scheduled(initialDelay = 60_000, fixedRate = 3_600_000)
+    @CacheEvict(cacheNames = "market.bistIndex.history", allEntries = true)
+    public void evictBistIndexCaches() {
+        log.debug("BIST index history cache evicted (hourly)");
     }
 
     /**
