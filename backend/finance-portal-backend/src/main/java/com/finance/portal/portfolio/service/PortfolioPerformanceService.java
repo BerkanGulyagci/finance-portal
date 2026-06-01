@@ -237,8 +237,14 @@ public class PortfolioPerformanceService {
     }
 
     /**
-     * Serinin başındaki sıfır/negatif değerli (henüz değerlenecek varlık ya da tarihsel veri olmayan)
-     * günleri atar; ilk gerçek değerli günden başlatır. Hiç değerli gün yoksa boş liste döner.
+     * Serinin başındaki "henüz pozisyon tutulmayan" (maliyet=0, ör. ilk işlemden önceki ya da
+     * tarihsel fiyatı olmayan) günleri atar; pozisyonun tutulmaya başladığı ilk günden başlatır.
+     * Hiç pozisyon tutulan gün yoksa boş liste döner.
+     *
+     * NOT: Kriter totalCost>0 (pozisyon tutuluyor) — marketValue>0 DEĞİL. VİOP pozisyonlarında
+     * portföy katkısı (teminat + K/Z) zararda NEGATİF olabilir; bu yine de gerçek bir değerli
+     * gündür ve grafikte gösterilmelidir. marketValue>0 kullanılırsa zararda açılan VİOP pozisyonu
+     * için tüm seri kırpılıp grafik boş kalıyordu.
      */
     private static List<PortfolioPerformancePoint> trimLeadingZeroValuePoints(
             List<PortfolioPerformancePoint> points) {
@@ -247,14 +253,14 @@ public class PortfolioPerformanceService {
         }
         int firstValued = -1;
         for (int i = 0; i < points.size(); i++) {
-            BigDecimal mv = points.get(i).getMarketValue();
-            if (mv != null && mv.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal cost = points.get(i).getTotalCost();
+            if (cost != null && cost.compareTo(BigDecimal.ZERO) > 0) {
                 firstValued = i;
                 break;
             }
         }
         if (firstValued < 0) {
-            return new ArrayList<>(); // hiç değerli gün yok → grafik boş
+            return new ArrayList<>(); // hiç pozisyon tutulan gün yok → grafik boş
         }
         if (firstValued == 0) {
             return points;
