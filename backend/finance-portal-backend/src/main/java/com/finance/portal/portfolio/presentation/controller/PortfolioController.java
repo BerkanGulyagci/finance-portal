@@ -2,6 +2,7 @@ package com.finance.portal.portfolio.presentation.controller;
 
 import com.finance.portal.common.domain.AssetType;
 import com.finance.portal.common.presentation.dto.ApiResponse;
+import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult;
 import com.finance.portal.portfolio.application.performance.PortfolioPerformanceResult;
 import com.finance.portal.portfolio.application.port.PortfolioHistoricalPricePort;
 import com.finance.portal.portfolio.application.whatif.PortfolioWhatIfResult;
@@ -14,6 +15,7 @@ import com.finance.portal.portfolio.presentation.dto.PortfolioResponse;
 import com.finance.portal.portfolio.presentation.dto.PriceAtDateResponse;
 import com.finance.portal.portfolio.presentation.dto.UpdatePortfolioRequest;
 import com.finance.portal.portfolio.presentation.dto.WatchlistItemResponse;
+import com.finance.portal.portfolio.service.PortfolioAnalysisService;
 import com.finance.portal.portfolio.service.PortfolioService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -46,11 +48,14 @@ public class PortfolioController {
 
     private final PortfolioService portfolioService;
     private final PortfolioHistoricalPricePort historicalPricePort;
+    private final PortfolioAnalysisService portfolioAnalysisService;
 
     public PortfolioController(PortfolioService portfolioService,
-                              PortfolioHistoricalPricePort historicalPricePort) {
+                              PortfolioHistoricalPricePort historicalPricePort,
+                              PortfolioAnalysisService portfolioAnalysisService) {
         this.portfolioService = portfolioService;
         this.historicalPricePort = historicalPricePort;
+        this.portfolioAnalysisService = portfolioAnalysisService;
     }
 
     /**
@@ -116,6 +121,23 @@ public class PortfolioController {
         String userId = jwt.getSubject();
         PortfolioResponse portfolio = portfolioService.getPortfolioById(userId, portfolioId);
         return ResponseEntity.ok(ApiResponse.success(portfolio, "Portfolio retrieved successfully"));
+    }
+
+    /**
+     * AI Portföy Analizi: metrikler backend'de deterministik hesaplanır (risk/sağlık skoru, volatilite,
+     * Sharpe, drawdown, beta, yoğunlaşma, benchmark, reel getiri); AI yalnız bu metrikleri yorumlar.
+     */
+    @GetMapping("/{portfolioId}/ai-analysis")
+    public ResponseEntity<ApiResponse<PortfolioAiAnalysisResult>> getPortfolioAiAnalysis(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID portfolioId
+    ) {
+        String userId = jwt.getSubject();
+        String userName = jwt.getClaimAsString("name");
+        String userEmail = jwt.getClaimAsString("email");
+        PortfolioAiAnalysisResult analysis =
+                portfolioAnalysisService.analyze(userId, portfolioId, userName, userEmail);
+        return ResponseEntity.ok(ApiResponse.success(analysis, "AI portfolio analysis retrieved successfully"));
     }
 
     @GetMapping("/{portfolioId}/performance")

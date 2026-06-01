@@ -9,6 +9,7 @@ import VerifyEmailPage from '../features/auth/VerifyEmailPage';
 import DashboardPage from '../features/dashboard/DashboardPage';
 import PortfolioPage from '../features/portfolio/PortfolioPage';
 import PortfolioDetailPage from '../features/portfolio/PortfolioDetailPage';
+import AiAnalysisPage from '../features/portfolio/AiAnalysisPage';
 import StocksPage from '../features/market/stock/StocksPage';
 import StockDetailPage from '../features/market/stock/StockDetailPage';
 import CryptoPage from '../features/market/crypto/CryptoPage';
@@ -105,6 +106,7 @@ export default function AppRouter() {
           <Route path="/dashboard"         element={<DashboardPage />} />
           <Route path="/portfolio"         element={<PortfolioPage />} />
           <Route path="/portfolio/:id"     element={<PortfolioDetailPage />} />
+          <Route path="/portfolio/:id/ai-analysis" element={<AiAnalysisPage />} />
           <Route path="/alarms"            element={<AlarmsPage />} />
           <Route path="/notifications"     element={<NotificationsPage />} />
         </Route>

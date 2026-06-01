@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, FileSpreadsheet, FileText, Pencil } from 'lucide-react';
+import { ArrowLeft, FileSpreadsheet, FileText, Pencil, Sparkles } from 'lucide-react';
 import { getPortfolioById } from '../../api/portfolioApi';
 import { downloadPortfolioExcel, downloadPortfolioPdf } from './utils/portfolioReportExport';
 import { buildVisibleCols } from './components/HoldingsTable';
@@ -165,6 +165,13 @@ export default function PortfolioDetailPage() {
           </button>
           {!isWatchlist && (
             <>
+              <Link
+                to={`/portfolio/${id}/ai-analysis`}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-[#093eaa] text-white hover:bg-[#093eaa]/90 transition-colors"
+              >
+                <Sparkles className="w-4 h-4" />
+                {t('AI ile Analiz Et')}
+              </Link>
               <button
                 type="button"
                 onClick={handleExportExcel}

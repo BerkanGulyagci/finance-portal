@@ -52,6 +52,15 @@ export async function getPortfolioById(portfolioId) {
   return wrapper.data;
 }
 
+/**
+ * AI Portföy Analizi: backend metrikleri deterministik hesaplar (risk/sağlık skoru, volatilite,
+ * Sharpe, drawdown, beta, yoğunlaşma, benchmark, reel getiri) + AI yorum raporu (varsa).
+ */
+export async function getPortfolioAiAnalysis(portfolioId) {
+  const { data: wrapper } = await client.get(`/api/portfolios/${portfolioId}/ai-analysis`);
+  return wrapper.data;
+}
+
 export async function createPortfolio(payload) {
   // payload: { name, description, currency, portfolioType }
   const { data: wrapper } = await client.post('/api/portfolios', payload);
