@@ -8,6 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.cache.CacheManager;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -27,6 +28,9 @@ class BistIndexServiceTest {
 
     @Mock
     private YahooStockPort yahooStockPort;
+
+    @Mock
+    private CacheManager cacheManager;
 
     @InjectMocks
     private BistIndexService service;

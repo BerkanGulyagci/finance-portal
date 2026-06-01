@@ -5,7 +5,7 @@ import com.finance.portal.market.application.stock.port.YahooStockPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -54,9 +54,29 @@ public class BistIndexService {
     );
 
     private final YahooStockPort yahooStockPort;
+    private final CacheManager cacheManager;
 
-    public BistIndexService(YahooStockPort yahooStockPort) {
+    public BistIndexService(YahooStockPort yahooStockPort, CacheManager cacheManager) {
         this.yahooStockPort = yahooStockPort;
+        this.cacheManager = cacheManager;
+    }
+
+    /**
+     * BIST endeks geçmiş cache'ini güvenli şekilde temizler. Redis/cache backend
+     * ulaşılamazsa (ör. test ortamında Redis yok) startup'ı ÇÖKERTMEZ — sadece loglar.
+     * Eskiden {@code @CacheEvict} annotation'ı kullanılıyordu; o, ApplicationReadyEvent'te
+     * Redis'e eager bağlanıp bağlantı yoksa context'i çökertiyordu (CI'da tüm IT'leri kırdı).
+     */
+    private void clearBistCache(String context) {
+        try {
+            var cache = cacheManager.getCache("market.bistIndex.history");
+            if (cache != null) {
+                cache.clear();
+            }
+            log.info("BIST index history cache evicted ({})", context);
+        } catch (RuntimeException e) {
+            log.warn("BIST index cache evict atlandı ({}): cache backend ulaşılamıyor — {}", context, e.getMessage());
+        }
     }
 
     /** Verilen sembol (XU100/XU030/XU050) bu servisle desteklenir mi? */
@@ -79,9 +99,8 @@ public class BistIndexService {
      * sembol/format değişiklikleri için manuel {@code redis-cli DEL} gerekmez.</p>
      */
     @EventListener(ApplicationReadyEvent.class)
-    @CacheEvict(cacheNames = "market.bistIndex.history", allEntries = true)
     public void evictStaleCachesOnStartup() {
-        log.info("BIST index history cache evicted on startup (defends against stale pre-XU100.IS entries)");
+        clearBistCache("startup");
     }
 
     /**
@@ -92,9 +111,8 @@ public class BistIndexService {
      * olarak boş yanıt verirse bir sonraki tetiklemede taze çekim garanti edilir.</p>
      */
     @Scheduled(initialDelay = 60_000, fixedRate = 3_600_000)
-    @CacheEvict(cacheNames = "market.bistIndex.history", allEntries = true)
     public void evictBistIndexCaches() {
-        log.debug("BIST index history cache evicted (hourly)");
+        clearBistCache("hourly");
     }
 
     /**
