@@ -1,90 +1,29 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
+import { BarChart3, X, RotateCcw } from 'lucide-react';
 import {
-  LineChart,
-  Plus,
-  X,
-  DollarSign,
-  Landmark,
-  TrendingUp,
-  Coins,
-  Bitcoin,
-  BarChart3,
-} from 'lucide-react';
-import {
-  TICKER_CATALOG, readTickerPrefs, saveTickerPrefs,
+  ALL_TICKER_KEYS,
+  readTickerPrefs, saveTickerPrefs,
   readCustomTickerItems, saveCustomTickerItems,
 } from '../../../utils/tickerPrefs';
 import { useTranslation } from '../../../context/LanguageContext';
 import InstrumentSearchModal from '../../../components/instrument/InstrumentSearchModal';
-
-const ASSET_LABEL = {
-  STOCK: 'Hisse', FUND: 'Fon', FX: 'Döviz', FUTURE: 'Vadeli',
-  CRYPTO: 'Kripto', GOLD: 'Altın', COMMODITY: 'Emtia', BOND: 'Tahvil',
-};
+import TickerCustomizerModalBody from './TickerCustomizerModalBody';
 
 /**
- * Her kategori için ikon + soluk vurgu renkleri.
- * `chipOn` (seçili pill) ve `chipOff` (seçilmemiş pill) Tailwind sınıfları;
- * `iconWrap` kart başlığındaki ikon-chip rengi.
- */
-const CATEGORY_META = {
-  'TCMB Döviz': {
-    icon: DollarSign,
-    iconWrap: 'bg-blue-50 text-[#093eaa]',
-    chipOn: 'bg-[#093eaa] text-white border border-[#093eaa] shadow-sm',
-    chipOff: 'bg-white text-[#093eaa] border border-blue-200 hover:bg-blue-50',
-  },
-  'Banka Kurları': {
-    icon: Landmark,
-    iconWrap: 'bg-indigo-50 text-indigo-700',
-    chipOn: 'bg-indigo-600 text-white border border-indigo-600 shadow-sm',
-    chipOff: 'bg-white text-indigo-700 border border-indigo-200 hover:bg-indigo-50',
-  },
-  'Endeksler (BIST)': {
-    icon: TrendingUp,
-    iconWrap: 'bg-emerald-50 text-emerald-700',
-    chipOn: 'bg-emerald-600 text-white border border-emerald-600 shadow-sm',
-    chipOff: 'bg-white text-emerald-700 border border-emerald-200 hover:bg-emerald-50',
-  },
-  'Altın': {
-    icon: Coins,
-    iconWrap: 'bg-amber-50 text-amber-700',
-    chipOn: 'bg-amber-500 text-white border border-amber-500 shadow-sm',
-    chipOff: 'bg-white text-amber-700 border border-amber-200 hover:bg-amber-50',
-  },
-  'Kripto': {
-    icon: Bitcoin,
-    iconWrap: 'bg-orange-50 text-orange-600',
-    chipOn: 'bg-orange-500 text-white border border-orange-500 shadow-sm',
-    chipOff: 'bg-white text-orange-700 border border-orange-200 hover:bg-orange-50',
-  },
-  'Ekonomi': {
-    icon: BarChart3,
-    iconWrap: 'bg-purple-50 text-purple-700',
-    chipOn: 'bg-purple-600 text-white border border-purple-600 shadow-sm',
-    chipOff: 'bg-white text-purple-700 border border-purple-200 hover:bg-purple-50',
-  },
-};
-
-const DEFAULT_META = {
-  icon: LineChart,
-  iconWrap: 'bg-gray-100 text-gray-600',
-  chipOn: 'bg-gray-700 text-white border border-gray-700 shadow-sm',
-  chipOff: 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50',
-};
-
-/**
- * Hesap Ayarları'nda piyasa şeridi (ticker) özelleştirme: kullanıcı hangi varlıkların
- * üstteki şeritte görüneceğini seçer. Tercih localStorage'a yazılır, MarketTicker anında okur.
+ * Hesap Ayarları'nda piyasa şeridi (ticker) özelleştirme.
  *
- * UI: kategorilere göre dikey bölümler; her bölüm renkli ikon-başlık + "Hepsi/Hiçbiri" linki +
- * tıklanabilir pill (rounded-full) ızgarası içerir. Pill seçiliyken kategori renginde dolgulu,
- * seçili değilken ince renkli kenarlık ile.
+ * Profilde gösterilen kart minimaldir: ikon + başlık + açıklama + "{N} sembol seçili"
+ * satırı ve sağda "Düzenle" butonu (yandaki "Bülten Aboneliği" kartıyla aynı yükseklikte).
+ * "Düzenle"ye tıklayınca, kategori-pill ızgarasını içeren bir modal açılır
+ * ({@link TickerCustomizerModalBody}). Modal içindeki tüm değişiklikler anında tercihlere
+ * yazılır; modalda ayrıca "Kaydet" butonu yoktur, "Kapat" ve "Sıfırla" vardır.
  */
 export default function TickerCustomizer() {
   const { t } = useTranslation();
   const [enabled, setEnabled] = useState(() => readTickerPrefs());
   const [custom, setCustom] = useState(() => readCustomTickerItems());
+  const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
   function commit(next) {
@@ -122,92 +61,109 @@ export default function TickerCustomizer() {
     commit(next);
   }
 
+  // "Sıfırla" → tüm katalog öğeleri açık + kullanıcı özel öğeleri temizlenir.
+  function resetAll() {
+    commit(new Set(ALL_TICKER_KEYS));
+    setCustom([]);
+    saveCustomTickerItems([]);
+  }
+
+  const count = enabled.size + custom.length;
+
   return (
-    <div className="m3-card p-6">
-      <div className="flex items-center gap-3 mb-4">
-        <span className="m3-icon-chip"><LineChart className="w-5 h-5" /></span>
-        <div className="min-w-0">
-          <h3 className="font-bold text-gray-900 leading-tight">{t('Piyasa Şeridini Özelleştir')}</h3>
-          <p className="text-xs text-gray-500 mt-0.5">
-            {t('Sayfanın üstündeki piyasa şeridinde hangi varlıkların görüneceğini seçin.')}
-          </p>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        {TICKER_CATALOG.map(group => {
-          const meta = CATEGORY_META[group.group] ?? DEFAULT_META;
-          const Icon = meta.icon;
-          const allOn = group.items.every(it => enabled.has(it.key));
-          return (
-            <div key={group.group}>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className={`inline-flex items-center justify-center w-6 h-6 rounded-md ${meta.iconWrap}`}>
-                    <Icon className="w-3.5 h-3.5" />
-                  </span>
-                  <span className="text-xs font-bold text-gray-700 uppercase tracking-wider truncate">
-                    {t(group.group)}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => toggleGroup(group.items, allOn)}
-                  className="text-[11px] font-semibold text-[#093eaa] hover:underline shrink-0"
-                >
-                  {allOn ? t('Hiçbiri') : t('Hepsi')}
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {group.items.map(it => {
-                  const on = enabled.has(it.key);
-                  return (
-                    <button
-                      key={it.key}
-                      type="button"
-                      onClick={() => toggle(it.key)}
-                      aria-pressed={on}
-                      className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${on ? meta.chipOn : meta.chipOff}`}
-                    >
-                      {it.label}
-                    </button>
-                  );
-                })}
-              </div>
+    <>
+      <section className="m3-card p-3 sm:p-6">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="m3-icon-chip"><BarChart3 className="w-5 h-5" /></span>
+            <div className="min-w-0">
+              <h3 className="font-bold text-gray-900 leading-tight">{t('Piyasa Şeridi')}</h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {t('Piyasa şeridine hangi varlıkları koyacağını seç')}
+              </p>
             </div>
-          );
-        })}
-      </div>
-
-      {/* Özel eklenen varlıklar */}
-      <div className="mt-5 border-t border-gray-100 pt-4">
-        <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t('Eklediğin Varlıklar')}</span>
+          </div>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-sm font-semibold text-gray-700">
+            {t('{count} sembol seçili').replace('{count}', count)}
+          </span>
           <button
             type="button"
-            onClick={() => setSearchOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#e7eefb] text-[#0b347f] text-xs font-bold hover:bg-[#d8e3f9] transition-colors"
+            onClick={() => setOpen(true)}
+            className="m3-btn m3-btn-text shrink-0"
           >
-            <Plus className="w-3.5 h-3.5" /> {t('Varlık Ekle')}
+            {t('Düzenle')}
           </button>
         </div>
-        {custom.length === 0 ? (
-          <p className="text-xs text-gray-400">{t('Şeride istediğin hisse, kripto, döviz, altın, fon… ekleyebilirsin.')}</p>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {custom.map(c => (
-              <span key={`${c.assetType}:${c.symbol}`} className="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1 rounded-full bg-[#093eaa]/5 border border-[#093eaa]/15 text-xs font-semibold text-[#093eaa]">
-                {c.name}
-                <span className="text-[9px] text-gray-400">{t(ASSET_LABEL[c.assetType] ?? c.assetType)}</span>
-                <button type="button" onClick={() => removeCustom(c.assetType, c.symbol)} title={t('Kaldır')}
-                  className="p-0.5 rounded-full hover:bg-rose-100 hover:text-rose-600 text-gray-400">
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            ))}
+      </section>
+
+      {open && createPortal((
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col m3-scale-in"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between gap-2 p-5 border-b border-gray-100">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-10 h-10 rounded-2xl bg-[#093eaa]/10 text-[#093eaa] flex items-center justify-center shrink-0">
+                  <BarChart3 className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-lg font-bold text-gray-900">{t('Piyasa Şeridini Özelleştir')}</h2>
+                  <p className="text-xs text-gray-500">
+                    {t('Sayfanın üstündeki piyasa şeridinde hangi varlıkların görüneceğini seçin.')}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setOpen(false)}
+                className="p-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 shrink-0"
+                aria-label={t('Kapat')}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Scrollable body */}
+            <div className="overflow-y-auto p-5 flex-1 min-h-0">
+              <TickerCustomizerModalBody
+                enabled={enabled}
+                toggle={toggle}
+                toggleGroup={toggleGroup}
+                custom={custom}
+                removeCustom={removeCustom}
+                onOpenSearch={() => setSearchOpen(true)}
+              />
+            </div>
+
+            {/* Sticky footer */}
+            <div className="flex items-center justify-between gap-2 p-4 border-t border-gray-100 bg-white rounded-b-2xl">
+              <button
+                type="button"
+                onClick={resetAll}
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-lg px-3 py-2 transition-colors"
+              >
+                <RotateCcw className="w-4 h-4" />
+                {t('Sıfırla')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#093eaa] text-white text-sm font-bold hover:bg-[#0a2966] transition-colors"
+              >
+                {t('Kapat')}
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      ), document.body)}
 
       {searchOpen && (
         <InstrumentSearchModal
@@ -216,6 +172,6 @@ export default function TickerCustomizer() {
           onClose={() => setSearchOpen(false)}
         />
       )}
-    </div>
+    </>
   );
 }

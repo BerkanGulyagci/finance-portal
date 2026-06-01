@@ -67,6 +67,10 @@ const en = {
   'Şifre güncellenemedi. Lütfen tekrar deneyin.': 'Could not update password. Please try again.',
 
   // TickerCustomizer — kategori başlıkları + UI metinleri
+  'Piyasa Şeridi': 'Market Ticker',
+  'Piyasa şeridine hangi varlıkları koyacağını seç':
+    'Choose which assets to put on the market ticker',
+  '{count} sembol seçili': '{count} symbols selected',
   'Piyasa Şeridini Özelleştir': 'Customize Market Ticker',
   'Sayfanın üstündeki piyasa şeridinde hangi varlıkların görüneceğini seçin.':
     'Choose which assets appear on the market ticker at the top of the page.',
