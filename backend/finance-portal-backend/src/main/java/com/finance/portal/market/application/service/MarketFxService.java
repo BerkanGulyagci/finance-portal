@@ -1,5 +1,7 @@
 package com.finance.portal.market.application.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.fx.model.FxHistory;
 import com.finance.portal.market.application.fx.model.FxHistoryPoint;
 import com.finance.portal.market.application.fx.model.FxLatestRates;
@@ -18,6 +20,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
@@ -31,20 +34,28 @@ public class MarketFxService {
     private static final Logger logger = LoggerFactory.getLogger(MarketFxService.class);
     private static final ZoneId ISTANBUL = ZoneId.of("Europe/Istanbul");
 
+    /** Hızlı (intraday) veri için LKG ömrü — kaynak çökerse en fazla bu kadar eski kur gösterilir. */
+    private static final Duration FX_LKG_TTL = Duration.ofDays(3);
+
     private final TcmbFxPort tcmbFxPort;
     private final OpenFxPort openFxPort;
     private final TcmbFxHistoryPort tcmbFxHistoryPort;
+    private final LastKnownGoodCache lkg;
 
-    public MarketFxService(TcmbFxPort tcmbFxPort, OpenFxPort openFxPort, TcmbFxHistoryPort tcmbFxHistoryPort) {
+    public MarketFxService(TcmbFxPort tcmbFxPort, OpenFxPort openFxPort, TcmbFxHistoryPort tcmbFxHistoryPort,
+                           LastKnownGoodCache lkg) {
         this.tcmbFxPort = tcmbFxPort;
         this.openFxPort = openFxPort;
         this.tcmbFxHistoryPort = tcmbFxHistoryPort;
+        this.lkg = lkg;
     }
 
     @Cacheable(cacheNames = "market.fx.tcmb.latest", key = "#symbols != null ? #symbols : 'default'")
     @WithSpan("MarketFxService.getTcmbLatestRates")
     public FxLatestRates getTcmbLatestRates(@SpanAttribute("fx.symbols") String symbols) {
-        TcmbFxFeed tcmbData = tcmbFxPort.fetchLatestRates();
+        // TCMB çökerse/boş dönerse son başarılı feed'i servis et (kullanıcı 5xx yerine eski kur görür).
+        TcmbFxFeed tcmbData = lkg.resilient("fx.tcmb.feed", FX_LKG_TTL,
+                new TypeReference<TcmbFxFeed>() {}, tcmbFxPort::fetchLatestRates);
         Set<String> requested = parseSymbols(symbols);
 
         var stream = tcmbData.getCurrencies().stream();
@@ -70,7 +81,9 @@ public class MarketFxService {
         String effectiveBase = (base != null && !base.trim().isEmpty())
                 ? base.trim().toUpperCase() : "USD";
 
-        OpenFxFeed openData = openFxPort.fetchLatestRates(effectiveBase);
+        // Open FX kaynağı çökerse/boş dönerse son başarılı feed'i servis et (base'e göre ayrı LKG).
+        OpenFxFeed openData = lkg.resilient("fx.open.latest:" + effectiveBase, FX_LKG_TTL,
+                new TypeReference<OpenFxFeed>() {}, () -> openFxPort.fetchLatestRates(effectiveBase));
         Set<String> requested = parseSymbols(symbols);
 
         Map<String, Double> conversionRates = openData.getRates();
@@ -107,7 +120,10 @@ public class MarketFxService {
         LocalDate today = LocalDate.now(ISTANBUL);
         LocalDate from = rangeToFromDate(range, today);
 
-        List<FxHistoryPoint> points = tcmbFxHistoryPort.fetchHistory(sym, from, today);
+        // TCMB geçmiş kuru çökerse/boş dönerse son başarılı seriyi servis et (sembol+aralık başına LKG).
+        List<FxHistoryPoint> points = lkg.resilient(
+                "fx.history:" + sym + ":" + (range == null ? "1M" : range.toUpperCase()), FX_LKG_TTL,
+                new TypeReference<List<FxHistoryPoint>>() {}, () -> tcmbFxHistoryPort.fetchHistory(sym, from, today));
         return new FxHistory(sym, "TRY", range, points);
     }
 

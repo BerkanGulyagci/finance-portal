@@ -1,5 +1,6 @@
 package com.finance.portal.market.application.service;
 
+import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.fx.model.FxHistory;
 import com.finance.portal.market.application.fx.model.FxHistoryPoint;
 import com.finance.portal.market.application.fx.model.FxLatestRates;
@@ -10,6 +11,7 @@ import com.finance.portal.market.application.fx.model.TcmbFxFeed;
 import com.finance.portal.market.application.fx.port.OpenFxPort;
 import com.finance.portal.market.application.fx.port.TcmbFxHistoryPort;
 import com.finance.portal.market.application.fx.port.TcmbFxPort;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,11 +26,13 @@ import java.time.ZoneId;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -43,9 +47,18 @@ class MarketFxServiceTest {
     private OpenFxPort openFxPort;
     @Mock
     private TcmbFxHistoryPort tcmbFxHistoryPort;
+    @Mock
+    private LastKnownGoodCache lkg;
 
     @InjectMocks
     private MarketFxService service;
+
+    /** LKG sarmalayıcı bu birim testlerde şeffaf olmalı: doğrudan asıl çekimi (Supplier) çalıştır. */
+    @BeforeEach
+    void stubLkgPassThrough() {
+        lenient().when(lkg.resilient(any(), any(), any(), any()))
+                .thenAnswer(inv -> inv.<Supplier<?>>getArgument(3).get());
+    }
 
     // ── helpers ──────────────────────────────────────────────────────────────
 

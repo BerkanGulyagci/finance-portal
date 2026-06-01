@@ -1,11 +1,13 @@
 package com.finance.portal.market.application.stock;
 
 import com.finance.portal.common.application.exception.ResourceNotFoundException;
+import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.stock.model.YahooChartSnapshot;
 import com.finance.portal.market.application.stock.model.YahooQuoteSeries;
 import com.finance.portal.market.application.stock.model.YahooStockMeta;
 import com.finance.portal.market.application.stock.port.MidasStockPort;
 import com.finance.portal.market.application.stock.port.YahooStockPort;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -20,8 +22,10 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -37,8 +41,18 @@ class StockQueryServiceTest {
     @Mock
     private MidasStockPort midasStockPort;
 
+    @Mock
+    private LastKnownGoodCache lkg;
+
     @InjectMocks
     private StockQueryService service;
+
+    @BeforeEach
+    void stubLkgPassThrough() {
+        // LKG sarmalayıcı testte şeffaf: resilient(...) doğrudan asıl çekimi (4. arg) çağırır.
+        lenient().when(lkg.resilient(any(), any(), any(), any()))
+                .thenAnswer(inv -> ((java.util.function.Supplier<?>) inv.getArgument(3)).get());
+    }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 

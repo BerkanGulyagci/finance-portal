@@ -1,5 +1,7 @@
 package com.finance.portal.market.application.economy;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.economy.model.EconomySeriesPoint;
 import com.finance.portal.market.application.economy.port.EconomyDataPort;
 import com.finance.portal.market.application.economy.port.FredDataPort;
@@ -10,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
@@ -39,12 +42,18 @@ public class InflationDeflatorService {
     /** EVDS UNIXTIME alanları İstanbul saatiyle ay başına denk gelir. */
     private static final ZoneId TR_ZONE = ZoneId.of("Europe/Istanbul");
 
+    /** Yavaş (aylık ekonomi) veri için LKG ömrü — kaynak çökerse en fazla bu kadar eski seri gösterilir. */
+    private static final Duration ECONOMY_LKG_TTL = Duration.ofDays(14);
+
     private final EconomyDataPort economyDataPort;
     private final FredDataPort fredDataPort;
+    private final LastKnownGoodCache lkg;
 
-    public InflationDeflatorService(EconomyDataPort economyDataPort, FredDataPort fredDataPort) {
+    public InflationDeflatorService(EconomyDataPort economyDataPort, FredDataPort fredDataPort,
+                                    LastKnownGoodCache lkg) {
         this.economyDataPort = economyDataPort;
         this.fredDataPort = fredDataPort;
+        this.lkg = lkg;
     }
 
     /**
@@ -53,7 +62,10 @@ public class InflationDeflatorService {
      */
     @Cacheable(cacheNames = "market.economy", key = "'tufe.series'")
     public List<EconomySeriesPoint> tufeSeries() {
-        List<EconomySeriesPoint> pts = economyDataPort.fetchSeries(TUFE_CODE, SERIES_START, LocalDate.now());
+        // EVDS çökerse/boş dönerse son başarılı TÜFE serisini servis et (yavaş veri, uzun LKG ömrü).
+        List<EconomySeriesPoint> pts = lkg.resilient("economy.tufe.series", ECONOMY_LKG_TTL,
+                new TypeReference<List<EconomySeriesPoint>>() {},
+                () -> economyDataPort.fetchSeries(TUFE_CODE, SERIES_START, LocalDate.now()));
         log.info("[InflationDeflator] TÜFE serisi yüklendi — {} nokta", pts.size());
         return pts;
     }
@@ -65,7 +77,11 @@ public class InflationDeflatorService {
      */
     @Cacheable(cacheNames = "market.economy", key = "'uscpi.series'")
     public List<EconomySeriesPoint> usCpiSeries() {
-        List<EconomySeriesPoint> pts = fredDataPort.fetchSeries(US_CPI_CODE, SERIES_START, LocalDate.now());
+        // FRED çökerse/boş dönerse son başarılı ABD CPI serisini servis et (yavaş veri, uzun LKG ömrü).
+        // NOT: FRED anahtarı yoksa adapter boş liste döner → LKG de yoksa boş kalır (mevcut degrade korunur).
+        List<EconomySeriesPoint> pts = lkg.resilient("economy.uscpi.series", ECONOMY_LKG_TTL,
+                new TypeReference<List<EconomySeriesPoint>>() {},
+                () -> fredDataPort.fetchSeries(US_CPI_CODE, SERIES_START, LocalDate.now()));
         log.info("[InflationDeflator] ABD CPI serisi yüklendi — {} nokta", pts.size());
         return pts;
     }

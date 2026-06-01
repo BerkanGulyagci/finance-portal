@@ -1,5 +1,7 @@
 package com.finance.portal.market.application.commodity;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.service.MarketFxService;
 import com.finance.portal.market.application.stock.model.YahooChartSnapshot;
 import com.finance.portal.market.application.stock.model.YahooQuoteSeries;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -46,8 +49,14 @@ public class YahooCommodityService {
     private static final BigDecimal HUNDRED = new BigDecimal("100");
     private static final ZoneId     UTC     = ZoneOffset.UTC;
 
+    /** Hızlı (spot/intraday) veri için LKG ömrü. */
+    private static final Duration COMMODITY_SPOT_LKG_TTL = Duration.ofDays(3);
+    /** Yavaş (geçmiş seri) veri için LKG ömrü. */
+    private static final Duration COMMODITY_HISTORY_LKG_TTL = Duration.ofDays(14);
+
     private final YahooStockPort yahooStockPort;
     private final MarketFxService marketFxService;
+    private final LastKnownGoodCache lkg;
 
     // ── Cache temizleme ───────────────────────────────────────────────────────
 
@@ -95,7 +104,10 @@ public class YahooCommodityService {
         CommoditySpotDto dto = buildBaseSpot(cs);
 
         try {
-            YahooChartSnapshot resp = yahooStockPort.fetchChartWithParams(cs.getSymbol(), "1d", "1m");
+            YahooChartSnapshot resp = lkg.resilient(
+                    "commodity.yahoo.spot:" + cs.getSymbol(), COMMODITY_SPOT_LKG_TTL,
+                    new TypeReference<YahooChartSnapshot>() {},
+                    () -> yahooStockPort.fetchChartWithParams(cs.getSymbol(), "1d", "1m"));
 
             if (!resp.hasMeta()) {
                 log.warn("Yahoo returned empty result for {}", cs.getSymbol());
@@ -182,8 +194,11 @@ public class YahooCommodityService {
         resp.setPoints(new ArrayList<>());
 
         try {
-            YahooChartSnapshot yahooResp = yahooStockPort.fetchChartWithParams(
-                    cs.getSymbol(), yahooRange, yahooInterval);
+            YahooChartSnapshot yahooResp = lkg.resilient(
+                    "commodity.yahoo.history:" + cs.getSymbol() + ":" + yahooRange + ":" + yahooInterval,
+                    COMMODITY_HISTORY_LKG_TTL,
+                    new TypeReference<YahooChartSnapshot>() {},
+                    () -> yahooStockPort.fetchChartWithParams(cs.getSymbol(), yahooRange, yahooInterval));
 
             if (yahooResp.getTimestamps() == null || yahooResp.getTimestamps().isEmpty()) {
                 log.warn("Yahoo returned empty history for {}", cs.getSymbol());

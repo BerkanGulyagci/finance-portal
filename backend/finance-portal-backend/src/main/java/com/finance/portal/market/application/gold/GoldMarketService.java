@@ -1,5 +1,7 @@
 package com.finance.portal.market.application.gold;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.service.MarketFxService;
 import com.finance.portal.market.application.stock.port.YahooStockPort;
 import com.finance.portal.market.application.fx.model.FxLatestRates;
@@ -25,6 +27,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -75,12 +78,18 @@ public class GoldMarketService {
             "Bu fiyatlar Borsa İstanbul resmi metal fiyatından hesaplanan teorik referans " +
             "değerlerdir. Serbest piyasa alış/satış, işçilik, basım primi ve makas dahil değildir.";
 
+    /** Hızlı (spot/intraday) veri için LKG ömrü. */
+    private static final Duration GOLD_SPOT_LKG_TTL = Duration.ofDays(3);
+    /** Yavaş (geçmiş seri) veri için LKG ömrü. */
+    private static final Duration GOLD_HISTORY_LKG_TTL = Duration.ofDays(14);
+
     // ── Bağımlılıklar ─────────────────────────────────────────────────────────
 
     private final BistPreciousMetalsPort bistClient;
     private final BistMetalFiyatlariPort metalClient;
     private final YahooStockPort yahooStockPort;
     private final MarketFxService marketFxService;
+    private final LastKnownGoodCache lkg;
 
     // ── Cache temizleme — her saat ────────────────────────────────────────────
 
@@ -102,16 +111,18 @@ public class GoldMarketService {
     @Cacheable(cacheNames = "market.gold.spot", key = "'spot'")
     @WithSpan("GoldMarketService.getSpotGold")
     public GoldSpotResponse getSpotGold() {
-        // 1. BIST TL/Kg → gram referans
-        BistPreciousMetalPoint latestGram = bistClient.fetchLatestValidPoint(
-                PreciousMetalType.GOLD, PriceUnit.TRY_KG);
+        // 1. BIST TL/Kg → gram referans (kaynak çökerse son başarılı noktayı servis et)
+        BistPreciousMetalPoint latestGram = lkg.resilient("gold.bist.spot.gram", GOLD_SPOT_LKG_TTL,
+                new TypeReference<BistPreciousMetalPoint>() {},
+                () -> bistClient.fetchLatestValidPoint(PreciousMetalType.GOLD, PriceUnit.TRY_KG));
 
         if (latestGram != null && latestGram.getGramWeightedAverageTry() != null) {
             GoldSpotResponse resp = buildSpotFromBist(latestGram);
 
             // 2. BIST USD/Ons → ons spot
-            BistPreciousMetalPoint latestOns = bistClient.fetchLatestValidPoint(
-                    PreciousMetalType.GOLD, PriceUnit.USD_ONS);
+            BistPreciousMetalPoint latestOns = lkg.resilient("gold.bist.spot.ons", GOLD_SPOT_LKG_TTL,
+                    new TypeReference<BistPreciousMetalPoint>() {},
+                    () -> bistClient.fetchLatestValidPoint(PreciousMetalType.GOLD, PriceUnit.USD_ONS));
             if (latestOns != null && latestOns.getCloseUsdOns() != null) {
                 enrichWithBistOns(resp, latestOns);
             } else {
@@ -159,8 +170,10 @@ public class GoldMarketService {
 
     private GoldHistoryResponse getGoldHistoryFromMetalRef(String range, String currency) {
         String[] dates = rangeToBistDates(range);
-        List<BistMetalDailyPoint> raw = metalClient.fetchMetalPrices(
-                PreciousMetalType.GOLD, dates[0], dates[1]);
+        List<BistMetalDailyPoint> raw = lkg.resilient(
+                "gold.metal.history:" + currency + ":" + range, GOLD_HISTORY_LKG_TTL,
+                new TypeReference<List<BistMetalDailyPoint>>() {},
+                () -> metalClient.fetchMetalPrices(PreciousMetalType.GOLD, dates[0], dates[1]));
 
         List<BistMetalDailyPoint> valid = raw.stream()
                 .filter(BistMetalDailyPoint::isValidPrice)
@@ -216,8 +229,10 @@ public class GoldMarketService {
 
     private GoldHistoryResponse getGoldHistoryGramFromBist(String range) {
         String[] dates = rangeToBistDates(range);
-        List<BistPreciousMetalPoint> bistPoints =
-                bistClient.fetchHistory(PreciousMetalType.GOLD, PriceUnit.TRY_KG, dates[0], dates[1]);
+        List<BistPreciousMetalPoint> bistPoints = lkg.resilient(
+                "gold.bist.history.gram:" + range, GOLD_HISTORY_LKG_TTL,
+                new TypeReference<List<BistPreciousMetalPoint>>() {},
+                () -> bistClient.fetchHistory(PreciousMetalType.GOLD, PriceUnit.TRY_KG, dates[0], dates[1]));
         // validPrice filtresi
         bistPoints = bistPoints.stream().filter(BistPreciousMetalPoint::isValidPrice).toList();
 
@@ -274,8 +289,10 @@ public class GoldMarketService {
 
     private GoldHistoryResponse getGoldHistoryOnsFromBist(String range) {
         String[] dates = rangeToBistDates(range);
-        List<BistPreciousMetalPoint> bistPoints =
-                bistClient.fetchHistory(PreciousMetalType.GOLD, PriceUnit.USD_ONS, dates[0], dates[1]);
+        List<BistPreciousMetalPoint> bistPoints = lkg.resilient(
+                "gold.bist.history.ons:" + range, GOLD_HISTORY_LKG_TTL,
+                new TypeReference<List<BistPreciousMetalPoint>>() {},
+                () -> bistClient.fetchHistory(PreciousMetalType.GOLD, PriceUnit.USD_ONS, dates[0], dates[1]));
         bistPoints = bistPoints.stream().filter(BistPreciousMetalPoint::isValidPrice).toList();
 
         if (!bistPoints.isEmpty()) {
@@ -333,7 +350,10 @@ public class GoldMarketService {
             String yahooRange = params[0];
             String interval   = params[1];
 
-            YahooChartSnapshot goldChart = yahooStockPort.fetchChartWithParams(GOLD_SYMBOL, yahooRange, interval);
+            YahooChartSnapshot goldChart = lkg.resilient(
+                    "gold.yahoo.history:" + currency + ":" + range, GOLD_HISTORY_LKG_TTL,
+                    new TypeReference<YahooChartSnapshot>() {},
+                    () -> yahooStockPort.fetchChartWithParams(GOLD_SYMBOL, yahooRange, interval));
             List<Long> timestamps = goldChart.getTimestamps();
             List<BigDecimal> closes = null, opens = null, highs = null, lows = null;
             List<Long> volumes = null;
@@ -454,7 +474,9 @@ public class GoldMarketService {
         resp.setDisclaimer("BIST verisi alınamadığı için Yahoo Finance GC=F fallback verisi gösteriliyor.");
 
         try {
-            YahooChartSnapshot chart = yahooStockPort.fetchChartWithParams(GOLD_SYMBOL, "1d", "1m");
+            YahooChartSnapshot chart = lkg.resilient("gold.yahoo.spot", GOLD_SPOT_LKG_TTL,
+                    new TypeReference<YahooChartSnapshot>() {},
+                    () -> yahooStockPort.fetchChartWithParams(GOLD_SYMBOL, "1d", "1m"));
             YahooStockMeta meta = chart.getMeta();
 
             BigDecimal onsUsd = safe(meta.getRegularMarketPrice());
@@ -507,7 +529,9 @@ public class GoldMarketService {
         // Önceki kapanış için Yahoo'ya fallback (BIST önceki gün verisi ayrı sorgu gerektirir)
         // Şimdilik ons change hesabı Yahoo'dan alınır
         try {
-            YahooChartSnapshot chart = yahooStockPort.fetchChartWithParams(GOLD_SYMBOL, "1d", "1m");
+            YahooChartSnapshot chart = lkg.resilient("gold.yahoo.spot", GOLD_SPOT_LKG_TTL,
+                    new TypeReference<YahooChartSnapshot>() {},
+                    () -> yahooStockPort.fetchChartWithParams(GOLD_SYMBOL, "1d", "1m"));
             YahooStockMeta meta = chart.getMeta();
             BigDecimal prevClose = safe(meta.getPreviousClose());
             BigDecimal changePercent = BigDecimal.ZERO;
@@ -540,7 +564,9 @@ public class GoldMarketService {
     /** ONS/USD verisini Yahoo'dan alıp spot response'a ekler (fallback). */
     private void enrichWithYahooOns(GoldSpotResponse resp) {
         try {
-            YahooChartSnapshot chart = yahooStockPort.fetchChartWithParams(GOLD_SYMBOL, "1d", "1m");
+            YahooChartSnapshot chart = lkg.resilient("gold.yahoo.spot", GOLD_SPOT_LKG_TTL,
+                    new TypeReference<YahooChartSnapshot>() {},
+                    () -> yahooStockPort.fetchChartWithParams(GOLD_SYMBOL, "1d", "1m"));
             YahooStockMeta meta = chart.getMeta();
 
             BigDecimal onsUsd    = safe(meta.getRegularMarketPrice());

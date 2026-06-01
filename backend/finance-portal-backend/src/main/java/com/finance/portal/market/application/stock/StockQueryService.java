@@ -1,6 +1,8 @@
 package com.finance.portal.market.application.stock;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.finance.portal.common.application.exception.ResourceNotFoundException;
+import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.stock.model.YahooChartSnapshot;
 import com.finance.portal.market.application.stock.model.YahooQuoteSeries;
 import com.finance.portal.market.application.stock.model.YahooStockMeta;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -30,16 +33,22 @@ public class StockQueryService {
     private static final Logger logger = LoggerFactory.getLogger(StockQueryService.class);
     private static final ZoneId ISTANBUL_ZONE = ZoneId.of("Europe/Istanbul");
 
+    /** Hızlı (fiyat/intraday/liste/grafik) veri için LKG ömrü — kaynak çökerse en fazla bu kadar eski veri gösterilir. */
+    private static final Duration STOCK_LKG_TTL = Duration.ofDays(3);
+
     private final YahooStockPort yahooStockPort;
     private final StockSymbolProvider stockSymbolProvider;
     private final MidasStockPort midasStockPort;
+    private final LastKnownGoodCache lkg;
 
     public StockQueryService(YahooStockPort yahooStockPort,
                              StockSymbolProvider stockSymbolProvider,
-                             MidasStockPort midasStockPort) {
+                             MidasStockPort midasStockPort,
+                             LastKnownGoodCache lkg) {
         this.yahooStockPort = yahooStockPort;
         this.stockSymbolProvider = stockSymbolProvider;
         this.midasStockPort = midasStockPort;
+        this.lkg = lkg;
     }
 
     public StockSummary getStockSummary(String symbol) {
@@ -145,13 +154,20 @@ public class StockQueryService {
 
     @Cacheable(cacheNames = "market.stocks.midas", key = "'midas:' + #symbol")
     public MidasStockDetail getMidasDetail(String symbol) {
-        return midasStockPort.fetchDetail(symbol);
+        // getmidas detay scrape'i (warm-up yok) çökerse/boş dönerse son başarılı LKG'yi servis et.
+        return lkg.resilient("stock.midas.detail:" + symbol, STOCK_LKG_TTL,
+                new TypeReference<MidasStockDetail>() {}, () -> midasStockPort.fetchDetail(symbol));
     }
 
     @Cacheable(cacheNames = "market.stocks.chart", key = "#symbol + ':' + #range + ':' + #interval")
     public StockChartResponse getStockChartWithParams(String symbol, String range, String interval) {
         String[] normalized = normalizeStockChartRange(range, interval);
-        return toChartResponse(symbol, yahooStockPort.fetchChartWithParams(symbol, normalized[0], normalized[1]));
+        // Yahoo grafik çekimi çökerse/boş dönerse son başarılı snapshot'ı servis et.
+        YahooChartSnapshot snapshot = lkg.resilient(
+                "stock.chart:" + symbol + ":" + normalized[0] + ":" + normalized[1], STOCK_LKG_TTL,
+                new TypeReference<YahooChartSnapshot>() {},
+                () -> yahooStockPort.fetchChartWithParams(symbol, normalized[0], normalized[1]));
+        return toChartResponse(symbol, snapshot);
     }
 
     public List<Map<String, Object>> getStockOhlc(String symbol, String range, String interval) {
@@ -244,7 +260,10 @@ public class StockQueryService {
     }
 
     private YahooStockMeta fetchMetaOrThrow(String symbol) {
-        YahooChartSnapshot snapshot = yahooStockPort.fetchChart(symbol);
+        // Yahoo meta/quote çekimi (detail + liste özetleri buradan akar) çökerse/boş dönerse
+        // son başarılı snapshot'ı servis et — warm-up'ı olmayan detay için kritik.
+        YahooChartSnapshot snapshot = lkg.resilient("stock.yahoo.chart:" + symbol, STOCK_LKG_TTL,
+                new TypeReference<YahooChartSnapshot>() {}, () -> yahooStockPort.fetchChart(symbol));
         if (!snapshot.hasMeta()) {
             logger.info("Stock not found for symbol: {}", symbol);
             throw new ResourceNotFoundException("Stock not found for symbol: " + symbol);

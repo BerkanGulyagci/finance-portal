@@ -7,6 +7,7 @@ import com.finance.portal.market.application.bond.eurobond.model.EurobondSummary
 import com.finance.portal.market.application.bond.eurobond.model.HmbBond;
 import com.finance.portal.market.application.bond.eurobond.port.BusinessInsiderBondPort;
 import com.finance.portal.market.application.bond.eurobond.port.HmbIsinSource;
+import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.fx.model.FxLatestRates;
 import com.finance.portal.market.application.fx.model.FxRateItem;
 import com.finance.portal.market.application.service.MarketFxService;
@@ -22,15 +23,18 @@ import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -53,7 +57,11 @@ class EurobondServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new EurobondService(bi, hmb, cacheManager, marketFxService);
+        // LKG pass-through: resilient(...) sadece supplier'ı çağırır (port verify sayıları korunur).
+        LastKnownGoodCache lkg = mock(LastKnownGoodCache.class);
+        when(lkg.resilient(anyString(), any(Duration.class), any(), any()))
+                .thenAnswer(inv -> ((Supplier<?>) inv.getArgument(3)).get());
+        service = new EurobondService(bi, hmb, cacheManager, marketFxService, lkg);
     }
 
     // ── helpers ─────────────────────────────────────────────────────────────────

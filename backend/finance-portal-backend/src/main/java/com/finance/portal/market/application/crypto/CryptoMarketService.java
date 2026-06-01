@@ -1,9 +1,11 @@
 package com.finance.portal.market.application.crypto;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.finance.portal.common.application.exception.ExternalApiException;
 import com.finance.portal.common.application.exception.ResourceNotFoundException;
 import com.finance.portal.common.application.logging.CentralIntegrationLogService;
 import com.finance.portal.common.application.logging.IntegrationLogSupport;
+import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.crypto.model.CryptoMarketItem;
 import com.finance.portal.market.application.crypto.port.CoinGeckoPort;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -17,6 +19,7 @@ import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,16 +37,22 @@ public class CryptoMarketService {
     private static final int SYMBOL_SEARCH_PAGE_SIZE = 100;
     private static final int SYMBOL_SEARCH_MAX_PAGES = 5;
 
+    /** Hızlı (fiyat/liste/intraday) veri için LKG ömrü — kaynak çökerse en fazla bu kadar eski veri gösterilir. */
+    private static final Duration CRYPTO_LKG_TTL = Duration.ofDays(3);
+
     private final CoinGeckoPort coinGeckoPort;
     private final CacheManager cacheManager;
     private final CentralIntegrationLogService integrationLogService;
+    private final LastKnownGoodCache lkg;
 
     public CryptoMarketService(CoinGeckoPort coinGeckoPort,
                                  CacheManager cacheManager,
-                                 CentralIntegrationLogService integrationLogService) {
+                                 CentralIntegrationLogService integrationLogService,
+                                 LastKnownGoodCache lkg) {
         this.coinGeckoPort = coinGeckoPort;
         this.cacheManager = cacheManager;
         this.integrationLogService = integrationLogService;
+        this.lkg = lkg;
     }
 
     @Cacheable(cacheNames = CACHE_NAME, key = "'try:p' + #page + ':s' + #size")
@@ -62,7 +71,10 @@ public class CryptoMarketService {
             throw new IllegalArgumentException("size must be between " + MIN_SIZE + " and " + MAX_SIZE);
         }
         String cur = (currency == null || currency.isBlank()) ? "try" : currency.trim().toLowerCase();
-        return coinGeckoPort.fetchMarkets(page + 1, size, cur);
+        // CoinGecko çökerse/boş dönerse son başarılı sayfa listesini servis et.
+        return lkg.resilient("crypto.coingecko.markets:" + cur + ":p" + (page + 1) + ":s" + size,
+                CRYPTO_LKG_TTL, new TypeReference<List<CryptoMarketItem>>() {},
+                () -> coinGeckoPort.fetchMarkets(page + 1, size, cur));
     }
 
     public List<CryptoMarketItem> getAllCoins(String currency) {
@@ -129,6 +141,13 @@ public class CryptoMarketService {
                                        @SpanAttribute("crypto.days") String days,
                                        @SpanAttribute("crypto.currency") String currency) {
         Object daysParam = resolveDaysParam(days);
+        // CoinGecko OHLC çekimi (max/hourly/daily) çökerse/boş dönerse son başarılı seriyi servis et.
+        return lkg.resilient("crypto.coingecko.ohlc:" + coinId + ":" + days + ":" + currency,
+                CRYPTO_LKG_TTL, new TypeReference<List<List<Number>>>() {},
+                () -> fetchOhlcSeries(coinId, days, currency, daysParam));
+    }
+
+    private List<List<Number>> fetchOhlcSeries(String coinId, String days, String currency, Object daysParam) {
         if ("max".equals(daysParam)) {
             return fetchFullHistoryOhlc(coinId, currency);
         }
@@ -157,23 +176,12 @@ public class CryptoMarketService {
         Object daysParam = resolveDaysParam(days);
         String normalizedInterval = normalizeInterval(interval);
 
-        Map<String, Object> chart;
-        if ("max".equals(daysParam)) {
-            chart = fetchFullHistoryChart(coinId, currency);
-        } else if ("hourly".equals(normalizedInterval) && daysParam instanceof Integer d && d >= 90) {
-            chart = fetchHourlyMarketChart(coinId, currency, d);
-        } else {
-            try {
-                chart = coinGeckoPort.fetchMarketChart(coinId, daysParam, currency, normalizedInterval);
-            } catch (ExternalApiException ex) {
-                if ("hourly".equals(normalizedInterval) && daysParam instanceof Integer d && d >= 90) {
-                    log.debug("CoinGecko hourly failed for {} days, trying chunked hourly: {}", d, ex.getMessage());
-                    chart = fetchHourlyMarketChart(coinId, currency, d);
-                } else {
-                    throw ex;
-                }
-            }
-        }
+        // CoinGecko market-chart çekimi (max/hourly/daily) çökerse/boş dönerse son başarılı grafiği servis et.
+        // Aggregate (weekly/monthly) salt dönüşüm olduğundan LKG dışında uygulanır.
+        Map<String, Object> chart = lkg.resilient(
+                "crypto.coingecko.chart:" + coinId + ":" + days + ":" + currency + ":" + normalizedInterval,
+                CRYPTO_LKG_TTL, new TypeReference<Map<String, Object>>() {},
+                () -> fetchMarketChartData(coinId, currency, daysParam, normalizedInterval));
 
         if ("weekly".equalsIgnoreCase(aggregate)) {
             return CryptoChartAggregator.aggregate(chart, "weekly");
@@ -182,6 +190,25 @@ public class CryptoMarketService {
             return CryptoChartAggregator.aggregate(chart, "monthly");
         }
         return chart;
+    }
+
+    private Map<String, Object> fetchMarketChartData(String coinId, String currency,
+                                                     Object daysParam, String normalizedInterval) {
+        if ("max".equals(daysParam)) {
+            return fetchFullHistoryChart(coinId, currency);
+        }
+        if ("hourly".equals(normalizedInterval) && daysParam instanceof Integer d && d >= 90) {
+            return fetchHourlyMarketChart(coinId, currency, d);
+        }
+        try {
+            return coinGeckoPort.fetchMarketChart(coinId, daysParam, currency, normalizedInterval);
+        } catch (ExternalApiException ex) {
+            if ("hourly".equals(normalizedInterval) && daysParam instanceof Integer d && d >= 90) {
+                log.debug("CoinGecko hourly failed for {} days, trying chunked hourly: {}", d, ex.getMessage());
+                return fetchHourlyMarketChart(coinId, currency, d);
+            }
+            throw ex;
+        }
     }
 
     /**

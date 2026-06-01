@@ -1,5 +1,6 @@
 package com.finance.portal.market.application.crypto;
 
+import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.crypto.model.CryptoChartCandle;
 import com.finance.portal.market.application.crypto.port.BinanceKlinePort;
 import org.junit.jupiter.api.Test;
@@ -7,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
@@ -42,10 +44,18 @@ class CryptoBinanceChartServiceTest {
         when(port.fetchKlinesPage(eq("BTCTRY"), eq("1d"), eq(1000), eq(nextStart)))
                 .thenReturn(batch(50, 2_000_000L));
 
-        CryptoBinanceChartService service = new CryptoBinanceChartService(port);
+        CryptoBinanceChartService service = new CryptoBinanceChartService(port, passThroughLkg());
         List<CryptoChartCandle> result = service.getChartCandles("btc", "max", "try");
 
         assertThat(result).hasSize(1050);
+    }
+
+    /** LKG sarmalayıcı bu birim testlerde şeffaf olmalı: doğrudan asıl çekimi (Supplier) çalıştır. */
+    private static LastKnownGoodCache passThroughLkg() {
+        LastKnownGoodCache lkg = mock(LastKnownGoodCache.class);
+        when(lkg.resilient(any(), any(), any(), any()))
+                .thenAnswer(inv -> inv.<Supplier<?>>getArgument(3).get());
+        return lkg;
     }
 
     private static List<CryptoChartCandle> batch(int size, long baseOpenMs) {

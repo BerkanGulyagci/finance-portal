@@ -1,5 +1,7 @@
 package com.finance.portal.market.application.bond.eurobond;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.bond.eurobond.model.EurobondChartPoint;
 import com.finance.portal.market.application.bond.eurobond.model.EurobondDetail;
 import com.finance.portal.market.application.bond.eurobond.model.EurobondSummary;
@@ -20,6 +22,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,24 +47,33 @@ public class EurobondService {
     private static final String LIST_CACHE = "market.eurobond.list";
     private static final String DETAIL_CACHE = "market.eurobond.detail";
 
+    /** Liste/detay (hızlı) veri LKG ömrü — BI çökerse en fazla bu kadar eski ISIN/detay servis edilir. */
+    private static final Duration EUROBOND_LIST_LKG_TTL = Duration.ofDays(3);
+    /** Grafik (yavaş, ~değişmeyen geçmiş) veri LKG ömrü. */
+    private static final Duration EUROBOND_CHART_LKG_TTL = Duration.ofDays(14);
+
     private final BusinessInsiderBondPort bi;
     private final HmbIsinSource hmb;
     private final CacheManager cacheManager;
     private final MarketFxService marketFxService;
+    private final LastKnownGoodCache lkg;
     private final ExecutorService executor;
 
     public EurobondService(BusinessInsiderBondPort bi, HmbIsinSource hmb, CacheManager cacheManager,
-                           MarketFxService marketFxService) {
+                           MarketFxService marketFxService, LastKnownGoodCache lkg) {
         this.bi = bi;
         this.hmb = hmb;
         this.cacheManager = cacheManager;
         this.marketFxService = marketFxService;
+        this.lkg = lkg;
         this.executor = Executors.newFixedThreadPool(6, daemon());
     }
 
     @Cacheable(cacheNames = LIST_CACHE)
     public List<EurobondSummary> list() {
-        List<HmbBond> bonds = hmb.bonds();
+        // HMB ISIN künyesi — kaynak çökerse son başarılı listeyi servis et (BI detayları ayrıca LKG'li).
+        List<HmbBond> bonds = lkg.resilient("eurobond.hmb.bonds", EUROBOND_LIST_LKG_TTL,
+                new TypeReference<List<HmbBond>>() {}, hmb::bonds);
         // BI detaylarını paralel çek (ban-koruması client'ta serileştirir); BI kapalıysa null → HMB satırı.
         Map<String, EurobondDetail> details = new ConcurrentHashMap<>();
         List<CompletableFuture<Void>> futures = new ArrayList<>(bonds.size());
@@ -127,7 +139,10 @@ public class EurobondService {
         if (d == null || d.getTkData() == null || d.getTkData().isBlank()) {
             return List.of();
         }
-        return bi.fetchChart(d.getTkData(), fromDate(range), LocalDate.now());
+        // Grafik serisi ~değişmez → uzun LKG; BI çökerse son başarılı seriyi servis et.
+        return lkg.resilient("eurobond.bi.chart:" + isin + ":" + range, EUROBOND_CHART_LKG_TTL,
+                new TypeReference<List<EurobondChartPoint>>() {},
+                () -> bi.fetchChart(d.getTkData(), fromDate(range), LocalDate.now()));
     }
 
     /** Admin/zamanlı: HMB xlsx'inden ISIN listesini tazele ve eurobond cache'lerini boşalt. */
@@ -164,7 +179,11 @@ public class EurobondService {
     }
 
     private EurobondDetail loadDetail(String isin) {
-        EurobondDetail d = bi.resolve(isin).flatMap(bi::fetchDetail).orElse(null);
+        // BI canlı detayı (resolve→fetchDetail) — BI çökerse son başarılı detayı servis et.
+        // FX/TL zenginleştirmesi servis edilen değer üzerine her zaman yeniden uygulanır (güncel kur).
+        EurobondDetail d = lkg.resilient("eurobond.bi.detail:" + isin, EUROBOND_LIST_LKG_TTL,
+                new TypeReference<EurobondDetail>() {},
+                () -> bi.resolve(isin).flatMap(bi::fetchDetail).orElse(null));
         if (d != null && d.getLastPrice() != null) {
             // Canlı TCMB kuruyla TL karşılığını ekle (detay/portföy/izleme TL gösterimi + portföy TL hesabı).
             BigDecimal rate = fxRateToTry(d.getCurrency());

@@ -1,11 +1,13 @@
 package com.finance.portal.market.application.silver;
 
+import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.precious.model.BistMetalDailyPoint;
 import com.finance.portal.market.application.precious.model.BistPreciousMetalPoint;
 import com.finance.portal.market.application.precious.model.PreciousMetalType;
 import com.finance.portal.market.application.precious.model.PriceUnit;
 import com.finance.portal.market.application.precious.port.BistMetalFiyatlariPort;
 import com.finance.portal.market.application.precious.port.BistPreciousMetalsPort;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,8 +44,18 @@ class SilverMarketServiceTest {
     @Mock
     private BistMetalFiyatlariPort metalClient;
 
+    @Mock
+    private LastKnownGoodCache lkg;
+
     @InjectMocks
     private SilverMarketService service;
+
+    @BeforeEach
+    void stubLkgPassThrough() {
+        // LKG sarmalayıcı testte şeffaf: resilient(...) doğrudan asıl çekimi (4. arg) çağırır.
+        when(lkg.resilient(any(), any(), any(), any()))
+                .thenAnswer(inv -> ((java.util.function.Supplier<?>) inv.getArgument(3)).get());
+    }
 
     // ── helpers ──────────────────────────────────────────────────────────────
 

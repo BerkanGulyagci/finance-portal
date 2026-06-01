@@ -1,5 +1,7 @@
 package com.finance.portal.market.application.crypto;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.crypto.model.CryptoMarketItem;
 import com.finance.portal.market.application.stock.StockChartResponse;
 import com.finance.portal.market.application.stock.model.YahooChartSnapshot;
@@ -12,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -32,16 +35,22 @@ public class CryptoYahooChartService {
 
     private static final Logger log = LoggerFactory.getLogger(CryptoYahooChartService.class);
 
+    /** Hızlı (mum/fiyat) veri için LKG ömrü — Yahoo çökerse en fazla bu kadar eski seri gösterilir. */
+    private static final Duration YAHOO_LKG_TTL = Duration.ofDays(3);
+
     private final YahooStockPort yahooStockPort;
     private final CryptoMarketService cryptoMarketService;
+    private final LastKnownGoodCache lkg;
 
     /** Çözümlenmiş Yahoo sembol tabanları (ticker → "USDG33793" gibi). Eşleme stabil → kalıcı in-memory cache. */
     private final ConcurrentHashMap<String, String> resolvedYahooBase = new ConcurrentHashMap<>();
 
     public CryptoYahooChartService(YahooStockPort yahooStockPort,
-                                   CryptoMarketService cryptoMarketService) {
+                                   CryptoMarketService cryptoMarketService,
+                                   LastKnownGoodCache lkg) {
         this.yahooStockPort = yahooStockPort;
         this.cryptoMarketService = cryptoMarketService;
+        this.lkg = lkg;
     }
 
     /**
@@ -156,6 +165,13 @@ public class CryptoYahooChartService {
             return List.of();
         }
 
+        // Yahoo çökerse/boş dönerse son başarılı OHLC serisini servis et.
+        return lkg.resilient("crypto.yahoo.ohlc:" + baseSymbol + ":" + range + ":" + currency,
+                YAHOO_LKG_TTL, new TypeReference<List<Map<String, Object>>>() {},
+                () -> fetchOhlcSeries(baseSymbol, range, currency, params));
+    }
+
+    private List<Map<String, Object>> fetchOhlcSeries(String baseSymbol, String range, String currency, String[] params) {
         List<String> quoteCurrencies = quoteCurrencyFallbackOrder(currency);
         for (String quote : quoteCurrencies) {
             String yahooSymbol = toYahooSymbol(resolveYahooBase(baseSymbol), quote);
@@ -191,6 +207,13 @@ public class CryptoYahooChartService {
             return null;
         }
 
+        // Yahoo çökerse/boş dönerse son başarılı çizgi grafiğini servis et.
+        return lkg.resilient("crypto.yahoo.line:" + baseSymbol + ":" + range + ":" + currency,
+                YAHOO_LKG_TTL, new TypeReference<StockChartResponse>() {},
+                () -> fetchLineChart(baseSymbol, range, currency, params));
+    }
+
+    private StockChartResponse fetchLineChart(String baseSymbol, String range, String currency, String[] params) {
         List<String> quoteCurrencies = quoteCurrencyFallbackOrder(currency);
         for (String quote : quoteCurrencies) {
             String yahooSymbol = toYahooSymbol(resolveYahooBase(baseSymbol), quote);

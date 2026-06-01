@@ -1,5 +1,7 @@
 package com.finance.portal.market.application.silver;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.precious.model.BistMetalDailyPoint;
 import com.finance.portal.market.application.precious.model.BistPreciousMetalPoint;
 import com.finance.portal.market.application.precious.port.BistMetalFiyatlariPort;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -42,8 +45,14 @@ public class SilverMarketService {
             "Bu fiyatlar Borsa İstanbul resmi metal fiyatından alınan referans değerlerdir. " +
             "Serbest piyasa alış/satış ve makas dahil değildir.";
 
+    /** Hızlı (spot/intraday) veri için LKG ömrü. */
+    private static final Duration SILVER_SPOT_LKG_TTL = Duration.ofDays(3);
+    /** Yavaş (geçmiş seri) veri için LKG ömrü. */
+    private static final Duration SILVER_HISTORY_LKG_TTL = Duration.ofDays(14);
+
     private final BistPreciousMetalsPort bistClient;
     private final BistMetalFiyatlariPort metalClient;
+    private final LastKnownGoodCache lkg;
 
     // ── Cache temizleme — her saat ────────────────────────────────────────────
 
@@ -58,13 +67,15 @@ public class SilverMarketService {
 
     @Cacheable(cacheNames = "market.silver.spot", key = "'spot'")
     public SilverSpotResponse getSpotSilver() {
-        // TL/Kg — en son geçerli nokta
-        BistPreciousMetalPoint latestTry = bistClient.fetchLatestValidPoint(
-                PreciousMetalType.SILVER, PriceUnit.TRY_KG);
+        // TL/Kg — en son geçerli nokta (kaynak çökerse son başarılı noktayı servis et)
+        BistPreciousMetalPoint latestTry = lkg.resilient("silver.bist.spot.try", SILVER_SPOT_LKG_TTL,
+                new TypeReference<BistPreciousMetalPoint>() {},
+                () -> bistClient.fetchLatestValidPoint(PreciousMetalType.SILVER, PriceUnit.TRY_KG));
 
         // USD/Ons — en son geçerli nokta
-        BistPreciousMetalPoint latestUsd = bistClient.fetchLatestValidPoint(
-                PreciousMetalType.SILVER, PriceUnit.USD_ONS);
+        BistPreciousMetalPoint latestUsd = lkg.resilient("silver.bist.spot.usd", SILVER_SPOT_LKG_TTL,
+                new TypeReference<BistPreciousMetalPoint>() {},
+                () -> bistClient.fetchLatestValidPoint(PreciousMetalType.SILVER, PriceUnit.USD_ONS));
 
         if (latestTry == null && latestUsd == null) {
             log.warn("BIST silver spot unavailable");
@@ -169,8 +180,10 @@ public class SilverMarketService {
 
     private SilverHistoryResponse getSilverHistoryFromMetalRef(String range, String currency) {
         String[] dates = rangeToBistDates(range);
-        List<BistMetalDailyPoint> raw = metalClient.fetchMetalPrices(
-                PreciousMetalType.SILVER, dates[0], dates[1]);
+        List<BistMetalDailyPoint> raw = lkg.resilient(
+                "silver.metal.history:" + currency + ":" + range, SILVER_HISTORY_LKG_TTL,
+                new TypeReference<List<BistMetalDailyPoint>>() {},
+                () -> metalClient.fetchMetalPrices(PreciousMetalType.SILVER, dates[0], dates[1]));
 
         List<BistMetalDailyPoint> valid = raw.stream()
                 .filter(BistMetalDailyPoint::isValidPrice)
@@ -226,12 +239,16 @@ public class SilverMarketService {
         String[] dates = rangeToBistDates(range);
 
         // 1. veri-sorgulama endpoint'inden OHLC verisi (mum grafik için gerçek high/low)
-        List<BistPreciousMetalPoint> raw =
-                bistClient.fetchHistory(PreciousMetalType.SILVER, PriceUnit.TRY_KG, dates[0], dates[1]);
+        List<BistPreciousMetalPoint> raw = lkg.resilient(
+                "silver.bist.history.try:" + range, SILVER_HISTORY_LKG_TTL,
+                new TypeReference<List<BistPreciousMetalPoint>>() {},
+                () -> bistClient.fetchHistory(PreciousMetalType.SILVER, PriceUnit.TRY_KG, dates[0], dates[1]));
 
         // 2. AG metal-fiyatlari endpoint'inden referans fiyatlar (eksik günleri tamamlamak için)
-        List<BistMetalDailyPoint> agRef =
-                metalClient.fetchMetalPrices(PreciousMetalType.SILVER, dates[0], dates[1]);
+        List<BistMetalDailyPoint> agRef = lkg.resilient(
+                "silver.metal.history.try:" + range, SILVER_HISTORY_LKG_TTL,
+                new TypeReference<List<BistMetalDailyPoint>>() {},
+                () -> metalClient.fetchMetalPrices(PreciousMetalType.SILVER, dates[0], dates[1]));
 
         // AG referans map: tarih → nokta
         java.util.Map<String, BistMetalDailyPoint> agByDate = new java.util.LinkedHashMap<>();
@@ -307,8 +324,10 @@ public class SilverMarketService {
 
     private SilverHistoryResponse getSilverHistoryUsd(String range) {
         String[] dates = rangeToBistDates(range);
-        List<BistPreciousMetalPoint> raw =
-                bistClient.fetchHistory(PreciousMetalType.SILVER, PriceUnit.USD_ONS, dates[0], dates[1]);
+        List<BistPreciousMetalPoint> raw = lkg.resilient(
+                "silver.bist.history.usd:" + range, SILVER_HISTORY_LKG_TTL,
+                new TypeReference<List<BistPreciousMetalPoint>>() {},
+                () -> bistClient.fetchHistory(PreciousMetalType.SILVER, PriceUnit.USD_ONS, dates[0], dates[1]));
 
         List<BistPreciousMetalPoint> valid = raw.stream()
                 .filter(BistPreciousMetalPoint::isValidPrice)

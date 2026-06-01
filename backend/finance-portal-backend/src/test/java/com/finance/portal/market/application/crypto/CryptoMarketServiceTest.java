@@ -3,8 +3,10 @@ package com.finance.portal.market.application.crypto;
 import com.finance.portal.common.application.exception.ExternalApiException;
 import com.finance.portal.common.application.exception.ResourceNotFoundException;
 import com.finance.portal.common.application.logging.CentralIntegrationLogService;
+import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.crypto.model.CryptoMarketItem;
 import com.finance.portal.market.application.crypto.port.CoinGeckoPort;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -17,6 +19,7 @@ import org.springframework.cache.CacheManager;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -45,9 +48,18 @@ class CryptoMarketServiceTest {
     private CacheManager cacheManager;
     @Mock
     private CentralIntegrationLogService integrationLogService;
+    @Mock
+    private LastKnownGoodCache lkg;
+
+    /** LKG sarmalayıcı bu birim testlerde şeffaf olmalı: doğrudan asıl çekimi (Supplier) çalıştır. */
+    @BeforeEach
+    void stubLkgPassThrough() {
+        when(lkg.resilient(any(), any(), any(), any()))
+                .thenAnswer(inv -> inv.<Supplier<?>>getArgument(3).get());
+    }
 
     private CryptoMarketService newService() {
-        return new CryptoMarketService(coinGeckoPort, cacheManager, integrationLogService);
+        return new CryptoMarketService(coinGeckoPort, cacheManager, integrationLogService, lkg);
     }
 
     private static CryptoMarketItem item(String id, String symbol, String name, BigDecimal price) {

@@ -2,6 +2,7 @@ package com.finance.portal.market.application.bond.evds;
 
 import com.finance.portal.market.application.bond.evds.model.BondCategory;
 import com.finance.portal.market.application.bond.evds.model.BondCurrency;
+import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.bond.evds.model.EvdsSeriesInfo;
 import com.finance.portal.market.application.bond.evds.model.EvdsSeriesPoint;
 import com.finance.portal.market.application.bond.evds.port.EvdsBondPort;
@@ -14,15 +15,18 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -42,7 +46,11 @@ class EvdsBondServiceTest {
     @BeforeEach
     void setUp() {
         executor = java.util.concurrent.Executors.newSingleThreadExecutor();
-        service = new EvdsBondService(evdsBondPort, executor);
+        // LKG pass-through: resilient(...) sadece supplier'ı çağırır (port verify sayıları korunur).
+        LastKnownGoodCache lkg = mock(LastKnownGoodCache.class);
+        lenient().when(lkg.resilient(anyString(), any(Duration.class), any(), any()))
+                .thenAnswer(inv -> ((Supplier<?>) inv.getArgument(3)).get());
+        service = new EvdsBondService(evdsBondPort, executor, lkg);
         // default @Value defaults
         ReflectionTestUtils.setField(service, "useWhitelist", false);
         ReflectionTestUtils.setField(service, "whitelistInstruments", List.of());

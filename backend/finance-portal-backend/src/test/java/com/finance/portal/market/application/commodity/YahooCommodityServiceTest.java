@@ -1,5 +1,6 @@
 package com.finance.portal.market.application.commodity;
 
+import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.fx.model.FxLatestRates;
 import com.finance.portal.market.application.fx.model.FxRateItem;
 import com.finance.portal.market.application.service.MarketFxService;
@@ -7,6 +8,7 @@ import com.finance.portal.market.application.stock.model.YahooChartSnapshot;
 import com.finance.portal.market.application.stock.model.YahooQuoteSeries;
 import com.finance.portal.market.application.stock.model.YahooStockMeta;
 import com.finance.portal.market.application.stock.port.YahooStockPort;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -36,8 +38,18 @@ class YahooCommodityServiceTest {
     @Mock
     private MarketFxService marketFxService;
 
+    @Mock
+    private LastKnownGoodCache lkg;
+
     @InjectMocks
     private YahooCommodityService service;
+
+    @BeforeEach
+    void stubLkgPassThrough() {
+        // LKG sarmalayıcı testte şeffaf: resilient(...) doğrudan asıl çekimi (4. arg) çağırır.
+        lenient().when(lkg.resilient(any(), any(), any(), any()))
+                .thenAnswer(inv -> ((java.util.function.Supplier<?>) inv.getArgument(3)).get());
+    }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 

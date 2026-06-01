@@ -1,5 +1,7 @@
 package com.finance.portal.market.application.crypto;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.crypto.model.CryptoChartCandle;
 import com.finance.portal.market.application.crypto.port.BinanceKlinePort;
 import org.slf4j.Logger;
@@ -7,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,10 +27,15 @@ public class CryptoBinanceChartService {
     private static final int KLINE_LIMIT = 1000;
     private static final long FIVE_YEARS_MS = 5L * 365L * 86_400_000L;
 
-    private final BinanceKlinePort binanceKlinePort;
+    /** Hızlı (mum/fiyat) veri için LKG ömrü — Binance çökerse en fazla bu kadar eski mum gösterilir. */
+    private static final Duration BINANCE_LKG_TTL = Duration.ofDays(3);
 
-    public CryptoBinanceChartService(BinanceKlinePort binanceKlinePort) {
+    private final BinanceKlinePort binanceKlinePort;
+    private final LastKnownGoodCache lkg;
+
+    public CryptoBinanceChartService(BinanceKlinePort binanceKlinePort, LastKnownGoodCache lkg) {
         this.binanceKlinePort = binanceKlinePort;
+        this.lkg = lkg;
     }
 
     /**
@@ -54,7 +62,11 @@ public class CryptoBinanceChartService {
         String interval = resolveInterval(normalizedRange);
         long startTimeMs = resolveStartTimeMs(normalizedRange);
 
-        List<CryptoChartCandle> candles = fetchAllKlines(binanceSymbol, interval, startTimeMs);
+        // Binance çökerse/boş dönerse son başarılı mum serisini servis et.
+        List<CryptoChartCandle> candles = lkg.resilient(
+                "crypto.binance.candles:" + binanceSymbol + ":" + normalizedRange,
+                BINANCE_LKG_TTL, new TypeReference<List<CryptoChartCandle>>() {},
+                () -> fetchAllKlines(binanceSymbol, interval, startTimeMs));
         if (candles.isEmpty()) {
             log.warn("Binance TRY klines empty for symbol={} range={} (pair may not exist on Binance)",
                     binanceSymbol, normalizedRange);

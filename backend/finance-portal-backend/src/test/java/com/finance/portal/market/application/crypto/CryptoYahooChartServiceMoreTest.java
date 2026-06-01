@@ -1,10 +1,12 @@
 package com.finance.portal.market.application.crypto;
 
+import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.crypto.model.CryptoMarketItem;
 import com.finance.portal.market.application.stock.StockChartResponse;
 import com.finance.portal.market.application.stock.model.YahooChartSnapshot;
 import com.finance.portal.market.application.stock.model.YahooQuoteSeries;
 import com.finance.portal.market.application.stock.port.YahooStockPort;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -16,8 +18,10 @@ import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -37,9 +41,18 @@ class CryptoYahooChartServiceMoreTest {
     private YahooStockPort yahooStockPort;
     @Mock
     private CryptoMarketService cryptoMarketService;
+    @Mock
+    private LastKnownGoodCache lkg;
+
+    /** LKG sarmalayıcı bu birim testlerde şeffaf olmalı: doğrudan asıl çekimi (Supplier) çalıştır. */
+    @BeforeEach
+    void stubLkgPassThrough() {
+        when(lkg.resilient(any(), any(), any(), any()))
+                .thenAnswer(inv -> inv.<Supplier<?>>getArgument(3).get());
+    }
 
     private CryptoYahooChartService newService() {
-        return new CryptoYahooChartService(yahooStockPort, cryptoMarketService);
+        return new CryptoYahooChartService(yahooStockPort, cryptoMarketService, lkg);
     }
 
     private static YahooChartSnapshot snapshot(List<Long> ts,

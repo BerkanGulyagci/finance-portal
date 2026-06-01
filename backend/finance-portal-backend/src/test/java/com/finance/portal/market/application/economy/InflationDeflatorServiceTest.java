@@ -1,5 +1,6 @@
 package com.finance.portal.market.application.economy;
 
+import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.economy.model.EconomySeriesPoint;
 import com.finance.portal.market.application.economy.port.EconomyDataPort;
 import com.finance.portal.market.application.economy.port.FredDataPort;
@@ -35,7 +36,8 @@ class InflationDeflatorServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new InflationDeflatorService(mock(EconomyDataPort.class), mock(FredDataPort.class));
+        service = new InflationDeflatorService(mock(EconomyDataPort.class), mock(FredDataPort.class),
+                mock(LastKnownGoodCache.class));
     }
 
     @Test

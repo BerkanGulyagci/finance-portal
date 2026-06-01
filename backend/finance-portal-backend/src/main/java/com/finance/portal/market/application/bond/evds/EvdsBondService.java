@@ -1,5 +1,7 @@
 package com.finance.portal.market.application.bond.evds;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.bond.evds.port.EvdsBondPort;
 import com.finance.portal.market.application.bond.evds.model.BondCategory;
 import com.finance.portal.market.application.bond.evds.model.BondClassifier;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -62,8 +65,14 @@ public class EvdsBondService {
 
     private static final DateTimeFormatter DATE_TEXT_FMT = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
+    /** Liste/detay (hızlı) veri LKG ömrü — kaynak çökerse en fazla bu kadar eski seri/değer servis edilir. */
+    private static final Duration BOND_LIST_LKG_TTL = Duration.ofDays(3);
+    /** Geçmiş (yavaş, ~değişmeyen) seri LKG ömrü. */
+    private static final Duration BOND_HISTORY_LKG_TTL = Duration.ofDays(14);
+
     private final EvdsBondPort evdsBondPort;
     private final ExecutorService evdsBondFetchExecutor;
+    private final LastKnownGoodCache lkg;
 
     @Value("${evds.use-whitelist:false}")
     private boolean useWhitelist;
@@ -81,9 +90,11 @@ public class EvdsBondService {
     private boolean includeLeaseCerts;
 
     public EvdsBondService(EvdsBondPort evdsBondPort,
-                           @Qualifier("evdsBondFetchExecutor") ExecutorService evdsBondFetchExecutor) {
+                           @Qualifier("evdsBondFetchExecutor") ExecutorService evdsBondFetchExecutor,
+                           LastKnownGoodCache lkg) {
         this.evdsBondPort = evdsBondPort;
         this.evdsBondFetchExecutor = evdsBondFetchExecutor;
+        this.lkg = lkg;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -132,13 +143,18 @@ public class EvdsBondService {
         log.info("[EvdsBondService] getEvdsBondsAll başlatıldı. useWhitelist={} includeLeaseCerts={}",
                 useWhitelist, includeLeaseCerts);
 
-        // 1) DİBS (bie_pydibs)
-        List<EvdsSeriesInfo> allSeries = new ArrayList<>(evdsBondPort.fetchBondSeriesList());
+        // 1) DİBS (bie_pydibs) — EVDS çökerse son başarılı seri listesini servis et.
+        List<EvdsSeriesInfo> allSeries = new ArrayList<>(lkg.resilient(
+                "evds.bond.series-list", BOND_LIST_LKG_TTL,
+                new TypeReference<List<EvdsSeriesInfo>>() {}, evdsBondPort::fetchBondSeriesList));
 
         // 2) Kira Sertifikaları (bie_pyks) — opsiyonel, varsayılan açık
         if (includeLeaseCerts && leaseCertDataGroup != null && !leaseCertDataGroup.isBlank()) {
             try {
-                List<EvdsSeriesInfo> kiraSeries = evdsBondPort.fetchSeriesList(leaseCertDataGroup);
+                List<EvdsSeriesInfo> kiraSeries = lkg.resilient(
+                        "evds.bond.series-list:" + leaseCertDataGroup, BOND_LIST_LKG_TTL,
+                        new TypeReference<List<EvdsSeriesInfo>>() {},
+                        () -> evdsBondPort.fetchSeriesList(leaseCertDataGroup));
                 log.info("[EvdsBondService] Kira Sertifikası serisi yüklendi: {} kayıt", kiraSeries.size());
                 allSeries.addAll(kiraSeries);
             } catch (Exception e) {
@@ -219,7 +235,9 @@ public class EvdsBondService {
     public EvdsBondInstrument getEvdsBondDetail(String instrumentCode) {
         log.info("[EvdsBondService] getEvdsBondDetail → instrumentCode={}", instrumentCode);
 
-        List<EvdsSeriesInfo> allSeries = evdsBondPort.fetchBondSeriesList();
+        List<EvdsSeriesInfo> allSeries = lkg.resilient(
+                "evds.bond.series-list", BOND_LIST_LKG_TTL,
+                new TypeReference<List<EvdsSeriesInfo>>() {}, evdsBondPort::fetchBondSeriesList);
         Map<String, EvdsSeriesInfo> seriesInfoMap = allSeries.stream()
                 .filter(EvdsSeriesInfo::isValueSeries)
                 .collect(Collectors.toMap(EvdsSeriesInfo::getSeriesCode, Function.identity(), (a, b) -> a));
@@ -257,7 +275,11 @@ public class EvdsBondService {
         LocalDate endDate   = LocalDate.now();
         LocalDate startDate = endDate.minusDays(period.getDays());
 
-        List<EvdsSeriesPoint> rawPoints = evdsBondPort.fetchIndicatorValues(instrumentCode, startDate, endDate);
+        // Geçmiş seri ~değişmez → uzun LKG; EVDS çökerse son başarılı seriyi servis et.
+        List<EvdsSeriesPoint> rawPoints = lkg.resilient(
+                "evds.bond.history:" + instrumentCode + ":" + period.name(), BOND_HISTORY_LKG_TTL,
+                new TypeReference<List<EvdsSeriesPoint>>() {},
+                () -> evdsBondPort.fetchIndicatorValues(instrumentCode, startDate, endDate));
 
         List<EvdsBondHistoryPoint> history = rawPoints.stream()
                 .map(p -> new EvdsBondHistoryPoint(
@@ -280,7 +302,9 @@ public class EvdsBondService {
     public List<EvdsSeriesInfo> fetchActiveBondSeries() {
         log.info("[EvdsBondService] fetchActiveBondSeries başlatıldı.");
 
-        List<EvdsSeriesInfo> allSeries = evdsBondPort.fetchBondSeriesList();
+        List<EvdsSeriesInfo> allSeries = lkg.resilient(
+                "evds.bond.series-list", BOND_LIST_LKG_TTL,
+                new TypeReference<List<EvdsSeriesInfo>>() {}, evdsBondPort::fetchBondSeriesList);
         LocalDate today = LocalDate.now();
 
         long totalCount  = allSeries.size();
@@ -321,8 +345,11 @@ public class EvdsBondService {
         LocalDate today     = LocalDate.now();
         LocalDate startDate = today.minusDays(RECENT_DAYS_WINDOW);
 
-        List<EvdsSeriesPoint> valuePoints =
-                evdsBondPort.fetchIndicatorValues(instrumentCode, startDate, today);
+        // Son gösterge-değeri penceresi (liste/detay) — EVDS çökerse son başarılı pencereyi servis et.
+        List<EvdsSeriesPoint> valuePoints = lkg.resilient(
+                "evds.bond.value:" + instrumentCode, BOND_LIST_LKG_TTL,
+                new TypeReference<List<EvdsSeriesPoint>>() {},
+                () -> evdsBondPort.fetchIndicatorValues(instrumentCode, startDate, today));
 
         if (valuePoints.isEmpty()) {
             log.debug("[EvdsBondService] {} için değer verisi yok, atlandı.", instrumentCode);
@@ -440,8 +467,11 @@ public class EvdsBondService {
     private BigDecimal fetchLatestCouponRate(String instrumentCode,
                                               LocalDate startDate, LocalDate endDate) {
         try {
-            List<EvdsSeriesPoint> couponPoints =
-                    evdsBondPort.fetchCouponRates(instrumentCode, startDate, endDate);
+            // Kupon oranı serisi — EVDS çökerse son başarılı oran penceresini servis et.
+            List<EvdsSeriesPoint> couponPoints = lkg.resilient(
+                    "evds.bond.coupon:" + instrumentCode, BOND_LIST_LKG_TTL,
+                    new TypeReference<List<EvdsSeriesPoint>>() {},
+                    () -> evdsBondPort.fetchCouponRates(instrumentCode, startDate, endDate));
             if (couponPoints.isEmpty()) return null;
             return couponPoints.get(couponPoints.size() - 1).getValue();
         } catch (Exception e) {

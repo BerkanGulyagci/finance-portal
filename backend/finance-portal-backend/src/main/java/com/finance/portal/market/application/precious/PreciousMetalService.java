@@ -1,5 +1,7 @@
 package com.finance.portal.market.application.precious;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.precious.model.BistMetalDailyPoint;
 import com.finance.portal.market.application.precious.port.BistMetalFiyatlariPort;
 import com.finance.portal.market.application.precious.model.PreciousMetalType;
@@ -12,6 +14,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -39,7 +42,13 @@ public class PreciousMetalService {
             "Bu fiyatlar Borsa İstanbul resmi metal fiyatından alınan referans değerlerdir. " +
             "Serbest piyasa alış/satış ve makas dahil değildir.";
 
+    /** Hızlı (spot/intraday) veri için LKG ömrü. */
+    private static final Duration PRECIOUS_SPOT_LKG_TTL = Duration.ofDays(3);
+    /** Yavaş (geçmiş seri) veri için LKG ömrü. */
+    private static final Duration PRECIOUS_HISTORY_LKG_TTL = Duration.ofDays(14);
+
     private final BistMetalFiyatlariPort metalClient;
+    private final LastKnownGoodCache lkg;
 
     // ── Cache temizleme ───────────────────────────────────────────────────────
 
@@ -54,7 +63,10 @@ public class PreciousMetalService {
 
     @Cacheable(cacheNames = "market.precious.spot", key = "#metal.name()")
     public PreciousMetalSpotResponse getSpot(PreciousMetalType metal) {
-        BistMetalDailyPoint latest = metalClient.fetchLatestValidPoint(metal);
+        BistMetalDailyPoint latest = lkg.resilient(
+                "precious.spot:" + metal.name(), PRECIOUS_SPOT_LKG_TTL,
+                new TypeReference<BistMetalDailyPoint>() {},
+                () -> metalClient.fetchLatestValidPoint(metal));
 
         PreciousMetalSpotResponse resp = new PreciousMetalSpotResponse();
         resp.setMetalType(metal);
@@ -88,7 +100,10 @@ public class PreciousMetalService {
             PreciousMetalType metal, String range, String currency) {
 
         String[] dates = rangeToDates(range);
-        List<BistMetalDailyPoint> raw = metalClient.fetchMetalPrices(metal, dates[0], dates[1]);
+        List<BistMetalDailyPoint> raw = lkg.resilient(
+                "precious.history:" + metal.name() + ":" + range, PRECIOUS_HISTORY_LKG_TTL,
+                new TypeReference<List<BistMetalDailyPoint>>() {},
+                () -> metalClient.fetchMetalPrices(metal, dates[0], dates[1]));
 
         // validPrice filtresi
         List<BistMetalDailyPoint> valid = raw.stream()

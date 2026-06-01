@@ -1,11 +1,14 @@
 package com.finance.portal.market.application.funds.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.funds.model.FundPriceHistoryPoint;
 import com.finance.portal.market.application.funds.model.FundPriceHistoryResponse;
 import com.finance.portal.market.infrastructure.external.tefas.TefasFundClient;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -16,10 +19,15 @@ import java.util.List;
 @Service
 public class TefasFundService {
 
-    private final TefasFundClient client;
+    /** Geçmiş-NAV (yavaş/tarihsel) verisi için LKG ömrü — kaynak çökerse en fazla bu kadar eski seri gösterilir. */
+    private static final Duration HISTORY_LKG_TTL = Duration.ofDays(14);
 
-    public TefasFundService(TefasFundClient client) {
+    private final TefasFundClient client;
+    private final LastKnownGoodCache lkg;
+
+    public TefasFundService(TefasFundClient client, LastKnownGoodCache lkg) {
         this.client = client;
+        this.lkg = lkg;
     }
 
     /**
@@ -37,7 +45,11 @@ public class TefasFundService {
     public FundPriceHistoryResponse getPriceHistory(String code, String range, String fonTipi) {
         LocalDate to = LocalDate.now();
         LocalDate from = to.minusDays(rangeDays(range));
-        List<FundPriceHistoryPoint> points = client.fetchPriceHistory(code, fonTipi, from, to);
+        // TEFAS çökerse/boş dönerse son başarılı seriyi servis et (kullanıcı boş grafik yerine eski seri görür).
+        List<FundPriceHistoryPoint> points = lkg.resilient(
+                "tefas.history:" + code + ":" + range + ":" + fonTipi, HISTORY_LKG_TTL,
+                new TypeReference<List<FundPriceHistoryPoint>>() {},
+                () -> client.fetchPriceHistory(code, fonTipi, from, to));
         return new FundPriceHistoryResponse(code, range, "TEFAS", points);
     }
 
@@ -53,7 +65,11 @@ public class TefasFundService {
     )
     public List<FundPriceHistoryPoint> getPriceHistoryRange(String code, String fonTipi,
                                                             java.time.LocalDate from, java.time.LocalDate to) {
-        return client.fetchPriceHistory(code, fonTipi, from, to);
+        // TEFAS çökerse/boş dönerse son başarılı pencereyi servis et (price-at fallback'i sağlam kalır).
+        return lkg.resilient(
+                "tefas.history.range:" + code + ":" + fonTipi + ":" + from + ":" + to, HISTORY_LKG_TTL,
+                new TypeReference<List<FundPriceHistoryPoint>>() {},
+                () -> client.fetchPriceHistory(code, fonTipi, from, to));
     }
 
     /** Aralık etiketi → gün sayısı (küçük tampon ile). */
