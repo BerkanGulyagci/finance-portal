@@ -27,10 +27,13 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -265,35 +268,46 @@ public class MarginAlarmEvaluator {
         return userId + "|" + (symbol == null ? "" : symbol) + "|" + (direction == null ? "" : direction);
     }
 
-    /** "LONG 5 lot, giriş 1234,5 → güncel 1180,2 (K/Z -2.715 / teminat 12.300)" tarzı tek-satır özet. */
+    /** TR yerel + " TRY" son-ek para biçimi (örn. 1.234,56 TRY; negatif için "-" işaret korunur). */
+    private static final Locale TR_LOCALE = new Locale("tr", "TR");
+
+    /** "LONG 1 lot, giriş 10,00 TRY → güncel 2,70 TRY (K/Z -730,00 TRY / teminat 145,00 TRY)" tarzı tek-satır özet. */
     private static String buildPositionDetail(PortfolioHoldingResponse h) {
         StringBuilder sb = new StringBuilder();
         if (h.getViopDirection() != null) {
             sb.append(h.getViopDirection()).append(' ');
         }
         if (h.getTotalQuantity() != null) {
+            // Lot sayısı birimsiz — kontrat adedi, para değil. Tam sayıysa "1 lot", kesirliyse korunur.
             sb.append(h.getTotalQuantity().stripTrailingZeros().toPlainString()).append(" lot");
         }
         if (h.getAverageCost() != null) {
-            sb.append(", giriş ").append(h.getAverageCost().stripTrailingZeros().toPlainString());
+            sb.append(", giriş ").append(formatMoneyTry(h.getAverageCost()));
         }
         if (h.getCurrentPrice() != null) {
-            sb.append(" → güncel ").append(h.getCurrentPrice().stripTrailingZeros().toPlainString());
+            sb.append(" → güncel ").append(formatMoneyTry(h.getCurrentPrice()));
         }
         if (h.getProfitLoss() != null || h.getViopMarginPosted() != null) {
             sb.append(" (");
             if (h.getProfitLoss() != null) {
-                sb.append("K/Z ").append(h.getProfitLoss().stripTrailingZeros().toPlainString());
+                // K/Z negatif olabilir; DecimalFormat işareti otomatik basar.
+                sb.append("K/Z ").append(formatMoneyTry(h.getProfitLoss()));
             }
             if (h.getViopMarginPosted() != null) {
                 if (h.getProfitLoss() != null) {
                     sb.append(" / ");
                 }
-                sb.append("teminat ").append(h.getViopMarginPosted().stripTrailingZeros().toPlainString());
+                sb.append("teminat ").append(formatMoneyTry(h.getViopMarginPosted()));
             }
             sb.append(')');
         }
         return sb.toString();
+    }
+
+    /** TR yerel iki ondalıklı + " TRY" son-ek; binlik ayraç nokta, ondalık virgül. */
+    private static String formatMoneyTry(BigDecimal value) {
+        DecimalFormat df = new DecimalFormat("#,##0.00", new DecimalFormatSymbols(TR_LOCALE));
+        return df.format(value) + " TRY";
     }
 
     /** De-bounce için en son tetik özetini tutar. */
