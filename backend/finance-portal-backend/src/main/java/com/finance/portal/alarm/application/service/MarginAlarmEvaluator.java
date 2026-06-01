@@ -197,6 +197,10 @@ public class MarginAlarmEvaluator {
         if (last == null) {
             return true;
         }
+        // Cooldown kapalı (<=0) → de-bounce yok, her taramada yeniden tetikle.
+        if (cooldownMinutes <= 0) {
+            return true;
+        }
         LocalDateTime nextAllowed = last.firedAt().plusMinutes(cooldownMinutes);
         if (LocalDateTime.now().isAfter(nextAllowed)) {
             return true;
