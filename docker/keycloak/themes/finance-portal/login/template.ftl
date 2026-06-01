@@ -69,27 +69,37 @@
         </#list>
     </#if>
     <script type="module" src="${url.resourcesPath}/js/passwordVisibility.js"></script>
+    <#-- Tema senkronu: KLASİK script (module DEĞİL) → authChecker.js import'una
+         bağlı kalmaz, her koşulda çalışır. App "ui_theme" değerini URL param
+         (redirect) veya cookie ile taşır; yoksa OS tercihine düşülür. -->
+    <script>
+        (function () {
+          function fpReadTheme() {
+            try {
+              var u = new URLSearchParams(window.location.search).get("ui_theme");
+              if (u === "dark" || u === "light") return u;
+            } catch (e) { /* yoksay */ }
+            var m = document.cookie.match(/(?:^|;\s*)ui_theme=(dark|light)/);
+            return m ? m[1] : null;
+          }
+          function fpApplyTheme() {
+            var pref = fpReadTheme();
+            var isDark = pref === "dark"
+              || (pref === null && window.matchMedia("(prefers-color-scheme: dark)").matches);
+            document.documentElement.classList.toggle("fp-dark", isDark);
+          }
+          fpApplyTheme();
+          try {
+            window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", fpApplyTheme);
+          } catch (e) { /* yoksay */ }
+        })();
+    </script>
     <script type="module">
         import { checkCookiesAndSetTimer } from "${url.resourcesPath}/js/authChecker.js";
 
         checkCookiesAndSetTimer(
             "${url.ssoLoginInOtherTabsUrl?no_esc}"
         );
-
-        const DARK_MODE_CLASS = "pf-v5-theme-dark";
-        const mediaQuery =window.matchMedia("(prefers-color-scheme: dark)");
-        updateDarkMode(mediaQuery.matches);
-        mediaQuery.addEventListener("change", (event) =>
-          updateDarkMode(event.matches),
-        );
-        function updateDarkMode(isEnabled) {
-          const { classList } = document.documentElement;
-          if (isEnabled) {
-            classList.add(DARK_MODE_CLASS);
-          } else {
-            classList.remove(DARK_MODE_CLASS);
-          }
-        }
     </script>
 </head>
 
