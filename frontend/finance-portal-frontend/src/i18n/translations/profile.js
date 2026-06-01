@@ -88,6 +88,11 @@ const en = {
     'You can add any stock, crypto, FX, gold or fund to the ticker.',
   'Kaldır': 'Remove',
   'şerit': 'ticker',
+  // Akış hızı segmented kontrol
+  'Akış Hızı': 'Scroll Speed',
+  'Yavaş': 'Slow',
+  'Normal': 'Normal',
+  'Hızlı': 'Fast',
 
   // MarginAlertSettings (VİOP teminat uyarısı kartı — Profil sağ kolon)
   'Teminat Uyarısı (VİOP)': 'Margin Alert (Futures)',

@@ -5,6 +5,7 @@ import {
   ALL_TICKER_KEYS,
   readTickerPrefs, saveTickerPrefs,
   readCustomTickerItems, saveCustomTickerItems,
+  readTickerSpeed, saveTickerSpeed,
 } from '../../../utils/tickerPrefs';
 import { useTranslation } from '../../../context/LanguageContext';
 import InstrumentSearchModal from '../../../components/instrument/InstrumentSearchModal';
@@ -23,8 +24,14 @@ export default function TickerCustomizer() {
   const { t } = useTranslation();
   const [enabled, setEnabled] = useState(() => readTickerPrefs());
   const [custom, setCustom] = useState(() => readCustomTickerItems());
+  const [speed, setSpeed] = useState(() => readTickerSpeed());
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+
+  function onSpeedChange(v) {
+    setSpeed(v);
+    saveTickerSpeed(v); // prefSetSync + TICKER_PREFS_EVENT — MarketTicker anında günceller.
+  }
 
   function commit(next) {
     setEnabled(next);
@@ -61,11 +68,13 @@ export default function TickerCustomizer() {
     commit(next);
   }
 
-  // "Sıfırla" → tüm katalog öğeleri açık + kullanıcı özel öğeleri temizlenir.
+  // "Sıfırla" → tüm katalog öğeleri açık + kullanıcı özel öğeleri temizlenir + hız varsayılana.
   function resetAll() {
     commit(new Set(ALL_TICKER_KEYS));
     setCustom([]);
     saveCustomTickerItems([]);
+    setSpeed('normal');
+    saveTickerSpeed('normal');
   }
 
   const count = enabled.size + custom.length;
@@ -140,6 +149,8 @@ export default function TickerCustomizer() {
                 custom={custom}
                 removeCustom={removeCustom}
                 onOpenSearch={() => setSearchOpen(true)}
+                speed={speed}
+                onSpeedChange={onSpeedChange}
               />
             </div>
 

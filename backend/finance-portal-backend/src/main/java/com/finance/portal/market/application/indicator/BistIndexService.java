@@ -21,7 +21,14 @@ import java.util.Optional;
  * bunlara karşılık gelen bir değer yoktur, {@code ViopService} ise yalnız etiketleme
  * için kullanır. Bu servis MarketTicker (ve genel {@code /api/market/price-history}
  * INDICATOR pseudo-türü) için en minimal eklemeyi yapar: Yahoo Finance'in
- * {@code ^XU100 / ^XU030 / ^XU050} sembollerinden günlük kapanış serisi çeker.</p>
+ * {@code XU100.IS / XU030.IS / XU050.IS} (Istanbul exchange suffix) sembollerinden
+ * günlük kapanış serisi çeker.</p>
+ *
+ * <p><b>Önemli — sembol formatı:</b> Yahoo, {@code ^XU100} (caret prefix, US-style index)
+ * formatını kabul eder ama BOŞ bir quote dizisi döndürür (exchange "Nasdaq GIDS" gösterir,
+ * timestamp dizisi yok). Doğru sembol formatı {@code .IS} suffix'idir (Istanbul exchange);
+ * curl ile {@code XU100.IS?range=1mo&interval=1d} çağrısı tam timestamp + close[] dizilerini
+ * canlı TR market saatiyle döndürür. Caret formatına geri DÖNMEYİN — sessiz veri kaybı olur.</p>
  *
  * <p>Sonuç {@link Cacheable} ile 60 dk önbelleğe alınır — endeksler intraday yavaş
  * hareket ettiği için ticker / detay kullanımına bu yeterli (Yahoo'ya minimum yük).</p>
@@ -31,11 +38,15 @@ public class BistIndexService {
 
     private static final Logger log = LoggerFactory.getLogger(BistIndexService.class);
 
-    /** BIST sözde-sembol → Yahoo Finance ticker eşlemesi (^ önekli). */
+    /**
+     * BIST sözde-sembol → Yahoo Finance ticker eşlemesi.
+     * Istanbul exchange suffix formatı ({@code .IS}) kullanılır — caret prefix ({@code ^XU100})
+     * formatı Yahoo tarafından kabul edilse de BOŞ veri döndürür (bkz. sınıf javadoc).
+     */
     private static final Map<String, String> YAHOO_SYMBOLS = Map.of(
-            "XU100", "^XU100",
-            "XU030", "^XU030",
-            "XU050", "^XU050"
+            "XU100", "XU100.IS",
+            "XU030", "XU030.IS",
+            "XU050", "XU050.IS"
     );
 
     private final YahooStockPort yahooStockPort;
@@ -70,7 +81,18 @@ public class BistIndexService {
         String yahooRange = pickYahooRange(from, to);
         try {
             YahooChartSnapshot snap = yahooStockPort.fetchChartWithParams(yahooSymbol, yahooRange, "1d");
-            return Optional.ofNullable(snap);
+            // Defansif: Yahoo bazen 200 + boş quote döner (özellikle yanlış sembol formatlarında).
+            // Bu durumu erken yakala ki sonraki katmanlarda "veri yok" şeklinde sessiz başarısızlık olmasın.
+            if (snap == null
+                    || snap.getTimestamps() == null
+                    || snap.getTimestamps().isEmpty()
+                    || snap.getQuote() == null
+                    || snap.getQuote().getClose() == null
+                    || snap.getQuote().getClose().isEmpty()) {
+                log.warn("Yahoo BIST index returned empty payload [{}] range={}", yahooSymbol, yahooRange);
+                return Optional.empty();
+            }
+            return Optional.of(snap);
         } catch (Exception ex) {
             log.warn("Yahoo BIST index fetch failed [{}]: {}", yahooSymbol, ex.getMessage());
             return Optional.empty();

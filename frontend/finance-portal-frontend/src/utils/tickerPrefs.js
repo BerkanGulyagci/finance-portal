@@ -1,8 +1,17 @@
 // Piyasa şeridinde (ticker) hangi öğelerin gösterileceği — kullanıcı tercihi (cihazlar arası senkron: prefs).
-import { prefGet, prefSet } from '../api/prefs';
+import { prefGet, prefSet, prefSetSync } from '../api/prefs';
 
 export const TICKER_PREFS_KEY = 'fp-ticker-items';
 export const TICKER_PREFS_EVENT = 'fp-ticker-prefs-changed';
+
+// Akış hızı tercihi (kayan şerit). Backend allow-list yok; istenen key 'market_ticker_speed'.
+export const TICKER_SPEED_KEY = 'market_ticker_speed';
+export const TICKER_SPEED_VALUES = ['slow', 'normal', 'fast'];
+// MarketTicker'daki requestAnimationFrame döngüsünün px/sn katsayısı.
+// 40 px/sn mevcut varsayılan; slow=0.5×, fast=2×. Hız ve animasyon süresi orantılıdır
+// (track genişliği sabit kabul edilince), yani slow≈120s/loop, normal≈60s, fast≈30s gibi
+// algılanır — ürün şartıyla uyumlu.
+export const TICKER_SPEED_PX = { slow: 20, normal: 40, fast: 80 };
 
 // Şeritte gösterilebilecek tüm öğeler (gruplu katalog). key'ler MarketTicker ile eşleşir.
 export const TICKER_CATALOG = [
@@ -82,5 +91,22 @@ export function readCustomTickerItems() {
 
 export function saveCustomTickerItems(list) {
   prefSet(TICKER_CUSTOM_KEY, list);
+  window.dispatchEvent(new Event(TICKER_PREFS_EVENT));
+}
+
+// ── Akış hızı oku/yaz ──────────────────────────────────────────────────────
+/** Geçerli akış hızını döner: 'slow' | 'normal' | 'fast' (varsayılan: 'normal'). */
+export function readTickerSpeed() {
+  const v = prefGet(TICKER_SPEED_KEY, null);
+  return TICKER_SPEED_VALUES.includes(v) ? v : 'normal';
+}
+
+/**
+ * Hız tercihini kaydet — prefSetSync ile (anında PUT) ve diğer açık sekmeleri haberdar et.
+ * prefSetSync 8d1fb99'daki JSON Content-Type yaklaşımını kullanır; debounce yok.
+ */
+export function saveTickerSpeed(value) {
+  const safe = TICKER_SPEED_VALUES.includes(value) ? value : 'normal';
+  prefSetSync(TICKER_SPEED_KEY, safe).catch(() => { /* best-effort */ });
   window.dispatchEvent(new Event(TICKER_PREFS_EVENT));
 }

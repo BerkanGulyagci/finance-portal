@@ -1,6 +1,12 @@
 import { useEffect, useLayoutEffect, useState, useRef, useId, useMemo } from 'react';
 import { ChevronDown, ChevronUp, LineChart } from 'lucide-react';
-import { readTickerPrefs, readCustomTickerItems, TICKER_PREFS_EVENT } from '../../utils/tickerPrefs';
+import {
+  readTickerPrefs,
+  readCustomTickerItems,
+  readTickerSpeed,
+  TICKER_PREFS_EVENT,
+  TICKER_SPEED_PX,
+} from '../../utils/tickerPrefs';
 import {
   getFxTcmb,
   getCryptos,
@@ -146,6 +152,7 @@ export function MarketTicker() {
   const [customItems, setCustomItems] = useState([]);
   const [customDefs, setCustomDefs] = useState(readCustomTickerItems);
   const [enabledKeys, setEnabledKeys] = useState(readTickerPrefs);
+  const [tickerSpeed, setTickerSpeed] = useState(readTickerSpeed);
   // Etkin varsayılan öğeler + kullanıcının eklediği özel öğeler.
   // Özel öğe, zaten varsayılanlarda olan bir enstrümansa (ör. BTC) tekrar eklenmez.
   const items = useMemo(() => {
@@ -314,13 +321,17 @@ export function MarketTicker() {
         });
 
         // BIST endeksleri (XU100/XU030/XU050) — backend INDICATOR pseudo-türünden Yahoo'dan günlük seri.
-        // Backend desteklemiyorsa boş seri döner; öğeyi sessizce atlarız (frontend hata göstermez).
+        // Backend boş veri döndürürse (örn. Yahoo sembol tuzağı, ağ hatası) console.warn ile loglarız ki
+        // ileride sessiz başarısızlıkları teşhis edebilelim — UI'da sadece öğe atlanır.
         await Promise.all(
           ['XU100', 'XU030', 'XU050'].map(async (sym) => {
             try {
               const data = await getMarketPriceHistory('INDICATOR', sym, '1M');
               const closes = (data?.closePrices ?? []).map(Number).filter(v => Number.isFinite(v) && v > 0);
-              if (closes.length < 1) return;
+              if (closes.length < 1) {
+                console.warn(`[MarketTicker] BIST index ${sym} returned empty closePrices`, data);
+                return;
+              }
               const last = closes[closes.length - 1];
               const first = closes[0];
               const pct = first ? ((last - first) / first) * 100 : null;
@@ -334,11 +345,9 @@ export function MarketTicker() {
                 dir: dirFromChangePct(pct),
                 spark,
               });
-            } catch {
-              // BIST endeksi alınamadı — sessizce atla (örn. backend henüz desteklemiyorsa)
-              if (typeof console !== 'undefined') {
-                console.warn(`[MarketTicker] BIST index fetch failed: ${sym}`);
-              }
+            } catch (err) {
+              // Endpoint hatası — neden olduğunu konsola yaz (gelecekteki ağ/CORS/500 teşhisi için).
+              console.warn(`[MarketTicker] BIST index fetch failed: ${sym}`, err);
             }
           })
         );
@@ -369,6 +378,7 @@ export function MarketTicker() {
     const onPrefs = () => {
       setEnabledKeys(readTickerPrefs());
       setCustomDefs(readCustomTickerItems());
+      setTickerSpeed(readTickerSpeed());
     };
     window.addEventListener(TICKER_PREFS_EVENT, onPrefs);
     window.addEventListener('storage', onPrefs);
@@ -429,7 +439,8 @@ export function MarketTicker() {
     }
     const track = trackRef.current;
     if (!track) return undefined;
-    const SPEED = 40; // px/sn
+    // px/sn — kullanıcı tercihinden (slow=20, normal=40, fast=80); bilinmeyen değerde varsayılan 40.
+    const SPEED = TICKER_SPEED_PX[tickerSpeed] ?? 40;
     let raf;
     let last = performance.now();
     const step = (now) => {
@@ -447,7 +458,7 @@ export function MarketTicker() {
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [isPaused, items, tickerOpen, copies]);
+  }, [isPaused, items, tickerOpen, copies, tickerSpeed]);
 
   if (!items.length) return null;
 

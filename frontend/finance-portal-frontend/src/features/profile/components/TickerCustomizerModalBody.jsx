@@ -8,9 +8,12 @@ import {
   Coins,
   Bitcoin,
   BarChart3,
+  Gauge,
 } from 'lucide-react';
-import { TICKER_CATALOG } from '../../../utils/tickerPrefs';
+import { TICKER_CATALOG, TICKER_SPEED_VALUES } from '../../../utils/tickerPrefs';
 import { useTranslation } from '../../../context/LanguageContext';
+
+const SPEED_LABEL_KEY = { slow: 'Yavaş', normal: 'Normal', fast: 'Hızlı' };
 
 const ASSET_LABEL = {
   STOCK: 'Hisse', FUND: 'Fon', FX: 'Döviz', FUTURE: 'Vadeli',
@@ -81,11 +84,47 @@ export default function TickerCustomizerModalBody({
   custom,
   removeCustom,
   onOpenSearch,
+  speed,
+  onSpeedChange,
 }) {
   const { t } = useTranslation();
 
   return (
     <div>
+      {/* Akış hızı — kategori pill'leriyle aynı görsel dilde segmented kontrol. */}
+      <div className="mb-4 pb-4 border-b border-gray-100">
+        <div className="flex items-center gap-2 mb-2 min-w-0">
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-slate-100 text-slate-700">
+            <Gauge className="w-3.5 h-3.5" />
+          </span>
+          <span className="text-xs font-bold text-gray-700 uppercase tracking-wider truncate">
+            {t('Akış Hızı')}
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('Akış Hızı')}>
+          {TICKER_SPEED_VALUES.map(v => {
+            const on = (speed || 'normal') === v;
+            const labelKey = SPEED_LABEL_KEY[v];
+            return (
+              <button
+                key={v}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                onClick={() => onSpeedChange?.(v)}
+                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
+                  on
+                    ? 'bg-[#093eaa] text-white border border-[#093eaa] shadow-sm'
+                    : 'bg-white text-[#093eaa] border border-blue-200 hover:bg-blue-50'
+                }`}
+              >
+                {t(labelKey)}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="space-y-4">
         {TICKER_CATALOG.map(group => {
           const meta = CATEGORY_META[group.group] ?? DEFAULT_META;
