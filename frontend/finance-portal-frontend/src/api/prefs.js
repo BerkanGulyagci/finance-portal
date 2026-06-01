@@ -21,6 +21,13 @@ export function prefGet(key, fallback = null) {
   }
 }
 
+// Backend @RequestBody JsonNode bekler → Content-Type: application/json gerek.
+// Axios plain object/array için kendisi JSON serialize eder ve doğru header'ı set eder;
+// ancak primitive değerlerde (number/string/boolean) Content-Type'ı atlar ve tarayıcı
+// application/x-www-form-urlencoded'a düşer → 500 HttpMediaTypeNotSupportedException.
+// Bu yüzden gövdeyi her zaman JSON string'e çeviriyor ve header'ı açıkça veriyoruz.
+const JSON_PUT_CONFIG = { headers: { 'Content-Type': 'application/json' } };
+
 /** localStorage'a yaz + (giriş yapılmışsa) debounce'lu olarak sunucuya senkronla. */
 export function prefSet(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* yoksay */ }
@@ -28,7 +35,8 @@ export function prefSet(key, value) {
   if (timers.has(key)) clearTimeout(timers.get(key));
   timers.set(key, setTimeout(() => {
     timers.delete(key);
-    client.put(`/api/me/preferences/${encodeURIComponent(key)}`, value).catch(() => { /* best-effort */ });
+    client.put(`/api/me/preferences/${encodeURIComponent(key)}`, JSON.stringify(value), JSON_PUT_CONFIG)
+      .catch(() => { /* best-effort */ });
   }, DEBOUNCE_MS));
 }
 
@@ -45,7 +53,7 @@ export function prefSetSync(key, value) {
     clearTimeout(timers.get(key));
     timers.delete(key);
   }
-  return client.put(`/api/me/preferences/${encodeURIComponent(key)}`, value);
+  return client.put(`/api/me/preferences/${encodeURIComponent(key)}`, JSON.stringify(value), JSON_PUT_CONFIG);
 }
 
 /** Sunucudaki tüm tercihleri çekip localStorage'a yazar (giriş sonrası bir kez). */
