@@ -87,6 +87,9 @@ public class UserPreferenceService {
                 .orElseGet(() -> new UserMarginAlertSetting(userId, clamped));
         setting.setMarginAlertThresholdPct(clamped);
         marginAlertRepository.save(setting);
+        // Future debugging hook: row never written ⇒ scanner düşer 0.5000 (50% default) — bu log
+        // hangi user için hangi yüzde DB'ye yazıldı görmek için ana referans.
+        log.info("Margin threshold persisted: user={} value={}", userId, clamped);
     }
 
     private static int clamp(int v, int min, int max) {

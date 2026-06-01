@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ShieldAlert, Save } from 'lucide-react';
-import { prefGet, prefSet } from '../../../api/prefs';
+import { prefGet, prefSetSync } from '../../../api/prefs';
 import { useTranslation } from '../../../context/LanguageContext';
 import { useToast } from '../../../context/ToastContext';
 
@@ -39,6 +39,7 @@ export default function MarginAlertSettings() {
 
   const [pct, setPct] = useState(initial);
   const [saved, setSaved] = useState(initial);
+  const [saving, setSaving] = useState(false);
 
   // Başka cihazda değişip hydrate sırasında localStorage güncellenirse senkronla.
   useEffect(() => {
@@ -54,12 +55,27 @@ export default function MarginAlertSettings() {
   const dirty = pct !== saved;
   const disabled = pct === 0;
 
-  function handleSave() {
+  async function handleSave() {
     const v = clampInt(pct);
     if (v == null) return;
-    prefSet(PREF_KEY, v);
-    setSaved(v);
-    toast.success(t('Teminat uyarısı kaydedildi.'));
+    const prevSaved = saved;
+    setSaving(true);
+    try {
+      // Kritik ayar: debounce'u atla ve sunucu cevabını bekle. Hata olursa rollback.
+      await prefSetSync(PREF_KEY, v);
+      setSaved(v);
+      toast.success(t('Teminat uyarısı kaydedildi.'));
+    } catch (err) {
+      // Sunucu yazımı başarısız: localStorage'ı eski değere geri al ki cihazlar tutarlı kalsın.
+      try { localStorage.setItem(PREF_KEY, JSON.stringify(prevSaved)); } catch { /* yoksay */ }
+      const status = err?.response?.status;
+      const msg = status
+        ? t('Sunucuya kaydedilemedi.') + ` (HTTP ${status})`
+        : t('Sunucuya kaydedilemedi.');
+      toast.error(msg);
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -164,11 +180,11 @@ export default function MarginAlertSettings() {
           <button
             type="button"
             onClick={handleSave}
-            disabled={!dirty}
+            disabled={!dirty || saving}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#093eaa] text-white text-xs font-bold hover:bg-[#0a2966] disabled:opacity-50 transition-colors"
           >
             <Save className="w-3.5 h-3.5" />
-            {t('Kaydet')}
+            {saving ? t('Kaydediliyor...') : t('Kaydet')}
           </button>
         </div>
 

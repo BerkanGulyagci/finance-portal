@@ -3,6 +3,8 @@ package com.finance.portal.preferences.presentation;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.finance.portal.common.presentation.dto.ApiResponse;
 import com.finance.portal.preferences.service.UserPreferenceService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -23,6 +25,8 @@ import java.util.Map;
 @RestController
 @RequestMapping(value = "/api/me/preferences", produces = MediaType.APPLICATION_JSON_VALUE)
 public class UserPreferenceController {
+
+    private static final Logger log = LoggerFactory.getLogger(UserPreferenceController.class);
 
     private final UserPreferenceService service;
 
@@ -45,7 +49,13 @@ public class UserPreferenceController {
                                                  @RequestBody(required = false) JsonNode value) {
         String userId = jwt != null ? jwt.getSubject() : null;
         if (userId != null) {
-            service.upsert(userId, key, value);
+            try {
+                service.upsert(userId, key, value);
+            } catch (RuntimeException e) {
+                // Sessiz client (axios .catch swallow) senaryosunda bile sunucu tarafında iz bırak.
+                log.warn("Preference upsert failed: user={} key={} err={}", userId, key, e.toString());
+                throw e;
+            }
         }
         return ResponseEntity.ok(ApiResponse.success(null, "Kaydedildi"));
     }

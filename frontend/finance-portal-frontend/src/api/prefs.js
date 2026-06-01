@@ -32,6 +32,22 @@ export function prefSet(key, value) {
   }, DEBOUNCE_MS));
 }
 
+/**
+ * Kritik ayarlar için: bekleyen debounce'u iptal eder, PUT'u hemen gönderir ve sunucu
+ * cevabına ait promise'i döndürür. Anonim kullanıcı için çözümlenmiş promise döner
+ * (sadece localStorage yazımı yapılır). Hata durumunda promise reject olur ki çağıran
+ * UI feedback verebilsin (toast.error, optimistic rollback, vb.).
+ */
+export function prefSetSync(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* yoksay */ }
+  if (!isAuthed()) return Promise.resolve();
+  if (timers.has(key)) {
+    clearTimeout(timers.get(key));
+    timers.delete(key);
+  }
+  return client.put(`/api/me/preferences/${encodeURIComponent(key)}`, value);
+}
+
 /** Sunucudaki tüm tercihleri çekip localStorage'a yazar (giriş sonrası bir kez). */
 export async function hydratePrefs() {
   if (!isAuthed()) return;
