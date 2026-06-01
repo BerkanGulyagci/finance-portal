@@ -67,10 +67,15 @@ public class BondWatchlistEnricher {
 
     private void enrichEvds(WatchlistItemResponse r, String instrumentCode) {
         EvdsBondInstrument bond = evdsBondService.getEvdsBondDetail(instrumentCode);
+        r.setCurrency("TRY");
+        if (bond == null) {
+            // Servis artık null döner (negatif cache); enrich işlemini sessizce atla,
+            // alanlar boş kalır. Çağıran zaten try/catch sarmalı içinde.
+            return;
+        }
         r.setLastPrice(bond.getIndicatorValue());
         r.setChange(bond.getDailyChange());
         r.setChangePercent(bond.getDailyChangePercent());
-        r.setCurrency("TRY");
         r.setRemainingDays(bond.getRemainingDays());
         r.setCouponRate(bond.getCouponRate());
 

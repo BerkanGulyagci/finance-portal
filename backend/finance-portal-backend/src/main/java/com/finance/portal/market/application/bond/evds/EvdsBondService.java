@@ -208,6 +208,12 @@ public class EvdsBondService {
 
     /**
      * Tekil kıymetin EVDS detayını döndürür.
+     *
+     * <p>Kıymet EVDS'de yok ise {@code null} döner; Spring @Cacheable null değeri de
+     * cache'ler (NullValue sentinel) — böylece Eurobond (XS / US prefix) veya vadesi
+     * geçmiş DİBS sembolleri tekrar tekrar TCMB'ye gidip 20-30s stall etmez. (Portföy
+     * liste yolu cold-path 80-150s → ~ms düşüş; çağıranlar zaten null veya exception
+     * için graceful.)
      */
     @Cacheable(cacheNames = "market.evds.bonds.detail", key = "#instrumentCode")
     public EvdsBondInstrument getEvdsBondDetail(String instrumentCode) {
@@ -226,8 +232,14 @@ public class EvdsBondService {
         EvdsBondInstrument instrument = buildInstrument(instrumentCode, info, hasCoupon);
 
         if (instrument == null) {
-            throw new IllegalArgumentException(
-                    "EVDS'de kıymet bulunamadı veya veri yok: " + instrumentCode);
+            // Eskiden throw IllegalArgumentException → Spring @Cacheable exception cache'lemezdi,
+            // her istek aynı yavaş EVDS lookup'unu tekrarlardı. Şimdi null döndürüyoruz; default
+            // @Cacheable null'u NullValue sentinel ile cache'liyor → 1 saat TTL içinde tekrar EVDS
+            // çağrısı yapılmaz. Çağıranlar (PortfolioHoldingsBuilder, toTransactionResponse, vd.)
+            // null'u zaten "default parScale=100, par-unscaled değil" şeklinde graceful ele alıyor.
+            log.info("[EvdsBondService] getEvdsBondDetail ← instrumentCode={} BULUNAMADI (null cache'lenecek)",
+                    instrumentCode);
+            return null;
         }
 
         log.info("[EvdsBondService] getEvdsBondDetail ← instrumentCode={} indicatorValue={}",

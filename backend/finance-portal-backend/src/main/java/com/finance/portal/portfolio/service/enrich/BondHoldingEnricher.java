@@ -113,11 +113,13 @@ public class BondHoldingEnricher {
         LocalDate lu = null;
         try {
             bond = evdsBondService.getEvdsBondDetail(code);
-            price = bond.getIndicatorValue();
-            change = bond.getDailyChange();
-            changePercent = bond.getDailyChangePercent();
-            type = bond.getType();
-            lu = bond.getLastUpdated();
+            if (bond != null) {
+                price = bond.getIndicatorValue();
+                change = bond.getDailyChange();
+                changePercent = bond.getDailyChangePercent();
+                type = bond.getType();
+                lu = bond.getLastUpdated();
+            }
         } catch (Exception e) {
             log.debug("EVDS bond detail unavailable for {}: {}", code, e.getMessage());
         }

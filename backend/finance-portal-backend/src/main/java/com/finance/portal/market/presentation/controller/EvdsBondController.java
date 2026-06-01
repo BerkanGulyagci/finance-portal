@@ -154,6 +154,12 @@ public class EvdsBondController {
         String code = normalizeCode(instrumentCode);
         try {
             EvdsBondInstrument instrument = evdsBondService.getEvdsBondDetail(code);
+            if (instrument == null) {
+                // Servis artık IllegalArgumentException atmıyor — null döner ve cache'lenir
+                // (negatif cache, EVDS hammering'i durdurur). Controller 404'e map'liyor.
+                return ResponseEntity.status(404)
+                        .body(ApiResponse.error("Kıymet bulunamadı: " + code));
+            }
             return ResponseEntity.ok(ApiResponse.success(
                     EvdsBondItemDto.from(instrument),
                     "EVDS bond detail retrieved successfully. Source: TCMB EVDS"));

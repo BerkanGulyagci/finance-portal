@@ -646,6 +646,35 @@ public class PortfolioServiceImpl implements PortfolioService {
             // birbirini engellemez (havuz I/O-bound, 8 thread aktif sırada bekler).
             List<Portfolio> portfolios = portfolioPersistence.findByUserId(userId);
             int n = portfolios.size();
+            // Cold-path pre-warm: BOND sembollerinin getEvdsBondDetail() çağrıları PortfolioHoldingsBuilder
+            // ve toTransactionResponse içinde SERİ çalışıyor. Cache MISS (özellikle Eurobond XS*/US* veya
+            // vadesi geçmiş DİBS) durumunda her sembol TCMB'ye 20-30s stall ediyor → 5 sembol = 100-150s.
+            // Distinct sembolleri up-front toplayıp enrichExecutor (pool=8) üzerinde paralel pre-warm
+            // ediyoruz; @Cacheable negative-cache (null) tarafından sonradan gelen serial çağrılar
+            // ms-ler içinde HIT alır. Wall-clock: sum(N) → max(N)/8.
+            java.util.Set<String> bondSymbols = new java.util.LinkedHashSet<>();
+            for (Portfolio p : portfolios) {
+                if (p.getTransactions() == null) continue;
+                for (PortfolioTransaction tx : p.getTransactions()) {
+                    if (tx.getAssetType() == AssetType.BOND
+                            && tx.getSymbol() != null && !tx.getSymbol().isBlank()) {
+                        bondSymbols.add(tx.getSymbol());
+                    }
+                }
+            }
+            if (!bondSymbols.isEmpty()) {
+                List<CompletableFuture<Void>> bondPrewarm = new ArrayList<>(bondSymbols.size());
+                for (String s : bondSymbols) {
+                    bondPrewarm.add(CompletableFuture.runAsync(() -> {
+                        try {
+                            evdsBondService.getEvdsBondDetail(s);
+                        } catch (Exception ex) {
+                            log.debug("Bond pre-warm failed for {}: {}", s, ex.getMessage());
+                        }
+                    }, enrichExecutor));
+                }
+                CompletableFuture.allOf(bondPrewarm.toArray(new CompletableFuture[0])).join();
+            }
             List<PortfolioResponse> responses = new ArrayList<>(n);
             List<PortfolioHoldingsBuilder.BuildResult> builds = new ArrayList<>(n);
             for (Portfolio p : portfolios) {
