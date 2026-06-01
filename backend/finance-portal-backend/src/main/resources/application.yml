@@ -138,7 +138,7 @@ assistant:
   api-key: ${ASSISTANT_API_KEY:}
   model: ${ASSISTANT_MODEL:llama-3.3-70b-versatile}
   timeout-seconds: ${ASSISTANT_TIMEOUT_SECONDS:30}
-  max-tokens: ${ASSISTANT_MAX_TOKENS:700}
+  max-tokens: ${ASSISTANT_MAX_TOKENS:2000}
   temperature: ${ASSISTANT_TEMPERATURE:0.4}
   anon-message-limit: ${ASSISTANT_ANON_LIMIT:2}      # giriş yapmayan kullanıcı için toplam mesaj hakkı
   user-daily-limit: ${ASSISTANT_USER_DAILY_LIMIT:50} # giriş yapan kullanıcı için günlük mesaj hakkı
