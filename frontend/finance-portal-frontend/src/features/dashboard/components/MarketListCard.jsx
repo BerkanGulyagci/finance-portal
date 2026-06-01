@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, X } from 'lucide-react';
 import DashCard from './DashCard';
-import StockLogo from './StockLogo';
+import AssetIcon from '../../../components/instrument/AssetIcon';
 import { getWatchlistDetailPath } from '../../portfolio';
 import InstrumentSearchModal from '../../../components/instrument/InstrumentSearchModal';
-import { getMarketPriceHistory } from '../../../api/marketApi';
+import { getMarketPriceHistory, getAllCryptoCoins } from '../../../api/marketApi';
 import { fmtMoney, fmtPct, pctClass, num } from '../utils/dashUtils';
 import { useTranslation } from '../../../context/LanguageContext';
 import { prefGet, prefSet } from '../../../api/prefs';
@@ -16,15 +16,29 @@ function readList(key) {
 }
 function saveList(key, v) { prefSet(key, v); }
 
-function Avatar({ row }) {
-  if (row.logoKind === 'stock') return <StockLogo symbol={row.symbol} name={row.name} />;
-  if (row.image) return <img src={row.image} alt="" className="w-7 h-7 rounded-full shrink-0" />;
-  const letter = String(row.symbol || '?').charAt(0).toUpperCase();
-  return (
-    <span className="w-7 h-7 rounded-full bg-gray-100 text-gray-500 text-[11px] font-bold flex items-center justify-center shrink-0">
-      {letter}
-    </span>
-  );
+// Görseli olmayan özel kripto satırları için sembol/ad/coinId → CoinGecko görseli çözer (cache'li liste).
+async function resolveCryptoImages(defs) {
+  if (!defs.some(d => d.assetType === 'CRYPTO' && !d.image)) return new Map();
+  try {
+    const coins = await getAllCryptoCoins('try');
+    const idx = new Map();
+    for (const c of coins || []) {
+      if (c.id) idx.set('id:' + c.id, c);
+      const nm = (c.name || '').toLowerCase();
+      if (nm && !idx.has('nm:' + nm)) idx.set('nm:' + nm, c);
+      const sy = (c.symbol || '').toUpperCase();
+      if (sy && !idx.has('sy:' + sy)) idx.set('sy:' + sy, c); // ilk eşleşme (market cap sırası)
+    }
+    return idx;
+  } catch {
+    return new Map();
+  }
+}
+function cryptoImageFrom(idx, d) {
+  const hit = (d.id && idx.get('id:' + d.id))
+    || idx.get('nm:' + String(d.name || '').toLowerCase())
+    || idx.get('sy:' + String(d.symbol || '').toUpperCase());
+  return hit?.image ?? null;
 }
 
 /**
@@ -42,15 +56,20 @@ export default function MarketListCard({
   useEffect(() => {
     let cancelled = false;
     if (!customDefs.length) { setCustomRows([]); return undefined; }
-    Promise.all(customDefs.map(async d => {
-      try {
-        const data = await getMarketPriceHistory(d.assetType, d.symbol, '1M');
-        const closes = (data?.closePrices ?? []).map(Number).filter(v => Number.isFinite(v) && v > 0);
-        if (!closes.length) return { ...d, custom: true, price: null, changePct: null };
-        const last = closes[closes.length - 1], first = closes[0];
-        return { ...d, custom: true, price: last, changePct: first ? ((last - first) / first) * 100 : null };
-      } catch { return { ...d, custom: true, price: null, changePct: null }; }
-    })).then(rows => { if (!cancelled) setCustomRows(rows); });
+    (async () => {
+      const cgIdx = await resolveCryptoImages(customDefs); // kripto logoları için (cache'li)
+      const rows = await Promise.all(customDefs.map(async d => {
+        const image = d.image ?? (d.assetType === 'CRYPTO' ? cryptoImageFrom(cgIdx, d) : null);
+        try {
+          const data = await getMarketPriceHistory(d.assetType, d.symbol, '1M');
+          const closes = (data?.closePrices ?? []).map(Number).filter(v => Number.isFinite(v) && v > 0);
+          if (!closes.length) return { ...d, custom: true, image, price: null, changePct: null };
+          const last = closes[closes.length - 1], first = closes[0];
+          return { ...d, custom: true, image, price: last, changePct: first ? ((last - first) / first) * 100 : null };
+        } catch { return { ...d, custom: true, image, price: null, changePct: null }; }
+      }));
+      if (!cancelled) setCustomRows(rows);
+    })();
     return () => { cancelled = true; };
   }, [customDefs]);
 
@@ -59,7 +78,11 @@ export default function MarketListCard({
     setCustomDefs(prev => {
       if (prev.some(d => d.assetType === inst.assetType
         && String(d.symbol).toUpperCase() === String(inst.symbol).toUpperCase())) return prev;
-      const next = [...prev, { assetType: inst.assetType, symbol: inst.symbol, name: inst.name || inst.symbol }];
+      const next = [...prev, {
+        assetType: inst.assetType, symbol: inst.symbol, name: inst.name || inst.symbol,
+        ...(inst.image ? { image: inst.image } : {}),
+        ...(inst.id ? { id: inst.id } : {}),
+      }];
       saveList(storageKey, next); return next;
     });
   }
@@ -70,8 +93,8 @@ export default function MarketListCard({
     });
   }
 
-  const defaults = defaultRows.map(r => ({ ...r, logoKind, assetType: r.assetType || type }));
-  const customs = customRows.map(r => ({ ...r, logoKind: r.assetType === 'CRYPTO' ? 'letter' : logoKind }));
+  const defaults = defaultRows.map(r => ({ ...r, assetType: r.assetType || type }));
+  const customs = customRows;
 
   const action = (
     <button
@@ -89,7 +112,7 @@ export default function MarketListCard({
     const inner = (
       <>
         <span className="flex items-center gap-2 min-w-0">
-          <Avatar row={row} />
+          <AssetIcon assetType={row.assetType || type} symbol={row.symbol} name={row.name} image={row.image} size={28} />
           <span className="min-w-0">
             <span className="block text-sm font-semibold text-gray-900 truncate">{row.symbol}</span>
             {row.name && row.name !== row.symbol && (

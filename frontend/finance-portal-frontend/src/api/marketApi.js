@@ -113,6 +113,16 @@ export async function getStockChart(symbol, range = '1d', interval = '1m') {
   return data.data ?? null;
 }
 
+/** Tek sembolün güncel fiyatı + günlük % değişimi (endeksler dahil: XU100.IS, XU030.IS, XU050.IS). */
+export async function getStockQuote(symbol) {
+  const normalized = normalizeBistSymbol(symbol);
+  const { data } = await client.get(`/api/market/stocks/${encodeURIComponent(normalized)}`);
+  const d = data.data ?? null;
+  if (!d) return null;
+  const s = d.summary ?? {};
+  return { symbol: d.symbol, name: d.name, price: s.price, changePercent: s.changePercent, currency: d.currency };
+}
+
 /** Tür-bağımsız tarihsel TL fiyat serisi (hisse karşılaştırmada cross-enstrüman için). */
 export async function getMarketPriceHistory(assetType, symbol, range = '1Y') {
   const { data } = await client.get('/api/market/price-history', {

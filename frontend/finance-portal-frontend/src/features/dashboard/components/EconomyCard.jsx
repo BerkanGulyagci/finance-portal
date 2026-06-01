@@ -20,16 +20,19 @@ function IndicatorRow({ icon: Icon, tone, label, value, changePct }) {
   );
 }
 
+const bistFmt = v => num(v).toLocaleString('tr-TR', { maximumFractionDigits: 0 });
+
 /**
- * Ekonomi göstergeleri — Enflasyon (TÜFE yıllık), Politika Faizi, Dolar/TL, BIST 100.
- * `eco`: { inflation, policyRate, usdTry, usdChange, bist100, bistChange }
+ * Ekonomi göstergeleri — Enflasyon (TÜFE yıllık), Politika Faizi, Dolar/TL, BIST 100/30/50.
+ * `eco`: { inflation, policyRate, usdTry, usdChange, bist100, bistChange,
+ *          bist30, bist30Change, bist50, bist50Change }
  */
 export default function EconomyCard({ eco }) {
   const { t } = useTranslation();
   const has = v => v != null && Number.isFinite(num(v));
 
   return (
-    <DashCard title={t('Ekonomi Göstergeleri')} icon={Activity} accent="#7c3aed"
+    <DashCard title={t('Ekonomi Göstergeleri')} icon={Activity} accent="#7c3aed" scroll
       action={<CardLink to="/market/economy">{t('Tümü')}</CardLink>}>
       <div className="divide-y divide-gray-50">
         <IndicatorRow icon={Activity} tone="bg-rose-50 text-rose-600"
@@ -44,8 +47,16 @@ export default function EconomyCard({ eco }) {
           changePct={has(eco?.usdChange) ? num(eco.usdChange) : null} />
         <IndicatorRow icon={BarChart3} tone="bg-[#093eaa]/10 text-[#093eaa]"
           label={t('BIST 100')}
-          value={has(eco?.bist100) ? num(eco.bist100).toLocaleString('tr-TR', { maximumFractionDigits: 0 }) : '—'}
+          value={has(eco?.bist100) ? bistFmt(eco.bist100) : '—'}
           changePct={has(eco?.bistChange) ? num(eco.bistChange) : null} />
+        <IndicatorRow icon={BarChart3} tone="bg-[#093eaa]/10 text-[#093eaa]"
+          label={t('BIST 30')}
+          value={has(eco?.bist30) ? bistFmt(eco.bist30) : '—'}
+          changePct={has(eco?.bist30Change) ? num(eco.bist30Change) : null} />
+        <IndicatorRow icon={BarChart3} tone="bg-[#093eaa]/10 text-[#093eaa]"
+          label={t('BIST 50')}
+          value={has(eco?.bist50) ? bistFmt(eco.bist50) : '—'}
+          changePct={has(eco?.bist50Change) ? num(eco.bist50Change) : null} />
       </div>
     </DashCard>
   );

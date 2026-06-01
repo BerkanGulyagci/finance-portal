@@ -226,6 +226,7 @@ async function fetchAll(type) {
         symbol: c.symbol?.toUpperCase() ?? '',
         name: c.name ?? c.symbol ?? '',
         id: c.id,
+        image: c.image ?? null,
       }));
     }
 

@@ -49,6 +49,9 @@ frontend/**/dist/
 
 ### Temp / scratch test payloads ###
 tmp-*.json
+*.tmp.log
+_all_symbols.txt
+dashpage.diff.txt
 
 ### ApacheDS runtime instance data (bind-mounted; the container regenerates ###
 ### it on first run and rewrites the DB/logs/locks constantly — not source). ###
