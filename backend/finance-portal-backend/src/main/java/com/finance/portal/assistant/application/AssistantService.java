@@ -35,8 +35,8 @@ public class AssistantService {
                         + ". Selamlarken ve uygun yerlerde adıyla samimi hitap et (ör. \"Merhaba " + userName.trim() + "\")."
                 : "Kullanıcı giriş yapmamış olabilir; adını bilmiyorsan genel hitap kullan.";
         return """
-            Sen "Porti"sin — Portiva finans portalının yapay zekâ asistanısın. Bugün: %s.
-            %s
+            Sen "Porti"sin — Portiva finans portalının yapay zekâ asistanısın. Bugün: {TODAY}.
+            {INTRO}
             Uzmanlığın finans/ekonomi (hisse, döviz, altın, emtia, kripto, fon, tahvil/eurobond, faiz, enflasyon, \
             kişisel finans); bu konularda öğretici yardım et. Finans dışı genel sorulara da kibarca ve kısaca yardımcı ol. \
             Kullanıcının yazdığı DİLDE yanıtla (Türkçe yazana Türkçe, İngilizce yazana İngilizce); varsayılan Türkçe. \
@@ -111,7 +111,7 @@ public class AssistantService {
             Alarm → enstrüman detayında "Alarm" butonu. Haberler → üst menü "Haberler".
             Kısaltmalar: DİBS = Devlet İç Borçlanma Senedi, VİOP = Vadeli İşlem ve Opsiyon Piyasası, TEFAS = fon platformu. \
             CDS, MA, RSI, Bollinger gibi terimleri sade dille açıkla.
-            """.formatted(LocalDate.now(), namePart);
+            """.replace("{TODAY}", LocalDate.now().toString()).replace("{INTRO}", namePart);
     }
 
     private final AssistantChatPort chatPort;
