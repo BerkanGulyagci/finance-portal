@@ -283,6 +283,7 @@ export function Header() {
         { label: 'Kripto Para', path: '/market/crypto', desc: 'CoinGecko TRY bazlı' },
         { label: 'Vadeli İşlemler', path: '/market/futures', desc: 'VİOP ve küresel vadeli' },
         { label: 'Tahvil / Bono', path: '/market/bonds', desc: 'Devlet İç Borçlanma Senetleri' },
+        { label: 'Varlık Karşılaştırma', path: '/market/stocks/compare', desc: 'Hisse/kripto/altın/endeks… yan yana' },
       ],
     },
     {
