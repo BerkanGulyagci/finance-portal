@@ -8,7 +8,6 @@ import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResu
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.AssetReturn;
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.AssetSignal;
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.BenchmarkItem;
-import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.MonteCarlo;
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.RiskMetrics;
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.StressTest;
 import org.slf4j.Logger;
@@ -69,8 +68,9 @@ public class PortfolioAiNarrator {
                sadece listeleme.
             5. **Varlık Vurguları** — öne çıkan 3-5 varlığın teknik sinyali (trend/52h/momentum) + getirisi (madde).
             6. **Benchmark & Reel Getiri** — enflasyonu yendi mi, endekslere göre ÖNDE mi GERİDE mi.
-            7. **Kısa-Vade Görünüm** — Monte Carlo aralığını (medyan + %5/%95 + kayıp olasılığı) dengeli yorumla;
-               kesin tahmin DEĞİL, olası senaryo.
+            7. **Gelecek Görünüm** — 1 ay / 3 ay / 1 yıl için verilen aralıkları (medyan + %5/%95 + kayıp olasılığı)
+               yorumla VE her ufuk için bir YÖN tahmini ver (yukarı eğilimli / aşağı riskli / belirsiz) + kısa gerekçe.
+               Öne çıkan 2-3 varlığın da yönünü söyle. Kesin tahmin DEĞİL; geçmişin süreceği varsayımıyla olası senaryo.
             8. **Ne Yapılabilir (Yön)** — riski azaltma/iyileştirme YÖNÜNÜ söyle (al-sat DEĞİL; ör. "korelasyonu
                düşük bir tip eklemek yoğunlaşma riskini azaltır" gibi mantık), nihai kararın kullanıcıda olduğunu belirt.
             9. **Genel Çıkarım** (1-2 cümle, tavsiye değil değerlendirme).
@@ -188,14 +188,24 @@ public class PortfolioAiNarrator {
                 b.append("\n");
             }
         }
-        MonteCarlo mc = r.getMonteCarlo();
-        if (mc != null && mc.available()) {
-            b.append("- Monte Carlo projeksiyonu (").append(mc.horizonMonths())
-                    .append(" ay, lognormal/GBM): medyan değer ").append(money(mc.medianEndValue()))
-                    .append(" TL (medyan getiri %").append(pct(mc.expectedReturnPercent())).append("), olası aralık %5: ")
-                    .append(money(mc.p5EndValue())).append(" TL – %95: ").append(money(mc.p95EndValue()))
-                    .append(" TL; nominal kayıp olasılığı %").append(pct(mc.probLossPercent()))
-                    .append(". Bu kesin tahmin DEĞİL, geçmiş getiri/volatilitenin süreceği varsayımıyla olası senaryodur.\n");
+        var fc = r.getForecast();
+        if (fc != null && fc.available() && fc.portfolioHorizons() != null && !fc.portfolioHorizons().isEmpty()) {
+            b.append("- Çok-ufuklu tahmin (Monte Carlo/lognormal; aralıkları KOD üretti — sen YORUMLA + YÖN ver):\n");
+            for (var hzn : fc.portfolioHorizons()) {
+                b.append("    ").append(hzn.label()).append(": medyan ").append(money(hzn.median()))
+                        .append(" TL (medyan getiri %").append(pct(hzn.expectedReturnPercent()))
+                        .append("), aralık %5: ").append(money(hzn.p5())).append(" – %95: ").append(money(hzn.p95()))
+                        .append(" TL, kayıp olasılığı %").append(pct(hzn.probLossPercent())).append("\n");
+            }
+            if (fc.assetForecasts() != null && !fc.assetForecasts().isEmpty()) {
+                b.append("  Varlık medyan getiri tahmini (1ay/3ay/1y) + trend:\n");
+                for (var a : fc.assetForecasts()) {
+                    b.append("    ").append(a.name()).append(" [").append(a.trend()).append("]: 1a %")
+                            .append(pct(a.return1mPercent())).append(", 3a %").append(pct(a.return3mPercent()))
+                            .append(", 1y %").append(pct(a.return12mPercent())).append("\n");
+                }
+            }
+            b.append("  Kesin tahmin DEĞİL; her ufuk için yön (yukarı/aşağı/belirsiz) + gerekçe yorumla.\n");
         }
         if (r.getRebalance() != null && r.getRebalance().items() != null && !r.getRebalance().items().isEmpty()) {
             var rb = r.getRebalance();

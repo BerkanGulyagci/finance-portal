@@ -3,9 +3,12 @@ package com.finance.portal.portfolio.service;
 import com.finance.portal.common.domain.AssetType;
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult;
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.AllocationSlice;
+import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.AssetForecast;
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.AssetReturn;
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.AssetSignal;
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.BenchmarkItem;
+import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.Forecast;
+import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.ForecastHorizon;
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.Classification;
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.Concentration;
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.RiskMetrics;
@@ -199,6 +202,8 @@ public class PortfolioAnalysisService {
         // Yeniden dengeleme: tespit edilen profile göre örnek hedef vs mevcut (kullanıcı profili anketle değiştirebilir).
         r.setRebalance(rebalanceService.compute(currentTypePercents(r),
                 r.getClassification() != null ? r.getClassification().profile() : "BALANCED"));
+        // Çok-ufuklu tahmin (1ay/3ay/1y): kod aralık üretir, AI yön/anlatı yorumlar.
+        r.setForecast(buildForecast(rows, totalValue, metrics, r.getAssetSignals()));
 
         // ── AI yorum (graceful degrade) ─────────────────────────────────────────
         try {
@@ -569,6 +574,74 @@ public class PortfolioAnalysisService {
                     h.getAssetType(), h.getSymbol(), row.mvTry().doubleValue() / t));
         }
         return out;
+    }
+
+    // ── Çok-ufuklu tahmin (Monte Carlo aralık + varlık-bazlı medyan getiri) ─────
+
+    private static final int[] FORECAST_MONTHS = {1, 3, 12};
+    private static final String[] FORECAST_LABELS = {"1 Ay", "3 Ay", "1 Yıl"};
+    private static final int FORECAST_TOP_ASSETS = 6;
+
+    private Forecast buildForecast(List<HoldingTry> rows, BigDecimal totalValue, RiskMetrics metrics,
+                                   List<AssetSignal> signals) {
+        if (metrics == null || !metrics.available() || totalValue == null || totalValue.signum() <= 0
+                || metrics.annualReturnPercent() == null || metrics.annualVolatilityPercent() == null) {
+            return new Forecast(List.of(), List.of(), false,
+                    "Risk metrikleri için geçmiş yetersiz; sayısal tahmin üretilemedi.");
+        }
+        // Portföy ufukları — mevcut MC motoru her ufukta (kapalı-form lognormal).
+        List<ForecastHorizon> ph = new ArrayList<>();
+        for (int i = 0; i < FORECAST_MONTHS.length; i++) {
+            var mc = monteCarloService.project(totalValue, metrics.annualReturnPercent(),
+                    metrics.annualVolatilityPercent(), FORECAST_MONTHS[i]);
+            if (mc.available()) {
+                ph.add(new ForecastHorizon(FORECAST_LABELS[i], FORECAST_MONTHS[i], mc.medianEndValue(),
+                        mc.p5EndValue(), mc.p95EndValue(), mc.expectedReturnPercent(), mc.probLossPercent()));
+            }
+        }
+
+        Map<String, String> trendBySymbol = new LinkedHashMap<>();
+        if (signals != null) {
+            for (AssetSignal s : signals) {
+                trendBySymbol.put(s.symbol(), s.trend());
+            }
+        }
+
+        // Varlık tahminleri — ağırlıkça en büyük FORECAST_TOP_ASSETS pozisyon (maliyeti sınırla).
+        List<HoldingTry> top = new ArrayList<>(rows);
+        top.sort(Comparator.comparing(HoldingTry::mvTry, Comparator.reverseOrder()));
+        List<AssetForecast> af = new ArrayList<>();
+        int n = 0;
+        for (HoldingTry row : top) {
+            if (n >= FORECAST_TOP_ASSETS) {
+                break;
+            }
+            PortfolioHoldingResponse h = row.h();
+            if (h.getSymbol() == null || h.getSymbol().isBlank() || h.getAssetType() == null) {
+                continue;
+            }
+            n++;
+            String label = (h.getName() != null && !h.getName().isBlank()) ? h.getName() : h.getSymbol();
+            String trend = trendBySymbol.getOrDefault(h.getSymbol(), "NEUTRAL");
+            RiskMetrics am = historicalRiskService.computeFromHoldings(
+                    List.of(new PortfolioHistoricalRiskService.Position(h.getAssetType(), h.getSymbol(), 1.0)), 12);
+            af.add(new AssetForecast(h.getSymbol(), label, pctOf(row.mvTry(), totalValue), trend,
+                    assetMedianReturn(am, 1), assetMedianReturn(am, 3), assetMedianReturn(am, 12)));
+        }
+
+        return new Forecast(ph, af, !ph.isEmpty(),
+                "Geçmiş getiri/volatilitenin süreceği varsayımıyla olası senaryo; kesin tahmin değildir.");
+    }
+
+    /** Tek varlığın bir ufuktaki MEDYAN getirisi (%) — MC motorunun expectedReturn'ü (lognormal medyan). */
+    private BigDecimal assetMedianReturn(RiskMetrics am, int months) {
+        if (am == null || !am.available() || am.annualReturnPercent() == null
+                || am.annualVolatilityPercent() == null) {
+            return null;
+        }
+        var mc = monteCarloService.project(BigDecimal.valueOf(100), am.annualReturnPercent(),
+                am.annualVolatilityPercent(), months);
+        return mc.available() ? mc.expectedReturnPercent() : null;
     }
 
     /** Hesaplanmış tip-dağılımından (tip enum adı → %) — rebalancing girdisi. */

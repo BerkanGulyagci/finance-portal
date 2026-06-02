@@ -145,6 +145,15 @@ class PortfolioAnalysisServiceTest {
         var stock = rb.items().stream().filter(i -> "STOCK".equals(i.assetType())).findFirst().orElseThrow();
         assertThat(stock.currentPercent().doubleValue()).isGreaterThan(stock.targetPercent().doubleValue());
         assertThat(stock.action()).isEqualTo("AZALT"); // hisse hedefin üstünde
+
+        // Çok-ufuklu tahmin: portföy 1ay/3ay/1y aralıkları (metrikler mevcut → available)
+        var fc = r.getForecast();
+        assertThat(fc).isNotNull();
+        assertThat(fc.available()).isTrue();
+        assertThat(fc.portfolioHorizons()).hasSize(3);
+        assertThat(fc.portfolioHorizons()).extracting(PortfolioAiAnalysisResult.ForecastHorizon::label)
+                .containsExactly("1 Ay", "3 Ay", "1 Yıl");
+        assertThat(fc.assetForecasts()).isNotEmpty(); // varlık-bazlı (hist mock'landığı için getiri null olabilir)
     }
 
     @Test

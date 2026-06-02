@@ -9,6 +9,7 @@ import {
 } from 'recharts';
 import { getPortfolioAiAnalysis } from '../../api/portfolioApi';
 import RebalanceCard from './analysis/RebalanceCard';
+import ForecastCard from './analysis/ForecastCard';
 
 const fmtMoney = (v) => (v == null ? '—' : Number(v).toLocaleString('tr-TR', { maximumFractionDigits: 0 }) + ' ₺');
 const fmtPct = (v) => (v == null ? '—' : `%${Number(v).toLocaleString('tr-TR', { maximumFractionDigits: 2 })}`);
@@ -345,6 +346,9 @@ export default function AiAnalysisPage() {
           <p className="text-[11px] text-gray-400 mt-1 leading-snug">{mc.note}</p>
         </Card>
       )}
+
+      {/* Çok-ufuklu tahmin (1ay/3ay/1y + varlık-bazlı) */}
+      {data.forecast && <ForecastCard forecast={data.forecast} />}
 
       {/* Tarihsel stres testleri */}
       {data.stressTests?.some((s) => s.available) && (

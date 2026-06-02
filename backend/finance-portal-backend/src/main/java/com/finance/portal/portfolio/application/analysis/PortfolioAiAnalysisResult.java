@@ -83,6 +83,9 @@ public class PortfolioAiAnalysisResult {
     // ── Yeniden dengeleme (risk profiline göre hedef dağılım vs mevcut) ─────────
     private Rebalance rebalance;
 
+    // ── Çok-ufuklu tahmin (1ay/3ay/1y): kod aralık üretir, AI yön/anlatı yorumlar ─
+    private Forecast forecast;
+
     // ── AI yorum raporu ─────────────────────────────────────────────────────────
     /** LLM'in ürettiği Türkçe yorum; LLM kullanılamazsa null (graceful degrade). */
     private String aiReport;
@@ -168,4 +171,20 @@ public class PortfolioAiAnalysisResult {
     /** Tek tip için mevcut vs hedef ağırlık ve önerilen yön. action: ARTIR | AZALT | KORU. */
     public record RebalanceItem(String assetType, String label, BigDecimal currentPercent,
                                 BigDecimal targetPercent, BigDecimal deltaPercent, String action) {}
+
+    /**
+     * Çok-ufuklu tahmin: SAYISAL aralık (Monte Carlo/lognormal) KOD'da üretilir; AI bu aralıkları + teknik
+     * sinyalleri yorumlayıp YÖN/anlatı tahmini yapar (aiReport "Gelecek Görünüm" bölümü). available=false ise
+     * geçmiş yetersiz. portfolioHorizons = portföy 1ay/3ay/1y; assetForecasts = öne çıkan varlıklar.
+     */
+    public record Forecast(List<ForecastHorizon> portfolioHorizons, List<AssetForecast> assetForecasts,
+                           boolean available, String note) {}
+
+    /** Portföyün bir ufuktaki olası değer aralığı (TL) + medyan getiri & kayıp olasılığı. */
+    public record ForecastHorizon(String label, int months, BigDecimal median, BigDecimal p5, BigDecimal p95,
+                                  BigDecimal expectedReturnPercent, BigDecimal probLossPercent) {}
+
+    /** Tek varlığın ufuk-bazlı MEDYAN getiri tahmini (%) + trend yönü. null = geçmiş yetersiz. */
+    public record AssetForecast(String symbol, String name, BigDecimal weightPercent, String trend,
+                                BigDecimal return1mPercent, BigDecimal return3mPercent, BigDecimal return12mPercent) {}
 }
