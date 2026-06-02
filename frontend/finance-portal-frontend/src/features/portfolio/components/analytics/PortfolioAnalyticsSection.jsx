@@ -14,7 +14,7 @@ export default function PortfolioAnalyticsSection({ holdings, valuesHidden, curr
     key: c.key,
     w: c.w,
     h: c.h,
-    node: <c.Comp holdings={holdings} valuesHidden={valuesHidden} currency={currency} />,
+    node: <c.Comp holdings={holdings} valuesHidden={valuesHidden} currency={currency} portfolioId={portfolioId} />,
   }));
 
   return (

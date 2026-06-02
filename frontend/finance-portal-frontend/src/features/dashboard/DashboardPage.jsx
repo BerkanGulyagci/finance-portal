@@ -322,7 +322,7 @@ export default function DashboardPage() {
             </button>
           </div>
           <div className="flex-1 min-h-0 overflow-auto">
-            <Comp holdings={pf.holdings ?? []} valuesHidden={false} currency={pf.currency} />
+            <Comp holdings={pf.holdings ?? []} valuesHidden={false} currency={pf.currency} portfolioId={pc.portfolioId} />
           </div>
         </div>
       ),

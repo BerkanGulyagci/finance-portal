@@ -61,6 +61,22 @@ export async function getPortfolioAiAnalysis(portfolioId) {
   return wrapper.data;
 }
 
+// Paylaşımlı AI analiz cache — aynı portföyün birden çok kartı (Risk/Sağlık/Monte Carlo/Kimlik widget'ları)
+// tek istek atsın diye (TTL 5 dk; portföy bazında promise dedupe).
+const _aiAnalysisCache = new Map(); // portfolioId -> { at, promise }
+const AI_ANALYSIS_TTL_MS = 5 * 60 * 1000;
+
+export function getPortfolioAiAnalysisShared(portfolioId) {
+  const hit = _aiAnalysisCache.get(portfolioId);
+  if (hit && Date.now() - hit.at < AI_ANALYSIS_TTL_MS) return hit.promise;
+  const promise = getPortfolioAiAnalysis(portfolioId).catch((e) => {
+    _aiAnalysisCache.delete(portfolioId);
+    throw e;
+  });
+  _aiAnalysisCache.set(portfolioId, { at: Date.now(), promise });
+  return promise;
+}
+
 /**
  * Yeniden dengeleme: seçilen risk profiline göre örnek hedef dağılım vs mevcut (eğitsel).
  * profile: CONSERVATIVE | BALANCED | AGGRESSIVE.
