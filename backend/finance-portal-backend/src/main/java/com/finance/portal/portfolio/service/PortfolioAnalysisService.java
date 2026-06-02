@@ -581,6 +581,12 @@ public class PortfolioAnalysisService {
     private static final int[] FORECAST_MONTHS = {1, 3, 12};
     private static final String[] FORECAST_LABELS = {"1 Ay", "3 Ay", "1 Yıl"};
     private static final int FORECAST_TOP_ASSETS = 6;
+    /**
+     * Varlık-bazlı tahminde geçmiş getiriyi ORTALAMAYA DÖNÜŞ için törpüleme katsayısı (0-1).
+     * Geçmiş getiri, gelecek getirinin zayıf bir göstergesidir; çok çıkmış/çok düşmüş varlığın
+     * trendini olduğu gibi uzatmak abartılı olur → yıllık getiriyi nötre (0) doğru yarıya çekeriz.
+     */
+    private static final double ASSET_FORECAST_DAMPING = 0.5;
 
     private Forecast buildForecast(List<HoldingTry> rows, BigDecimal totalValue, RiskMetrics metrics,
                                    List<AssetSignal> signals) {
@@ -633,13 +639,18 @@ public class PortfolioAnalysisService {
                 "Geçmiş getiri/volatilitenin süreceği varsayımıyla olası senaryo; kesin tahmin değildir.");
     }
 
-    /** Tek varlığın bir ufuktaki MEDYAN getirisi (%) — MC motorunun expectedReturn'ü (lognormal medyan). */
+    /**
+     * Tek varlığın bir ufuktaki MEDYAN getirisi (%) — MC motorunun expectedReturn'ü (lognormal medyan).
+     * Yıllık getiri, aşırı trend uzatmasını önlemek için ortalamaya dönüş katsayısıyla törpülenir
+     * (volatilite OLDUĞU GİBİ kalır — belirsizlik bandı daralmaz, sadece sürüklenme yumuşar).
+     */
     private BigDecimal assetMedianReturn(RiskMetrics am, int months) {
         if (am == null || !am.available() || am.annualReturnPercent() == null
                 || am.annualVolatilityPercent() == null) {
             return null;
         }
-        var mc = monteCarloService.project(BigDecimal.valueOf(100), am.annualReturnPercent(),
+        BigDecimal dampedReturn = am.annualReturnPercent().multiply(BigDecimal.valueOf(ASSET_FORECAST_DAMPING));
+        var mc = monteCarloService.project(BigDecimal.valueOf(100), dampedReturn,
                 am.annualVolatilityPercent(), months);
         return mc.available() ? mc.expectedReturnPercent() : null;
     }

@@ -67,7 +67,8 @@ export default function ForecastCard({ forecast }) {
                 </tbody>
               </table>
               <p className="text-[10px] text-gray-400 mt-1.5">
-                Varlık değerleri medyan (en olası) getiri tahminidir; trend = fiyatın MA20/MA50'ye göre yönü.
+                Varlık değerleri medyan (en olası) getiri tahminidir; aşırı geçmiş getiriler ortalamaya dönüş
+                için yumuşatılmıştır. Trend = fiyatın MA20/MA50'ye göre yönü.
               </p>
             </div>
           )}
