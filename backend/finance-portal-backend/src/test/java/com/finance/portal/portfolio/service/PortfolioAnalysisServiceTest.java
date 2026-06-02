@@ -22,6 +22,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -37,6 +38,7 @@ class PortfolioAnalysisServiceTest {
     @Mock private PortfolioWhatIfService whatIfService;
     @Mock private PortfolioCurrencyConverter currencyConverter;
     @Mock private PortfolioStressTestService stressTestService;
+    @Mock private PortfolioHistoricalRiskService historicalRiskService;
     @Mock private PortfolioAiNarrator narrator;
 
     // Gerçek MC servisi (dış bağımlılığı yok) — projeksiyon entegrasyonunu da doğrular.
@@ -49,7 +51,10 @@ class PortfolioAnalysisServiceTest {
     @BeforeEach
     void setUp() {
         service = new PortfolioAnalysisService(portfolioService, whatIfService, currencyConverter,
-                stressTestService, monteCarloService, narrator);
+                stressTestService, historicalRiskService, monteCarloService, narrator);
+        // Tarihsel risk servisi varsayılan "yok" → analiz, what-if oran serisi yöntemine düşer (bu testin kapsamı).
+        when(historicalRiskService.computeFromHoldings(any(), anyInt())).thenReturn(
+                new PortfolioAiAnalysisResult.RiskMetrics(null, null, null, null, null, null, 0, false, "hist yok"));
         // toTry: TRY varsayımı (identity).
         when(currencyConverter.toTry(any(), any())).thenAnswer(inv -> inv.getArgument(0));
         when(narrator.generate(any(), any(), any(), any())).thenReturn("Test yorum raporu.");

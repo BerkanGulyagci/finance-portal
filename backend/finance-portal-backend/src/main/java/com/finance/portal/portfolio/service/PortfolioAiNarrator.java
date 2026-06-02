@@ -49,6 +49,12 @@ public class PortfolioAiNarrator {
             - Kısa paragraflar + madde işaretleri kullan. Abartı yok, net ol; somut sayılara atıf yap.
             - Kısa-vade görünümde KESİN tahmin yapma; verilen Monte Carlo aralığını "olası senaryo" olarak
               aktar, belirsizliği vurgula.
+            - ÜSLUP: Aynı kalıbı TEKRARLAMA. Her maddeyi "Bu, ... anlamına geliyor" / "... gösteriyor" gibi
+              AYNI ifadeyle BİTİRME. Cümle yapısını çeşitlendir, doğal ve akıcı yaz; gereksiz dolgu cümle ekleme.
+            - Benchmark yorumunda sana verilen ÖNDE/GERİDE etiketini KULLAN; NEGATİF farkı "daha iyi" deme
+              (negatif fark = portföy GERİDE).
+            - SADECE Türkçe yaz; başka dilden kelime/karakter (ör. Çince) KARIŞTIRMA.
+            - Her başlığı KENDİ SATIRINDA ve **kalın** yaz (ör. "**Güçlü Yönler**").
 
             RAPOR YAPISI (başlıkları KULLAN):
             1. **Portföy Kimliği** — verilen profili (Agresif/Dengeli/Korumacı) ve büyüme/korumacı ağırlığını
@@ -57,7 +63,7 @@ public class PortfolioAiNarrator {
             3. **Riskler & Dikkat Edilecekler** (madde) — özellikle yoğunlaşma, volatilite, yüksek-riskli varlıklar.
             4. **Varlık Vurguları** — öne çıkan 3-5 varlığın teknik sinyalini (trend/52h konumu/momentum) ve
                getirisini kısaca yorumla (madde).
-            5. **Benchmark & Reel Getiri** — enflasyonu yendi mi, endekslere göre durum.
+            5. **Benchmark & Reel Getiri** — enflasyonu yendi mi, endekslere göre ÖNDE mi GERİDE mi.
             6. **Kısa-Vade Görünüm** — Monte Carlo aralığını (medyan + %5/%95 + kayıp olasılığı) dengeli yorumla;
                kesin tahmin DEĞİL, olası senaryo.
             7. **Genel Çıkarım** (1-2 cümle, tavsiye değil değerlendirme).
@@ -130,10 +136,19 @@ public class PortfolioAiNarrator {
         appendAssets(b, "- En çok kazandıran", r.getTopGainers());
         appendAssets(b, "- En çok kaybettiren", r.getTopLosers());
         if (r.getBenchmarks() != null && !r.getBenchmarks().isEmpty()) {
-            b.append("- Benchmark (aynı parayı o araca koysaydın getiri; fark pozitif=portföy önde):\n");
+            b.append("- Benchmark karşılaştırması (aynı parayı o araca koysaydın getirisi vs portföyün). "
+                    + "ÖNDE/GERİDE etiketini OLDUĞU GİBİ kullan; negatif farka 'daha iyi' DEME:\n");
             for (BenchmarkItem bm : r.getBenchmarks()) {
+                java.math.BigDecimal d = bm.deltaVsPortfolio();
+                String rel = d == null ? "karşılaştırılamadı"
+                        : (d.signum() >= 0 ? "portföy ÖNDE" : "portföy GERİDE");
+                java.math.BigDecimal mag = d == null ? null : d.abs();
                 b.append("    ").append(bm.label()).append(": %").append(pct(bm.returnPercent()))
-                        .append(" (fark %").append(pct(bm.deltaVsPortfolio())).append(")\n");
+                        .append(" → ").append(rel);
+                if (mag != null) {
+                    b.append(" (fark %").append(pct(mag)).append(")");
+                }
+                b.append("\n");
             }
         }
         if (r.getStressTests() != null && !r.getStressTests().isEmpty()) {

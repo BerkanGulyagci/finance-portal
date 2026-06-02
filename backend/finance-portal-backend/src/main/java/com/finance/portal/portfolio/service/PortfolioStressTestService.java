@@ -46,6 +46,24 @@ public class PortfolioStressTestService {
             new Crisis("covid2020", "Mart 2020 Covid Çöküşü", "Şub – Mar 2020",
                     LocalDate.of(2020, 2, 19), LocalDate.of(2020, 3, 23)));
 
+    /**
+     * Küratörlü tarihsel kriz faktörleri (varlık tipi → fiyat[bitiş]/fiyat[başlangıç]), TL bazlı yatırımcı
+     * gözünden. Canlı proxy verisi olmayan eski dönemleri kapatır → kapsam ~%100. Stres testinin amacı
+     * "bu ŞOK bugünkü dağılıma çarpsa" olduğundan enstrümanın o tarihte var olup olmaması ALAKASIZ; tipi
+     * temsil eden tarihsel hareket uygulanır. TL kriz dönemlerinde döviz/altın TL'ye karşı KAZANDIRIR.
+     * Tek dürüst istisna: kripto 2008'de yok → tabloda yok → hariç tutulur.
+     */
+    private static final Map<String, Map<String, Double>> FALLBACK_FACTORS = Map.of(
+            "crisis2008", Map.of(
+                    "STOCK", 0.50, "FUND", 0.72, "FUTURE", 0.40, "FX", 1.30,
+                    "GOLD", 1.40, "SILVER", 1.10, "COMMODITY", 0.55, "BOND", 0.96),
+            "crisis2018", Map.of(
+                    "STOCK", 0.83, "FUND", 0.92, "FUTURE", 0.72, "FX", 1.28, "GOLD", 1.27,
+                    "SILVER", 1.18, "COMMODITY", 1.18, "BOND", 0.90, "CRYPTO", 0.92),
+            "covid2020", Map.of(
+                    "STOCK", 0.75, "FUND", 0.88, "FUTURE", 0.62, "FX", 1.08, "GOLD", 1.04,
+                    "SILVER", 0.72, "COMMODITY", 0.45, "BOND", 0.97, "CRYPTO", 0.53));
+
     private final PortfolioHistoricalPricePort pricePort;
     /** Kriz faktörleri tarihsel sabit → kalıcı cache (anahtar: crisisKey + proxy). */
     private final Map<String, Double> factorCache = new ConcurrentHashMap<>();
@@ -113,19 +131,35 @@ public class PortfolioStressTestService {
         return new StressTest(c.key(), c.label(), c.period(), pct, note, true);
     }
 
-    /** Tipin o krizdeki proxy faktörü (fiyat[bitiş]/fiyat[başlangıç]); yoksa null. Tahvil sabit (1.0). */
+    /**
+     * Tipin o krizdeki faktörü (fiyat[bitiş]/fiyat[başlangıç]). ÖNCE canlı proxy verisi (en doğru),
+     * yoksa küratörlü tarihsel tablo (veri boşluğunu kapatır → kapsam ~%100). Yalnız kripto+2008'de
+     * dürüst analog yok → null (şeffafça hariç tutulur).
+     */
     private Double proxyFactor(Crisis c, String type) {
+        if ("CRYPTO".equals(type) && "crisis2008".equals(c.key())) {
+            return null; // kripto 2008'de yok ve dürüst bir karşılığı da yok → hariç
+        }
+        // 1) Canlı proxy verisi (varsa).
         String[] proxy = proxyOf(type);
-        if (proxy == null) {
-            return "BOND".equals(type) ? 1.0 : null; // tahvil ≈ sabit; bilinmeyen tip dışlanır
+        if (proxy != null) {
+            String cacheKey = c.key() + ":" + proxy[1];
+            Double cached = factorCache.get(cacheKey);
+            Double live = (cached != null)
+                    ? (cached == Double.NEGATIVE_INFINITY ? null : cached)
+                    : fetchAndCache(c, proxy);
+            if (live != null) {
+                return live;
+            }
         }
-        String cacheKey = c.key() + ":" + proxy[1];
-        Double cached = factorCache.get(cacheKey);
-        if (cached != null) {
-            return cached == Double.NEGATIVE_INFINITY ? null : cached; // negatif sonsuz = "veri yok" işareti
-        }
+        // 2) Küratörlü tarihsel faktör (tip her durumda temsil edilir).
+        Map<String, Double> table = FALLBACK_FACTORS.get(c.key());
+        return table != null ? table.get(type) : null;
+    }
+
+    private Double fetchAndCache(Crisis c, String[] proxy) {
         Double factor = fetchFactor(proxy[0], proxy[1], c.start(), c.end());
-        factorCache.put(cacheKey, factor != null ? factor : Double.NEGATIVE_INFINITY);
+        factorCache.put(c.key() + ":" + proxy[1], factor != null ? factor : Double.NEGATIVE_INFINITY);
         return factor;
     }
 
@@ -153,14 +187,18 @@ public class PortfolioStressTestService {
         }
     }
 
-    /** Varlık tipi → o dönemde gerçek hareket eden temsilci [assetType, symbol]. */
+    /**
+     * Varlık tipi → o dönemde gerçek hareket eden CANLI temsilci [assetType, symbol]. Veri varsa kullanılır,
+     * yoksa {@code proxyFactor} küratörlü tabloya düşer. COMMODITY/BOND/SILVER/FUND için iyi bir derin-geçmiş
+     * canlı temsilci yok → null döner ve doğrudan tarihsel tablo kullanılır (ör. petrol ≠ altın).
+     */
     private static String[] proxyOf(String type) {
         return switch (type) {
-            case "STOCK", "FUND", "FUTURE" -> new String[]{"STOCK", "XU100.IS"};
+            case "STOCK", "FUTURE" -> new String[]{"STOCK", "XU100.IS"};
             case "CRYPTO" -> new String[]{"CRYPTO", "BTC"};
             case "FX" -> new String[]{"FX", "USD"};
-            case "GOLD", "COMMODITY" -> new String[]{"GOLD", "GRAM"};
-            default -> null; // BOND ve bilinmeyen → proxyFactor'da ele alınır
+            case "GOLD" -> new String[]{"GOLD", "GRAM"};
+            default -> null; // FUND/COMMODITY/SILVER/BOND/bilinmeyen → tarihsel tabloya düşer
         };
     }
 }

@@ -53,10 +53,26 @@ class PortfolioStressTestServiceTest {
     }
 
     @Test
-    void compute_unavailableProxy_marksCrisisUnavailable() {
-        // Hiçbir proxy mock'lanmadı → tüm tipler veri yok (BOND hariç). Sadece kripto → hepsi yok.
+    void compute_cryptoOnly_2008Excluded_recentCrisesCoveredByCuratedTable() {
+        // Kripto canlı verisi yok → küratörlü tabloya düşer. 2008'de kripto analoğu yok (hariç),
+        // 2018 & 2020'de tarihsel faktör var (kapsanır).
         var out = service.compute(Map.of("CRYPTO", 1.0));
-        assertThat(out).allSatisfy(st -> assertThat(st.available()).isFalse());
+        var byKey = out.stream().collect(java.util.stream.Collectors.toMap(StressTest::key, st -> st));
+        assertThat(byKey.get("crisis2008").available()).isFalse();
+        assertThat(byKey.get("crisis2018").available()).isTrue();
+        assertThat(byKey.get("covid2020").available()).isTrue();
+        // Covid kripto faktörü 0.53 → tek-varlık etki ≈ %-47
+        assertThat(byKey.get("covid2020").impactPercent().doubleValue()).isCloseTo(-47.0, offset(1.0));
+    }
+
+    @Test
+    void compute_commodityOnly_allCrisesCoveredByCuratedTable() {
+        // Emtia (petrol) için canlı derin-geçmiş temsilci yok → tarihsel tablo. 3 kriz de kapsanır
+        // ("o tarihte yoktu" diye dışlanmaz). Covid emtia faktörü 0.45 → ≈ %-55.
+        var out = service.compute(Map.of("COMMODITY", 1.0));
+        assertThat(out).hasSize(3).allSatisfy(st -> assertThat(st.available()).isTrue());
+        var byKey = out.stream().collect(java.util.stream.Collectors.toMap(StressTest::key, st -> st));
+        assertThat(byKey.get("covid2020").impactPercent().doubleValue()).isCloseTo(-55.0, offset(1.0));
     }
 
     private void stub(AssetType type, String symbol, double startPrice, double endPrice) {

@@ -55,9 +55,9 @@ function FactorBars({ factors }) {
     <div className="mt-3 space-y-1.5 w-full">
       {factors.map((f) => (
         <div key={f.label} className="text-xs">
-          <div className="flex justify-between text-gray-500">
-            <span title={f.detail}>{f.label}</span>
-            <span className="font-semibold text-gray-700">{f.contribution}</span>
+          <div className="flex justify-between items-baseline gap-3 text-gray-500">
+            <span title={f.detail} className="truncate">{f.label}</span>
+            <span className="font-semibold text-gray-700 shrink-0 tabular-nums">{f.contribution}</span>
           </div>
           <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
             <div className="h-full bg-[#093eaa]/70 rounded-full"
@@ -161,23 +161,38 @@ export default function AiAnalysisPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [progress, setProgress] = useState(8);
 
   useEffect(() => {
     let alive = true;
-    setLoading(true); setError('');
+    setLoading(true); setError(''); setProgress(8);
     getPortfolioAiAnalysis(id)
       .then((d) => { if (alive) setData(d); })
       .catch((e) => { if (alive) setError(e?.response?.data?.message || 'Analiz alınamadı.'); })
-      .finally(() => { if (alive) setLoading(false); });
+      .finally(() => { if (alive) { setProgress(100); setLoading(false); } });
     return () => { alive = false; };
   }, [id]);
 
+  // Analiz sürerken ilerleme çubuğunu ~%92'ye kadar yumuşakça doldur (LLM süresi değişken).
+  useEffect(() => {
+    if (!loading) return undefined;
+    const t = setInterval(() => {
+      setProgress((p) => (p < 92 ? p + Math.max(0.6, (92 - p) * 0.07) : p));
+    }, 350);
+    return () => clearInterval(t);
+  }, [loading]);
+
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center text-gray-500">
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-gray-500 px-4">
         <Sparkles className="w-8 h-8 text-[#093eaa] animate-pulse mb-3" />
-        <p className="text-sm">Portföyün AI ile analiz ediliyor…</p>
-        <p className="text-xs text-gray-400 mt-1">Metrikler hesaplanıyor, AI yorumu hazırlanıyor.</p>
+        <p className="text-sm font-semibold text-gray-700">Portföyün AI ile analiz ediliyor…</p>
+        <p className="text-xs text-gray-400 mt-1 mb-4">Metrikler hesaplanıyor, AI yorumu hazırlanıyor.</p>
+        <div className="w-64 max-w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-full bg-gradient-to-r from-[#093eaa] to-[#2563eb] rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${Math.round(progress)}%` }} />
+        </div>
+        <p className="text-[11px] text-gray-400 mt-2 tabular-nums">%{Math.round(progress)}</p>
       </div>
     );
   }
@@ -207,7 +222,6 @@ export default function AiAnalysisPage() {
     p5: Number(b.p5),
     p95: Number(b.p95),
   }));
-  const aiText = (data.aiReport || '').replace(/\*\*/g, '').replace(/^#+\s*/gm, '');
 
   return (
     <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 space-y-4">
@@ -241,12 +255,20 @@ export default function AiAnalysisPage() {
         <Card title="Risk Skoru" icon={<ShieldAlert className="w-4 h-4 text-amber-500" />}>
           <div className="flex flex-col items-center">
             <ScoreGauge score={data.riskScore} color={riskColor(data.riskScore)} label={data.riskLabel} sub="risk seviyesi" />
+            <p className="text-[11px] text-gray-500 mt-2 text-center leading-snug">
+              <span className="font-semibold">0–100 · yüksek = daha riskli.</span> Volatilite, yoğunlaşma,
+              varlık tipi ve maksimum düşüşten hesaplanır. Aşağıdaki çubuklar her etkenin skora katkısıdır.
+            </p>
             <FactorBars factors={data.riskFactors} />
           </div>
         </Card>
         <Card title="Sağlık Skoru" icon={<HeartPulse className="w-4 h-4 text-emerald-500" />}>
           <div className="flex flex-col items-center">
             <ScoreGauge score={data.healthScore} color={healthColor(data.healthScore)} label={data.healthLabel} sub="portföy sağlığı" />
+            <p className="text-[11px] text-gray-500 mt-2 text-center leading-snug">
+              <span className="font-semibold">0–100 · yüksek = daha sağlıklı.</span> Çeşitlendirme, reel getiri,
+              risk-ayarlı getiri (Sharpe) ve düşüş kontrolünden hesaplanır. Çubuklar her etkenin katkısını gösterir.
+            </p>
             <FactorBars factors={data.healthFactors} />
           </div>
         </Card>
@@ -358,7 +380,7 @@ export default function AiAnalysisPage() {
       {/* AI yorum raporu */}
       <Card title="AI Yorum Raporu" icon={<Sparkles className="w-4 h-4 text-[#093eaa]" />}>
         {data.aiReportAvailable ? (
-          <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{aiText}</div>
+          <AiReport text={data.aiReport} />
         ) : (
           <p className="text-sm text-gray-500">
             AI yorumu şu an kullanılamıyor (model meşgul/kota). Yukarıdaki tüm metrikler ve grafikler geçerlidir.
@@ -392,6 +414,61 @@ function Metric({ label, value, hint }) {
       <div className="text-lg font-bold text-gray-900">{value}</div>
       <div className="text-xs font-semibold text-gray-600">{label}</div>
       <div className="text-[10px] text-gray-400">{hint}</div>
+    </div>
+  );
+}
+
+// AI raporunu başlık (**kalın** / # / bilinen bölüm adı) + madde + paragraf olarak biçimler.
+const KNOWN_HEADINGS = [
+  'portföy kimliği', 'güçlü yönler', 'riskler & dikkat edilecekler', 'riskler ve dikkat edilecekler',
+  'riskler', 'dikkat edilmesi gerekenler', 'varlık vurguları', 'benchmark & reel getiri',
+  'benchmark ve reel getiri', 'kısa-vade görünüm', 'kısa vade görünüm', 'genel çıkarım',
+];
+const stripInline = (s) => s.replace(/\*\*/g, '').trim();
+
+function AiReport({ text }) {
+  if (!text) return null;
+  const blocks = [];
+  let bullets = [];
+  const flush = () => { if (bullets.length) { blocks.push({ type: 'ul', items: bullets }); bullets = []; } };
+
+  text.split(/\r?\n/).forEach((raw) => {
+    const line = raw.trim();
+    if (!line) { flush(); return; }
+    const hm = line.match(/^(?:\d+\.\s*)?\*\*(.+?)\*\*\s*:?\s*$/) || line.match(/^#{1,4}\s*(.+?)\s*$/);
+    const plain = stripInline(line).replace(/:$/, '').toLowerCase();
+    if (hm) { flush(); blocks.push({ type: 'h', text: stripInline(hm[1]).replace(/:$/, '') }); return; }
+    if (KNOWN_HEADINGS.includes(plain)) { flush(); blocks.push({ type: 'h', text: stripInline(line).replace(/:$/, '') }); return; }
+    const bm = line.match(/^[*\-•]\s+(.+)$/);
+    if (bm) { bullets.push(stripInline(bm[1])); return; }
+    flush(); blocks.push({ type: 'p', text: stripInline(line) });
+  });
+  flush();
+
+  return (
+    <div className="space-y-2 text-sm text-gray-700 leading-relaxed">
+      {blocks.map((b, i) => {
+        if (b.type === 'h') {
+          return (
+            <h4 key={i} className="flex items-center gap-2 font-bold text-gray-900 mt-4 first:mt-0">
+              <span className="w-1 h-4 bg-[#093eaa] rounded-full" />{b.text}
+            </h4>
+          );
+        }
+        if (b.type === 'ul') {
+          return (
+            <ul key={i} className="space-y-1 pl-1">
+              {b.items.map((it, j) => (
+                <li key={j} className="flex gap-2">
+                  <span className="text-[#093eaa] mt-1.5 shrink-0 w-1 h-1 rounded-full bg-[#093eaa]" />
+                  <span>{it}</span>
+                </li>
+              ))}
+            </ul>
+          );
+        }
+        return <p key={i}>{b.text}</p>;
+      })}
     </div>
   );
 }

@@ -61,6 +61,7 @@ public class PortfolioAnalysisService {
     private final PortfolioWhatIfService whatIfService;
     private final PortfolioCurrencyConverter currencyConverter;
     private final PortfolioStressTestService stressTestService;
+    private final PortfolioHistoricalRiskService historicalRiskService;
     private final PortfolioMonteCarloService monteCarloService;
     private final PortfolioAiNarrator narrator;
 
@@ -68,12 +69,14 @@ public class PortfolioAnalysisService {
                                     PortfolioWhatIfService whatIfService,
                                     PortfolioCurrencyConverter currencyConverter,
                                     PortfolioStressTestService stressTestService,
+                                    PortfolioHistoricalRiskService historicalRiskService,
                                     PortfolioMonteCarloService monteCarloService,
                                     PortfolioAiNarrator narrator) {
         this.portfolioService = portfolioService;
         this.whatIfService = whatIfService;
         this.currencyConverter = currencyConverter;
         this.stressTestService = stressTestService;
+        this.historicalRiskService = historicalRiskService;
         this.monteCarloService = monteCarloService;
         this.narrator = narrator;
     }
@@ -135,7 +138,12 @@ public class PortfolioAnalysisService {
         List<WhatIfSeriesPoint> pts = (series != null && series.getPoints() != null)
                 ? series.getPoints() : List.of();
         r.setValueSeries(buildValueSeries(pts));
-        RiskMetrics metrics = computeRiskMetrics(pts, notes);
+        // Risk metrikleri: ÖNCE varlıkların kendi fiyat geçmişinden (kullanıcı elde-tutma süresinden bağımsız,
+        // yeni portföylerde de çalışır); yetersizse eski actual/cost oran yöntemine düş.
+        RiskMetrics metrics = historicalRiskService.computeFromHoldings(buildPositions(rows, totalValue), 12);
+        if (metrics == null || !metrics.available()) {
+            metrics = computeRiskMetrics(pts, notes);
+        }
         r.setRiskMetrics(metrics);
         r.setBenchmarks(buildBenchmarks(pts));
         r.setInflationSincePercent(benchmarkReturn(pts, WhatIfSeriesPoint::getInflation));
@@ -509,6 +517,24 @@ public class PortfolioAnalysisService {
         r.setHealthScore((int) Math.round(clamp(health, 0, 100)));
         r.setHealthLabel(health >= 66 ? "Sağlıklı" : health >= 33 ? "Orta" : "Zayıf");
         r.setHealthFactors(healthFactors);
+    }
+
+    /** Pozisyonları (tip/sembol/ağırlık) tarihsel risk servisine geçmek için hazırlar. */
+    private static List<PortfolioHistoricalRiskService.Position> buildPositions(List<HoldingTry> rows, BigDecimal total) {
+        List<PortfolioHistoricalRiskService.Position> out = new ArrayList<>();
+        double t = total.doubleValue();
+        if (t <= 0) {
+            return out;
+        }
+        for (HoldingTry row : rows) {
+            PortfolioHoldingResponse h = row.h();
+            if (h.getSymbol() == null || h.getSymbol().isBlank() || h.getAssetType() == null) {
+                continue;
+            }
+            out.add(new PortfolioHistoricalRiskService.Position(
+                    h.getAssetType(), h.getSymbol(), row.mvTry().doubleValue() / t));
+        }
+        return out;
     }
 
     /** Varlık tipi (enum adı) → portföy ağırlığı (kesir 0-1) — stres testi proxy'leri için. */
