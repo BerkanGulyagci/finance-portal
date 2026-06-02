@@ -30,6 +30,7 @@ const ASSET_TYPES = [
   { value: 'GOLD',      label: 'Altın',    placeholder: 'GOLD, XAU, gram altın...' },
   { value: 'COMMODITY', label: 'Emtia',    placeholder: 'Gram Gümüş, WTI Ham Petrol, Bakır...' },
   { value: 'BOND',      label: 'Tahvil',  placeholder: 'TRD0707... / XS3123...' },
+  { value: 'INDICATOR', label: 'Endeksler', placeholder: 'XU100, XBANK, XU030...' },
 ];
 
 const SEE_ALL_LINKS = {
@@ -41,6 +42,7 @@ const SEE_ALL_LINKS = {
   GOLD:      { label: 'Altın fiyatlarını gör', path: '/market/gold' },
   COMMODITY: { label: 'Tüm emtiaları gör', path: '/market/commodities' },
   BOND:      { label: 'DİBS listesini gör', path: '/market/bonds' },
+  INDICATOR: { label: 'Tüm endeksleri gör', path: '/market/stocks?view=indices' },
 };
 
 // Statik listeler — API desteklemeyen tipler için
@@ -394,6 +396,13 @@ async function fetchAll(type, onPartial) {
       const merged = [...evds, ...euro];
       return merged.length > 0 ? merged : STATIC_BOND;
     }
+
+    if (type === 'INDICATOR') {
+      // BIST endeksleri — sembol = kod (XBANK). Karşılaştırmada assetType='INDICATOR' ile çizilir
+      // (backend price-history endeks kodlarını hisse grafik yoluna yönlendirir). Alım-satıma EKLENMEZ.
+      const { data } = await client.get('/api/market/indices');
+      return (data.data ?? []).map(idx => ({ symbol: idx.code, name: idx.name, category: idx.category }));
+    }
   } catch {
     // hata
   }
@@ -508,7 +517,7 @@ function buildCommoditySections(allItems, query, expanded) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function InstrumentSearchModal({ portfolioName, onSelect, onClose, initialType = 'STOCK' }) {
+export default function InstrumentSearchModal({ portfolioName, onSelect, onClose, initialType = 'STOCK', allowIndices = false }) {
   const { t } = useTranslation();
   const [activeType, setActiveType] = useState(initialType);
   const [query, setQuery] = useState('');
@@ -883,7 +892,7 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
 
         {/* Tip sekmeleri — alt çizgili (M3) */}
         <div className="px-3 pt-2 sm:px-6 bg-[#f3f3fc]/60 border-b border-[#e2e1eb] flex gap-1 overflow-x-auto shrink-0 [&::-webkit-scrollbar]:hidden">
-          {ASSET_TYPES.map(at => (
+          {ASSET_TYPES.filter(at => at.value !== 'INDICATOR' || allowIndices).map(at => (
             <button
               key={at.value}
               type="button"

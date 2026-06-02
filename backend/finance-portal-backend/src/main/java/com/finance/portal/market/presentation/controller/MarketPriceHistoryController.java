@@ -5,7 +5,10 @@ import com.finance.portal.common.presentation.dto.ApiResponse;
 import com.finance.portal.market.application.economy.InflationDeflatorService;
 import com.finance.portal.market.application.economy.model.EconomySeriesPoint;
 import com.finance.portal.market.application.economy.port.EconomyDataPort;
+import com.finance.portal.market.application.index.BistIndexCatalog;
 import com.finance.portal.market.application.indicator.BistIndexService;
+import com.finance.portal.market.application.stock.StockChartResponse;
+import com.finance.portal.market.application.stock.StockQueryService;
 import com.finance.portal.market.application.stock.model.YahooChartSnapshot;
 import com.finance.portal.market.application.stock.model.YahooQuoteSeries;
 import com.finance.portal.portfolio.application.port.PortfolioHistoricalPricePort;
@@ -47,15 +50,18 @@ public class MarketPriceHistoryController {
     private final InflationDeflatorService deflator;
     private final EconomyDataPort economyDataPort;
     private final BistIndexService bistIndexService;
+    private final StockQueryService stockQueryService;
 
     public MarketPriceHistoryController(PortfolioHistoricalPricePort pricePort,
                                         InflationDeflatorService deflator,
                                         EconomyDataPort economyDataPort,
-                                        BistIndexService bistIndexService) {
+                                        BistIndexService bistIndexService,
+                                        StockQueryService stockQueryService) {
         this.pricePort = pricePort;
         this.deflator = deflator;
         this.economyDataPort = economyDataPort;
         this.bistIndexService = bistIndexService;
+        this.stockQueryService = stockQueryService;
     }
 
     @GetMapping("/price-history")
@@ -125,8 +131,12 @@ public class MarketPriceHistoryController {
                 case "USCPI_TRY" -> emitUsCpiTry(from, to, ts, cp);
                 case "DEPOSIT" -> emitDeposit(from, to, ts, cp);
                 default -> {
-                    // BIST endeksleri (XU100/XU030/XU050) Yahoo'dan günlük kapanış serisi olarak.
-                    if (bistIndexService.supports(upper)) {
+                    // BIST endeksleri (TÜM katalog: XU100/XBANK/XGIDA/… ~41 adet) — hisse grafik yolu
+                    // üzerinden günlük kapanış serisi (saatlik fallback'li → sektör endekslerinde de dolu gelir).
+                    String code = upper.endsWith(".IS") ? upper.substring(0, upper.length() - 3) : upper;
+                    if (BistIndexCatalog.byCode(code) != null) {
+                        emitIndexViaStockChart(code + ".IS", from, to, ts, cp);
+                    } else if (bistIndexService.supports(upper)) {
                         emitBistIndex(upper, from, to, ts, cp);
                     }
                 }
@@ -167,6 +177,39 @@ public class MarketPriceHistoryController {
             }
             ts.add(sec);
             cp.add(close);
+        }
+    }
+
+    /**
+     * BIST endeks serisini hisse grafik yolundan ({@link StockQueryService#getStockChartWithParams}) çeker —
+     * bu yol saatlik fallback'li olduğu için günlük barı olmayan sektör endekslerinde de dolu seri döner
+     * (BistIndexService yalnız XU100/030/050 destekliyordu; bu TÜM katalog endekslerini kapsar).
+     */
+    private void emitIndexViaStockChart(String symbol, LocalDate from, LocalDate to, List<Long> ts, List<BigDecimal> cp) {
+        try {
+            String range = BistIndexService.pickYahooRange(from, to);
+            StockChartResponse chart = stockQueryService.getStockChartWithParams(symbol, range, "1d");
+            List<Long> stamps = chart.getTimestamps();
+            List<BigDecimal> closes = chart.getClosePrices();
+            if (stamps == null || closes == null) {
+                return;
+            }
+            int n = Math.min(stamps.size(), closes.size());
+            for (int i = 0; i < n; i++) {
+                Long sec = stamps.get(i);
+                BigDecimal close = closes.get(i);
+                if (sec == null || close == null || close.signum() <= 0) {
+                    continue;
+                }
+                LocalDate d = toDate(sec);
+                if (d.isBefore(from) || d.isAfter(to)) {
+                    continue;
+                }
+                ts.add(sec);
+                cp.add(close);
+            }
+        } catch (RuntimeException ignored) {
+            // veri yok → boş seri
         }
     }
 

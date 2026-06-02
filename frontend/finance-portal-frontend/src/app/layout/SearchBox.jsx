@@ -4,13 +4,14 @@ import { Search, Clock, TrendingUp } from 'lucide-react';
 import {
   getStocks, getAllCryptoCoins, getFxTcmb, getCommodityList,
   getAllTefasFunds, getAllBesFunds, getAllOksFunds, getOsmanliFundBulletin,
-  getViopContracts, getEvdsBonds, getGlobalBonds,
+  getViopContracts, getEvdsBonds, getGlobalBonds, getIndices,
 } from '../../api/marketApi';
 import { useTranslation } from '../../context/LanguageContext';
 
 const TYPE_LABEL = {
   STOCK: 'Hisse', CRYPTO: 'Kripto', FX: 'Döviz', COMMODITY: 'Emtia',
   GOLD: 'Altın', FUND: 'Fon', FUTURE: 'Vadeli', BOND: 'DİBS', EUROBOND: 'Eurobond',
+  INDEX: 'Endeks',
 };
 const TYPE_BADGE = {
   STOCK: 'bg-blue-50 text-blue-700',
@@ -22,6 +23,7 @@ const TYPE_BADGE = {
   FUTURE: 'bg-rose-50 text-rose-700',
   BOND: 'bg-teal-50 text-teal-700',
   EUROBOND: 'bg-cyan-50 text-cyan-700',
+  INDEX: 'bg-slate-100 text-slate-700',
 };
 const POPULAR_SYMBOLS = ['THYAO', 'ASELS', 'GARAN', 'BIMAS', 'TUPRS', 'BTC', 'ETH', 'USD'];
 const RECENT_KEY = 'site_recent_searches';
@@ -111,6 +113,13 @@ function loadDataset() {
   add(STATIC_GOLD.map(g => ({
     type: 'GOLD', symbol: g.symbol, name: g.name, exchange: 'Altın', path: '/market/gold',
   })));
+
+  // BIST endeksleri — /market/indices/:code detayına gider
+  getIndices().then(list => add((list ?? []).reduce((acc, x) => {
+    if (!x?.code) return acc;
+    acc.push({ type: 'INDEX', symbol: String(x.code).toUpperCase(), name: x.name || x.code, exchange: 'Endeks', path: `/market/indices/${encodeURIComponent(x.code)}` });
+    return acc;
+  }, []))).catch(() => {});
 
   loadAllStocks().then(content => add(content.reduce((acc, x) => {
     if (!x?.symbol) return acc;

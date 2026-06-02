@@ -503,7 +503,7 @@ export default function StockComparePage() {
     <div className="max-w-5xl mx-auto space-y-6">
 
       {searchOpen && (
-        <InstrumentSearchModal onSelect={addExtra} onClose={() => setSearchOpen(false)} />
+        <InstrumentSearchModal onSelect={addExtra} onClose={() => setSearchOpen(false)} allowIndices />
       )}
 
       {/* ── Başlık ── */}
