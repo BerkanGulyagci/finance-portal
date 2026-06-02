@@ -75,6 +75,37 @@ function rebaseToCommonStart(rows, keys) {
   });
 }
 
+/**
+ * Seyrek (aylık) serileri — enflasyon/mevduat — bilinen noktaları arasında DOĞRUSAL bağlar
+ * (basamak/ileri-doldur yerine). Böylece ilk günden itibaren sürekli yükselirler; "ilk ay %0'da
+ * takılıp günlük hareket eden BIST'e bir aylık avantaj verme" adaletsizliği biter. Son bilinen
+ * noktadan SONRASI ileri-doldurulur (henüz yayımlanmamış ayları/geleceği bilemeyiz — TÜFE gecikmesi).
+ * İlk bilinen noktadan ÖNCESİ null kalır (ortak başlangıçta zaten %0 seed'lendi).
+ */
+function interpolateSeries(rows, keys) {
+  keys.forEach(k => {
+    const known = [];
+    for (let i = 0; i < rows.length; i++) if (rows[i][k] != null) known.push(i);
+    if (known.length === 0) return;
+    for (let s = 0; s < known.length - 1; s++) {
+      const a = known[s], b = known[s + 1];
+      const pa = rows[a][k], pb = rows[b][k];
+      const prA = rows[a][`__price_${k}`], prB = rows[b][`__price_${k}`];
+      for (let i = a + 1; i < b; i++) {
+        const t = (i - a) / (b - a);
+        rows[i][k] = parseFloat((pa + (pb - pa) * t).toFixed(3));
+        if (prA != null && prB != null) rows[i][`__price_${k}`] = prA + (prB - prA) * t;
+      }
+    }
+    const last = known[known.length - 1];
+    for (let i = last + 1; i < rows.length; i++) {
+      rows[i][k] = rows[last][k];
+      rows[i][`__price_${k}`] = rows[last][`__price_${k}`];
+    }
+  });
+  return rows;
+}
+
 /** Yahoo aralığını genel price-history endpoint aralığına çevir. */
 function toGenericRange(yahooRange) {
   switch (yahooRange) {
@@ -372,19 +403,9 @@ export default function StockComparePage() {
       }));
       // Adil kıyas: tümünü ortak başlangıç tarihinden %0'a sabitle
       formatted = rebaseToCommonStart(formatted, defs.map(d => d.key));
-      // Farklı granülerlikteki seriler (ör. haftalık kripto) her günde tooltip'te görünsün → ileri-doldur
-      const fillKeys = defs.map(d => d.key);
-      const carry = {};
-      formatted.forEach(row => {
-        fillKeys.forEach(k => {
-          if (row[k] != null) {
-            carry[k] = { pct: row[k], price: row[`__price_${k}`] };
-          } else if (carry[k]) {
-            row[k] = carry[k].pct;
-            row[`__price_${k}`] = carry[k].price;
-          }
-        });
-      });
+      // Aylık göstergeler (enflasyon/mevduat) bilinen noktaları arası DOĞRUSAL bağlanır → ilk günden
+      // sürekli yükselir (basamak değil), günlük BIST'e karşı adil. Son noktadan sonrası ileri-doldur.
+      formatted = interpolateSeries(formatted, defs.map(d => d.key));
       setChartData(formatted);
       setChartSeriesDefs(defs.map(d => ({ key: d.key, name: d.label, color: d.color })));
       setChartLoading(false);
