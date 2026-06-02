@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Check, BarChart2 } from 'lucide-react';
-import { getStocks, getStockChart, getAllStocks } from '../../../api/marketApi';
+import { getStocks, getStockChart, getStockQuote, getAllStocks } from '../../../api/marketApi';
 import { useSortable } from '../../../hooks/useSortable';
 import SortableTh from '../../../components/common/SortableTh';
 import WatchlistStar from '../../../components/instrument/WatchlistStar';
@@ -25,6 +25,7 @@ const CHART_RANGES = STOCK_CHART_RANGES;
 function IndexChart({ symbol, label }) {
   const { t } = useTranslation();
   const [data, setData]         = useState([]);
+  const [daily, setDaily]       = useState(null); // canlı fiyat + günlük % (Endeksler listesiyle aynı kaynak)
   const [loading, setLoading]   = useState(true);
   const [rangeIdx, setRangeIdx] = useState(2); // default 1A
 
@@ -33,22 +34,35 @@ function IndexChart({ symbol, label }) {
 
   const activeRange = CHART_RANGES[rangeIdx];
 
-  // Veri çek
+  // Grafik serisi + canlı quote'u birlikte çek. Canlı fiyatı son noktaya yaz ki "Son Değer" ve
+  // çizginin ucu, Endeksler listesindeki canlı fiyatla TUTARLI olsun — son saatlik bar 1 saate
+  // kadar geride kalabiliyor (liste regularMarketPrice canlı; grafik son barı değil).
   useEffect(() => {
     setLoading(true);
-    getStockChart(symbol, activeRange.range, activeRange.interval)
-      .then(res => {
+    let alive = true;
+    Promise.all([
+      getStockChart(symbol, activeRange.range, activeRange.interval).catch(() => null),
+      getStockQuote(symbol).catch(() => null),
+    ])
+      .then(([res, q]) => {
+        if (!alive) return;
         const ts     = res?.timestamps  ?? [];
         const prices = res?.closePrices ?? [];
-        setData(
-          ts.map((t, i) => ({
-            label: formatStockChartTimeLabel(t, activeRange.range, activeRange.interval),
-            price: prices[i] != null ? parseFloat(prices[i]) : null,
-          })).filter(d => d.price != null)
-        );
+        const points = ts.map((tt, i) => ({
+          label: formatStockChartTimeLabel(tt, activeRange.range, activeRange.interval),
+          price: prices[i] != null ? parseFloat(prices[i]) : null,
+        })).filter(d => d.price != null);
+        const live = q?.price != null ? parseFloat(q.price) : null;
+        if (live != null && points.length > 0) {
+          points[points.length - 1] = { ...points[points.length - 1], price: live };
+        }
+        setData(points);
+        setDaily(live != null
+          ? { price: live, changePercent: q?.changePercent != null ? parseFloat(q.changePercent) : null }
+          : null);
       })
-      .catch(() => setData([]))
-      .finally(() => setLoading(false));
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
   }, [symbol, activeRange.range, activeRange.interval]);
 
   // ECharts render
@@ -163,7 +177,22 @@ function IndexChart({ symbol, label }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-5 mb-6">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <h2 className="text-base font-bold text-gray-900">{label} {t('Endeksi')}</h2>
+        <div className="flex items-baseline gap-3 flex-wrap">
+          <h2 className="text-base font-bold text-gray-900">{label} {t('Endeksi')}</h2>
+          {daily?.price != null && (
+            <span className="flex items-baseline gap-1.5">
+              <span className="text-base font-bold text-gray-900">
+                {daily.price.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
+              </span>
+              {daily.changePercent != null && (
+                <span className={`text-xs font-bold ${daily.changePercent >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  {daily.changePercent >= 0 ? '+' : ''}{daily.changePercent.toFixed(2)}%
+                  <span className="text-gray-400 font-normal ml-1">{t('bugün')}</span>
+                </span>
+              )}
+            </span>
+          )}
+        </div>
         <div className="flex gap-1">
           {CHART_RANGES.map((r, i) => (
             <button key={r.label} onClick={() => setRangeIdx(i)}

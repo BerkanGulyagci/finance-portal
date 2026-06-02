@@ -1069,6 +1069,7 @@ const en = {
   'Endeksteki Hisseler': 'Index Constituents',
   'Borsa İstanbul Endeksi': 'Borsa İstanbul Index',
   'Kaynak: Yahoo Finance': 'Source: Yahoo Finance',
+  'bugün': 'today',
 
 };
 
