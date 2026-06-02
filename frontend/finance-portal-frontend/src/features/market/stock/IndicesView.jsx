@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { getIndices } from '../../../api/marketApi';
+import WatchlistStar from '../../../components/instrument/WatchlistStar';
 import { useTranslation } from '../../../context/LanguageContext';
 
 const CATEGORY_ORDER = ['Ana', 'Sektör', 'Katılım', 'Tema'];
@@ -99,11 +100,12 @@ export default function IndicesView() {
                 <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">%</th>
                 <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">{t('Yüksek')}</th>
                 <th className="text-right px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">{t('Düşük')}</th>
+                <th className="px-2 py-3 w-8" aria-label={t('İzle')} />
               </tr>
             </thead>
             <tbody>
               {groups.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400 text-sm">{t('Sonuç bulunamadı.')}</td></tr>
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400 text-sm">{t('Sonuç bulunamadı.')}</td></tr>
               ) : (
                 groups.map(g => (
                   <FragmentGroup key={g.category} group={g} navigate={navigate} t={t} />
@@ -121,7 +123,7 @@ function FragmentGroup({ group, navigate, t }) {
   return (
     <>
       <tr className="bg-gray-50/60">
-        <td colSpan={6} className="px-4 py-2">
+        <td colSpan={7} className="px-4 py-2">
           <span className="inline-flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
             <span className={`w-2 h-2 rounded-full ${CATEGORY_DOT[group.category] || 'bg-gray-400'}`} />
             {t(CATEGORY_LABEL[group.category] || group.category)}
@@ -142,6 +144,9 @@ function FragmentGroup({ group, navigate, t }) {
           <td className="px-4 py-3 text-sm text-right">{pct(i.changePercent)}</td>
           <td className="px-4 py-3 text-sm text-gray-600 text-right">{num(i.dayHigh)}</td>
           <td className="px-4 py-3 text-sm text-gray-600 text-right">{num(i.dayLow)}</td>
+          <td className="px-2 py-3 text-center" onClick={e => e.stopPropagation()}>
+            <WatchlistStar assetType="STOCK" symbol={`${i.code}.IS`} name={i.name} price={i.price} watchlistOnly />
+          </td>
         </tr>
       ))}
     </>

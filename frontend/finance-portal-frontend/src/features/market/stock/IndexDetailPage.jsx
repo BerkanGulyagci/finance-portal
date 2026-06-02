@@ -73,6 +73,8 @@ export default function IndexDetailPage() {
                 {t(index.category)}
               </span>
             )}
+            {/* Endeksi favorile (yalnız izleme — alım-satım yok) */}
+            <WatchlistStar assetType="STOCK" symbol={symbol} name={index?.name} price={index?.price} size={20} watchlistOnly />
           </div>
           <p className="text-xs text-gray-400 mt-0.5">
             {upperCode} · {t('Borsa İstanbul Endeksi')} · {t('Kaynak: Yahoo Finance')}

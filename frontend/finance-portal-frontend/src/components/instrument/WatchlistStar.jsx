@@ -10,7 +10,7 @@ import InstrumentTargetModal from './InstrumentTargetModal';
  * tıklayınca **birleşik seçici** açılır (izleme listesi VEYA varlık portföyü seçilebilir).
  * Yalnız giriş yapan kullanıcıya görünür.
  */
-export default function WatchlistStar({ assetType, symbol, name, price, size = 16, className = '' }) {
+export default function WatchlistStar({ assetType, symbol, name, price, size = 16, className = '', watchlistOnly = false }) {
   const { isAuthenticated } = useAuth();
   const { ensureLoaded, isWatched } = useWatchlist();
   const { t } = useTranslation();
@@ -44,6 +44,7 @@ export default function WatchlistStar({ assetType, symbol, name, price, size = 1
       {open && (
         <InstrumentTargetModal
           instrument={{ assetType, symbol, name: name || symbol, price }}
+          watchlistOnly={watchlistOnly}
           onClose={() => setOpen(false)}
         />
       )}

@@ -402,6 +402,8 @@ export default function DashboardPage() {
       {searchMode && (
         <InstrumentSearchModal
           portfolioName={searchMode === 'favorite' ? t('favoriler') : searchMode === 'alarm' ? t('alarm') : t('dashboard')}
+          /* Endeksler yalnız "Grafik Ekle" modunda seçilebilir (favori/alarm INDICATOR'ı işleyemez). */
+          allowIndices={searchMode === 'chart'}
           onSelect={(inst) => {
             if (searchMode === 'favorite') return addFavorite(inst);
             if (searchMode === 'alarm') { setAlarmInst(inst); setSearchMode(null); return; }

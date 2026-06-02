@@ -18,8 +18,10 @@ const sameInst = (it, assetType, symbol) =>
  * hem de liste yıldızı bunu açar.
  *
  * @param instrument { assetType, symbol, name, price }
+ * @param watchlistOnly — true ise yalnız izleme listesi gösterilir (varlık portföyü/işlem yok).
+ *   Endeksler için kullanılır: favoriye eklenebilir ama ALIM-SATIM yapılamaz.
  */
-export default function InstrumentTargetModal({ instrument, onClose, onChanged }) {
+export default function InstrumentTargetModal({ instrument, onClose, onChanged, watchlistOnly = false }) {
   const { assetType, symbol, name } = instrument;
   const { t } = useTranslation();
   const toast = useToast();
@@ -106,7 +108,7 @@ export default function InstrumentTargetModal({ instrument, onClose, onChanged }
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1a1b22]/30 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl border border-[#e2e1eb] w-full max-w-md overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 className="font-bold text-gray-900 text-lg">{t('Listeye / Portföye Ekle')}</h2>
+          <h2 className="font-bold text-gray-900 text-lg">{watchlistOnly ? t('İzleme Listesine Ekle') : t('Listeye / Portföye Ekle')}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 rounded-full p-1 hover:bg-gray-50">
             <X className="w-5 h-5" />
           </button>
@@ -117,7 +119,8 @@ export default function InstrumentTargetModal({ instrument, onClose, onChanged }
             <p className="text-sm text-gray-400 py-6 text-center">{t('Yükleniyor...')}</p>
           ) : (
             <>
-              {/* Varlık portföyleri → işlem ekle */}
+              {/* Varlık portföyleri → işlem ekle. watchlistOnly (endeks) iken GİZLİ — alım-satım yok. */}
+              {!watchlistOnly && (
               <div>
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{t('Varlık Portföyleri')}</p>
                 {holdings.length === 0 ? (
@@ -139,6 +142,7 @@ export default function InstrumentTargetModal({ instrument, onClose, onChanged }
                   </div>
                 )}
               </div>
+              )}
 
               {/* İzleme listeleri → ekle/çıkar */}
               <div>

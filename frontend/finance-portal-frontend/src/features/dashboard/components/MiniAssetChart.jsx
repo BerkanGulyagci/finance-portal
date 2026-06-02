@@ -9,6 +9,7 @@ import { useTranslation } from '../../../context/LanguageContext';
 const ASSET_LABEL = {
   STOCK: 'Hisse', FUND: 'Fon', FX: 'Döviz', FUTURE: 'Vadeli',
   CRYPTO: 'Kripto', GOLD: 'Altın', COMMODITY: 'Emtia', BOND: 'Tahvil',
+  INDICATOR: 'Endeks',
 };
 
 function sparkPath(values, w, h, pad = 3) {

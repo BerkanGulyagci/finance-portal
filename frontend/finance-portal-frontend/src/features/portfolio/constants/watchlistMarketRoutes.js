@@ -60,6 +60,26 @@ const CRYPTO_SYMBOL_TO_ID = {
   LDO: 'lido-dao',
 };
 
+/**
+ * BIST endeks kodları — watchlist'te endeks STOCK+{KOD}.IS olarak saklanır (AssetType enum'unda INDEX yok),
+ * dashboard'da ise INDICATOR+{KOD}. İkisinde de detay /market/indices/:code'a gitsin diye burada tanınır.
+ * Katalog ile eşle (BistIndexCatalog). Endeks kodları stabildir.
+ */
+const BIST_INDEX_CODES = new Set([
+  'XU100', 'XU030', 'XU050', 'XU500', 'XUTUM', 'XBANA', 'X10XB',
+  'XUSIN', 'XUHIZ', 'XUMAL', 'XUTEK',
+  'XBANK', 'XHOLD', 'XGIDA', 'XKMYA', 'XMESY', 'XMANA', 'XTAST', 'XELKT', 'XILTM', 'XBLSM',
+  'XTCRT', 'XULAS', 'XSGRT', 'XFINK', 'XGMYO', 'XMADN', 'XTEKS', 'XKAGT', 'XINSA', 'XTRZM', 'XSPOR',
+  'XK100', 'XK050', 'XK030', 'XKTUM',
+  'XTMTU', 'XTM25', 'XKURY', 'XHARZ', 'XYORT',
+]);
+
+/** Sembol bir BIST endeksi mi? (.IS soneki olsa da olmasa da). → endeks kodu ya da null. */
+function indexCodeOf(symbol) {
+  const code = String(symbol ?? '').trim().toUpperCase().replace(/\.IS$/, '');
+  return BIST_INDEX_CODES.has(code) ? code : null;
+}
+
 /** Statik altın ürün kodu → GoldPage sekme anahtarı (goldConstants GOLD_TABS.key) */
 const GOLD_WATCHLIST_TO_TAB = {
   GOLD: 'ons',
@@ -118,6 +138,10 @@ export function getPreciousMetalMarketPath(symbol) {
 export function getWatchlistDetailPath(assetType, symbol) {
   if (!symbol || symbol === '') return null;
   const sym = String(symbol).trim();
+
+  // Endeksler her tipte (STOCK+.IS veya INDICATOR+kod) endeks detayına gider.
+  const idxCode = indexCodeOf(sym);
+  if (idxCode) return `/market/indices/${encodeURIComponent(idxCode)}`;
 
   switch (assetType) {
     case 'STOCK':
