@@ -9,7 +9,6 @@ import com.finance.portal.portfolio.presentation.dto.PortfolioResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -40,12 +39,17 @@ class PortfolioAnalysisServiceTest {
     @Mock private PortfolioStressTestService stressTestService;
     @Mock private PortfolioAiNarrator narrator;
 
-    @InjectMocks private PortfolioAnalysisService service;
+    // Gerçek MC servisi (dış bağımlılığı yok) — projeksiyon entegrasyonunu da doğrular.
+    private final PortfolioMonteCarloService monteCarloService = new PortfolioMonteCarloService();
+
+    private PortfolioAnalysisService service;
 
     private final UUID pid = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
+        service = new PortfolioAnalysisService(portfolioService, whatIfService, currencyConverter,
+                stressTestService, monteCarloService, narrator);
         // toTry: TRY varsayımı (identity).
         when(currencyConverter.toTry(any(), any())).thenAnswer(inv -> inv.getArgument(0));
         when(narrator.generate(any(), any(), any(), any())).thenReturn("Test yorum raporu.");
@@ -103,6 +107,29 @@ class PortfolioAnalysisServiceTest {
         // AI rapor mock'tan geldi
         assertThat(r.isAiReportAvailable()).isTrue();
         assertThat(r.getAiReport()).isEqualTo("Test yorum raporu.");
+    }
+
+    @Test
+    void analyze_classifiesProfile_buildsAssetSignals_andMonteCarlo() {
+        PortfolioAiAnalysisResult r = service.analyze("u1", pid, "Berkan", "b@x.com");
+
+        // Sınıflandırma: STOCK ~52% + CRYPTO ~26% = ~78% büyüme → AGRESİF
+        assertThat(r.getClassification()).isNotNull();
+        assertThat(r.getClassification().profile()).isEqualTo("AGGRESSIVE");
+        assertThat(r.getClassification().growthWeightPercent().doubleValue())
+                .isGreaterThan(r.getClassification().defensiveWeightPercent().doubleValue());
+
+        // Varlık sinyalleri: 3 varlık, ağırlığa göre sıralı (THYAO ilk), her birinin notu dolu
+        assertThat(r.getAssetSignals()).hasSize(3);
+        assertThat(r.getAssetSignals().get(0).symbol()).isEqualTo("THYAO");
+        assertThat(r.getAssetSignals().get(0).note()).isNotBlank();
+
+        // Monte Carlo: risk metrikleri mevcut → projeksiyon mevcut, %95 > %5 ve bantlar dolu
+        var mc = r.getMonteCarlo();
+        assertThat(mc.available()).isTrue();
+        assertThat(mc.bands()).isNotEmpty();
+        assertThat(mc.medianEndValue()).isNotNull();
+        assertThat(mc.p95EndValue().doubleValue()).isGreaterThan(mc.p5EndValue().doubleValue());
     }
 
     @Test

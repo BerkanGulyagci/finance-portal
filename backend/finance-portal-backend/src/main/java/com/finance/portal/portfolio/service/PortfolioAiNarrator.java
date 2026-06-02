@@ -6,7 +6,9 @@ import com.finance.portal.assistant.application.tools.ToolContext;
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult;
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.AllocationSlice;
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.AssetReturn;
+import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.AssetSignal;
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.BenchmarkItem;
+import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.MonteCarlo;
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.RiskMetrics;
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.StressTest;
 import org.slf4j.Logger;
@@ -34,23 +36,31 @@ public class PortfolioAiNarrator {
     private static final Duration CACHE_TTL = Duration.ofHours(6);
 
     private static final String SYSTEM_PROMPT = """
-            Sen Portiva uygulamasının kıdemli bir finans analistisin. Sana KULLANICININ portföyü için
-            ZATEN HESAPLANMIŞ metrikler verilecek. Görevin bu metrikleri Türkçe, anlaşılır ve dengeli bir
-            raporla yorumlamak.
+            Sen Portiva uygulamasının kıdemli bir finans analistisin — bir "portföy motoru" gibi davran.
+            Sana KULLANICININ portföyü için ZATEN HESAPLANMIŞ metrikler verilecek. Görevin bu metrikleri
+            Türkçe, anlaşılır, DERİN ve dengeli bir raporla yorumlamak; portföyün NE TÜR bir portföy olduğunu
+            ve tek tek varlıkların ne durumda olduğunu açıklamak.
 
             KURALLAR:
             - ASLA yeni sayı/oran UYDURMA; sadece sana verilen sayıları kullan ve yorumla.
             - Araç/fonksiyon ÇAĞIRMA; veri yeterli.
             - "Şunu al / şunu sat" gibi DOĞRUDAN yatırım tavsiyesi VERME. Bilgilendirme ve analiz
               çerçevesinde kal (riskler, güçlü/zayıf yönler, dikkat edilecekler).
-            - Kısa paragraflar + madde işaretleri kullan. Abartı yok, net ol.
+            - Kısa paragraflar + madde işaretleri kullan. Abartı yok, net ol; somut sayılara atıf yap.
+            - Kısa-vade görünümde KESİN tahmin yapma; verilen Monte Carlo aralığını "olası senaryo" olarak
+              aktar, belirsizliği vurgula.
 
-            RAPOR YAPISI:
-            1. Kısa genel değerlendirme (2-3 cümle).
-            2. Güçlü yönler (madde).
-            3. Dikkat edilmesi gerekenler / riskler (madde) — özellikle yoğunlaşma ve volatilite.
-            4. Benchmark & reel getiri yorumu (enflasyonu yendi mi, endekslere göre durum).
-            5. Genel çıkarım (1-2 cümle, tavsiye değil değerlendirme).
+            RAPOR YAPISI (başlıkları KULLAN):
+            1. **Portföy Kimliği** — verilen profili (Agresif/Dengeli/Korumacı) ve büyüme/korumacı ağırlığını
+               yorumla; bu portföy nasıl bir yatırımcıya uyar (2-3 cümle).
+            2. **Güçlü Yönler** (madde).
+            3. **Riskler & Dikkat Edilecekler** (madde) — özellikle yoğunlaşma, volatilite, yüksek-riskli varlıklar.
+            4. **Varlık Vurguları** — öne çıkan 3-5 varlığın teknik sinyalini (trend/52h konumu/momentum) ve
+               getirisini kısaca yorumla (madde).
+            5. **Benchmark & Reel Getiri** — enflasyonu yendi mi, endekslere göre durum.
+            6. **Kısa-Vade Görünüm** — Monte Carlo aralığını (medyan + %5/%95 + kayıp olasılığı) dengeli yorumla;
+               kesin tahmin DEĞİL, olası senaryo.
+            7. **Genel Çıkarım** (1-2 cümle, tavsiye değil değerlendirme).
             """;
 
     private final AssistantChatPort chatPort;
@@ -135,7 +145,37 @@ public class PortfolioAiNarrator {
                 }
             }
         }
-        b.append("\nBu metriklere göre yukarıdaki yapıda bir Türkçe analiz raporu yaz.");
+        if (r.getClassification() != null) {
+            var c = r.getClassification();
+            b.append("- Portföy profili: ").append(c.label()).append(" (").append(c.profile()).append(") — ")
+                    .append(c.detail()).append(" Büyüme-odaklı ağırlık %").append(pct(c.growthWeightPercent()))
+                    .append(", korumacı %").append(pct(c.defensiveWeightPercent())).append("\n");
+        }
+        if (r.getAssetSignals() != null && !r.getAssetSignals().isEmpty()) {
+            b.append("- Varlık teknik sinyalleri (en büyük pozisyonlar):\n");
+            int n = 0;
+            for (AssetSignal s : r.getAssetSignals()) {
+                if (n++ >= 8) {
+                    break;
+                }
+                b.append("    ").append(s.name()).append(" (%").append(pct(s.weightPercent())).append("): ")
+                        .append(s.note());
+                if (s.profitLossPercent() != null) {
+                    b.append(" — getiri %").append(pct(s.profitLossPercent()));
+                }
+                b.append("\n");
+            }
+        }
+        MonteCarlo mc = r.getMonteCarlo();
+        if (mc != null && mc.available()) {
+            b.append("- Monte Carlo projeksiyonu (").append(mc.horizonMonths())
+                    .append(" ay, lognormal/GBM): medyan değer ").append(money(mc.medianEndValue()))
+                    .append(" TL (medyan getiri %").append(pct(mc.expectedReturnPercent())).append("), olası aralık %5: ")
+                    .append(money(mc.p5EndValue())).append(" TL – %95: ").append(money(mc.p95EndValue()))
+                    .append(" TL; nominal kayıp olasılığı %").append(pct(mc.probLossPercent()))
+                    .append(". Bu kesin tahmin DEĞİL, geçmiş getiri/volatilitenin süreceği varsayımıyla olası senaryodur.\n");
+        }
+        b.append("\nBu metriklere göre yukarıdaki yapıda (başlıklı) bir Türkçe analiz raporu yaz.");
         return b.toString();
     }
 

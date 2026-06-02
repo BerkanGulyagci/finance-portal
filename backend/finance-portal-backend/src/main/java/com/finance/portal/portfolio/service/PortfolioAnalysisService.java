@@ -4,7 +4,9 @@ import com.finance.portal.common.domain.AssetType;
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult;
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.AllocationSlice;
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.AssetReturn;
+import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.AssetSignal;
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.BenchmarkItem;
+import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.Classification;
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.Concentration;
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.RiskMetrics;
 import com.finance.portal.portfolio.application.analysis.PortfolioAiAnalysisResult.ScoreFactor;
@@ -59,17 +61,20 @@ public class PortfolioAnalysisService {
     private final PortfolioWhatIfService whatIfService;
     private final PortfolioCurrencyConverter currencyConverter;
     private final PortfolioStressTestService stressTestService;
+    private final PortfolioMonteCarloService monteCarloService;
     private final PortfolioAiNarrator narrator;
 
     public PortfolioAnalysisService(PortfolioService portfolioService,
                                     PortfolioWhatIfService whatIfService,
                                     PortfolioCurrencyConverter currencyConverter,
                                     PortfolioStressTestService stressTestService,
+                                    PortfolioMonteCarloService monteCarloService,
                                     PortfolioAiNarrator narrator) {
         this.portfolioService = portfolioService;
         this.whatIfService = whatIfService;
         this.currencyConverter = currencyConverter;
         this.stressTestService = stressTestService;
+        this.monteCarloService = monteCarloService;
         this.narrator = narrator;
     }
 
@@ -110,7 +115,7 @@ public class PortfolioAnalysisService {
 
         if (rows.isEmpty() || totalValue.signum() <= 0) {
             notes.add("Analiz için açık pozisyon bulunamadı.");
-            r.setRiskMetrics(new RiskMetrics(null, null, null, null, null, 0, false, "Pozisyon yok"));
+            r.setRiskMetrics(new RiskMetrics(null, null, null, null, null, null, 0, false, "Pozisyon yok"));
             return r;
         }
 
@@ -145,6 +150,13 @@ public class PortfolioAnalysisService {
 
         // ── Skorlar (şeffaf formül) ─────────────────────────────────────────────
         computeScores(r, rows, totalValue, concentration, metrics);
+
+        // ── Portföy kimliği + varlık-bazlı sinyaller + Monte Carlo projeksiyon ──
+        r.setClassification(buildClassification(rows, totalValue, r.getRiskScore()));
+        r.setAssetSignals(buildAssetSignals(rows, totalValue));
+        r.setMonteCarlo(monteCarloService.project(r.getTotalValueTry(),
+                metrics != null ? metrics.annualReturnPercent() : null,
+                metrics != null ? metrics.annualVolatilityPercent() : null, 12));
 
         // ── AI yorum (graceful degrade) ─────────────────────────────────────────
         try {
@@ -245,13 +257,119 @@ public class PortfolioAnalysisService {
         return out;
     }
 
+    // ── Portföy kimliği / sınıflandırma ─────────────────────────────────────────
+
+    /**
+     * Varlık-tipi ağırlıklarından + risk skorundan profil türetir.
+     * Büyüme-odaklı: hisse/kripto/vadeli/emtia. Korumacı: tahvil/altın/döviz/gümüş. Fon = karma (sayılmaz).
+     */
+    private Classification buildClassification(List<HoldingTry> rows, BigDecimal total, int riskScore) {
+        double t = total.doubleValue();
+        double growth = 0, defensive = 0;
+        if (t > 0) {
+            for (HoldingTry row : rows) {
+                double w = row.mvTry().doubleValue() / t * 100.0;
+                switch (typeName(row.h().getAssetType())) {
+                    case "STOCK", "CRYPTO", "FUTURE", "COMMODITY" -> growth += w;
+                    case "BOND", "GOLD", "FX", "SILVER" -> defensive += w;
+                    default -> { /* FUND/OTHER → karma, sayılmaz */ }
+                }
+            }
+        }
+        String profile;
+        String label;
+        String detail;
+        if (growth >= 60 || riskScore >= 66) {
+            profile = "AGGRESSIVE";
+            label = "Agresif";
+            detail = "Büyüme-odaklı varlık ağırlığı baskın; getiri potansiyeli yüksek, dalgalanma da yüksek.";
+        } else if (defensive >= 55 || riskScore < 33) {
+            profile = "CONSERVATIVE";
+            label = "Korumacı";
+            detail = "Korumacı/sabit-getirili ağırlık baskın; sermaye koruma önceliği, getiri daha ılımlı.";
+        } else {
+            profile = "BALANCED";
+            label = "Dengeli";
+            detail = "Büyüme ve korumacı varlıklar dengeli; orta risk-getiri profili.";
+        }
+        return new Classification(profile, label, detail,
+                scalePct(BigDecimal.valueOf(growth)), scalePct(BigDecimal.valueOf(defensive)));
+    }
+
+    // ── Varlık-bazlı teknik sinyaller (holdings'te enrich edilmiş alanlardan) ────
+
+    private List<AssetSignal> buildAssetSignals(List<HoldingTry> rows, BigDecimal total) {
+        List<AssetSignal> out = new ArrayList<>();
+        for (HoldingTry row : rows) {
+            PortfolioHoldingResponse h = row.h();
+            String label = (h.getName() != null && !h.getName().isBlank()) ? h.getName() : h.getSymbol();
+
+            BigDecimal price = h.getCurrentPrice();
+            BigDecimal ma20 = h.getMa20();
+            BigDecimal ma50 = h.getMa50();
+            String trend = "NEUTRAL";
+            String trendLabel = "Yatay/belirsiz";
+            String maState = null;
+            if (price != null && price.signum() > 0 && ma20 != null && ma50 != null
+                    && ma20.signum() > 0 && ma50.signum() > 0) {
+                boolean above20 = price.compareTo(ma20) >= 0;
+                boolean above50 = price.compareTo(ma50) >= 0;
+                if (above20 && above50) {
+                    trend = "UP";
+                    trendLabel = "Yükseliş eğilimi";
+                    maState = "Fiyat MA20 ve MA50 üstünde";
+                } else if (!above20 && !above50) {
+                    trend = "DOWN";
+                    trendLabel = "Düşüş eğilimi";
+                    maState = "Fiyat MA20 ve MA50 altında";
+                } else {
+                    trend = "NEUTRAL";
+                    trendLabel = "Kararsız";
+                    maState = above50 ? "MA50 üstü, MA20 altı" : "MA20 üstü, MA50 altı";
+                }
+            }
+
+            BigDecimal range52 = null;
+            BigDecimal hi = h.getFiftyTwoWeekHigh();
+            BigDecimal lo = h.getFiftyTwoWeekLow();
+            if (price != null && hi != null && lo != null && hi.compareTo(lo) > 0) {
+                double pos = (price.doubleValue() - lo.doubleValue()) / (hi.doubleValue() - lo.doubleValue()) * 100.0;
+                range52 = scalePct(BigDecimal.valueOf(clamp(pos, 0, 100)));
+            }
+
+            BigDecimal m1 = h.getReturnOneMonth();
+            BigDecimal m3 = h.getReturnThreeMonths();
+            String note = buildSignalNote(trendLabel, range52, m1);
+
+            out.add(new AssetSignal(h.getSymbol(), label, typeName(h.getAssetType()),
+                    pctOf(row.mvTry(), total), trend, trendLabel, maState, range52,
+                    m1, m3, h.getProfitLossPercent(), note));
+        }
+        out.sort(Comparator.comparing(AssetSignal::weightPercent, Comparator.reverseOrder()));
+        return out;
+    }
+
+    private static String buildSignalNote(String trendLabel, BigDecimal range52, BigDecimal momentum1m) {
+        StringBuilder b = new StringBuilder(trendLabel);
+        if (range52 != null) {
+            double pos = range52.doubleValue();
+            String where = pos >= 80 ? "52-hafta zirvesine yakın" : pos <= 20 ? "52-hafta dibine yakın"
+                    : pos >= 55 ? "52-hafta bandının üst yarısında" : "52-hafta bandının alt yarısında";
+            b.append("; ").append(where);
+        }
+        if (momentum1m != null) {
+            b.append("; son 1 ay %").append(momentum1m.setScale(1, RoundingMode.HALF_UP).toPlainString());
+        }
+        return b.toString();
+    }
+
     // ── Risk metrikleri (actual/cost oran serisinden) ───────────────────────────
 
     private RiskMetrics computeRiskMetrics(List<WhatIfSeriesPoint> pts, List<String> notes) {
         List<Double> portRatio = ratioSeries(pts, WhatIfSeriesPoint::getActual);
         if (portRatio.size() < MIN_SAMPLES) {
             notes.add("Risk metrikleri için geçmiş çok kısa (en az " + MIN_SAMPLES + " aylık nokta gerekir).");
-            return new RiskMetrics(null, null, null, null, null, portRatio.size(), false, "Geçmiş kısa");
+            return new RiskMetrics(null, null, null, null, null, null, portRatio.size(), false, "Geçmiş kısa");
         }
         List<Double> rPort = returns(portRatio);
         int months = rPort.size();
@@ -285,7 +403,7 @@ public class PortfolioAnalysisService {
         }
 
         return new RiskMetrics(
-                pctVal(annualVol), num(sharpe), num(sortino), pctVal(maxDd),
+                pctVal(annualReturn), pctVal(annualVol), num(sharpe), num(sortino), pctVal(maxDd),
                 beta != null ? num(beta) : null, months, true, null);
     }
 

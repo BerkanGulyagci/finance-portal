@@ -1,17 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
-  ArrowLeft, Sparkles, ShieldAlert, HeartPulse, PieChart as PieIcon,
-  TrendingUp, TrendingDown, Scale, AlertTriangle, Info, History,
+  ArrowLeft, Sparkles, ShieldAlert, HeartPulse, Scale, AlertTriangle, Info, History,
+  Target, Activity, TrendingUp, TrendingDown, Minus,
 } from 'lucide-react';
 import {
-  PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line,
+  ResponsiveContainer, Tooltip, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid,
 } from 'recharts';
 import { getPortfolioAiAnalysis } from '../../api/portfolioApi';
-
-const PIE_COLORS = ['#093eaa', '#2563eb', '#0ea5e9', '#10b981', '#f59e0b',
-  '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#64748b'];
 
 const fmtMoney = (v) => (v == null ? '—' : Number(v).toLocaleString('tr-TR', { maximumFractionDigits: 0 }) + ' ₺');
 const fmtPct = (v) => (v == null ? '—' : `%${Number(v).toLocaleString('tr-TR', { maximumFractionDigits: 2 })}`);
@@ -21,6 +17,13 @@ const signClass = (v) => (v == null ? 'text-gray-500' : Number(v) > 0 ? 'text-em
 // Risk: düşük=yeşil; Sağlık: düşük=kırmızı.
 const riskColor = (s) => (s < 33 ? '#10b981' : s < 66 ? '#f59e0b' : '#ef4444');
 const healthColor = (s) => (s < 33 ? '#ef4444' : s < 66 ? '#f59e0b' : '#10b981');
+
+// Portföy profili rozet renkleri.
+const PROFILE_STYLE = {
+  AGGRESSIVE: { bg: 'bg-rose-50', text: 'text-rose-700', ring: 'ring-rose-200' },
+  BALANCED: { bg: 'bg-blue-50', text: 'text-blue-700', ring: 'ring-blue-200' },
+  CONSERVATIVE: { bg: 'bg-emerald-50', text: 'text-emerald-700', ring: 'ring-emerald-200' },
+};
 
 /** Basit SVG skor halkası (0-100). */
 function ScoreGauge({ score, color, label, sub }) {
@@ -49,7 +52,7 @@ function FactorBars({ factors }) {
   if (!factors?.length) return null;
   const max = Math.max(1, ...factors.map((f) => Math.abs(f.contribution)));
   return (
-    <div className="mt-3 space-y-1.5">
+    <div className="mt-3 space-y-1.5 w-full">
       {factors.map((f) => (
         <div key={f.label} className="text-xs">
           <div className="flex justify-between text-gray-500">
@@ -75,6 +78,80 @@ function Card({ title, icon, children, className = '' }) {
         </div>
       )}
       {children}
+    </div>
+  );
+}
+
+/** Trend rozeti (UP/DOWN/NEUTRAL). */
+function TrendBadge({ trend, label }) {
+  const map = {
+    UP: { c: 'bg-emerald-50 text-emerald-700', Icon: TrendingUp },
+    DOWN: { c: 'bg-rose-50 text-rose-700', Icon: TrendingDown },
+    NEUTRAL: { c: 'bg-gray-100 text-gray-600', Icon: Minus },
+  };
+  const { c, Icon } = map[trend] || map.NEUTRAL;
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${c}`}>
+      <Icon className="w-3 h-3" />{label}
+    </span>
+  );
+}
+
+/** 52-hafta bandındaki konum çubuğu (0=dip, 100=tepe). */
+function RangeBar({ pos }) {
+  if (pos == null) return <div className="text-[11px] text-gray-400">52h verisi yok</div>;
+  return (
+    <div>
+      <div className="flex justify-between text-[10px] text-gray-400 mb-0.5">
+        <span>52h dip</span><span>{fmtPct(pos)}</span><span>tepe</span>
+      </div>
+      <div className="relative h-1.5 bg-gradient-to-r from-emerald-200 via-amber-200 to-rose-200 rounded-full">
+        <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-[#093eaa] border-2 border-white shadow"
+          style={{ left: `${Math.max(0, Math.min(100, Number(pos)))}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function AssetSignalCard({ s }) {
+  return (
+    <div className="border border-gray-100 rounded-lg p-3 bg-gray-50/50">
+      <div className="flex items-start justify-between gap-2 mb-1.5">
+        <div className="min-w-0">
+          <div className="font-semibold text-gray-800 text-sm truncate">{s.name}</div>
+          <div className="text-[11px] text-gray-400">{s.symbol} · ağırlık {fmtPct(s.weightPercent)}</div>
+        </div>
+        <TrendBadge trend={s.trend} label={s.trendLabel} />
+      </div>
+      <div className="mb-2"><RangeBar pos={s.range52wPercent} /></div>
+      <div className="grid grid-cols-3 gap-2 text-center mb-1.5">
+        <Mini label="Getiri" value={fmtPct(s.profitLossPercent)} cls={signClass(s.profitLossPercent)} />
+        <Mini label="1 Ay" value={fmtPct(s.momentum1mPercent)} cls={signClass(s.momentum1mPercent)} />
+        <Mini label="3 Ay" value={fmtPct(s.momentum3mPercent)} cls={signClass(s.momentum3mPercent)} />
+      </div>
+      {s.maState && <div className="text-[11px] text-gray-500">{s.maState}</div>}
+    </div>
+  );
+}
+
+function Mini({ label, value, cls }) {
+  return (
+    <div>
+      <div className={`text-sm font-bold ${cls}`}>{value}</div>
+      <div className="text-[10px] text-gray-400">{label}</div>
+    </div>
+  );
+}
+
+function MonteCarloTooltip({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0]?.payload;
+  if (!d) return null;
+  return (
+    <div className="bg-white border border-gray-200 rounded shadow px-2.5 py-1.5 text-xs">
+      <div className="font-semibold text-gray-700 mb-0.5">{d.month}. ay</div>
+      <div className="text-[#093eaa] font-semibold">Medyan: {fmtMoney(d.p50)}</div>
+      <div className="text-gray-500">%5–%95: {fmtMoney(d.p5)} – {fmtMoney(d.p95)}</div>
     </div>
   );
 }
@@ -117,14 +194,19 @@ export default function AiAnalysisPage() {
 
   const m = data.riskMetrics || {};
   const conc = data.concentration || {};
-  const typeAlloc = (data.assetTypeAllocation || []).map((s) => ({ name: s.label, value: Number(s.weightPercent) }));
-  const valueSeries = (data.valueSeries || []).map((p) => ({
-    date: p.date, Gerçek: p.value != null ? Number(p.value) : null, Maliyet: p.cost != null ? Number(p.cost) : null,
+  const cls = data.classification;
+  const mc = data.monteCarlo;
+  const signals = data.assetSignals || [];
+  const profileStyle = (cls && PROFILE_STYLE[cls.profile]) || PROFILE_STYLE.BALANCED;
+
+  const mcData = (mc?.bands || []).map((b) => ({
+    month: b.month,
+    base: Number(b.p5),
+    range: Number(b.p95) - Number(b.p5),
+    p50: Number(b.p50),
+    p5: Number(b.p5),
+    p95: Number(b.p95),
   }));
-  const benchData = [
-    { name: 'Portföyün', value: Number(data.totalProfitLossPercent ?? 0), me: true },
-    ...(data.benchmarks || []).map((b) => ({ name: b.label, value: Number(b.returnPercent ?? 0), me: false })),
-  ];
   const aiText = (data.aiReport || '').replace(/\*\*/g, '').replace(/^#+\s*/gm, '');
 
   return (
@@ -135,9 +217,14 @@ export default function AiAnalysisPage() {
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Sparkles className="w-5 h-5 text-[#093eaa]" />
             <h1 className="text-lg sm:text-xl font-bold text-gray-900 truncate">AI Portföy Analizi</h1>
+            {cls && (
+              <span className={`px-2 py-0.5 rounded-full text-xs font-bold ring-1 ${profileStyle.bg} ${profileStyle.text} ${profileStyle.ring}`}>
+                {cls.label}
+              </span>
+            )}
           </div>
           <p className="text-sm text-gray-400 truncate">{data.name} · {data.holdingsCount} pozisyon</p>
         </div>
@@ -149,7 +236,7 @@ export default function AiAnalysisPage() {
         </div>
       </div>
 
-      {/* Skorlar + özet */}
+      {/* Skorlar + portföy kimliği */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card title="Risk Skoru" icon={<ShieldAlert className="w-4 h-4 text-amber-500" />}>
           <div className="flex flex-col items-center">
@@ -163,17 +250,22 @@ export default function AiAnalysisPage() {
             <FactorBars factors={data.healthFactors} />
           </div>
         </Card>
-        <Card title="Getiri Özeti" icon={<TrendingUp className="w-4 h-4 text-[#093eaa]" />}>
-          <dl className="space-y-2.5 text-sm">
-            <Row label="Nominal getiri" value={fmtPct(data.totalProfitLossPercent)} cls={signClass(data.totalProfitLossPercent)} />
-            <Row label="Reel getiri (TÜFE'siz)" value={fmtPct(data.realProfitLossPercent)} cls={signClass(data.realProfitLossPercent)} strong />
-            <Row label="Dönem enflasyonu" value={fmtPct(data.inflationSincePercent)} cls="text-gray-600" />
-            <Row label="Toplam K/Z" value={fmtMoney(data.totalProfitLossTry)} cls={signClass(data.totalProfitLossTry)} />
-            <Row label="Maliyet" value={fmtMoney(data.totalCostTry)} cls="text-gray-600" />
-          </dl>
-          <p className="text-[11px] text-gray-400 mt-3 leading-snug">
-            Reel getiri enflasyondan arındırılmıştır — asıl "kazandın mı" sorusunun cevabı budur.
-          </p>
+        <Card title="Portföy Kimliği" icon={<Target className="w-4 h-4 text-[#093eaa]" />}>
+          {cls ? (
+            <div>
+              <div className={`inline-block px-2.5 py-1 rounded-full text-sm font-bold mb-2 ${profileStyle.bg} ${profileStyle.text}`}>
+                {cls.label}
+              </div>
+              <p className="text-sm text-gray-600 leading-snug mb-3">{cls.detail}</p>
+              <div className="space-y-2">
+                <WeightBar label="Büyüme-odaklı" pct={cls.growthWeightPercent} color="#ef4444" />
+                <WeightBar label="Korumacı" pct={cls.defensiveWeightPercent} color="#10b981" />
+              </div>
+              <p className="text-[11px] text-gray-400 mt-2">
+                Hisse/kripto/vadeli/emtia = büyüme; tahvil/altın/döviz = korumacı; fon = karma.
+              </p>
+            </div>
+          ) : <p className="text-sm text-gray-500">Sınıflandırma için veri yok.</p>}
         </Card>
       </div>
 
@@ -182,12 +274,12 @@ export default function AiAnalysisPage() {
         <Card title="Risk-Ayarlı Metrikler" icon={<Scale className="w-4 h-4 text-[#093eaa]" />} className="md:col-span-2">
           {m.available ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <Metric label="Yıllık Getiri" value={fmtPct(m.annualReturnPercent)} hint="Yıllıklandırılmış" />
               <Metric label="Yıllık Volatilite" value={fmtPct(m.annualVolatilityPercent)} hint="Dalgalanma" />
               <Metric label="Sharpe" value={fmtNum(m.sharpe)} hint="Birim risk başına getiri" />
               <Metric label="Sortino" value={fmtNum(m.sortino)} hint="Aşağı-yön risk-ayarlı" />
               <Metric label="Max Düşüş" value={fmtPct(m.maxDrawdownPercent)} hint="Tepe→dip kayıp" />
               <Metric label="Beta (BIST100)" value={fmtNum(m.beta)} hint="Piyasaya duyarlılık" />
-              <Metric label="Veri" value={`${m.sampleMonths} ay`} hint="Hesap penceresi" />
             </div>
           ) : (
             <p className="text-sm text-gray-500">Risk metrikleri için geçmiş çok kısa ({m.note || 'yetersiz veri'}).</p>
@@ -206,53 +298,30 @@ export default function AiAnalysisPage() {
         </Card>
       </div>
 
-      {/* Dağılım pasta + değer serisi */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card title="Varlık Dağılımı" icon={<PieIcon className="w-4 h-4 text-[#093eaa]" />}>
+      {/* Monte Carlo projeksiyon (yelpaze) */}
+      {mc?.available && (
+        <Card title="Monte Carlo Projeksiyon — Olası değer aralığı" icon={<Activity className="w-4 h-4 text-[#093eaa]" />}>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+            <Metric label={`${mc.horizonMonths} ay medyan`} value={fmtMoney(mc.medianEndValue)} hint={`getiri ${fmtPct(mc.expectedReturnPercent)}`} />
+            <Metric label="İyimser (%95)" value={fmtMoney(mc.p95EndValue)} hint="üst senaryo" />
+            <Metric label="Kötümser (%5)" value={fmtMoney(mc.p5EndValue)} hint="alt senaryo" />
+            <Metric label="Kayıp olasılığı" value={fmtPct(mc.probLossPercent)} hint="nominal" />
+          </div>
           <ResponsiveContainer width="100%" height={260}>
-            <PieChart>
-              <Pie data={typeAlloc} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90}
-                label={(e) => `${e.name} ${e.value.toFixed(0)}%`} labelLine={false}>
-                {typeAlloc.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-              </Pie>
-              <Tooltip formatter={(v) => `${Number(v).toFixed(1)}%`} />
-            </PieChart>
-          </ResponsiveContainer>
-        </Card>
-        <Card title="Değer Gelişimi (Gerçek vs Maliyet)" icon={<TrendingUp className="w-4 h-4 text-[#093eaa]" />}>
-          <ResponsiveContainer width="100%" height={260}>
-            <LineChart data={valueSeries} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+            <ComposedChart data={mcData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="date" tick={{ fontSize: 11 }} minTickGap={30} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => (v / 1000).toFixed(0) + 'b'} width={40} />
-              <Tooltip formatter={(v) => fmtMoney(v)} />
-              <Legend />
-              <Line type="monotone" dataKey="Gerçek" stroke="#093eaa" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="Maliyet" stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="4 4" dot={false} />
-            </LineChart>
+              <XAxis dataKey="month" tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}a`} />
+              <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => (v / 1000).toFixed(0) + 'b'} width={44} />
+              <Tooltip content={<MonteCarloTooltip />} />
+              <Area dataKey="base" stackId="band" stroke="none" fill="transparent" isAnimationActive={false} />
+              <Area dataKey="range" stackId="band" stroke="none" fill="#093eaa" fillOpacity={0.12}
+                name="%5–%95 aralığı" isAnimationActive={false} />
+              <Line dataKey="p50" stroke="#093eaa" strokeWidth={2} dot={false} name="Medyan" isAnimationActive={false} />
+            </ComposedChart>
           </ResponsiveContainer>
+          <p className="text-[11px] text-gray-400 mt-1 leading-snug">{mc.note}</p>
         </Card>
-      </div>
-
-      {/* Benchmark karşılaştırması */}
-      <Card title="Benchmark Karşılaştırması — Aynı parayı nereye koysaydın?" icon={<Scale className="w-4 h-4 text-[#093eaa]" />}>
-        <ResponsiveContainer width="100%" height={Math.max(200, benchData.length * 42)}>
-          <BarChart data={benchData} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
-            <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => `%${v}`} />
-            <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={110} />
-            <Tooltip formatter={(v) => fmtPct(v)} />
-            <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-              {benchData.map((d, i) => (
-                <Cell key={i} fill={d.me ? '#093eaa' : Number(d.value) >= 0 ? '#10b981' : '#ef4444'} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-        <p className="text-[11px] text-gray-400 mt-1 leading-snug">
-          Yeşil/kırmızı = ilgili aracın aynı dönemdeki getirisi; lacivert = senin portföyün. Portföyün bir aracı geçtiyse o araçtan iyisin.
-        </p>
-      </Card>
+      )}
 
       {/* Tarihsel stres testleri */}
       {data.stressTests?.some((s) => s.available) && (
@@ -274,41 +343,17 @@ export default function AiAnalysisPage() {
         </Card>
       )}
 
-      {/* En çok kazandıran / kaybettiren */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card title="En Çok Kazandıranlar" icon={<TrendingUp className="w-4 h-4 text-emerald-500" />}>
-          <MoversList rows={data.topGainers} />
+      {/* Varlık-bazlı teknik sinyaller */}
+      {signals.length > 0 && (
+        <Card title="Varlık Bazlı Sinyaller — Her pozisyonun teknik durumu" icon={<Activity className="w-4 h-4 text-[#093eaa]" />}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {signals.map((s) => <AssetSignalCard key={s.symbol} s={s} />)}
+          </div>
+          <p className="text-[11px] text-gray-400 mt-2 leading-snug">
+            Trend = fiyatın MA20/MA50'ye göre konumu; çubuk = 52-hafta bandındaki yer; momentum = 1/3 aylık değişim.
+          </p>
         </Card>
-        <Card title="En Çok Kaybettirenler" icon={<TrendingDown className="w-4 h-4 text-rose-500" />}>
-          <MoversList rows={data.topLosers} />
-        </Card>
-      </div>
-
-      {/* Varlık getiri tablosu */}
-      <Card title="Varlık Bazlı Getiri" icon={<PieIcon className="w-4 h-4 text-[#093eaa]" />}>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-gray-400 border-b border-gray-100">
-                <th className="py-2 font-semibold">Varlık</th>
-                <th className="py-2 font-semibold text-right">Ağırlık</th>
-                <th className="py-2 font-semibold text-right">Getiri</th>
-                <th className="py-2 font-semibold text-right">K/Z (TL)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(data.assetReturns || []).map((a) => (
-                <tr key={a.symbol} className="border-b border-gray-50">
-                  <td className="py-2 font-medium text-gray-800">{a.name}</td>
-                  <td className="py-2 text-right text-gray-600">{fmtPct(a.weightPercent)}</td>
-                  <td className={`py-2 text-right font-semibold ${signClass(a.profitLossPercent)}`}>{fmtPct(a.profitLossPercent)}</td>
-                  <td className={`py-2 text-right ${signClass(a.profitLossTry)}`}>{fmtMoney(a.profitLossTry)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+      )}
 
       {/* AI yorum raporu */}
       <Card title="AI Yorum Raporu" icon={<Sparkles className="w-4 h-4 text-[#093eaa]" />}>
@@ -351,16 +396,16 @@ function Metric({ label, value, hint }) {
   );
 }
 
-function MoversList({ rows }) {
-  if (!rows?.length) return <p className="text-sm text-gray-400">Veri yok.</p>;
+function WeightBar({ label, pct, color }) {
+  const v = Math.max(0, Math.min(100, Number(pct) || 0));
   return (
-    <ul className="space-y-2">
-      {rows.map((a) => (
-        <li key={a.symbol} className="flex items-center justify-between text-sm">
-          <span className="font-medium text-gray-800 truncate">{a.name}</span>
-          <span className={`font-bold ${signClass(a.profitLossPercent)}`}>{fmtPct(a.profitLossPercent)}</span>
-        </li>
-      ))}
-    </ul>
+    <div className="text-xs">
+      <div className="flex justify-between text-gray-500 mb-0.5">
+        <span>{label}</span><span className="font-semibold text-gray-700">{fmtPct(pct)}</span>
+      </div>
+      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className="h-full rounded-full" style={{ width: `${v}%`, backgroundColor: color }} />
+      </div>
+    </div>
   );
 }

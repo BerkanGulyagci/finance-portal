@@ -71,6 +71,15 @@ public class PortfolioAiAnalysisResult {
     // ── Değer zaman serisi (grafik) ─────────────────────────────────────────────
     private List<SeriesPoint> valueSeries;
 
+    // ── Portföy kimliği / sınıflandırma (agresif / dengeli / korumacı) ──────────
+    private Classification classification;
+
+    // ── Varlık-bazlı teknik sinyaller (MA20/50, 52h konumu, momentum) ───────────
+    private List<AssetSignal> assetSignals;
+
+    // ── Monte Carlo / lognormal projeksiyon (olası değer aralığı) ───────────────
+    private MonteCarlo monteCarlo;
+
     // ── AI yorum raporu ─────────────────────────────────────────────────────────
     /** LLM'in ürettiği Türkçe yorum; LLM kullanılamazsa null (graceful degrade). */
     private String aiReport;
@@ -95,8 +104,10 @@ public class PortfolioAiAnalysisResult {
     public record Concentration(BigDecimal topHoldingPercent, BigDecimal top3Percent,
                                 BigDecimal herfindahl, String label, String topHoldingLabel) {}
 
-    /** Risk-ayarlı metrikler. available=false ise geçmiş çok kısa (hesaplanamadı). */
-    public record RiskMetrics(BigDecimal annualVolatilityPercent, BigDecimal sharpe, BigDecimal sortino,
+    /** Risk-ayarlı metrikler. available=false ise geçmiş çok kısa (hesaplanamadı).
+     *  {@code annualReturnPercent} = yıllıklandırılmış getiri (Monte Carlo μ kaynağı). */
+    public record RiskMetrics(BigDecimal annualReturnPercent, BigDecimal annualVolatilityPercent,
+                              BigDecimal sharpe, BigDecimal sortino,
                               BigDecimal maxDrawdownPercent, BigDecimal beta, int sampleMonths,
                               boolean available, String note) {}
 
@@ -109,4 +120,37 @@ public class PortfolioAiAnalysisResult {
     /** Tarihsel stres testi: mevcut dağılımın o krizdeki tahmini etkisi (%). available=false ise temsil edilemedi. */
     public record StressTest(String key, String label, String period, BigDecimal impactPercent,
                              String note, boolean available) {}
+
+    /**
+     * Portföy kimliği / risk profili — varlık-tipi ağırlıklarından türetilir.
+     * profile: AGGRESSIVE | BALANCED | CONSERVATIVE. growthWeight = büyüme-odaklı (hisse/kripto/vadeli/emtia),
+     * defensiveWeight = korumacı (tahvil/altın/döviz/mevduat) ağırlığı %.
+     */
+    public record Classification(String profile, String label, String detail,
+                                 BigDecimal growthWeightPercent, BigDecimal defensiveWeightPercent) {}
+
+    /**
+     * Tek varlığın teknik sinyali (holdings'te zaten enrich edilmiş alanlardan — ekstra dış çağrı yok).
+     * trend: UP | DOWN | NEUTRAL. maState ör. "Fiyat MA20 ve MA50 üstünde". range52wPercent: 52-hafta
+     * bandındaki konum (0=dip,100=tepe). momentum1m/3m: 1/3 aylık % değişim. note: kısa Türkçe açıklama.
+     */
+    public record AssetSignal(String symbol, String name, String assetType, BigDecimal weightPercent,
+                              String trend, String trendLabel, String maState, BigDecimal range52wPercent,
+                              BigDecimal momentum1mPercent, BigDecimal momentum3mPercent,
+                              BigDecimal profitLossPercent, String note) {}
+
+    /**
+     * Monte Carlo / lognormal projeksiyon: GBM (μ=yıllık getiri, σ=yıllık volatilite) altında portföyün
+     * gelecek değer aralığı. available=false ise yeterli geçmiş yok. bands = ay-ay yüzdelik bantlar.
+     */
+    public record MonteCarlo(int horizonMonths, boolean available, String note,
+                             List<ProjectionPoint> bands,
+                             BigDecimal startValue, BigDecimal medianEndValue,
+                             BigDecimal p5EndValue, BigDecimal p95EndValue,
+                             BigDecimal expectedReturnPercent, BigDecimal probLossPercent,
+                             BigDecimal annualReturnPercent, BigDecimal annualVolatilityPercent) {}
+
+    /** Projeksiyon noktası: ay + yüzdelik dilim değerleri (p5/p25/p50/p75/p95, TL). */
+    public record ProjectionPoint(int month, BigDecimal p5, BigDecimal p25, BigDecimal p50,
+                                  BigDecimal p75, BigDecimal p95) {}
 }
