@@ -56,17 +56,24 @@ public class PortfolioAiNarrator {
             - SADECE Türkçe yaz; başka dilden kelime/karakter (ör. Çince) KARIŞTIRMA.
             - Her başlığı KENDİ SATIRINDA ve **kalın** yaz (ör. "**Güçlü Yönler**").
 
+            MUHAKEME (en önemli kural): Sayıları TEKRARLAMA — onları BİRBİRİNE BAĞLA ve NEDEN-SONUÇ kur.
+            Bir metriğin diğerini nasıl açıkladığını göster; ör. "tek varlık %99 yoğunlaşma → yıllık volatilite
+            %63 → 2020 stresinde -%55" aynı zincirin halkalarıdır. Her bölümde "şu sayı şudur" demek yerine
+            "şu sayı, şu yüzden, şu sonucu doğuruyor" de. Önce TEŞHİS koy (en kritik bulgu), sonra gerekçelendir.
+
             RAPOR YAPISI (başlıkları KULLAN):
-            1. **Portföy Kimliği** — verilen profili (Agresif/Dengeli/Korumacı) ve büyüme/korumacı ağırlığını
-               yorumla; bu portföy nasıl bir yatırımcıya uyar (2-3 cümle).
-            2. **Güçlü Yönler** (madde).
-            3. **Riskler & Dikkat Edilecekler** (madde) — özellikle yoğunlaşma, volatilite, yüksek-riskli varlıklar.
-            4. **Varlık Vurguları** — öne çıkan 3-5 varlığın teknik sinyalini (trend/52h konumu/momentum) ve
-               getirisini kısaca yorumla (madde).
-            5. **Benchmark & Reel Getiri** — enflasyonu yendi mi, endekslere göre ÖNDE mi GERİDE mi.
-            6. **Kısa-Vade Görünüm** — Monte Carlo aralığını (medyan + %5/%95 + kayıp olasılığı) dengeli yorumla;
+            1. **Teşhis** — portföyün EN kritik bulgusunu 1-2 cümlede SENTEZLE (sayıları bağlayarak); raporun özü.
+            2. **Portföy Kimliği** — profili (Agresif/Dengeli/Korumacı) + büyüme/korumacı ağırlığını yorumla; kime uyar.
+            3. **Güçlü Yönler** (madde, sayıya bağlı).
+            4. **Riskler & Bağlantılar** — riskleri BİRBİRİNE BAĞLA (yoğunlaşma→volatilite→stres kaybı zinciri kur),
+               sadece listeleme.
+            5. **Varlık Vurguları** — öne çıkan 3-5 varlığın teknik sinyali (trend/52h/momentum) + getirisi (madde).
+            6. **Benchmark & Reel Getiri** — enflasyonu yendi mi, endekslere göre ÖNDE mi GERİDE mi.
+            7. **Kısa-Vade Görünüm** — Monte Carlo aralığını (medyan + %5/%95 + kayıp olasılığı) dengeli yorumla;
                kesin tahmin DEĞİL, olası senaryo.
-            7. **Genel Çıkarım** (1-2 cümle, tavsiye değil değerlendirme).
+            8. **Ne Yapılabilir (Yön)** — riski azaltma/iyileştirme YÖNÜNÜ söyle (al-sat DEĞİL; ör. "korelasyonu
+               düşük bir tip eklemek yoğunlaşma riskini azaltır" gibi mantık), nihai kararın kullanıcıda olduğunu belirt.
+            9. **Genel Çıkarım** (1-2 cümle, tavsiye değil değerlendirme).
             """;
 
     private final AssistantChatPort chatPort;

@@ -42,6 +42,27 @@ export default function PortfolioDailyContributionChart({ holdings, valuesHidden
   const xDomain = signedNumericDomain(chartData.map(d => d.daily));
   const chartHeight = Math.min(380, Math.max(220, chartData.length * 38 + 48));
 
+  // İşaret-duyarlı değer etiketi: uzun bar → tepe içine (beyaz), kısa bar → tepe dışına (gri).
+  // Negatif barda etiketi sola taşırıp kategori adına bindirmeyi önler.
+  const renderValueLabel = props => {
+    const { x, y, width, height, value } = props;
+    if (value == null || !Number.isFinite(value)) return null;
+    const txt = formatMoney(value, currency, false);
+    const positive = value >= 0;
+    const barLen = Math.abs(width);
+    const tipX = positive ? x + width : x;
+    const labelW = txt.length * 5.4 + 8;
+    const inside = barLen > labelW + 10;
+    const lx = inside ? (positive ? tipX - 5 : tipX + 5) : positive ? tipX + 5 : tipX - 5;
+    const anchor = inside === positive ? 'end' : 'start';
+    return (
+      <text x={lx} y={y + height / 2} dy={3} textAnchor={anchor} fontSize={9}
+        fill={inside ? '#ffffff' : '#64748b'} fontWeight={inside ? 600 : 400}>
+        {txt}
+      </text>
+    );
+  };
+
   return (
     <PortfolioChartCard
       title={t('Günlük K/Z Katkısı')}
@@ -88,14 +109,7 @@ export default function PortfolioDailyContributionChart({ holdings, valuesHidden
                 {chartData.map(entry => (
                   <Cell key={entry.key} fill={entry.daily >= 0 ? COLOR_POS : COLOR_NEG} />
                 ))}
-                {!valuesHidden && (
-                  <LabelList
-                    dataKey="daily"
-                    position="right"
-                    formatter={v => formatMoney(v, currency, false)}
-                    style={{ fontSize: 9, fill: '#64748b' }}
-                  />
-                )}
+                {!valuesHidden && <LabelList dataKey="daily" content={renderValueLabel} />}
               </Bar>
             </BarChart>
           </ResponsiveContainer>

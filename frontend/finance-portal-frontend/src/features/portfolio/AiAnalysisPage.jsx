@@ -420,9 +420,10 @@ function Metric({ label, value, hint }) {
 
 // AI raporunu başlık (**kalın** / # / bilinen bölüm adı) + madde + paragraf olarak biçimler.
 const KNOWN_HEADINGS = [
-  'portföy kimliği', 'güçlü yönler', 'riskler & dikkat edilecekler', 'riskler ve dikkat edilecekler',
-  'riskler', 'dikkat edilmesi gerekenler', 'varlık vurguları', 'benchmark & reel getiri',
-  'benchmark ve reel getiri', 'kısa-vade görünüm', 'kısa vade görünüm', 'genel çıkarım',
+  'teşhis', 'portföy kimliği', 'güçlü yönler', 'riskler & dikkat edilecekler', 'riskler ve dikkat edilecekler',
+  'riskler & bağlantılar', 'riskler ve bağlantılar', 'riskler', 'dikkat edilmesi gerekenler',
+  'varlık vurguları', 'benchmark & reel getiri', 'benchmark ve reel getiri', 'kısa-vade görünüm',
+  'kısa vade görünüm', 'ne yapılabilir', 'ne yapılabilir (yön)', 'genel çıkarım',
 ];
 const stripInline = (s) => s.replace(/\*\*/g, '').trim();
 

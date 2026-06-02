@@ -42,12 +42,16 @@ export default function PortfolioDailyStatusChart({ holdings }) {
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={data}
-            margin={{ top: 8, right: 8, left: 0, bottom: 8 }}
+            margin={{ top: 16, right: 8, left: 0, bottom: 8 }}
             {...BAR_VERTICAL_CHART}
           >
             <CartesianGrid {...CHART_GRID} vertical={false} />
             <XAxis dataKey="name" tick={TICK} />
-            <YAxis allowDecimals={false} tick={TICK} domain={[0, 'auto']} />
+            <YAxis
+              allowDecimals={false}
+              tick={TICK}
+              domain={[0, dataMax => dataMax + Math.max(1, Math.ceil(dataMax * 0.15))]}
+            />
             <Tooltip content={<PortfolioAnalyticsTooltip valuesHidden={false} />} />
             <Bar dataKey="count" radius={[3, 3, 0, 0]} {...BAR_VERTICAL_BAR}>
               {data.map(e => (
