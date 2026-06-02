@@ -1,14 +1,14 @@
-import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Check, BarChart2 } from 'lucide-react';
-import { getStocks, getStockChart, getIndex, getAllStocks } from '../../../api/marketApi';
+import { getStocks, getAllStocks } from '../../../api/marketApi';
 import { useSortable } from '../../../hooks/useSortable';
 import SortableTh from '../../../components/common/SortableTh';
 import WatchlistStar from '../../../components/instrument/WatchlistStar';
 import InstrumentLogo from '../../../components/instrument/InstrumentLogo';
 import Pagination from '../../../components/common/Pagination';
 import IndicesView from './IndicesView';
-import { STOCK_CHART_RANGES, formatStockChartTimeLabel } from './utils/stockChartRanges';
+import IndexChart from './components/IndexChart';
 import { useTranslation } from '../../../context/LanguageContext';
 
 const PAGE_SIZE = 20;
@@ -19,231 +19,6 @@ const INDEX_FILTERS = [
   { key: 'BIST50',  label: 'BIST 50',      size: 50,        indexSymbol: 'XU050.IS' },
   { key: 'BIST100', label: 'BIST 100',     size: 100,       indexSymbol: 'XU100.IS' },
 ];
-
-const CHART_RANGES = STOCK_CHART_RANGES;
-
-function IndexChart({ symbol, label }) {
-  const { t } = useTranslation();
-  const [data, setData]         = useState([]);
-  const [daily, setDaily]       = useState(null); // canlı fiyat + günlük % (Endeksler listesiyle aynı kaynak)
-  const [loading, setLoading]   = useState(true);
-  const [rangeIdx, setRangeIdx] = useState(2); // default 1A
-
-  const chartRef    = useRef(null);
-  const instanceRef = useRef(null);
-
-  const activeRange = CHART_RANGES[rangeIdx];
-
-  // Grafik serisini çek + endeks özetini Endeksler listesiyle AYNI kaynaktan (getIndex → aynı
-  // cache'li snapshot) al. "Son Değer" / günlük %'yi bu snapshot'tan gösterip son noktayı da
-  // onunla hizalarız → grafik ile liste BİREBİR tutarlı (canlı olması değil, tutarlı olması esas).
-  const code = symbol.replace(/\.IS$/i, '').toUpperCase();
-  useEffect(() => {
-    setLoading(true);
-    let alive = true;
-    Promise.all([
-      getStockChart(symbol, activeRange.range, activeRange.interval).catch(() => null),
-      getIndex(code).catch(() => null),
-    ])
-      .then(([res, idx]) => {
-        if (!alive) return;
-        const ts     = res?.timestamps  ?? [];
-        const prices = res?.closePrices ?? [];
-        const points = ts.map((tt, i) => ({
-          label: formatStockChartTimeLabel(tt, activeRange.range, activeRange.interval),
-          price: prices[i] != null ? parseFloat(prices[i]) : null,
-        })).filter(d => d.price != null);
-        const listPrice = idx?.price != null ? parseFloat(idx.price) : null;
-        if (listPrice != null && points.length > 0) {
-          points[points.length - 1] = { ...points[points.length - 1], price: listPrice };
-        }
-        setData(points);
-        setDaily(listPrice != null
-          ? { price: listPrice, changePercent: idx?.changePercent != null ? parseFloat(idx.changePercent) : null }
-          : null);
-      })
-      .finally(() => { if (alive) setLoading(false); });
-    return () => { alive = false; };
-  }, [symbol, code, activeRange.range, activeRange.interval]);
-
-  // ECharts render
-  useEffect(() => {
-    if (!chartRef.current || data.length < 2) return;
-
-    import('echarts').then(echarts => {
-      if (instanceRef.current) instanceRef.current.dispose();
-
-      const chart = echarts.init(chartRef.current, null, { renderer: 'canvas' });
-      instanceRef.current = chart;
-
-      const isUp  = data[data.length - 1].price >= data[0].price;
-      const color = isUp ? '#10b981' : '#ef4444';
-
-      chart.setOption({
-        backgroundColor: 'transparent',
-        animation: false,
-        grid: { top: 16, right: 16, bottom: 80, left: 72 },
-        xAxis: {
-          type: 'category',
-          data: data.map(d => d.label),
-          axisLine: { lineStyle: { color: '#e5e7eb' } },
-          axisTick: { show: false },
-          axisLabel: { color: '#9ca3af', fontSize: 10, interval: 'auto' },
-          splitLine: { show: false },
-        },
-        yAxis: {
-          type: 'value',
-          min: 'dataMin',
-          max: 'dataMax',
-          axisLine: { show: false },
-          axisTick: { show: false },
-          axisLabel: {
-            color: '#9ca3af',
-            fontSize: 10,
-            formatter: v => v.toLocaleString('tr-TR', { maximumFractionDigits: 0 }),
-          },
-          splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } },
-        },
-        tooltip: {
-          trigger: 'axis',
-          axisPointer: { type: 'cross', lineStyle: { color: '#9ca3af', type: 'dashed' } },
-          backgroundColor: '#ffffff',
-          borderColor: '#e5e7eb',
-          borderRadius: 12,
-          padding: [10, 14],
-          formatter: params => {
-            if (!params?.length) return '';
-            const p = params[0];
-            return `<div style="font-size:11px;color:#6b7280;font-weight:600;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #f0f0f0">${p.axisValue}</div>
-              <div style="display:flex;justify-content:space-between;gap:16px;align-items:center">
-                <span style="font-size:11px;color:#6b7280">${t('Değer:')}</span>
-                <span style="font-weight:700;font-size:11px;color:#111827">${p.value != null ? parseFloat(p.value).toLocaleString('tr-TR', { maximumFractionDigits: 2 }) : '-'}</span>
-              </div>`;
-          },
-        },
-        dataZoom: [
-          { type: 'inside', xAxisIndex: 0, start: 0, end: 100, zoomOnMouseWheel: true },
-          {
-            type: 'slider',
-            xAxisIndex: 0,
-            start: 0,
-            end: 100,
-            height: 18,
-            bottom: 8,
-            borderColor: '#e5e7eb',
-            fillerColor: 'rgba(9,62,170,0.08)',
-            handleStyle: { color: '#093eaa' },
-            showDetail: false,
-          },
-        ],
-        series: [{
-          type: 'line',
-          data: data.map(d => d.price),
-          smooth: false,
-          symbol: 'none',
-          lineStyle: { width: 2, color },
-          areaStyle: {
-            color: {
-              type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-              colorStops: [
-                { offset: 0, color: color + '33' },
-                { offset: 1, color: color + '00' },
-              ],
-            },
-          },
-        }],
-      });
-
-      const ro = new ResizeObserver(() => chart.resize());
-      ro.observe(chartRef.current);
-      return () => ro.disconnect();
-    });
-
-    return () => {
-      if (instanceRef.current) {
-        instanceRef.current.dispose();
-        instanceRef.current = null;
-      }
-    };
-  }, [data, loading]);
-
-  const isUp      = data.length > 1 && data[data.length - 1].price >= data[0].price;
-  const change    = data.length > 1
-    ? (((data[data.length - 1].price - data[0].price) / data[0].price) * 100).toFixed(2)
-    : null;
-  const absChange = data.length > 1
-    ? (data[data.length - 1].price - data[0].price).toLocaleString('tr-TR', { maximumFractionDigits: 2 })
-    : null;
-
-  return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-5 mb-6">
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <div className="flex items-baseline gap-3 flex-wrap">
-          <h2 className="text-base font-bold text-gray-900">{label} {t('Endeksi')}</h2>
-          {daily?.price != null && (
-            <span className="flex items-baseline gap-1.5">
-              <span className="text-base font-bold text-gray-900">
-                {daily.price.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
-              </span>
-              {daily.changePercent != null && (
-                <span className={`text-xs font-bold ${daily.changePercent >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                  {daily.changePercent >= 0 ? '+' : ''}{daily.changePercent.toFixed(2)}%
-                  <span className="text-gray-400 font-normal ml-1">{t('bugün')}</span>
-                </span>
-              )}
-            </span>
-          )}
-        </div>
-        <div className="flex gap-1">
-          {CHART_RANGES.map((r, i) => (
-            <button key={r.label} onClick={() => setRangeIdx(i)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                i === rangeIdx ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-              }`}>
-              {t(r.label)}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Loading overlay — chart div her zaman DOM'da kalır */}
-      <div style={{ position: 'relative', height: 260 }}>
-        {loading && (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card, #fff)', zIndex: 10 }}>
-            <div className="flex gap-1.5">
-              <div className="w-2 h-2 bg-[#093eaa] rounded-full animate-bounce" />
-              <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
-              <div className="w-2 h-2 bg-[#093eaa]/30 rounded-full animate-bounce [animation-delay:200ms]" />
-            </div>
-          </div>
-        )}
-        {!loading && data.length < 2 && (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span className="text-gray-400 text-sm">{t('Grafik verisi yüklenemedi.')}</span>
-          </div>
-        )}
-        <div ref={chartRef} style={{ width: '100%', height: '100%', visibility: loading || data.length < 2 ? 'hidden' : 'visible' }} />
-      </div>
-
-      {change != null && (
-        <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-          <div>
-            <p className="text-xs text-gray-400">{t(activeRange.label)} {t('Değişim')}</p>
-            <p className={`text-sm font-bold ${isUp ? 'text-emerald-600' : 'text-rose-600'}`}>
-              {isUp ? '+' : ''}₺{absChange} ({isUp ? '+' : ''}{change}%)
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-gray-400">{t('Son Değer')}</p>
-            <p className="text-sm font-bold text-gray-900">
-              {data[data.length - 1]?.price.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
-            </p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 function pct(v) {
   if (v == null) return <span className="text-gray-400">-</span>;
@@ -368,7 +143,8 @@ export default function StocksPage() {
         </div>
       </div>
 
-      {/* Endeks grafiği — sadece hisse görünümünde + bir BIST filtresi seçiliyken */}
+      {/* Endeks grafiği — sadece hisse görünümünde + bir BIST filtresi seçiliyken.
+          Endeks DETAY sayfasıyla AYNI bileşen (aynı kaynak + aynı çizim + hover). */}
       {view === 'stocks' && activeFilter.indexSymbol && <IndexChart symbol={activeFilter.indexSymbol} label={activeFilter.label} />}
 
       {/* Hisse tablosu / Endeksler listesi */}

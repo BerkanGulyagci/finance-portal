@@ -4,8 +4,7 @@ import { ArrowLeft, TrendingUp, TrendingDown, BarChart2 } from 'lucide-react';
 import { getIndex, getIndexConstituents } from '../../../api/marketApi';
 import InstrumentLogo from '../../../components/instrument/InstrumentLogo';
 import WatchlistStar from '../../../components/instrument/WatchlistStar';
-import CandlestickChart from './components/CandlestickChart';
-import LineChart from './components/LineChart';
+import IndexChart from './components/IndexChart';
 import { useTranslation } from '../../../context/LanguageContext';
 
 const CATEGORY_STYLE = {
@@ -38,7 +37,6 @@ export default function IndexDetailPage() {
   const [constituents, setConstituents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [chartMode, setChartMode] = useState('tv');
 
   useEffect(() => {
     setLoading(true);
@@ -120,16 +118,8 @@ export default function IndexDetailPage() {
               </div>
             </div>
 
-            <div className="px-4 pt-2 pb-2 border-t border-gray-100">
-              <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-                <div className="inline-flex items-center gap-0.5 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
-                  {[{ key: 'tv', label: 'Mum Grafik' }, { key: 'line', label: 'Çizgi' }].map(m => (
-                    <button key={m.key} onClick={() => setChartMode(m.key)}
-                      className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${chartMode === m.key ? 'bg-white text-[#093eaa] shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>
-                      {t(m.label)}
-                    </button>
-                  ))}
-                </div>
+            <div className="px-4 pt-3 pb-2 border-t border-gray-100">
+              <div className="flex items-center justify-end gap-2 mb-1 flex-wrap">
                 <Link
                   to={`/market/stocks/compare?add=${encodeURIComponent(symbol)}`}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-[#093eaa]/30 text-[#093eaa] bg-[#093eaa]/5 hover:bg-[#093eaa]/10 transition-colors"
@@ -138,9 +128,8 @@ export default function IndexDetailPage() {
                   {t('Karşılaştır')}
                 </Link>
               </div>
-
-              {chartMode === 'tv' && <CandlestickChart symbol={symbol} />}
-              {chartMode === 'line' && <LineChart symbol={symbol} />}
+              {/* Hisse sayfasındaki BIST 30/50/100 grafiğiyle AYNI bileşen (aynı kaynak + çizim + hover). */}
+              <IndexChart symbol={symbol} showSummary={false} height={320} />
             </div>
           </div>
 
