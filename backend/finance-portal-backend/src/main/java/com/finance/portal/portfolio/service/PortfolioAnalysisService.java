@@ -116,6 +116,16 @@ public class PortfolioAnalysisService {
     }
 
     public PortfolioAiAnalysisResult analyze(String userId, UUID portfolioId, String userName, String userEmail) {
+        return analyze(userId, portfolioId, userName, userEmail, true);
+    }
+
+    /**
+     * @param full true ise tam analiz (what-if serisi, benchmark, stres testi, varlık sinyalleri, rebalancing,
+     *             çok-ufuklu tahmin ve AI narrator dahil). false ise HAFİF: yalnız deterministik skorlar +
+     *             sınıflandırma + Monte Carlo (GridBoard widget'ları için — AI narrator'ı/ağır kısımları BEKLEMEZ).
+     */
+    public PortfolioAiAnalysisResult analyze(String userId, UUID portfolioId, String userName, String userEmail,
+                                             boolean full) {
         PortfolioResponse resp = portfolioService.getPortfolioById(userId, portfolioId); // ownership + enrich
         PortfolioAiAnalysisResult r = new PortfolioAiAnalysisResult();
         r.setPortfolioId(portfolioId);
@@ -167,54 +177,62 @@ public class PortfolioAnalysisService {
         r.setTopGainers(topBy(assetReturns, true));
         r.setTopLosers(topBy(assetReturns, false));
 
-        // ── Zaman serisi (değer + benchmark) → risk metrikleri + benchmark + reel ─
-        WhatIfSeriesResult series = safeSeries(resp);
-        List<WhatIfSeriesPoint> pts = (series != null && series.getPoints() != null)
-                ? series.getPoints() : List.of();
-        r.setValueSeries(buildValueSeries(pts));
-        // Risk metrikleri: ÖNCE varlıkların kendi fiyat geçmişinden (kullanıcı elde-tutma süresinden bağımsız,
-        // yeni portföylerde de çalışır); yetersizse eski actual/cost oran yöntemine düş.
+        // ── Risk metrikleri: varlıkların kendi fiyat geçmişinden (hafif modda da gerekli) ─
         RiskMetrics metrics = historicalRiskService.computeFromHoldings(buildPositions(rows, totalValue), 12);
-        if (metrics == null || !metrics.available()) {
+        if ((metrics == null || !metrics.available()) && full) {
+            // What-if oran serisi yalnız TAM modda (ağır); hafif modda historical yetmezse metrik boş kalır.
+            WhatIfSeriesResult series = safeSeries(resp);
+            List<WhatIfSeriesPoint> pts = (series != null && series.getPoints() != null)
+                    ? series.getPoints() : List.of();
+            r.setValueSeries(buildValueSeries(pts));
             metrics = computeRiskMetrics(pts, notes);
+            r.setBenchmarks(buildBenchmarks(pts));
+            r.setInflationSincePercent(benchmarkReturn(pts, WhatIfSeriesPoint::getInflation));
+        } else if (full) {
+            WhatIfSeriesResult series = safeSeries(resp);
+            List<WhatIfSeriesPoint> pts = (series != null && series.getPoints() != null)
+                    ? series.getPoints() : List.of();
+            r.setValueSeries(buildValueSeries(pts));
+            r.setBenchmarks(buildBenchmarks(pts));
+            r.setInflationSincePercent(benchmarkReturn(pts, WhatIfSeriesPoint::getInflation));
         }
         r.setRiskMetrics(metrics);
-        r.setBenchmarks(buildBenchmarks(pts));
-        r.setInflationSincePercent(benchmarkReturn(pts, WhatIfSeriesPoint::getInflation));
 
-        // ── Tarihsel stres testleri (mevcut dağılımı 2008/2018/2020 krizlerine uygula) ─
-        try {
-            r.setStressTests(stressTestService.compute(typeWeightFractions(rows, totalValue)));
-        } catch (Exception e) {
-            log.warn("Stres testleri hesaplanamadı (degrade): {}", e.getMessage());
-            r.setStressTests(List.of());
+        if (full) {
+            // ── Tarihsel stres testleri (mevcut dağılımı 2008/2018/2020/2022 krizlerine uygula) ─
+            try {
+                r.setStressTests(stressTestService.compute(typeWeightFractions(rows, totalValue)));
+            } catch (Exception e) {
+                log.warn("Stres testleri hesaplanamadı (degrade): {}", e.getMessage());
+                r.setStressTests(List.of());
+            }
         }
 
-        // ── Skorlar (şeffaf formül) ─────────────────────────────────────────────
+        // ── Skorlar (şeffaf formül) — her modda ─────────────────────────────────
         computeScores(r, rows, totalValue, concentration, metrics);
 
-        // ── Portföy kimliği + varlık-bazlı sinyaller + Monte Carlo projeksiyon ──
+        // ── Portföy kimliği + Monte Carlo — her modda (widget'lar bunları gösterir) ─
         r.setClassification(buildClassification(rows, totalValue, r.getRiskScore()));
-        r.setAssetSignals(buildAssetSignals(rows, totalValue));
         r.setMonteCarlo(monteCarloService.project(r.getTotalValueTry(),
                 metrics != null ? metrics.annualReturnPercent() : null,
                 metrics != null ? metrics.annualVolatilityPercent() : null, 12));
-        // Yeniden dengeleme: tespit edilen profile göre örnek hedef vs mevcut (kullanıcı profili anketle değiştirebilir).
-        r.setRebalance(rebalanceService.compute(currentTypePercents(r),
-                r.getClassification() != null ? r.getClassification().profile() : "BALANCED"));
-        // Çok-ufuklu tahmin (1ay/3ay/1y): kod aralık üretir, AI yön/anlatı yorumlar.
-        r.setForecast(buildForecast(rows, totalValue, metrics, r.getAssetSignals()));
 
-        // ── AI yorum (graceful degrade) ─────────────────────────────────────────
-        try {
-            String report = narrator.generate(r, userId, userName, userEmail);
-            r.setAiReport(report);
-            r.setAiReportAvailable(report != null && !report.isBlank());
-        } catch (Exception e) {
-            log.warn("AI analiz yorumu üretilemedi (degrade): {}", e.getMessage());
-            r.setAiReport(null);
-            r.setAiReportAvailable(false);
-            notes.add("AI yorumu şu an kullanılamıyor; metrikler ve grafikler geçerlidir.");
+        if (full) {
+            // ── Varlık sinyalleri + rebalancing + çok-ufuklu tahmin + AI narrator (TAM mod) ─
+            r.setAssetSignals(buildAssetSignals(rows, totalValue));
+            r.setRebalance(rebalanceService.compute(currentTypePercents(r),
+                    r.getClassification() != null ? r.getClassification().profile() : "BALANCED"));
+            r.setForecast(buildForecast(rows, totalValue, metrics, r.getAssetSignals()));
+            try {
+                String report = narrator.generate(r, userId, userName, userEmail);
+                r.setAiReport(report);
+                r.setAiReportAvailable(report != null && !report.isBlank());
+            } catch (Exception e) {
+                log.warn("AI analiz yorumu üretilemedi (degrade): {}", e.getMessage());
+                r.setAiReport(null);
+                r.setAiReportAvailable(false);
+                notes.add("AI yorumu şu an kullanılamıyor; metrikler ve grafikler geçerlidir.");
+            }
         }
 
         notes.add("Bu analiz bilgilendirme amaçlıdır, yatırım tavsiyesi değildir.");

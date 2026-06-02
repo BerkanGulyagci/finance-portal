@@ -130,13 +130,16 @@ public class PortfolioController {
     @GetMapping("/{portfolioId}/ai-analysis")
     public ResponseEntity<ApiResponse<PortfolioAiAnalysisResult>> getPortfolioAiAnalysis(
             @AuthenticationPrincipal Jwt jwt,
-            @PathVariable UUID portfolioId
+            @PathVariable UUID portfolioId,
+            @RequestParam(defaultValue = "false") boolean light
     ) {
         String userId = jwt.getSubject();
         String userName = jwt.getClaimAsString("name");
         String userEmail = jwt.getClaimAsString("email");
+        // light=true → yalnız deterministik skorlar + sınıflandırma + Monte Carlo (GridBoard widget'ları;
+        // ağır what-if/stres/forecast ve AI narrator'ı ATLAR — hızlı yanıt).
         PortfolioAiAnalysisResult analysis =
-                portfolioAnalysisService.analyze(userId, portfolioId, userName, userEmail);
+                portfolioAnalysisService.analyze(userId, portfolioId, userName, userEmail, !light);
         return ResponseEntity.ok(ApiResponse.success(analysis, "AI portfolio analysis retrieved successfully"));
     }
 

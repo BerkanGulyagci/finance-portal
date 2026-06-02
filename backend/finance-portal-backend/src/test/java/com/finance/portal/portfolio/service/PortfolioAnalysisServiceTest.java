@@ -157,6 +157,24 @@ class PortfolioAnalysisServiceTest {
     }
 
     @Test
+    void analyze_lightMode_skipsNarratorForecastStress() {
+        // Hafif mod (GridBoard widget'ları): deterministik skorlar/sınıflandırma/Monte Carlo VAR;
+        // AI narrator + forecast + stres + varlık sinyalleri + rebalancing YOK (hızlı, AI'yı beklemez).
+        PortfolioAiAnalysisResult r = service.analyze("u1", pid, "Berkan", "b@x.com", false);
+
+        assertThat(r.getRiskScore()).isBetween(0, 100);
+        assertThat(r.getHealthScore()).isBetween(0, 100);
+        assertThat(r.getClassification()).isNotNull();
+        assertThat(r.getMonteCarlo()).isNotNull();
+
+        assertThat(r.isAiReportAvailable()).isFalse(); // narrator çağrılmadı
+        assertThat(r.getForecast()).isNull();
+        assertThat(r.getAssetSignals()).isNull();
+        assertThat(r.getStressTests()).isNull();
+        assertThat(r.getRebalance()).isNull();
+    }
+
+    @Test
     void analyze_aiNarratorFailure_degradesGracefully() {
         when(narrator.generate(any(), any(), any(), any())).thenThrow(new RuntimeException("LLM down"));
         PortfolioAiAnalysisResult r = service.analyze("u1", pid, "Berkan", "b@x.com");

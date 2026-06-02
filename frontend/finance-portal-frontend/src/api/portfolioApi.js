@@ -69,10 +69,14 @@ const AI_ANALYSIS_TTL_MS = 5 * 60 * 1000;
 export function getPortfolioAiAnalysisShared(portfolioId) {
   const hit = _aiAnalysisCache.get(portfolioId);
   if (hit && Date.now() - hit.at < AI_ANALYSIS_TTL_MS) return hit.promise;
-  const promise = getPortfolioAiAnalysis(portfolioId).catch((e) => {
-    _aiAnalysisCache.delete(portfolioId);
-    throw e;
-  });
+  // light=true: yalnız deterministik skorlar/sınıflandırma/Monte Carlo — AI narrator'ı BEKLEMEZ (hızlı).
+  const promise = client
+    .get(`/api/portfolios/${portfolioId}/ai-analysis`, { params: { light: true } })
+    .then(({ data: wrapper }) => wrapper.data)
+    .catch((e) => {
+      _aiAnalysisCache.delete(portfolioId);
+      throw e;
+    });
   _aiAnalysisCache.set(portfolioId, { at: Date.now(), promise });
   return promise;
 }
