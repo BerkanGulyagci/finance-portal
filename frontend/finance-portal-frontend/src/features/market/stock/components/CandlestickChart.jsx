@@ -5,7 +5,7 @@ import DrawingToolbar from './DrawingToolbar';
 import { getStockOhlc } from '../../../../api/marketApi';
 import { prefGet, prefSet } from '../../../../api/prefs';
 import {
-  DRAWING_TOOLS, MA_PERIODS, SUB_INDICATORS,
+  MA_PERIODS, SUB_INDICATORS,
   maLineStyles, STOCK_WARMUP_RANGE, RANGE_WINDOW_MS, fitVisibleToWindow,
 } from '../utils/stockChartConfig';
 import { useTranslation } from '../../../../context/LanguageContext';
@@ -30,7 +30,8 @@ export default function CandlestickChart({ symbol }) {
   const chartId = useRef(`kline_${Date.now()}`);
   const chartRef = useRef(null);
   const indicatorPaneIds = useRef({}); // Her indikatör için pane ID'sini sakla
-  const overlaysRef = useRef(new Map()); // canlıOverlayId -> { name, points } (kalıcı çizimler)
+  const overlaysRef = useRef(new Map()); // canlıOverlayId -> kayıt nesnesi (o aralıkta GÖRÜNEN çizimler)
+  const allOverlaysRef = useRef([]);     // sembolün TÜM kayıtlı çizimleri (görünen + pencere dışı) — kaynak gerçek
   const [ohlcRangeIdx, setOhlcRangeIdx] = useState(3);
   const [activeMAs, setActiveMAs] = useState([]);
   const [activeSubInds, setActiveSubInds] = useState([]);
@@ -43,23 +44,37 @@ export default function CandlestickChart({ symbol }) {
   const { range, interval } = rangeConfig;
 
   // ── Çizim (overlay) KALICILIĞI: localStorage + (giriş varsa) sunucu senkronu → cihazlar arası.
-  // Her (sembol + ZAMAN ARALIĞI) ayrı saklanır: chart-overlays:{symbol}:{range}. Sebep: overlay'ler
-  // veri-koordinatlı (timestamp); bir aralıkta çizilen çizginin tarihi başka aralığın penceresinin
-  // DIŞINDA kalırsa orada görünmez/kayar. Aralık-bazlı saklayınca çizim hep kendi aralığında, doğru
-  // yerde geri yüklenir (filtre/refresh/başka cihaz — hepsinde tutarlı, kaydırma/zoom bozmaz).
+  // Sembol başına TEK liste (chart-overlays:{symbol}) — TÜM aralıklarda ortak. Overlay'ler veri-koordinatlı
+  // (timestamp+değer) olduğu için aralık değişince klinecharts onları kendi tarihlerine sabitler; tarihi
+  // yüklü verinin dışında kalan çizim ekranın dışında kalır (kaydırınca görünür), yanlış yere KONMAZ.
   const persistOverlays = useCallback(() => {
-    prefSet(`chart-overlays:${symbol}:${range}`, Array.from(overlaysRef.current.values()));
-  }, [symbol, range]);
+    prefSet(`chart-overlays:${symbol}`, allOverlaysRef.current);
+  }, [symbol]);
   const trackOverlay = useCallback((ov) => {
     if (!ov?.id) return;
-    overlaysRef.current.set(ov.id, {
-      name: ov.name,
-      points: (ov.points || []).map(p => ({ timestamp: p.timestamp, value: p.value })),
-    });
+    const points = (ov.points || []).map(p => ({ timestamp: p.timestamp, value: p.value }));
+    const existing = overlaysRef.current.get(ov.id);
+    if (existing) {
+      // Taşıma/güncelleme: kaydı YERİNDE güncelle (allOverlaysRef'teki aynı referans → tam liste de güncellenir)
+      existing.name = ov.name;
+      existing.points = points;
+    } else {
+      // Yeni çizim: hem canlı haritaya hem tam listeye ekle (aynı nesne referansı)
+      const rec = { name: ov.name, points };
+      overlaysRef.current.set(ov.id, rec);
+      allOverlaysRef.current.push(rec);
+    }
     persistOverlays();
   }, [persistOverlays]);
   const untrackOverlay = useCallback((ov) => {
-    if (ov?.id) { overlaysRef.current.delete(ov.id); persistOverlays(); }
+    if (!ov?.id) return;
+    const rec = overlaysRef.current.get(ov.id);
+    overlaysRef.current.delete(ov.id);
+    if (rec) {
+      const i = allOverlaysRef.current.indexOf(rec);
+      if (i >= 0) allOverlaysRef.current.splice(i, 1);
+    }
+    persistOverlays();
   }, [persistOverlays]);
   const overlayEvents = useMemo(() => ({
     onDrawEnd:        (e) => { trackOverlay(e.overlay); return false; },
@@ -139,16 +154,17 @@ export default function CandlestickChart({ symbol }) {
     }
   }, [overlayEvents]);
 
-  const handleDeleteSelected = useCallback(() => {
-    chartRef.current?.removeOverlay();
-  }, []);
+  // Çizimleri sil → grafikten kaldır + KALICI kaydı da temizle (yoksa refresh/başka cihazda geri gelir).
+  // klinecharts bulk removeOverlay'de onRemoved'ı her zaman tetiklemeyebilir; bu yüzden depoyu elle boşaltıyoruz.
+  const clearAllOverlays = useCallback(() => {
+    try { chartRef.current?.removeOverlay(); } catch { /* yoksay */ }
+    overlaysRef.current.clear();
+    allOverlaysRef.current = [];
+    persistOverlays();
+  }, [persistOverlays]);
 
-  const handleClearAll = useCallback(() => {
-    DRAWING_TOOLS.flatMap(g => g.tools).forEach(t => {
-      try { chartRef.current?.removeOverlay({ name: t.id }); } catch {}
-    });
-    setActiveTool(null);
-  }, []);
+  const handleDeleteSelected = useCallback(() => { clearAllOverlays(); }, [clearAllOverlays]);
+  const handleClearAll = useCallback(() => { clearAllOverlays(); setActiveTool(null); }, [clearAllOverlays]);
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') setActiveTool(null); };
@@ -215,10 +231,22 @@ export default function CandlestickChart({ symbol }) {
           });
 
           // ── Kaydedilmiş çizimleri geri yükle (refresh / başka cihaz / aralık değişimi sonrası) ──
-          // Bu (sembol+aralık) için kaydedilenleri yükle → tarihleri hep bu pencerede, doğru yerde belirir.
+          // Sembol başına TEK liste (tüm aralıklar ortak). Overlay'ler veri-koordinatlı (timestamp+değer);
+          // klinecharts her birini kendi tarihine sabitler. Yüklü verinin DIŞINDA kalan noktalar grafiğin
+          // dışına (sola/sağa) düşer — ekranda yanlış yere konmaması için bu aralıkta görünmeyecekleri
+          // OLUŞTURMUYORUZ ama kayıtta TUTUYORUZ (allOverlaysRef), aralık değişince yeniden değerlendiriliyor.
           overlaysRef.current.clear();
-          const savedOverlays = prefGet(`chart-overlays:${symbol}:${range}`, []) || [];
-          savedOverlays.forEach(ov => {
+          const savedOverlays = prefGet(`chart-overlays:${symbol}`, []) || [];
+          allOverlaysRef.current = Array.isArray(savedOverlays) ? savedOverlays : [];
+          const dataMin = klineData.length ? klineData[0].timestamp : -Infinity;
+          const dataMax = klineData.length ? klineData[klineData.length - 1].timestamp : Infinity;
+          allOverlaysRef.current.forEach(ov => {
+            const pts = ov.points || [];
+            // En az bir noktası yüklü veri penceresinde olan çizimi göster (yatay çizgi gibi tek-değerli
+            // overlay'ler tarihsiz olabilir → onları da göster). Hiçbir noktası pencerede değilse atla.
+            const hasTs = pts.some(p => p && p.timestamp != null);
+            const inWindow = !hasTs || pts.some(p => p.timestamp == null || (p.timestamp >= dataMin && p.timestamp <= dataMax));
+            if (!inWindow) return;
             try {
               const oid = chartRef.current.createOverlay({ name: ov.name, points: ov.points, ...overlayEvents });
               const realId = Array.isArray(oid) ? oid[0] : oid;
