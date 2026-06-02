@@ -63,6 +63,7 @@ public class PortfolioAnalysisService {
     private final PortfolioStressTestService stressTestService;
     private final PortfolioHistoricalRiskService historicalRiskService;
     private final PortfolioMonteCarloService monteCarloService;
+    private final PortfolioRebalanceService rebalanceService;
     private final PortfolioAiNarrator narrator;
 
     public PortfolioAnalysisService(PortfolioService portfolioService,
@@ -71,6 +72,7 @@ public class PortfolioAnalysisService {
                                     PortfolioStressTestService stressTestService,
                                     PortfolioHistoricalRiskService historicalRiskService,
                                     PortfolioMonteCarloService monteCarloService,
+                                    PortfolioRebalanceService rebalanceService,
                                     PortfolioAiNarrator narrator) {
         this.portfolioService = portfolioService;
         this.whatIfService = whatIfService;
@@ -78,7 +80,36 @@ public class PortfolioAnalysisService {
         this.stressTestService = stressTestService;
         this.historicalRiskService = historicalRiskService;
         this.monteCarloService = monteCarloService;
+        this.rebalanceService = rebalanceService;
         this.narrator = narrator;
+    }
+
+    /**
+     * Yalnız yeniden dengeleme hesaplar (tam analizi çalıştırmadan): mevcut tip-dağılımını çıkarıp
+     * seçilen profile göre örnek hedefle karşılaştırır. Risk-profili anketi farklı profil seçince çağrılır.
+     */
+    public PortfolioAiAnalysisResult.Rebalance rebalanceFor(String userId, UUID portfolioId, String profile) {
+        PortfolioResponse resp = portfolioService.getPortfolioById(userId, portfolioId); // ownership
+        List<PortfolioHoldingResponse> holdings = (resp != null && resp.getHoldings() != null)
+                ? resp.getHoldings() : List.of();
+        Map<String, BigDecimal> byTypeTl = new LinkedHashMap<>();
+        BigDecimal total = BigDecimal.ZERO;
+        for (PortfolioHoldingResponse h : holdings) {
+            if (h.isClosed()) {
+                continue;
+            }
+            BigDecimal mvTry = currencyConverter.toTry(h.getMarketValue(), h.getCurrency());
+            if (mvTry == null || mvTry.signum() <= 0) {
+                continue;
+            }
+            byTypeTl.merge(typeName(h.getAssetType()), mvTry, BigDecimal::add);
+            total = total.add(mvTry);
+        }
+        Map<String, BigDecimal> byTypePct = new LinkedHashMap<>();
+        for (Map.Entry<String, BigDecimal> e : byTypeTl.entrySet()) {
+            byTypePct.put(e.getKey(), pctOf(e.getValue(), total));
+        }
+        return rebalanceService.compute(byTypePct, profile);
     }
 
     public PortfolioAiAnalysisResult analyze(String userId, UUID portfolioId, String userName, String userEmail) {
@@ -165,6 +196,9 @@ public class PortfolioAnalysisService {
         r.setMonteCarlo(monteCarloService.project(r.getTotalValueTry(),
                 metrics != null ? metrics.annualReturnPercent() : null,
                 metrics != null ? metrics.annualVolatilityPercent() : null, 12));
+        // Yeniden dengeleme: tespit edilen profile göre örnek hedef vs mevcut (kullanıcı profili anketle değiştirebilir).
+        r.setRebalance(rebalanceService.compute(currentTypePercents(r),
+                r.getClassification() != null ? r.getClassification().profile() : "BALANCED"));
 
         // ── AI yorum (graceful degrade) ─────────────────────────────────────────
         try {
@@ -533,6 +567,17 @@ public class PortfolioAnalysisService {
             }
             out.add(new PortfolioHistoricalRiskService.Position(
                     h.getAssetType(), h.getSymbol(), row.mvTry().doubleValue() / t));
+        }
+        return out;
+    }
+
+    /** Hesaplanmış tip-dağılımından (tip enum adı → %) — rebalancing girdisi. */
+    private static Map<String, BigDecimal> currentTypePercents(PortfolioAiAnalysisResult r) {
+        Map<String, BigDecimal> out = new LinkedHashMap<>();
+        if (r.getAssetTypeAllocation() != null) {
+            for (AllocationSlice s : r.getAssetTypeAllocation()) {
+                out.merge(s.assetType(), s.weightPercent(), BigDecimal::add);
+            }
         }
         return out;
     }

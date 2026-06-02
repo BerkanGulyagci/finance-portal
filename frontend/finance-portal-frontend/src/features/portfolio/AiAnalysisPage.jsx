@@ -8,6 +8,7 @@ import {
   ResponsiveContainer, Tooltip, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid,
 } from 'recharts';
 import { getPortfolioAiAnalysis } from '../../api/portfolioApi';
+import RebalanceCard from './analysis/RebalanceCard';
 
 const fmtMoney = (v) => (v == null ? '—' : Number(v).toLocaleString('tr-TR', { maximumFractionDigits: 0 }) + ' ₺');
 const fmtPct = (v) => (v == null ? '—' : `%${Number(v).toLocaleString('tr-TR', { maximumFractionDigits: 2 })}`);
@@ -376,6 +377,9 @@ export default function AiAnalysisPage() {
           </p>
         </Card>
       )}
+
+      {/* Yeniden dengeleme (risk profili anketi) */}
+      {data.rebalance && <RebalanceCard rebalance={data.rebalance} portfolioId={id} />}
 
       {/* AI yorum raporu */}
       <Card title="AI Yorum Raporu" icon={<Sparkles className="w-4 h-4 text-[#093eaa]" />}>

@@ -61,6 +61,17 @@ export async function getPortfolioAiAnalysis(portfolioId) {
   return wrapper.data;
 }
 
+/**
+ * Yeniden dengeleme: seçilen risk profiline göre örnek hedef dağılım vs mevcut (eğitsel).
+ * profile: CONSERVATIVE | BALANCED | AGGRESSIVE.
+ */
+export async function getPortfolioRebalance(portfolioId, profile) {
+  const { data: wrapper } = await client.get(`/api/portfolios/${portfolioId}/rebalance`, {
+    params: { profile },
+  });
+  return wrapper.data;
+}
+
 export async function createPortfolio(payload) {
   // payload: { name, description, currency, portfolioType }
   const { data: wrapper } = await client.post('/api/portfolios', payload);

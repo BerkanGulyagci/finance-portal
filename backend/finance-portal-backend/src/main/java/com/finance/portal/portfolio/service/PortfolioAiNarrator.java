@@ -197,6 +197,23 @@ public class PortfolioAiNarrator {
                     .append(" TL; nominal kayıp olasılığı %").append(pct(mc.probLossPercent()))
                     .append(". Bu kesin tahmin DEĞİL, geçmiş getiri/volatilitenin süreceği varsayımıyla olası senaryodur.\n");
         }
+        if (r.getRebalance() != null && r.getRebalance().items() != null && !r.getRebalance().items().isEmpty()) {
+            var rb = r.getRebalance();
+            b.append("- Yeniden dengeleme (").append(rb.profileLabel())
+                    .append(" örnek hedefe göre, EĞİTSEL): toplam sapma %").append(pct(rb.driftPercent()))
+                    .append(". Öne çıkan ayarlamalar: ");
+            int n = 0;
+            for (var it : rb.items()) {
+                if (Math.abs(it.deltaPercent().doubleValue()) < 3 || n >= 4) {
+                    continue;
+                }
+                n++;
+                b.append(it.label()).append(" ").append(it.action().toLowerCase(java.util.Locale.ROOT))
+                        .append(" (%").append(pct(it.currentPercent())).append("→%").append(pct(it.targetPercent()))
+                        .append("); ");
+            }
+            b.append("\n");
+        }
         b.append("\nBu metriklere göre yukarıdaki yapıda (başlıklı) bir Türkçe analiz raporu yaz.");
         return b.toString();
     }

@@ -80,6 +80,9 @@ public class PortfolioAiAnalysisResult {
     // ── Monte Carlo / lognormal projeksiyon (olası değer aralığı) ───────────────
     private MonteCarlo monteCarlo;
 
+    // ── Yeniden dengeleme (risk profiline göre hedef dağılım vs mevcut) ─────────
+    private Rebalance rebalance;
+
     // ── AI yorum raporu ─────────────────────────────────────────────────────────
     /** LLM'in ürettiği Türkçe yorum; LLM kullanılamazsa null (graceful degrade). */
     private String aiReport;
@@ -153,4 +156,16 @@ public class PortfolioAiAnalysisResult {
     /** Projeksiyon noktası: ay + yüzdelik dilim değerleri (p5/p25/p50/p75/p95, TL). */
     public record ProjectionPoint(int month, BigDecimal p5, BigDecimal p25, BigDecimal p50,
                                   BigDecimal p75, BigDecimal p95) {}
+
+    /**
+     * Yeniden dengeleme önerisi (EĞİTSEL, tavsiye değil): seçilen risk profiline ait örnek hedef tip-dağılımı
+     * ile mevcut dağılımın karşılaştırması. basedOnProfile: CONSERVATIVE | BALANCED | AGGRESSIVE.
+     * driftPercent = mutlak sapmaların toplamı / 2 (0=birebir uyum, 100=tamamen farklı).
+     */
+    public record Rebalance(String basedOnProfile, String profileLabel, List<RebalanceItem> items,
+                            BigDecimal driftPercent, String note) {}
+
+    /** Tek tip için mevcut vs hedef ağırlık ve önerilen yön. action: ARTIR | AZALT | KORU. */
+    public record RebalanceItem(String assetType, String label, BigDecimal currentPercent,
+                                BigDecimal targetPercent, BigDecimal deltaPercent, String action) {}
 }

@@ -140,6 +140,23 @@ public class PortfolioController {
         return ResponseEntity.ok(ApiResponse.success(analysis, "AI portfolio analysis retrieved successfully"));
     }
 
+    /**
+     * Yeniden dengeleme: seçilen risk profiline ait örnek hedef tip-dağılımı ile portföyün mevcut
+     * dağılımını karşılaştırır (eğitsel; yatırım tavsiyesi değil). Frontend risk-profili anketinden gelen
+     * profil ile çağrılır.
+     */
+    @GetMapping("/{portfolioId}/rebalance")
+    public ResponseEntity<ApiResponse<PortfolioAiAnalysisResult.Rebalance>> getPortfolioRebalance(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID portfolioId,
+            @RequestParam(defaultValue = "BALANCED") String profile
+    ) {
+        String userId = jwt.getSubject();
+        PortfolioAiAnalysisResult.Rebalance rebalance =
+                portfolioAnalysisService.rebalanceFor(userId, portfolioId, profile);
+        return ResponseEntity.ok(ApiResponse.success(rebalance, "Rebalance computed"));
+    }
+
     @GetMapping("/{portfolioId}/performance")
     public ResponseEntity<ApiResponse<PortfolioPerformanceResult>> getPortfolioPerformance(
             @AuthenticationPrincipal Jwt jwt,

@@ -41,8 +41,9 @@ class PortfolioAnalysisServiceTest {
     @Mock private PortfolioHistoricalRiskService historicalRiskService;
     @Mock private PortfolioAiNarrator narrator;
 
-    // Gerçek MC servisi (dış bağımlılığı yok) — projeksiyon entegrasyonunu da doğrular.
+    // Gerçek servisler (dış bağımlılığı yok) — entegrasyonu da doğrular.
     private final PortfolioMonteCarloService monteCarloService = new PortfolioMonteCarloService();
+    private final PortfolioRebalanceService rebalanceService = new PortfolioRebalanceService();
 
     private PortfolioAnalysisService service;
 
@@ -51,7 +52,7 @@ class PortfolioAnalysisServiceTest {
     @BeforeEach
     void setUp() {
         service = new PortfolioAnalysisService(portfolioService, whatIfService, currencyConverter,
-                stressTestService, historicalRiskService, monteCarloService, narrator);
+                stressTestService, historicalRiskService, monteCarloService, rebalanceService, narrator);
         // Tarihsel risk servisi varsayılan "yok" → analiz, what-if oran serisi yöntemine düşer (bu testin kapsamı).
         when(historicalRiskService.computeFromHoldings(any(), anyInt())).thenReturn(
                 new PortfolioAiAnalysisResult.RiskMetrics(null, null, null, null, null, null, 0, false, "hist yok"));
@@ -135,6 +136,15 @@ class PortfolioAnalysisServiceTest {
         assertThat(mc.bands()).isNotEmpty();
         assertThat(mc.medianEndValue()).isNotNull();
         assertThat(mc.p95EndValue().doubleValue()).isGreaterThan(mc.p5EndValue().doubleValue());
+
+        // Rebalancing: tespit edilen profile (AGGRESSIVE) göre hedef vs mevcut
+        var rb = r.getRebalance();
+        assertThat(rb).isNotNull();
+        assertThat(rb.basedOnProfile()).isEqualTo("AGGRESSIVE");
+        assertThat(rb.driftPercent().doubleValue()).isGreaterThan(0);
+        var stock = rb.items().stream().filter(i -> "STOCK".equals(i.assetType())).findFirst().orElseThrow();
+        assertThat(stock.currentPercent().doubleValue()).isGreaterThan(stock.targetPercent().doubleValue());
+        assertThat(stock.action()).isEqualTo("AZALT"); // hisse hedefin üstünde
     }
 
     @Test
