@@ -116,6 +116,12 @@ function RangeBar({ pos }) {
 }
 
 function AssetSignalCard({ s }) {
+  // Sadece verisi olan metrikleri göster — 3 tane "—" yerine temiz görünür.
+  const metrics = [
+    { label: 'Getiri', v: s.profitLossPercent },
+    { label: '1 Ay', v: s.momentum1mPercent },
+    { label: '3 Ay', v: s.momentum3mPercent },
+  ].filter((m) => m.v != null);
   return (
     <div className="border border-gray-100 rounded-lg p-3 bg-gray-50/50">
       <div className="flex items-start justify-between gap-2 mb-1.5">
@@ -126,11 +132,11 @@ function AssetSignalCard({ s }) {
         <TrendBadge trend={s.trend} label={s.trendLabel} />
       </div>
       <div className="mb-2"><RangeBar pos={s.range52wPercent} /></div>
-      <div className="grid grid-cols-3 gap-2 text-center mb-1.5">
-        <Mini label="Getiri" value={fmtPct(s.profitLossPercent)} cls={signClass(s.profitLossPercent)} />
-        <Mini label="1 Ay" value={fmtPct(s.momentum1mPercent)} cls={signClass(s.momentum1mPercent)} />
-        <Mini label="3 Ay" value={fmtPct(s.momentum3mPercent)} cls={signClass(s.momentum3mPercent)} />
-      </div>
+      {metrics.length > 0 && (
+        <div className="flex justify-around text-center mb-1.5 gap-2">
+          {metrics.map((m) => <Mini key={m.label} label={m.label} value={fmtPct(m.v)} cls={signClass(m.v)} />)}
+        </div>
+      )}
       {s.maState && <div className="text-[11px] text-gray-500">{s.maState}</div>}
     </div>
   );

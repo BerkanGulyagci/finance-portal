@@ -386,11 +386,16 @@ public class PortfolioAnalysisService {
 
             BigDecimal m1 = h.getReturnOneMonth();
             BigDecimal m3 = h.getReturnThreeMonths();
+            // Getiri: hazır gelmezse maliyetten hesapla (varlık getiri tablosuyla tutarlı — "—" boş kalmasın).
+            BigDecimal plPct = h.getProfitLossPercent();
+            if (plPct == null && row.costTry() != null && row.costTry().signum() > 0) {
+                plPct = pct(row.mvTry(), row.costTry());
+            }
             String note = buildSignalNote(trendLabel, range52, m1);
 
             out.add(new AssetSignal(h.getSymbol(), label, typeName(h.getAssetType()),
                     pctOf(row.mvTry(), total), trend, trendLabel, maState, range52,
-                    m1, m3, h.getProfitLossPercent(), note));
+                    m1, m3, plPct, note));
         }
         out.sort(Comparator.comparing(AssetSignal::weightPercent, Comparator.reverseOrder()));
         return out;
