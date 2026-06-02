@@ -35,7 +35,7 @@ export const ANALYTICS_CHARTS = [
   { key: 'aiRisk', label: 'Risk Skoru (AI)', Comp: PortfolioRiskScoreCard, w: 3, h: 14 },
   { key: 'aiHealth', label: 'Sağlık Skoru (AI)', Comp: PortfolioHealthScoreCard, w: 3, h: 14 },
   { key: 'aiIdentity', label: 'Portföy Kimliği (AI)', Comp: PortfolioIdentityCard, w: 3, h: 10 },
-  { key: 'aiMonteCarlo', label: 'Monte Carlo Projeksiyon (AI)', Comp: PortfolioMonteCarloCard, w: 4, h: 11 },
+  { key: 'aiMonteCarlo', label: 'Monte Carlo Projeksiyon (AI)', Comp: PortfolioMonteCarloCard, w: 4, h: 13 },
 ];
 
 export const ANALYTICS_BY_KEY = Object.fromEntries(ANALYTICS_CHARTS.map(c => [c.key, c]));

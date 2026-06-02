@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react';
+import {
+  ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+} from 'recharts';
 import PortfolioChartCard from './PortfolioChartCard';
 import { getPortfolioAiAnalysisShared } from '../../../../api/portfolioApi';
 import { useTranslation } from '../../../../context/LanguageContext';
@@ -146,31 +149,57 @@ export function PortfolioIdentityCard({ portfolioId }) {
   );
 }
 
+function McTooltip({ active, payload, valuesHidden }) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0]?.payload;
+  if (!d) return null;
+  const money = v => (valuesHidden ? '••••' : fmtMoney(v));
+  return (
+    <div className="bg-white border border-gray-200 rounded shadow px-2 py-1 text-[11px]">
+      <div className="font-semibold text-gray-700">{d.month}. ay</div>
+      <div className="text-[#093eaa] font-semibold">{money(d.p50)}</div>
+      <div className="text-gray-500">%5–%95: {money(d.p5)} – {money(d.p95)}</div>
+    </div>
+  );
+}
+
 export function PortfolioMonteCarloCard({ portfolioId, valuesHidden }) {
   const { t } = useTranslation();
   const s = useAiAnalysis(portfolioId);
   const mc = s.data?.monteCarlo;
+  const mcData = (mc?.bands || []).map(b => ({
+    month: b.month,
+    base: Number(b.p5),
+    range: Number(b.p95) - Number(b.p5),
+    p50: Number(b.p50),
+    p5: Number(b.p5),
+    p95: Number(b.p95),
+  }));
   const money = v => (valuesHidden ? '••••' : fmtMoney(v));
   return (
     <PortfolioChartCard title={t('Monte Carlo Projeksiyon')} subtitle={t('1 yıllık olası değer aralığı (kesin tahmin değil)')}>
       {s.loading ? <Loading /> : !mc?.available ? <Empty msg={t('Yeterli geçmiş yok')} /> : (
-        <div className="space-y-2.5 text-sm">
-          <Row label={t('Medyan')} value={<span>{money(mc.medianEndValue)} <span className={`text-xs ${signClass(mc.expectedReturnPercent)}`}>({fmtPct(mc.expectedReturnPercent)})</span></span>} strong />
-          <Row label={t('İyimser (%95)')} value={<span className="text-emerald-600">{money(mc.p95EndValue)}</span>} />
-          <Row label={t('Kötümser (%5)')} value={<span className="text-rose-600">{money(mc.p5EndValue)}</span>} />
-          <Row label={t('Kayıp olasılığı')} value={<span className="font-semibold text-rose-500">{fmtPct(mc.probLossPercent)}</span>} />
-          <div className="h-2 bg-gradient-to-r from-rose-200 via-amber-200 to-emerald-200 rounded-full mt-1" />
+        <div>
+          <div className="flex justify-between items-baseline text-xs mb-1.5 gap-2 flex-wrap">
+            <span className="text-gray-500">
+              {t('Medyan')}: <span className="font-bold text-gray-800">{money(mc.medianEndValue)}</span>{' '}
+              <span className={signClass(mc.expectedReturnPercent)}>({fmtPct(mc.expectedReturnPercent)})</span>
+            </span>
+            <span className="text-rose-500">{t('Kayıp olasılığı')} {fmtPct(mc.probLossPercent)}</span>
+          </div>
+          <ResponsiveContainer width="100%" height={175}>
+            <ComposedChart data={mcData} margin={{ top: 4, right: 6, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis dataKey="month" tick={{ fontSize: 9 }} tickFormatter={v => `${v}a`} />
+              <YAxis tick={{ fontSize: 9 }} tickFormatter={v => (v / 1000).toFixed(0) + 'b'} width={32} />
+              <Tooltip content={<McTooltip valuesHidden={valuesHidden} />} />
+              <Area dataKey="base" stackId="band" stroke="none" fill="transparent" isAnimationActive={false} />
+              <Area dataKey="range" stackId="band" stroke="none" fill="#093eaa" fillOpacity={0.12} isAnimationActive={false} />
+              <Line dataKey="p50" stroke="#093eaa" strokeWidth={2} dot={false} isAnimationActive={false} />
+            </ComposedChart>
+          </ResponsiveContainer>
         </div>
       )}
     </PortfolioChartCard>
-  );
-}
-
-function Row({ label, value, strong }) {
-  return (
-    <div className="flex justify-between items-center">
-      <span className="text-gray-500 text-xs">{label}</span>
-      <span className={strong ? 'font-bold text-gray-900' : 'font-semibold text-gray-700'}>{value}</span>
-    </div>
   );
 }
