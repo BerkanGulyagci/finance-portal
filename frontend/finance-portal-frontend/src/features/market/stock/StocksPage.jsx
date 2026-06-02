@@ -1,11 +1,13 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Check, BarChart2 } from 'lucide-react';
 import { getStocks, getStockChart, getAllStocks } from '../../../api/marketApi';
 import { useSortable } from '../../../hooks/useSortable';
 import SortableTh from '../../../components/common/SortableTh';
 import WatchlistStar from '../../../components/instrument/WatchlistStar';
 import InstrumentLogo from '../../../components/instrument/InstrumentLogo';
 import Pagination from '../../../components/common/Pagination';
+import IndicesView from './IndicesView';
 import { STOCK_CHART_RANGES, formatStockChartTimeLabel } from './utils/stockChartRanges';
 import { useTranslation } from '../../../context/LanguageContext';
 
@@ -51,7 +53,7 @@ function IndexChart({ symbol, label }) {
 
   // ECharts render
   useEffect(() => {
-    if (!chartRef.current || data.length === 0) return;
+    if (!chartRef.current || data.length < 2) return;
 
     import('echarts').then(echarts => {
       if (instanceRef.current) instanceRef.current.dispose();
@@ -185,12 +187,12 @@ function IndexChart({ symbol, label }) {
             </div>
           </div>
         )}
-        {!loading && data.length === 0 && (
+        {!loading && data.length < 2 && (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span className="text-gray-400 text-sm">{t('Grafik verisi yüklenemedi.')}</span>
           </div>
         )}
-        <div ref={chartRef} style={{ width: '100%', height: '100%', visibility: loading || data.length === 0 ? 'hidden' : 'visible' }} />
+        <div ref={chartRef} style={{ width: '100%', height: '100%', visibility: loading || data.length < 2 ? 'hidden' : 'visible' }} />
       </div>
 
       {change != null && (
@@ -224,6 +226,8 @@ function num(v, dec = 2) {
 
 export default function StocksPage() {
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const view = searchParams.get('view') === 'indices' ? 'indices' : 'stocks';
   const [pageData, setPageData]     = useState(null);
   const [allStocksCache, setAllStocksCache] = useState([]); // tüm hisseler arama için
   const [loading, setLoading]       = useState(true);
@@ -244,7 +248,7 @@ export default function StocksPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { fetchPage(page, activeIndex, currentSize); }, [page, activeIndex, currentSize, fetchPage]);
+  useEffect(() => { if (view === 'stocks') fetchPage(page, activeIndex, currentSize); }, [view, page, activeIndex, currentSize, fetchPage]);
 
   // Tüm hisseleri arka planda çek — arama için
   useEffect(() => {
@@ -255,6 +259,12 @@ export default function StocksPage() {
     setActiveIndex(idx);
     setPage(0);
     setSearch('');
+    if (view === 'indices') setSearchParams({}, { replace: true });
+  }
+
+  function handleIndicesTab() {
+    setSearch('');
+    setSearchParams({ view: 'indices' });
   }
 
   function handlePageChange(p) {
@@ -290,37 +300,49 @@ export default function StocksPage() {
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900 border-l-4 border-[#093eaa] pl-4">{t('Hisse Senetleri')}</h1>
         <Link
           to="/market/stocks/compare"
-          className="flex items-center gap-1.5 px-4 py-2 bg-[#093eaa] text-white text-sm font-bold rounded-xl hover:bg-[#0730a0] transition-all"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#093eaa] text-white text-sm font-semibold rounded-full shadow-sm hover:bg-[#0a47c2] hover:shadow-md active:bg-[#072f86] transition-all"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
+          <BarChart2 className="w-4 h-4" />
           {t('Karşılaştır')}
         </Link>
       </div>
       <p className="text-sm text-gray-500 mb-4 pl-5">
-        {t('Borsa İstanbul (BIST) hisse senedi fiyatları')}
-        {totalElements > 0 && <span className="ml-2 text-gray-400">· {totalElements} {t('hisse')}</span>}
+        {view === 'indices'
+          ? t('BIST endeksleri · canlı değerler')
+          : <>{t('Borsa İstanbul (BIST) hisse senedi fiyatları')}
+              {totalElements > 0 && <span className="ml-2 text-gray-400">· {totalElements} {t('hisse')}</span>}</>}
       </p>
 
-      {/* Endeks filtre butonları */}
-      <div className="flex gap-2 mb-4 flex-wrap">
-        {INDEX_FILTERS.map(f => (
-          <button key={f.key} onClick={() => handleIndexChange(f.key)}
-            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-              activeIndex === f.key
-                ? 'bg-[#093eaa] text-white shadow-sm'
-                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+      {/* Görünüm seçici — Material 3 segmented buttons (hisse filtreleri + Endeksler) */}
+      <div className="mb-4 overflow-x-auto pb-1">
+        <div className="inline-flex rounded-full border border-gray-300 bg-white divide-x divide-gray-300 shadow-sm overflow-hidden">
+          {INDEX_FILTERS.map(f => {
+            const active = view === 'stocks' && activeIndex === f.key;
+            return (
+              <button key={f.key} onClick={() => handleIndexChange(f.key)}
+                className={`px-4 sm:px-5 py-2 text-sm font-medium inline-flex items-center gap-1.5 whitespace-nowrap transition-colors ${
+                  active ? 'bg-[#093eaa]/[0.12] text-[#093eaa]' : 'text-gray-600 hover:bg-gray-50 active:bg-gray-100'
+                }`}>
+                {active && <Check className="w-4 h-4 -ml-0.5" />}
+                {t(f.label)}
+              </button>
+            );
+          })}
+          <button onClick={handleIndicesTab}
+            className={`px-4 sm:px-5 py-2 text-sm font-medium inline-flex items-center gap-1.5 whitespace-nowrap transition-colors ${
+              view === 'indices' ? 'bg-[#093eaa]/[0.12] text-[#093eaa]' : 'text-gray-600 hover:bg-gray-50 active:bg-gray-100'
             }`}>
-            {t(f.label)}
+            {view === 'indices' && <Check className="w-4 h-4 -ml-0.5" />}
+            {t('Endeksler')}
           </button>
-        ))}
+        </div>
       </div>
 
-      {/* Endeks grafiği — sadece endeks seçilince göster */}
-      {activeFilter.indexSymbol && <IndexChart symbol={activeFilter.indexSymbol} label={activeFilter.label} />}
+      {/* Endeks grafiği — sadece hisse görünümünde + bir BIST filtresi seçiliyken */}
+      {view === 'stocks' && activeFilter.indexSymbol && <IndexChart symbol={activeFilter.indexSymbol} label={activeFilter.label} />}
 
-      {/* Hisse tablosu */}
+      {/* Hisse tablosu / Endeksler listesi */}
+      {view === 'indices' ? <IndicesView /> : (
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="p-4 border-b border-gray-100 flex items-center gap-3 flex-wrap">
           <input
@@ -415,6 +437,7 @@ export default function StocksPage() {
           />
         )}
       </div>
+      )}
     </div>
   );
 }

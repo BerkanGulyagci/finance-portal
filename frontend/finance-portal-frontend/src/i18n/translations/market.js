@@ -1053,6 +1053,23 @@ const en = {
   'En fazla': 'Up to',
   'BIST hissesini yan yana karşılaştırabilirsin': 'BIST stocks can be compared side by side',
 
+  // ── BIST Endeksleri (Indices) ─────────────────────────────────────────────
+  'Endeksler': 'Indices',
+  'Endeks': 'Index',
+  'Endeks ara...': 'Search index...',
+  'endeks': 'indices',
+  'Endeksler yükleniyor...': 'Loading indices...',
+  'BIST endeksleri · canlı değerler': 'BIST indices · live values',
+  'Ana Endeksler': 'Main Indices',
+  'Sektör Endeksleri': 'Sector Indices',
+  'Katılım Endeksleri': 'Participation Indices',
+  'Tema Endeksleri': 'Theme Indices',
+  'Ana': 'Main',
+  'Katılım': 'Participation',
+  'Endeksteki Hisseler': 'Index Constituents',
+  'Borsa İstanbul Endeksi': 'Borsa İstanbul Index',
+  'Kaynak: Yahoo Finance': 'Source: Yahoo Finance',
+
 };
 
 export default { en };

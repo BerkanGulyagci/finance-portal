@@ -22,7 +22,9 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -54,6 +56,15 @@ public class StockQueryService {
     public StockSummary getStockSummary(String symbol) {
         YahooStockMeta meta = fetchMetaOrThrow(symbol);
         return mapToStockSummary(meta);
+    }
+
+    /**
+     * Verilen sembollerin özetlerini paralel toplar — endeks listesi (XU100.IS…) ve endeks bileşen
+     * hisseleri için yeniden kullanılır. Tek tek başarısızlığa ayrı katlanır (biri çökerse diğerleri gelir).
+     */
+    public List<StockSummary> getSummariesFor(List<String> symbols) {
+        if (symbols == null || symbols.isEmpty()) return List.of();
+        return fetchSummariesInParallel(symbols);
     }
 
     @Cacheable(cacheNames = "market.stocks.detail", key = "'detail:' + #symbol")
@@ -162,17 +173,13 @@ public class StockQueryService {
     @Cacheable(cacheNames = "market.stocks.chart", key = "#symbol + ':' + #range + ':' + #interval")
     public StockChartResponse getStockChartWithParams(String symbol, String range, String interval) {
         String[] normalized = normalizeStockChartRange(range, interval);
-        // Yahoo grafik çekimi çökerse/boş dönerse son başarılı snapshot'ı servis et.
-        YahooChartSnapshot snapshot = lkg.resilient(
-                "stock.chart:" + symbol + ":" + normalized[0] + ":" + normalized[1], STOCK_LKG_TTL,
-                new TypeReference<YahooChartSnapshot>() {},
-                () -> yahooStockPort.fetchChartWithParams(symbol, normalized[0], normalized[1]));
+        YahooChartSnapshot snapshot = fetchChartSnapshotResilient(symbol, normalized[0], normalized[1]);
         return toChartResponse(symbol, snapshot);
     }
 
     public List<Map<String, Object>> getStockOhlc(String symbol, String range, String interval) {
         String[] normalized = normalizeStockChartRange(range, interval);
-        YahooChartSnapshot snapshot = yahooStockPort.fetchChartWithParams(symbol, normalized[0], normalized[1]);
+        YahooChartSnapshot snapshot = fetchChartSnapshotResilient(symbol, normalized[0], normalized[1]);
         List<Long> timestamps = snapshot.getTimestamps();
         YahooQuoteSeries quote = snapshot.getQuote();
         if (timestamps == null || quote == null) {
@@ -202,6 +209,65 @@ public class StockQueryService {
             throw new ResourceNotFoundException("OHLC data not found for symbol: " + symbol);
         }
         return data;
+    }
+
+    /**
+     * Yahoo grafik snapshot'ını LKG dayanıklılığı + SAATLİK fallback ile çeker.
+     *
+     * <p><b>Neden saatlik fallback:</b> Yahoo çoğu BIST endeksi için (XU050, XUTUM, XGIDA, XK100 ve
+     * tüm sektör endeksleri…) GÜNLÜK/haftalık/aylık bar TUTMAZ — yalnız intraday (5m/1h) verir
+     * ({@code firstTradeDate=null}). Bu sembollerde {@code 1d/1wk/1mo} isteği tek nokta döndürür ve
+     * grafik boş/kırık çizilir (BIST 50'nin 1Y/5Y/Tüm'de gelmemesinin sebebi buydu). Sadece XU100/
+     * XU030/XBANK/XUSIN gibi birkaçında gerçek günlük geçmiş var.</p>
+     *
+     * <p>Çözüm: günlük+ bir istek &lt;2 nokta dönerse {@code 1h} ile yeniden dene. Yahoo saatlik veriyi
+     * ~730 güne kadar veriyor (XU050 730d/1h → ~6250 nokta), bu yüzden uzun aralıklar (5Y/Tüm) bu
+     * sembollerde en fazla ~2 yıl gösterir — ama boş yerine GERÇEK veri gelir. Günlük geçmişi olan
+     * semboller etkilenmez (≥2 nokta → fallback tetiklenmez).</p>
+     */
+    private YahooChartSnapshot fetchChartSnapshotResilient(String symbol, String range, String interval) {
+        YahooChartSnapshot snapshot = lkg.resilient(
+                "stock.chart:" + symbol + ":" + range + ":" + interval, STOCK_LKG_TTL,
+                new TypeReference<YahooChartSnapshot>() {},
+                () -> yahooStockPort.fetchChartWithParams(symbol, range, interval));
+
+        if (isIntradayInterval(interval) || nonNullCloseCount(snapshot) >= 2) {
+            return snapshot; // intraday zaten saatlik/altı, ya da günlük geçmiş mevcut → fallback gerekmez
+        }
+
+        // Günlük+ istek dejenere (≤1 nokta) → saatlik fallback. Yahoo saatlik ~730g sınırı için range'i 2y'ye kıs.
+        String fbRange = isLongRange(range) ? "2y" : range;
+        logger.info("Chart degenerate for {} {}/{} ({} pts) → hourly fallback {}/1h",
+                symbol, range, interval, nonNullCloseCount(snapshot), fbRange);
+        try {
+            YahooChartSnapshot hourly = lkg.resilient(
+                    "stock.chart:" + symbol + ":" + fbRange + ":1h", STOCK_LKG_TTL,
+                    new TypeReference<YahooChartSnapshot>() {},
+                    () -> yahooStockPort.fetchChartWithParams(symbol, fbRange, "1h"));
+            return nonNullCloseCount(hourly) >= 2 ? hourly : snapshot;
+        } catch (RuntimeException ex) {
+            logger.warn("Hourly fallback failed for {} {}: {}", symbol, fbRange, ex.getMessage());
+            return snapshot;
+        }
+    }
+
+    /** {@code 1m,5m,15m,30m,90m,1h} → true; {@code 1d,1wk,1mo} → false (matches() tam eşleşme ister, "1mo" eşleşmez). */
+    private static boolean isIntradayInterval(String interval) {
+        return interval != null && interval.toLowerCase(Locale.ROOT).matches("\\d+[mh]");
+    }
+
+    /** Yahoo saatlik 730g sınırını aşan aralıklar — saatlik fallback'te 2y'ye kısılır. */
+    private static boolean isLongRange(String range) {
+        if (range == null) return false;
+        String r = range.toLowerCase(Locale.ROOT);
+        return r.equals("5y") || r.equals("10y") || r.equals("30y") || r.equals("max") || r.equals("all");
+    }
+
+    private static int nonNullCloseCount(YahooChartSnapshot snapshot) {
+        if (snapshot == null || snapshot.getQuote() == null || snapshot.getQuote().getClose() == null) {
+            return 0;
+        }
+        return (int) snapshot.getQuote().getClose().stream().filter(Objects::nonNull).count();
     }
 
     /**

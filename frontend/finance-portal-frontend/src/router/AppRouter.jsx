@@ -12,6 +12,7 @@ import PortfolioDetailPage from '../features/portfolio/PortfolioDetailPage';
 import AiAnalysisPage from '../features/portfolio/AiAnalysisPage';
 import StocksPage from '../features/market/stock/StocksPage';
 import StockDetailPage from '../features/market/stock/StockDetailPage';
+import IndexDetailPage from '../features/market/stock/IndexDetailPage';
 import CryptoPage from '../features/market/crypto/CryptoPage';
 import CryptoDetailPage from '../features/market/crypto/CryptoDetailPage';
 import FuturesPage from '../features/market/futures/FuturesPage';
@@ -65,6 +66,7 @@ export default function AppRouter() {
           <Route path="/news/:id"          element={<NewsDetailPage />} />
           <Route path="/market/stocks"     element={<StocksPage />} />
           <Route path="/market/stocks/compare" element={<StockComparePage />} />
+          <Route path="/market/indices/:code"  element={<IndexDetailPage />} />
           <Route path="/market/stocks/:symbol" element={<StockDetailPage />} />
           <Route path="/market/crypto"     element={<CryptoPage />} />
           <Route path="/market/crypto/:coinId" element={<CryptoDetailPage />} />

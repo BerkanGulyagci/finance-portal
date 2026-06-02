@@ -2,6 +2,7 @@ package com.finance.portal.market.application.stock;
 
 import com.finance.portal.common.application.logging.CentralIntegrationLogService;
 import com.finance.portal.common.application.logging.IntegrationLogSupport;
+import com.finance.portal.market.application.index.IndexQueryService;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,13 +21,16 @@ public class StockCacheWarmupService {
 
     private final StockQueryService stockQueryService;
     private final StockSymbolProvider stockSymbolProvider;
+    private final IndexQueryService indexQueryService;
     private final CentralIntegrationLogService integrationLogService;
 
     public StockCacheWarmupService(StockQueryService stockQueryService,
                                    StockSymbolProvider stockSymbolProvider,
+                                   IndexQueryService indexQueryService,
                                    CentralIntegrationLogService integrationLogService) {
         this.stockQueryService = stockQueryService;
         this.stockSymbolProvider = stockSymbolProvider;
+        this.indexQueryService = indexQueryService;
         this.integrationLogService = integrationLogService;
     }
 
@@ -36,6 +40,7 @@ public class StockCacheWarmupService {
     public void warmupOnStartup() {
         log.info("Stock cache warmup starting...");
         warmupAllPages();
+        warmupIndices();
     }
 
     // Her 8 dakikada bir yenile (TTL 10 dakika, biraz önce yenile)
@@ -44,6 +49,17 @@ public class StockCacheWarmupService {
     public void scheduledWarmup() {
         log.info("Stock cache scheduled refresh starting...");
         warmupAllPages();
+        warmupIndices();
+    }
+
+    /** BIST endeks listesini (~42 endeks → Yahoo snapshot, ~45 çağrı) önceden ısıt — istek yolunda 45 çağrı olmasın. */
+    private void warmupIndices() {
+        try {
+            int count = indexQueryService.getIndices().size();
+            log.info("BIST index list cache warmup done ({} indices)", count);
+        } catch (Exception e) {
+            log.warn("BIST index list cache warmup failed: {}", e.getMessage());
+        }
     }
 
     private void warmupAllPages() {

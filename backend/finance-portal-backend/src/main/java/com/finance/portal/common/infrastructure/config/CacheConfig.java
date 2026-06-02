@@ -226,6 +226,8 @@ public class CacheConfig {
                 .withCacheConfiguration("market.stocks.detail", marketStocksCacheConfig)
                 .withCacheConfiguration("market.stocks.midas", marketStocksCacheConfig)
                 .withCacheConfiguration("market.stocks.chart", marketStocksCacheConfig)
+                // BIST endeks listesi (~42 endeks, Yahoo snapshot) — hisse listesiyle aynı intraday TTL.
+                .withCacheConfiguration("market.indices.list", marketStocksCacheConfig)
                 .withCacheConfiguration("market.tefas.funds", marketFundsCacheConfig)
                 .withCacheConfiguration("market.ipo", marketFundsCacheConfig)
                 // VİOP: ViopService gerçek cache isimleri "market.viop.contracts" + "market.viop.detail".

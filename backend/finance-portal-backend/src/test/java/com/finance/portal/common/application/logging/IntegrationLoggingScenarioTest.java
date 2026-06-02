@@ -88,11 +88,14 @@ class IntegrationLoggingScenarioTest {
     void stockCacheWarmupService_partialFailure_publishesSchedulerJobFailedWarn() {
         StockQueryService stockQueryService = mock(StockQueryService.class);
         StockSymbolProvider stockSymbolProvider = mock(StockSymbolProvider.class);
+        com.finance.portal.market.application.index.IndexQueryService indexQueryService =
+                mock(com.finance.portal.market.application.index.IndexQueryService.class);
+        when(indexQueryService.getIndices()).thenReturn(java.util.Collections.emptyList());
         when(stockSymbolProvider.getTotalElements()).thenReturn(40);
         doThrow(new RuntimeException("yahoo fail")).when(stockQueryService).getPagedStockSummaries(eq(0), eq(20));
 
         StockCacheWarmupService service = new StockCacheWarmupService(
-                stockQueryService, stockSymbolProvider, integrationLogService);
+                stockQueryService, stockSymbolProvider, indexQueryService, integrationLogService);
         service.scheduledWarmup();
 
         ArgumentCaptor<IntegrationLogEvent> captor = ArgumentCaptor.forClass(IntegrationLogEvent.class);

@@ -148,6 +148,27 @@ export async function getAllStocks() {
   return results;
 }
 
+// ── BIST Endeksleri ─────────────────────────────────────────────────────────
+// Fiyat/grafik Yahoo'dan ({KOD}.IS); hacim/piyasa değeri YOK (Yahoo endekste vermez).
+
+/** Tüm BIST endeksleri — kod, ad, kategori + canlı fiyat/değişim (cache'li, ~42 endeks). */
+export async function getIndices() {
+  const { data } = await client.get('/api/market/indices');
+  return data.data ?? [];
+}
+
+/** Tek endeks özeti (XU100, XBANK …). */
+export async function getIndex(code) {
+  const { data } = await client.get(`/api/market/indices/${encodeURIComponent(code)}`);
+  return data.data ?? null;
+}
+
+/** Endeksle ilgili hisseler — büyüklük endeksleri canlı, sektör endeksleri küratörlü; yoksa boş dizi. */
+export async function getIndexConstituents(code) {
+  const { data } = await client.get(`/api/market/indices/${encodeURIComponent(code)}/constituents`);
+  return data.data ?? [];
+}
+
 export async function getFutures(page = 0, size = 20) {
   const { data } = await client.get('/api/market/futures', { params: { page, size } });
   return data.data ?? {};
