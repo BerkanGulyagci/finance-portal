@@ -123,7 +123,7 @@ export default function IndexDetailPage() {
             <div className="px-4 pt-3 pb-2 border-t border-gray-100">
               <div className="flex items-center justify-end gap-2 mb-1 flex-wrap">
                 <Link
-                  to={`/market/stocks/compare?add=${encodeURIComponent(symbol)}`}
+                  to={`/market/karsilastir?add=INDICATOR|${encodeURIComponent(upperCode)}&name=${encodeURIComponent(index?.name ?? upperCode)}`}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-[#093eaa]/30 text-[#093eaa] bg-[#093eaa]/5 hover:bg-[#093eaa]/10 transition-colors"
                 >
                   <BarChart2 className="w-3.5 h-3.5" />

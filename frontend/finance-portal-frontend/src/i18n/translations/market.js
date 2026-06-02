@@ -1070,6 +1070,11 @@ const en = {
   'Borsa İstanbul Endeksi': 'Borsa İstanbul Index',
   'Kaynak: Yahoo Finance': 'Source: Yahoo Finance',
   'bugün': 'today',
+  'Fırsat Maliyeti (TL)': 'Opportunity Cost (₺)',
+  'Aynı tutarı her varlığa koysan bugün ne olurdu — en iyiye göre kaçırdığın fark':
+    'What the same amount in each asset would be worth today — the gap vs the best',
+  'Fırsat maliyeti': 'Opportunity cost',
+  'En iyi': 'Best',
 
 };
 

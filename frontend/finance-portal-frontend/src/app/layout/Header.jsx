@@ -280,9 +280,11 @@ export function Header() {
       label: 'Piyasalar',
       items: [
         { label: 'Hisse Senetleri', path: '/market/stocks', desc: 'BIST hisse fiyatları' },
+        { label: 'Endeksler', path: '/market/stocks?view=indices', desc: 'BIST endeksleri (XU100, XBANK…)' },
         { label: 'Kripto Para', path: '/market/crypto', desc: 'CoinGecko TRY bazlı' },
         { label: 'Vadeli İşlemler', path: '/market/futures', desc: 'VİOP ve küresel vadeli' },
         { label: 'Tahvil / Bono', path: '/market/bonds', desc: 'Devlet İç Borçlanma Senetleri' },
+        { label: 'Varlık Karşılaştırma', path: '/market/karsilastir', desc: 'Hisse/kripto/altın/endeks… yan yana' },
       ],
     },
     {

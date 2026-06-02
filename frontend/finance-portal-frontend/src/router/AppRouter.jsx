@@ -65,6 +65,10 @@ export default function AppRouter() {
           <Route path="/news"              element={<NewsPage />} />
           <Route path="/news/:id"          element={<NewsDetailPage />} />
           <Route path="/market/stocks"     element={<StocksPage />} />
+          {/* Tüm-varlık karşılaştırma — kendi üst-seviye rotası (hisse/kripto/döviz/altın/fon/endeks…).
+              Eski /market/stocks/compare yolu geriye-uyum için korunur (alias). FX/Tefas/Emtia'nın
+              KENDİ özel karşılaştırma sayfaları ayrı kalır, bozulmaz. */}
+          <Route path="/market/karsilastir"    element={<StockComparePage />} />
           <Route path="/market/stocks/compare" element={<StockComparePage />} />
           <Route path="/market/indices/:code"  element={<IndexDetailPage />} />
           <Route path="/market/stocks/:symbol" element={<StockDetailPage />} />

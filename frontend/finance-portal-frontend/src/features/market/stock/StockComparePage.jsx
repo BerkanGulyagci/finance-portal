@@ -1,4 +1,5 @@
 import EChartsCompareChart from './components/EChartsCompareChart';
+import OpportunityCostChart from './components/OpportunityCostChart';
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, X, Plus, BarChart2, TrendingUp, TrendingDown } from 'lucide-react';
@@ -679,6 +680,27 @@ export default function StockComparePage() {
             </p>
           </div>
           <EChartsCompareChart chartData={chartData} seriesDefs={chartSeriesDefs} />
+        </div>
+      )}
+
+      {/* ── Fırsat Maliyeti (TL) — seçili VARLIKLAR; portföy dahil değil (what-if portföyde kalır) ── */}
+      {compared && !chartLoading && chartData.length > 0 && (
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3 sm:p-6">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <div>
+              <h2 className="font-bold text-gray-900">{t('Fırsat Maliyeti (TL)')}</h2>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {t('Aynı tutarı her varlığa koysan bugün ne olurdu — en iyiye göre kaçırdığın fark')}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">{t('Yatırım tutarı:')}</span>
+              <input type="number" value={investment} onChange={e => setInvestment(e.target.value)}
+                className="w-28 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#093eaa]/30 text-right" placeholder="1000" />
+              <span className="text-sm font-semibold text-gray-600">₺</span>
+            </div>
+          </div>
+          <OpportunityCostChart chartData={chartData} seriesDefs={chartSeriesDefs} investment={investment} />
         </div>
       )}
 
