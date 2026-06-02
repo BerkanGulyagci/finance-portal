@@ -10,6 +10,7 @@ import com.finance.portal.market.application.stock.StockSymbolProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -38,13 +39,18 @@ public class IndexQueryService {
     private final StockQueryService stockQueryService;
     private final StockSymbolProvider stockSymbolProvider;
     private final LastKnownGoodCache lkg;
+    /** Self-proxy — getIndex() içinden @Cacheable getIndices()'i proxy üzerinden çağırmak için
+     *  (this.getIndices() self-invocation cache'i BYPASS eder → her çağrıda 45 Yahoo isteği). @Lazy = döngüyü kır. */
+    private final IndexQueryService self;
 
     public IndexQueryService(StockQueryService stockQueryService,
                              StockSymbolProvider stockSymbolProvider,
-                             LastKnownGoodCache lkg) {
+                             LastKnownGoodCache lkg,
+                             @Lazy IndexQueryService self) {
         this.stockQueryService = stockQueryService;
         this.stockSymbolProvider = stockSymbolProvider;
         this.lkg = lkg;
+        this.self = self;
     }
 
     /** Tüm BIST endeksleri — canlı fiyat/değişim ile. Veri gelmeyen endeks atlanır. */
@@ -80,7 +86,7 @@ public class IndexQueryService {
         if (info == null) {
             throw new ResourceNotFoundException("Index not found: " + code);
         }
-        IndexSummary cached = getIndices().stream()
+        IndexSummary cached = self.getIndices().stream()   // self-proxy → @Cacheable HIT (45 Yahoo isteğini önler)
                 .filter(i -> i.getCode().equalsIgnoreCase(info.code()))
                 .findFirst()
                 .orElse(null);

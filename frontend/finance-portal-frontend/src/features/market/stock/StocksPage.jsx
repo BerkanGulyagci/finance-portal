@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Check, BarChart2 } from 'lucide-react';
-import { getStocks, getStockChart, getStockQuote, getAllStocks } from '../../../api/marketApi';
+import { getStocks, getStockChart, getIndex, getAllStocks } from '../../../api/marketApi';
 import { useSortable } from '../../../hooks/useSortable';
 import SortableTh from '../../../components/common/SortableTh';
 import WatchlistStar from '../../../components/instrument/WatchlistStar';
@@ -34,17 +34,18 @@ function IndexChart({ symbol, label }) {
 
   const activeRange = CHART_RANGES[rangeIdx];
 
-  // Grafik serisi + canlı quote'u birlikte çek. Canlı fiyatı son noktaya yaz ki "Son Değer" ve
-  // çizginin ucu, Endeksler listesindeki canlı fiyatla TUTARLI olsun — son saatlik bar 1 saate
-  // kadar geride kalabiliyor (liste regularMarketPrice canlı; grafik son barı değil).
+  // Grafik serisini çek + endeks özetini Endeksler listesiyle AYNI kaynaktan (getIndex → aynı
+  // cache'li snapshot) al. "Son Değer" / günlük %'yi bu snapshot'tan gösterip son noktayı da
+  // onunla hizalarız → grafik ile liste BİREBİR tutarlı (canlı olması değil, tutarlı olması esas).
+  const code = symbol.replace(/\.IS$/i, '').toUpperCase();
   useEffect(() => {
     setLoading(true);
     let alive = true;
     Promise.all([
       getStockChart(symbol, activeRange.range, activeRange.interval).catch(() => null),
-      getStockQuote(symbol).catch(() => null),
+      getIndex(code).catch(() => null),
     ])
-      .then(([res, q]) => {
+      .then(([res, idx]) => {
         if (!alive) return;
         const ts     = res?.timestamps  ?? [];
         const prices = res?.closePrices ?? [];
@@ -52,18 +53,18 @@ function IndexChart({ symbol, label }) {
           label: formatStockChartTimeLabel(tt, activeRange.range, activeRange.interval),
           price: prices[i] != null ? parseFloat(prices[i]) : null,
         })).filter(d => d.price != null);
-        const live = q?.price != null ? parseFloat(q.price) : null;
-        if (live != null && points.length > 0) {
-          points[points.length - 1] = { ...points[points.length - 1], price: live };
+        const listPrice = idx?.price != null ? parseFloat(idx.price) : null;
+        if (listPrice != null && points.length > 0) {
+          points[points.length - 1] = { ...points[points.length - 1], price: listPrice };
         }
         setData(points);
-        setDaily(live != null
-          ? { price: live, changePercent: q?.changePercent != null ? parseFloat(q.changePercent) : null }
+        setDaily(listPrice != null
+          ? { price: listPrice, changePercent: idx?.changePercent != null ? parseFloat(idx.changePercent) : null }
           : null);
       })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
-  }, [symbol, activeRange.range, activeRange.interval]);
+  }, [symbol, code, activeRange.range, activeRange.interval]);
 
   // ECharts render
   useEffect(() => {
