@@ -1,8 +1,9 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { SlidersHorizontal, ChevronDown } from 'lucide-react';
 import { init as klineInit, dispose as klineDispose } from 'klinecharts';
 import DrawingToolbar from './DrawingToolbar';
 import { getStockOhlc } from '../../../../api/marketApi';
+import { prefGet, prefSet } from '../../../../api/prefs';
 import {
   DRAWING_TOOLS, MA_PERIODS, SUB_INDICATORS,
   maLineStyles, STOCK_WARMUP_RANGE, RANGE_WINDOW_MS, fitVisibleToWindow,
@@ -29,6 +30,7 @@ export default function CandlestickChart({ symbol }) {
   const chartId = useRef(`kline_${Date.now()}`);
   const chartRef = useRef(null);
   const indicatorPaneIds = useRef({}); // Her indikatör için pane ID'sini sakla
+  const overlaysRef = useRef(new Map()); // canlıOverlayId -> { name, points } (kalıcı çizimler)
   const [ohlcRangeIdx, setOhlcRangeIdx] = useState(3);
   const [activeMAs, setActiveMAs] = useState([]);
   const [activeSubInds, setActiveSubInds] = useState([]);
@@ -39,6 +41,29 @@ export default function CandlestickChart({ symbol }) {
 
   const rangeConfig = OHLC_RANGES[ohlcRangeIdx];
   const { range, interval } = rangeConfig;
+
+  // ── Çizim (overlay) KALICILIĞI: localStorage + (giriş varsa) sunucu senkronu → cihazlar arası.
+  // Overlay'ler veri-koordinatlı (timestamp+değer) olduğu için kaydırma/zoom/aralık değişiminde
+  // doğru yerde kalır; her sembol ayrı saklanır (chart-overlays:{symbol}).
+  const persistOverlays = useCallback(() => {
+    prefSet(`chart-overlays:${symbol}`, Array.from(overlaysRef.current.values()));
+  }, [symbol]);
+  const trackOverlay = useCallback((ov) => {
+    if (!ov?.id) return;
+    overlaysRef.current.set(ov.id, {
+      name: ov.name,
+      points: (ov.points || []).map(p => ({ timestamp: p.timestamp, value: p.value })),
+    });
+    persistOverlays();
+  }, [persistOverlays]);
+  const untrackOverlay = useCallback((ov) => {
+    if (ov?.id) { overlaysRef.current.delete(ov.id); persistOverlays(); }
+  }, [persistOverlays]);
+  const overlayEvents = useMemo(() => ({
+    onDrawEnd:        (e) => { trackOverlay(e.overlay); return false; },
+    onPressedMoveEnd: (e) => { trackOverlay(e.overlay); return false; },
+    onRemoved:        (e) => { untrackOverlay(e.overlay); return false; },
+  }), [trackOverlay, untrackOverlay]);
 
   // MA toggle — calcParams ile tüm aktif periyotları tek seferde set et
   const applyMA = useCallback((periods) => {
@@ -107,9 +132,10 @@ export default function CandlestickChart({ symbol }) {
     setActiveTool(toolId);
     if (!chartRef.current) return;
     if (toolId) {
-      chartRef.current.createOverlay({ name: toolId });
+      // overlayEvents ile çiz → onDrawEnd'de kaydedilir (kalıcı)
+      chartRef.current.createOverlay({ name: toolId, ...overlayEvents });
     }
-  }, []);
+  }, [overlayEvents]);
 
   const handleDeleteSelected = useCallback(() => {
     chartRef.current?.removeOverlay();
@@ -185,8 +211,20 @@ export default function CandlestickChart({ symbol }) {
               console.error('Error creating indicator in useEffect:', indName, e);
             }
           });
+
+          // ── Kaydedilmiş çizimleri geri yükle (refresh / başka cihaz / aralık değişimi sonrası) ──
+          // Overlay'ler veri-koordinatlı olduğu için yeni aralıkta da doğru yerde belirir.
+          overlaysRef.current.clear();
+          const savedOverlays = prefGet(`chart-overlays:${symbol}`, []) || [];
+          savedOverlays.forEach(ov => {
+            try {
+              const oid = chartRef.current.createOverlay({ name: ov.name, points: ov.points, ...overlayEvents });
+              const realId = Array.isArray(oid) ? oid[0] : oid;
+              if (realId) overlaysRef.current.set(realId, ov);
+            } catch { /* yoksay */ }
+          });
         }
-        
+
         setLoading(false);
       })
       .catch(() => { setError(true); setLoading(false); });
