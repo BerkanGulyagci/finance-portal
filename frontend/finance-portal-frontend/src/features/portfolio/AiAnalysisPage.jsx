@@ -8,6 +8,7 @@ import {
   ResponsiveContainer, Tooltip, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid,
 } from 'recharts';
 import { getPortfolioAiAnalysis } from '../../api/portfolioApi';
+import { useTranslation } from '../../context/LanguageContext';
 import RebalanceCard from './analysis/RebalanceCard';
 import ForecastCard from './analysis/ForecastCard';
 
@@ -101,11 +102,12 @@ function TrendBadge({ trend, label }) {
 
 /** 52-hafta bandındaki konum çubuğu (0=dip, 100=tepe). */
 function RangeBar({ pos }) {
-  if (pos == null) return <div className="text-[11px] text-gray-400">52h verisi yok</div>;
+  const { t } = useTranslation();
+  if (pos == null) return <div className="text-[11px] text-gray-400">{t('52h verisi yok')}</div>;
   return (
     <div>
       <div className="flex justify-between text-[10px] text-gray-400 mb-0.5">
-        <span>52h dip</span><span>{fmtPct(pos)}</span><span>tepe</span>
+        <span>{t('52h dip')}</span><span>{fmtPct(pos)}</span><span>{t('tepe')}</span>
       </div>
       <div className="relative h-1.5 bg-gradient-to-r from-emerald-200 via-amber-200 to-rose-200 rounded-full">
         <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-[#093eaa] border-2 border-white shadow"
@@ -116,6 +118,7 @@ function RangeBar({ pos }) {
 }
 
 function AssetSignalCard({ s }) {
+  const { t } = useTranslation();
   // Sadece verisi olan metrikleri göster — 3 tane "—" yerine temiz görünür.
   const metrics = [
     { label: 'Getiri', v: s.profitLossPercent },
@@ -127,14 +130,14 @@ function AssetSignalCard({ s }) {
       <div className="flex items-start justify-between gap-2 mb-1.5">
         <div className="min-w-0">
           <div className="font-semibold text-gray-800 text-sm truncate">{s.name}</div>
-          <div className="text-[11px] text-gray-400">{s.symbol} · ağırlık {fmtPct(s.weightPercent)}</div>
+          <div className="text-[11px] text-gray-400">{s.symbol} · {t('ağırlık')} {fmtPct(s.weightPercent)}</div>
         </div>
-        <TrendBadge trend={s.trend} label={s.trendLabel} />
+        <TrendBadge trend={s.trend} label={t(s.trendLabel)} />
       </div>
       <div className="mb-2"><RangeBar pos={s.range52wPercent} /></div>
       {metrics.length > 0 && (
         <div className="flex justify-around text-center mb-1.5 gap-2">
-          {metrics.map((m) => <Mini key={m.label} label={m.label} value={fmtPct(m.v)} cls={signClass(m.v)} />)}
+          {metrics.map((m) => <Mini key={m.label} label={t(m.label)} value={fmtPct(m.v)} cls={signClass(m.v)} />)}
         </div>
       )}
       {s.maState && <div className="text-[11px] text-gray-500">{s.maState}</div>}
@@ -152,19 +155,21 @@ function Mini({ label, value, cls }) {
 }
 
 function MonteCarloTooltip({ active, payload }) {
+  const { t } = useTranslation();
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload;
   if (!d) return null;
   return (
     <div className="bg-white border border-gray-200 rounded shadow px-2.5 py-1.5 text-xs">
-      <div className="font-semibold text-gray-700 mb-0.5">{d.month}. ay</div>
-      <div className="text-[#093eaa] font-semibold">Medyan: {fmtMoney(d.p50)}</div>
+      <div className="font-semibold text-gray-700 mb-0.5">{d.month}. {t('ay')}</div>
+      <div className="text-[#093eaa] font-semibold">{t('Medyan')}: {fmtMoney(d.p50)}</div>
       <div className="text-gray-500">%5–%95: {fmtMoney(d.p5)} – {fmtMoney(d.p95)}</div>
     </div>
   );
 }
 
 export default function AiAnalysisPage() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -176,10 +181,10 @@ export default function AiAnalysisPage() {
     setLoading(true); setError(''); setProgress(8);
     getPortfolioAiAnalysis(id)
       .then((d) => { if (alive) setData(d); })
-      .catch((e) => { if (alive) setError(e?.response?.data?.message || 'Analiz alınamadı.'); })
+      .catch((e) => { if (alive) setError(e?.response?.data?.message || t('Analiz alınamadı.')); })
       .finally(() => { if (alive) { setProgress(100); setLoading(false); } });
     return () => { alive = false; };
-  }, [id]);
+  }, [id, t]);
 
   // Analiz sürerken ilerleme çubuğunu ~%92'ye kadar yumuşakça doldur (LLM süresi değişken).
   useEffect(() => {
@@ -194,8 +199,8 @@ export default function AiAnalysisPage() {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center text-gray-500 px-4">
         <Sparkles className="w-8 h-8 text-[#093eaa] animate-pulse mb-3" />
-        <p className="text-sm font-semibold text-gray-700">Portföyün AI ile analiz ediliyor…</p>
-        <p className="text-xs text-gray-400 mt-1 mb-4">Metrikler hesaplanıyor, AI yorumu hazırlanıyor.</p>
+        <p className="text-sm font-semibold text-gray-700">{t('Portföyün AI ile analiz ediliyor…')}</p>
+        <p className="text-xs text-gray-400 mt-1 mb-4">{t('Metrikler hesaplanıyor, AI yorumu hazırlanıyor.')}</p>
         <div className="w-64 max-w-full h-2 bg-gray-100 rounded-full overflow-hidden">
           <div className="h-full bg-gradient-to-r from-[#093eaa] to-[#2563eb] rounded-full transition-all duration-500 ease-out"
             style={{ width: `${Math.round(progress)}%` }} />
@@ -209,7 +214,7 @@ export default function AiAnalysisPage() {
       <div className="max-w-2xl mx-auto mt-10 bg-white rounded-lg border border-gray-200 p-6 text-center">
         <AlertTriangle className="w-7 h-7 text-rose-500 mx-auto mb-2" />
         <p className="text-sm text-gray-600">{error}</p>
-        <Link to={`/portfolio/${id}`} className="inline-block mt-4 text-sm font-semibold text-[#093eaa]">← Portföye dön</Link>
+        <Link to={`/portfolio/${id}`} className="inline-block mt-4 text-sm font-semibold text-[#093eaa]">← {t('Portföye dön')}</Link>
       </div>
     );
   }
@@ -241,101 +246,99 @@ export default function AiAnalysisPage() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <Sparkles className="w-5 h-5 text-[#093eaa]" />
-            <h1 className="text-lg sm:text-xl font-bold text-gray-900 truncate">AI Portföy Analizi</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-gray-900 truncate">{t('AI Portföy Analizi')}</h1>
             {cls && (
               <span className={`px-2 py-0.5 rounded-full text-xs font-bold ring-1 ${profileStyle.bg} ${profileStyle.text} ${profileStyle.ring}`}>
-                {cls.label}
+                {t(cls.label)}
               </span>
             )}
           </div>
-          <p className="text-sm text-gray-400 truncate">{data.name} · {data.holdingsCount} pozisyon</p>
+          <p className="text-sm text-gray-400 truncate">{data.name} · {data.holdingsCount} {t('pozisyon')}</p>
         </div>
         <div className="text-right shrink-0">
           <div className="text-lg font-bold text-gray-900">{fmtMoney(data.totalValueTry)}</div>
           <div className={`text-sm font-semibold ${signClass(data.totalProfitLossPercent)}`}>
-            {fmtPct(data.totalProfitLossPercent)} <span className="text-gray-400 font-normal">nominal</span>
+            {fmtPct(data.totalProfitLossPercent)} <span className="text-gray-400 font-normal">{t('nominal')}</span>
           </div>
         </div>
       </div>
 
       {/* Skorlar + portföy kimliği */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card title="Risk Skoru" icon={<ShieldAlert className="w-4 h-4 text-amber-500" />}>
+        <Card title={t('Risk Skoru')} icon={<ShieldAlert className="w-4 h-4 text-amber-500" />}>
           <div className="flex flex-col items-center">
-            <ScoreGauge score={data.riskScore} color={riskColor(data.riskScore)} label={data.riskLabel} sub="risk seviyesi" />
+            <ScoreGauge score={data.riskScore} color={riskColor(data.riskScore)} label={t(data.riskLabel)} sub={t('risk seviyesi')} />
             <p className="text-[11px] text-gray-500 mt-2 text-center leading-snug">
-              <span className="font-semibold">0–100 · yüksek = daha riskli.</span> Volatilite, yoğunlaşma,
-              varlık tipi ve maksimum düşüşten hesaplanır. Aşağıdaki çubuklar her etkenin skora katkısıdır.
+              <span className="font-semibold">{t('0–100 · yüksek = daha riskli.')}</span> {t('Volatilite, yoğunlaşma, varlık tipi ve maksimum düşüşten hesaplanır. Aşağıdaki çubuklar her etkenin skora katkısıdır.')}
             </p>
             <FactorBars factors={data.riskFactors} />
           </div>
         </Card>
-        <Card title="Sağlık Skoru" icon={<HeartPulse className="w-4 h-4 text-emerald-500" />}>
+        <Card title={t('Sağlık Skoru')} icon={<HeartPulse className="w-4 h-4 text-emerald-500" />}>
           <div className="flex flex-col items-center">
-            <ScoreGauge score={data.healthScore} color={healthColor(data.healthScore)} label={data.healthLabel} sub="portföy sağlığı" />
+            <ScoreGauge score={data.healthScore} color={healthColor(data.healthScore)} label={t(data.healthLabel)} sub={t('portföy sağlığı')} />
             <p className="text-[11px] text-gray-500 mt-2 text-center leading-snug">
-              <span className="font-semibold">0–100 · yüksek = daha sağlıklı.</span> Çeşitlendirme, reel getiri,
-              risk-ayarlı getiri (Sharpe) ve düşüş kontrolünden hesaplanır. Çubuklar her etkenin katkısını gösterir.
+              <span className="font-semibold">{t('0–100 · yüksek = daha sağlıklı.')}</span> {t('Çeşitlendirme, reel getiri, risk-ayarlı getiri (Sharpe) ve düşüş kontrolünden hesaplanır. Çubuklar her etkenin katkısını gösterir.')}
             </p>
             <FactorBars factors={data.healthFactors} />
           </div>
         </Card>
-        <Card title="Portföy Kimliği" icon={<Target className="w-4 h-4 text-[#093eaa]" />}>
+        <Card title={t('Portföy Kimliği')} icon={<Target className="w-4 h-4 text-[#093eaa]" />}>
           {cls ? (
             <div>
               <div className={`inline-block px-2.5 py-1 rounded-full text-sm font-bold mb-2 ${profileStyle.bg} ${profileStyle.text}`}>
-                {cls.label}
+                {t(cls.label)}
               </div>
               <p className="text-sm text-gray-600 leading-snug mb-3">{cls.detail}</p>
               <div className="space-y-2">
-                <WeightBar label="Büyüme-odaklı" pct={cls.growthWeightPercent} color="#ef4444" />
-                <WeightBar label="Korumacı" pct={cls.defensiveWeightPercent} color="#10b981" />
+                <WeightBar label={t('Büyüme-odaklı')} pct={cls.growthWeightPercent} color="#ef4444" />
+                <WeightBar label={t('Korumacı')} pct={cls.defensiveWeightPercent} color="#10b981" />
               </div>
               <p className="text-[11px] text-gray-400 mt-2">
-                Hisse/kripto/vadeli/emtia = büyüme; tahvil/altın/döviz = korumacı; fon = karma.
+                {t('Hisse/kripto/vadeli/emtia = büyüme; tahvil/altın/döviz = korumacı; fon = karma.')}
               </p>
             </div>
-          ) : <p className="text-sm text-gray-500">Sınıflandırma için veri yok.</p>}
+          ) : <p className="text-sm text-gray-500">{t('Sınıflandırma için veri yok.')}</p>}
         </Card>
       </div>
 
       {/* Risk metrikleri + yoğunlaşma */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card title="Risk-Ayarlı Metrikler" icon={<Scale className="w-4 h-4 text-[#093eaa]" />} className="md:col-span-2">
+        <Card title={t('Risk-Ayarlı Metrikler')} icon={<Scale className="w-4 h-4 text-[#093eaa]" />} className="md:col-span-2">
           {m.available ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <Metric label="Yıllık Getiri" value={fmtPct(m.annualReturnPercent)} hint="Yıllıklandırılmış" />
-              <Metric label="Yıllık Volatilite" value={fmtPct(m.annualVolatilityPercent)} hint="Dalgalanma" />
-              <Metric label="Sharpe" value={fmtNum(m.sharpe)} hint="Birim risk başına getiri" />
-              <Metric label="Sortino" value={fmtNum(m.sortino)} hint="Aşağı-yön risk-ayarlı" />
-              <Metric label="Max Düşüş" value={fmtPct(m.maxDrawdownPercent)} hint="Tepe→dip kayıp" />
-              <Metric label="Beta (BIST100)" value={fmtNum(m.beta)} hint="Piyasaya duyarlılık" />
+              <Metric label={t('Yıllık Getiri')} value={fmtPct(m.annualReturnPercent)} hint={t('Yıllıklandırılmış')} />
+              <Metric label={t('Yıllık Volatilite')} value={fmtPct(m.annualVolatilityPercent)} hint={t('Dalgalanma')} />
+              <Metric label={t('Sharpe')} value={fmtNum(m.sharpe)} hint={t('Birim risk başına getiri')} />
+              <Metric label={t('Sortino')} value={fmtNum(m.sortino)} hint={t('Aşağı-yön risk-ayarlı')} />
+              <Metric label={t('Max Düşüş')} value={fmtPct(m.maxDrawdownPercent)} hint={t('Tepe→dip kayıp')} />
+              <Metric label={t('Beta (BIST100)')} value={fmtNum(m.beta)} hint={t('Piyasaya duyarlılık')} />
             </div>
           ) : (
-            <p className="text-sm text-gray-500">Risk metrikleri için geçmiş çok kısa ({m.note || 'yetersiz veri'}).</p>
+            <p className="text-sm text-gray-500">{t('Risk metrikleri için geçmiş çok kısa')} ({m.note || t('yetersiz veri')}).</p>
           )}
         </Card>
-        <Card title="Yoğunlaşma Riski" icon={<AlertTriangle className="w-4 h-4 text-amber-500" />}>
+        <Card title={t('Yoğunlaşma Riski')} icon={<AlertTriangle className="w-4 h-4 text-amber-500" />}>
           <div className="text-center mb-2">
             <div className="text-2xl font-extrabold text-gray-900">{fmtPct(conc.topHoldingPercent)}</div>
-            <div className="text-xs text-gray-500">en büyük pozisyon{conc.topHoldingLabel ? `: ${conc.topHoldingLabel}` : ''}</div>
+            <div className="text-xs text-gray-500">{t('en büyük pozisyon')}{conc.topHoldingLabel ? `: ${conc.topHoldingLabel}` : ''}</div>
           </div>
           <dl className="space-y-1.5 text-sm">
-            <Row label="İlk 3 pozisyon" value={fmtPct(conc.top3Percent)} cls="text-gray-700" />
-            <Row label="Herfindahl" value={fmtNum(conc.herfindahl)} cls="text-gray-700" />
+            <Row label={t('İlk 3 pozisyon')} value={fmtPct(conc.top3Percent)} cls="text-gray-700" />
+            <Row label={t('Herfindahl')} value={fmtNum(conc.herfindahl)} cls="text-gray-700" />
           </dl>
-          <div className="mt-2 text-xs font-semibold px-2 py-1 rounded text-center bg-amber-50 text-amber-700">{conc.label}</div>
+          <div className="mt-2 text-xs font-semibold px-2 py-1 rounded text-center bg-amber-50 text-amber-700">{t(conc.label)}</div>
         </Card>
       </div>
 
       {/* Monte Carlo projeksiyon (yelpaze) */}
       {mc?.available && (
-        <Card title="Monte Carlo Projeksiyon — Olası değer aralığı" icon={<Activity className="w-4 h-4 text-[#093eaa]" />}>
+        <Card title={t('Monte Carlo Projeksiyon — Olası değer aralığı')} icon={<Activity className="w-4 h-4 text-[#093eaa]" />}>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
-            <Metric label={`${mc.horizonMonths} ay medyan`} value={fmtMoney(mc.medianEndValue)} hint={`getiri ${fmtPct(mc.expectedReturnPercent)}`} />
-            <Metric label="İyimser (%95)" value={fmtMoney(mc.p95EndValue)} hint="üst senaryo" />
-            <Metric label="Kötümser (%5)" value={fmtMoney(mc.p5EndValue)} hint="alt senaryo" />
-            <Metric label="Kayıp olasılığı" value={fmtPct(mc.probLossPercent)} hint="nominal" />
+            <Metric label={t('{n} ay medyan', { n: mc.horizonMonths })} value={fmtMoney(mc.medianEndValue)} hint={t('getiri {x}', { x: fmtPct(mc.expectedReturnPercent) })} />
+            <Metric label={t('İyimser (%95)')} value={fmtMoney(mc.p95EndValue)} hint={t('üst senaryo')} />
+            <Metric label={t('Kötümser (%5)')} value={fmtMoney(mc.p5EndValue)} hint={t('alt senaryo')} />
+            <Metric label={t('Kayıp olasılığı')} value={fmtPct(mc.probLossPercent)} hint={t('nominal')} />
           </div>
           <ResponsiveContainer width="100%" height={260}>
             <ComposedChart data={mcData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
@@ -345,8 +348,8 @@ export default function AiAnalysisPage() {
               <Tooltip content={<MonteCarloTooltip />} />
               <Area dataKey="base" stackId="band" stroke="none" fill="transparent" isAnimationActive={false} />
               <Area dataKey="range" stackId="band" stroke="none" fill="#093eaa" fillOpacity={0.12}
-                name="%5–%95 aralığı" isAnimationActive={false} />
-              <Line dataKey="p50" stroke="#093eaa" strokeWidth={2} dot={false} name="Medyan" isAnimationActive={false} />
+                name={t('%5–%95 aralığı')} isAnimationActive={false} />
+              <Line dataKey="p50" stroke="#093eaa" strokeWidth={2} dot={false} name={t('Medyan')} isAnimationActive={false} />
             </ComposedChart>
           </ResponsiveContainer>
           <p className="text-[11px] text-gray-400 mt-1 leading-snug">{mc.note}</p>
@@ -358,7 +361,7 @@ export default function AiAnalysisPage() {
 
       {/* Tarihsel stres testleri */}
       {data.stressTests?.some((s) => s.available) && (
-        <Card title="Tarihsel Stres Testleri — Mevcut portföyün kriz dayanıklılığı" icon={<History className="w-4 h-4 text-[#093eaa]" />}>
+        <Card title={t('Tarihsel Stres Testleri — Mevcut portföyün kriz dayanıklılığı')} icon={<History className="w-4 h-4 text-[#093eaa]" />}>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {data.stressTests.filter((s) => s.available).map((s) => (
               <div key={s.key} className="bg-gray-50 rounded-lg p-4 text-center">
@@ -370,20 +373,19 @@ export default function AiAnalysisPage() {
             ))}
           </div>
           <p className="text-[11px] text-gray-400 mt-2 leading-snug">
-            Mevcut varlık dağılımın o dönemde nasıl etkilenirdi (varlık-tipi proxy'leriyle tahmin).
-            Pozitif = kazanç (ör. kur krizinde döviz/altın ağırlığı yükselir).
+            {t('Mevcut varlık dağılımın o dönemde nasıl etkilenirdi (varlık-tipi proxy\'leriyle tahmin). Pozitif = kazanç (ör. kur krizinde döviz/altın ağırlığı yükselir).')}
           </p>
         </Card>
       )}
 
       {/* Varlık-bazlı teknik sinyaller */}
       {signals.length > 0 && (
-        <Card title="Varlık Bazlı Sinyaller — Her pozisyonun teknik durumu" icon={<Activity className="w-4 h-4 text-[#093eaa]" />}>
+        <Card title={t('Varlık Bazlı Sinyaller — Her pozisyonun teknik durumu')} icon={<Activity className="w-4 h-4 text-[#093eaa]" />}>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {signals.map((s) => <AssetSignalCard key={s.symbol} s={s} />)}
           </div>
           <p className="text-[11px] text-gray-400 mt-2 leading-snug">
-            Trend = fiyatın MA20/MA50'ye göre konumu; çubuk = 52-hafta bandındaki yer; momentum = 1/3 aylık değişim.
+            {t('Trend = fiyatın MA20/MA50\'ye göre konumu; çubuk = 52-hafta bandındaki yer; momentum = 1/3 aylık değişim.')}
           </p>
         </Card>
       )}
@@ -392,12 +394,12 @@ export default function AiAnalysisPage() {
       {data.rebalance && <RebalanceCard rebalance={data.rebalance} portfolioId={id} />}
 
       {/* AI yorum raporu */}
-      <Card title="AI Yorum Raporu" icon={<Sparkles className="w-4 h-4 text-[#093eaa]" />}>
+      <Card title={t('AI Yorum Raporu')} icon={<Sparkles className="w-4 h-4 text-[#093eaa]" />}>
         {data.aiReportAvailable ? (
           <AiReport text={data.aiReport} />
         ) : (
           <p className="text-sm text-gray-500">
-            AI yorumu şu an kullanılamıyor (model meşgul/kota). Yukarıdaki tüm metrikler ve grafikler geçerlidir.
+            {t('AI yorumu şu an kullanılamıyor (model meşgul/kota). Yukarıdaki tüm metrikler ve grafikler geçerlidir.')}
           </p>
         )}
       </Card>

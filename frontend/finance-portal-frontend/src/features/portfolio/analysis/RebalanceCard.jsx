@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Scale, ClipboardList, X, ArrowUp, ArrowDown, Minus } from 'lucide-react';
 import { getPortfolioRebalance } from '../../../api/portfolioApi';
+import { useTranslation } from '../../../context/LanguageContext';
 
 const fmtPct = v => (v == null ? '—' : `%${Number(v).toLocaleString('tr-TR', { maximumFractionDigits: 1 })}`);
 
@@ -26,6 +27,7 @@ function profileFromScore(score) {
 }
 
 function RiskProfileQuiz({ onClose, onResult }) {
+  const { t } = useTranslation();
   const [answers, setAnswers] = useState(Array(QUESTIONS.length).fill(null));
   const allAnswered = answers.every(a => a != null);
   const submit = () => {
@@ -38,14 +40,14 @@ function RiskProfileQuiz({ onClose, onResult }) {
         onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-bold text-gray-900 flex items-center gap-2">
-            <ClipboardList className="w-5 h-5 text-[#093eaa]" />Risk Profili Testi
+            <ClipboardList className="w-5 h-5 text-[#093eaa]" />{t('Risk Profili Testi')}
           </h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
         </div>
         <div className="space-y-4">
           {QUESTIONS.map((item, qi) => (
             <div key={qi}>
-              <p className="text-sm font-semibold text-gray-700 mb-1.5">{qi + 1}. {item.q}</p>
+              <p className="text-sm font-semibold text-gray-700 mb-1.5">{qi + 1}. {t(item.q)}</p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
                 {item.opts.map((opt, oi) => (
                   <button key={oi}
@@ -54,7 +56,7 @@ function RiskProfileQuiz({ onClose, onResult }) {
                       ${answers[qi] === oi
                         ? 'border-[#093eaa] bg-[#093eaa]/5 text-[#093eaa] font-semibold'
                         : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
-                    {opt}
+                    {t(opt)}
                   </button>
                 ))}
               </div>
@@ -64,7 +66,7 @@ function RiskProfileQuiz({ onClose, onResult }) {
         <button onClick={submit} disabled={!allAnswered}
           className={`mt-5 w-full py-2 rounded-lg text-sm font-semibold transition
             ${allAnswered ? 'bg-[#093eaa] text-white hover:bg-[#0a3494]' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
-          Profilimi belirle
+          {t('Profilimi belirle')}
         </button>
       </div>
     </div>
@@ -86,6 +88,7 @@ function ActionChip({ action, delta }) {
 }
 
 export default function RebalanceCard({ rebalance, portfolioId }) {
+  const { t } = useTranslation();
   const [data, setData] = useState(rebalance);
   const [quizOpen, setQuizOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -112,20 +115,20 @@ export default function RebalanceCard({ rebalance, portfolioId }) {
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
       <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
         <div className="flex items-center gap-2 text-gray-800 font-bold text-sm">
-          <Scale className="w-4 h-4 text-[#093eaa]" />Yeniden Dengeleme
+          <Scale className="w-4 h-4 text-[#093eaa]" />{t('Yeniden Dengeleme')}
           <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${PROFILE_STYLE[data.basedOnProfile] || PROFILE_STYLE.BALANCED}`}>
-            {data.profileLabel} hedef
+            {t(data.profileLabel)} {t('hedef')}
           </span>
         </div>
         <button onClick={() => setQuizOpen(true)}
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#093eaa] border border-[#093eaa]/30 rounded-lg px-2.5 py-1 hover:bg-[#093eaa]/5">
-          <ClipboardList className="w-3.5 h-3.5" />{loading ? 'Hesaplanıyor…' : 'Risk profilimi ölç'}
+          <ClipboardList className="w-3.5 h-3.5" />{loading ? t('Hesaplanıyor…') : t('Risk profilimi ölç')}
         </button>
       </div>
 
       <p className="text-[11px] text-gray-400 mb-3">
-        Toplam sapma <span className="font-semibold text-gray-600">{fmtPct(data.driftPercent)}</span> ·
-        {' '}mevcut dağılımın seçili profile uzaklığı (0 = birebir).
+        {t('Toplam sapma')} <span className="font-semibold text-gray-600">{fmtPct(data.driftPercent)}</span> ·
+        {' '}{t('mevcut dağılımın seçili profile uzaklığı (0 = birebir).')}
       </p>
 
       <div className="space-y-2">
@@ -133,8 +136,8 @@ export default function RebalanceCard({ rebalance, portfolioId }) {
           <div key={it.assetType} className="flex items-center gap-2 text-xs">
             <span className="w-16 shrink-0 text-gray-600 truncate" title={it.label}>{it.label}</span>
             <div className="flex-1 min-w-0 space-y-0.5">
-              <Bar pct={it.currentPercent} max={maxPct} color="#94a3b8" label="mevcut" />
-              <Bar pct={it.targetPercent} max={maxPct} color="#093eaa" label="hedef" />
+              <Bar pct={it.currentPercent} max={maxPct} color="#94a3b8" label={t('mevcut')} />
+              <Bar pct={it.targetPercent} max={maxPct} color="#093eaa" label={t('hedef')} />
             </div>
             <span className="shrink-0"><ActionChip action={it.action} delta={Number(it.deltaPercent)} /></span>
           </div>
