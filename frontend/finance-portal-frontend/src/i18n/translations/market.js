@@ -1072,6 +1072,12 @@ const en = {
   'bugün': 'today',
   'Not: Enflasyon (TÜFE) son yayımlanan aya kadardır (~1–2 ay gecikmeli); kısa aralıklarda (3A vb.) son ayları içermeyip düz görünebilir.':
     'Note: Inflation (CPI) only runs through the last published month (~1–2 month lag); over short ranges (3M etc.) it may miss the latest months and look flat.',
+  'bir yatırım değil, ölçü çizgisidir — TL fiyatların ne kadar arttığını gösterir. Bir varlık bu çizginin ÜSTÜNDEyse paran fiyatlardan hızlı büyümüştür (reel kazanç); ALTINDAysa sayı artsa bile alım gücün düşmüştür.':
+    'is not an investment but a yardstick — it shows how much TL prices rose. If an asset is ABOVE this line your money grew faster than prices (a real gain); if BELOW, the number went up but your purchasing power fell.',
+  'ABD mallarının TL fiyatıdır (ABD enflasyonu × USD/TRY) — "dolar alım gücünü korudun mu" ölçüsü. Çizginin yüksekliği ABD enflasyonundan değil, ağırlıkla TL\'nin dolara karşı değer kaybından (USD/TRY artışından) gelir.':
+    'is the TL price of US goods (US inflation × USD/TRY) — a "did you keep your dollar purchasing power" yardstick. Its height comes mostly not from US inflation but from the lira losing value against the dollar (USD/TRY rising).',
+  'Enflasyon (TÜFE)': 'Inflation (CPI)',
+  'ABD Enflasyonu': 'US Inflation',
 
 };
 

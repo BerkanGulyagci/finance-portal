@@ -714,6 +714,24 @@ export default function StockComparePage() {
             )}
           </div>
           <EChartsCompareChart chartData={chartData} seriesDefs={chartSeriesDefs} />
+
+          {/* TÜFE / ABD Enflasyonu seçiliyken: ne anlama geldiklerinin kısa açıklaması */}
+          {(extraItems.some(e => e.symbol === 'TUFE') || extraItems.some(e => e.symbol === 'USCPI_TRY')) && (
+            <div className="mt-4 pt-3 border-t border-gray-100 space-y-2 text-[11px] text-gray-500 leading-relaxed">
+              {extraItems.some(e => e.symbol === 'TUFE') && (
+                <p>
+                  <span className="font-bold text-gray-700">{t('Enflasyon (TÜFE)')}:</span>{' '}
+                  {t('bir yatırım değil, ölçü çizgisidir — TL fiyatların ne kadar arttığını gösterir. Bir varlık bu çizginin ÜSTÜNDEyse paran fiyatlardan hızlı büyümüştür (reel kazanç); ALTINDAysa sayı artsa bile alım gücün düşmüştür.')}
+                </p>
+              )}
+              {extraItems.some(e => e.symbol === 'USCPI_TRY') && (
+                <p>
+                  <span className="font-bold text-gray-700">{t('ABD Enflasyonu')}:</span>{' '}
+                  {t('ABD mallarının TL fiyatıdır (ABD enflasyonu × USD/TRY) — "dolar alım gücünü korudun mu" ölçüsü. Çizginin yüksekliği ABD enflasyonundan değil, ağırlıkla TL\'nin dolara karşı değer kaybından (USD/TRY artışından) gelir.')}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
