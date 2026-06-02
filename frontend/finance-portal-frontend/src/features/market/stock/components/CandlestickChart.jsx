@@ -43,11 +43,13 @@ export default function CandlestickChart({ symbol }) {
   const { range, interval } = rangeConfig;
 
   // ── Çizim (overlay) KALICILIĞI: localStorage + (giriş varsa) sunucu senkronu → cihazlar arası.
-  // Overlay'ler veri-koordinatlı (timestamp+değer) olduğu için kaydırma/zoom/aralık değişiminde
-  // doğru yerde kalır; her sembol ayrı saklanır (chart-overlays:{symbol}).
+  // Her (sembol + ZAMAN ARALIĞI) ayrı saklanır: chart-overlays:{symbol}:{range}. Sebep: overlay'ler
+  // veri-koordinatlı (timestamp); bir aralıkta çizilen çizginin tarihi başka aralığın penceresinin
+  // DIŞINDA kalırsa orada görünmez/kayar. Aralık-bazlı saklayınca çizim hep kendi aralığında, doğru
+  // yerde geri yüklenir (filtre/refresh/başka cihaz — hepsinde tutarlı, kaydırma/zoom bozmaz).
   const persistOverlays = useCallback(() => {
-    prefSet(`chart-overlays:${symbol}`, Array.from(overlaysRef.current.values()));
-  }, [symbol]);
+    prefSet(`chart-overlays:${symbol}:${range}`, Array.from(overlaysRef.current.values()));
+  }, [symbol, range]);
   const trackOverlay = useCallback((ov) => {
     if (!ov?.id) return;
     overlaysRef.current.set(ov.id, {
@@ -213,9 +215,9 @@ export default function CandlestickChart({ symbol }) {
           });
 
           // ── Kaydedilmiş çizimleri geri yükle (refresh / başka cihaz / aralık değişimi sonrası) ──
-          // Overlay'ler veri-koordinatlı olduğu için yeni aralıkta da doğru yerde belirir.
+          // Bu (sembol+aralık) için kaydedilenleri yükle → tarihleri hep bu pencerede, doğru yerde belirir.
           overlaysRef.current.clear();
-          const savedOverlays = prefGet(`chart-overlays:${symbol}`, []) || [];
+          const savedOverlays = prefGet(`chart-overlays:${symbol}:${range}`, []) || [];
           savedOverlays.forEach(ov => {
             try {
               const oid = chartRef.current.createOverlay({ name: ov.name, points: ov.points, ...overlayEvents });
