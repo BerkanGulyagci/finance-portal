@@ -33,8 +33,8 @@ public class IndexQueryService {
 
     private static final Logger log = LoggerFactory.getLogger(IndexQueryService.class);
     private static final Duration INDEX_LKG_TTL = Duration.ofDays(3);
-    /** İlgili hisse listesi üst sınırı (büyüklük endekslerinde 100+ bileşen olabilir; görüntü için yeterli). */
-    private static final int MAX_CONSTITUENTS = 60;
+    /** İlgili hisse listesi üst sınırı — BIST 100 tam 100 hisseyi göstersin diye 110 (daha fazlası nadir). */
+    private static final int MAX_CONSTITUENTS = 110;
 
     private final StockQueryService stockQueryService;
     private final StockSymbolProvider stockSymbolProvider;

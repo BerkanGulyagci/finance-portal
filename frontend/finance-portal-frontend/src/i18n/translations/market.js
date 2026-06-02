@@ -1067,6 +1067,8 @@ const en = {
   'Ana': 'Main',
   'Katılım': 'Participation',
   'Endeksteki Hisseler': 'Index Constituents',
+  'Endeksteki Bazı Hisseler': 'Some Index Constituents',
+  'öne çıkan üyeler (tam liste alınamıyor)': 'selected members (full list unavailable)',
   'Borsa İstanbul Endeksi': 'Borsa İstanbul Index',
   'Kaynak: Yahoo Finance': 'Source: Yahoo Finance',
   'bugün': 'today',

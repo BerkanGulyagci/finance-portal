@@ -4,8 +4,13 @@ import { ArrowLeft, TrendingUp, TrendingDown, BarChart2 } from 'lucide-react';
 import { getIndex, getIndexConstituents } from '../../../api/marketApi';
 import InstrumentLogo from '../../../components/instrument/InstrumentLogo';
 import WatchlistStar from '../../../components/instrument/WatchlistStar';
-import IndexChart from './components/IndexChart';
+import CandlestickChart from './components/CandlestickChart';
+import LineChart from './components/LineChart';
 import { useTranslation } from '../../../context/LanguageContext';
+
+// Bileşeni tam alınabilen (resmî liste) endeksler — başlık "Endeksteki Hisseler" olur;
+// diğerlerinde (sektör/küratörlü/temsilî) "Endeksteki Bazı Hisseler".
+const COMPLETE_CONSTITUENTS = new Set(['XU030', 'XU050', 'XU100']);
 
 const CATEGORY_STYLE = {
   Ana: 'bg-[#093eaa]/10 text-[#093eaa]',
@@ -37,6 +42,7 @@ export default function IndexDetailPage() {
   const [constituents, setConstituents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [chartMode, setChartMode] = useState('tv');
 
   useEffect(() => {
     setLoading(true);
@@ -120,8 +126,18 @@ export default function IndexDetailPage() {
               </div>
             </div>
 
-            <div className="px-4 pt-3 pb-2 border-t border-gray-100">
-              <div className="flex items-center justify-end gap-2 mb-1 flex-wrap">
+            <div className="px-4 pt-2 pb-2 border-t border-gray-100">
+              {/* Mum/çizgi seçici + Karşılaştır — hisse detayıyla AYNI toolbar (Çizgiler/Kanallar/Fibonacci/
+                  İndikatör) + çizim araçları; çizimler kaydedilir (CandlestickChart kalıcılığı). */}
+              <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+                <div className="inline-flex items-center gap-0.5 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
+                  {[{ key: 'tv', label: 'Mum Grafik' }, { key: 'line', label: 'Çizgi' }].map(m => (
+                    <button key={m.key} onClick={() => setChartMode(m.key)}
+                      className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${chartMode === m.key ? 'bg-white text-[#093eaa] shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>
+                      {t(m.label)}
+                    </button>
+                  ))}
+                </div>
                 <Link
                   to={`/market/stocks/compare?add=${encodeURIComponent(symbol)}`}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-[#093eaa]/30 text-[#093eaa] bg-[#093eaa]/5 hover:bg-[#093eaa]/10 transition-colors"
@@ -130,8 +146,8 @@ export default function IndexDetailPage() {
                   {t('Karşılaştır')}
                 </Link>
               </div>
-              {/* Hisse sayfasındaki BIST 30/50/100 grafiğiyle AYNI bileşen (aynı kaynak + çizim + hover). */}
-              <IndexChart symbol={symbol} showSummary={false} height={320} />
+              {chartMode === 'tv' && <CandlestickChart symbol={symbol} />}
+              {chartMode === 'line' && <LineChart symbol={symbol} />}
             </div>
           </div>
 
@@ -139,8 +155,13 @@ export default function IndexDetailPage() {
           {constituents.length > 0 && (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
               <div className="p-4 border-b border-gray-100">
-                <h2 className="text-base font-bold text-gray-900">{t('Endeksteki Hisseler')}</h2>
-                <p className="text-xs text-gray-400 mt-0.5">{constituents.length} {t('hisse')}</p>
+                <h2 className="text-base font-bold text-gray-900">
+                  {COMPLETE_CONSTITUENTS.has(upperCode) ? t('Endeksteki Hisseler') : t('Endeksteki Bazı Hisseler')}
+                </h2>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {constituents.length} {t('hisse')}
+                  {!COMPLETE_CONSTITUENTS.has(upperCode) && ` · ${t('öne çıkan üyeler (tam liste alınamıyor)')}`}
+                </p>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
