@@ -38,24 +38,25 @@ function useAiAnalysis(portfolioId) {
 }
 
 function Loading() {
-  return <div className="flex items-center justify-center py-8 text-xs text-gray-400">…</div>;
+  return <div className="h-full flex items-center justify-center text-xs text-gray-400">…</div>;
 }
 function Empty({ msg }) {
-  return <div className="flex items-center justify-center py-8 text-xs text-gray-400 text-center px-2">{msg}</div>;
+  return <div className="h-full flex items-center justify-center text-xs text-gray-400 text-center px-2">{msg}</div>;
 }
 
 function ScoreRing({ score, color }) {
   const r = 34, c = 2 * Math.PI * r;
   const off = c * (1 - Math.max(0, Math.min(100, score)) / 100);
+  // Kart küçülünce küçülsün: genişliğe göre ölçeklenir (viewBox), max 88px.
   return (
-    <div className="relative" style={{ width: 84, height: 84 }}>
-      <svg width="84" height="84" className="-rotate-90">
+    <div className="relative w-full max-w-[88px] aspect-square mx-auto shrink-0">
+      <svg viewBox="0 0 84 84" className="w-full h-full -rotate-90">
         <circle cx="42" cy="42" r={r} stroke="#eef1f5" strokeWidth="9" fill="none" />
         <circle cx="42" cy="42" r={r} stroke={color} strokeWidth="9" fill="none"
           strokeDasharray={c} strokeDashoffset={off} strokeLinecap="round" />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-xl font-extrabold" style={{ color }}>{score}</span>
+        <span className="text-lg font-extrabold" style={{ color }}>{score}</span>
         <span className="text-[9px] text-gray-400 font-semibold">/ 100</span>
       </div>
     </div>
@@ -101,10 +102,12 @@ export function PortfolioRiskScoreCard({ portfolioId }) {
   return (
     <PortfolioChartCard title={t('Risk Skoru')} subtitle={t('0–100 · yüksek = daha riskli')}>
       {s.loading ? <Loading /> : !d ? <Empty msg={t('Analiz alınamadı.')} /> : (
-        <div className="flex flex-col items-center">
+        <div className="h-full flex flex-col items-center">
           <ScoreRing score={d.riskScore} color={riskColor(d.riskScore)} />
-          <div className="mt-1 text-sm font-bold text-gray-800">{t(d.riskLabel)}</div>
-          <FactorBars factors={d.riskFactors} />
+          <div className="mt-1 text-sm font-bold text-gray-800 shrink-0">{t(d.riskLabel)}</div>
+          <div className="flex-1 min-h-0 w-full overflow-hidden mt-1">
+            <FactorBars factors={d.riskFactors} />
+          </div>
         </div>
       )}
     </PortfolioChartCard>
@@ -118,10 +121,12 @@ export function PortfolioHealthScoreCard({ portfolioId }) {
   return (
     <PortfolioChartCard title={t('Sağlık Skoru')} subtitle={t('0–100 · yüksek = daha sağlıklı')}>
       {s.loading ? <Loading /> : !d ? <Empty msg={t('Analiz alınamadı.')} /> : (
-        <div className="flex flex-col items-center">
+        <div className="h-full flex flex-col items-center">
           <ScoreRing score={d.healthScore} color={healthColor(d.healthScore)} />
-          <div className="mt-1 text-sm font-bold text-gray-800">{t(d.healthLabel)}</div>
-          <FactorBars factors={d.healthFactors} />
+          <div className="mt-1 text-sm font-bold text-gray-800 shrink-0">{t(d.healthLabel)}</div>
+          <div className="flex-1 min-h-0 w-full overflow-hidden mt-1">
+            <FactorBars factors={d.healthFactors} />
+          </div>
         </div>
       )}
     </PortfolioChartCard>
@@ -135,8 +140,8 @@ export function PortfolioIdentityCard({ portfolioId }) {
   return (
     <PortfolioChartCard title={t('Portföy Kimliği')} subtitle={t('Varlık-tipi ağırlığına göre profil')}>
       {s.loading ? <Loading /> : !cls ? <Empty msg={t('Sınıflandırma için veri yok.')} /> : (
-        <div>
-          <span className={`inline-block px-2.5 py-1 rounded-full text-sm font-bold mb-3 ${PROFILE_STYLE[cls.profile] || PROFILE_STYLE.BALANCED}`}>
+        <div className="h-full flex flex-col justify-center gap-3 overflow-hidden">
+          <span className={`self-start px-2.5 py-1 rounded-full text-sm font-bold ${PROFILE_STYLE[cls.profile] || PROFILE_STYLE.BALANCED}`}>
             {t(cls.label)}
           </span>
           <div className="space-y-2">
@@ -179,25 +184,27 @@ export function PortfolioMonteCarloCard({ portfolioId, valuesHidden }) {
   return (
     <PortfolioChartCard title={t('Monte Carlo Projeksiyon')} subtitle={t('1 yıllık olası değer aralığı (kesin tahmin değil)')}>
       {s.loading ? <Loading /> : !mc?.available ? <Empty msg={t('Yeterli geçmiş yok')} /> : (
-        <div>
-          <div className="flex justify-between items-baseline text-xs mb-1.5 gap-2 flex-wrap">
+        <div className="h-full flex flex-col">
+          <div className="flex justify-between items-baseline text-xs mb-1.5 gap-2 flex-wrap shrink-0">
             <span className="text-gray-500">
               {t('Medyan')}: <span className="font-bold text-gray-800">{money(mc.medianEndValue)}</span>{' '}
               <span className={signClass(mc.expectedReturnPercent)}>({fmtPct(mc.expectedReturnPercent)})</span>
             </span>
             <span className="text-rose-500">{t('Kayıp olasılığı')} {fmtPct(mc.probLossPercent)}</span>
           </div>
-          <ResponsiveContainer width="100%" height={175}>
-            <ComposedChart data={mcData} margin={{ top: 4, right: 6, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="month" tick={{ fontSize: 9 }} tickFormatter={v => `${v}a`} />
-              <YAxis tick={{ fontSize: 9 }} tickFormatter={v => (v / 1000).toFixed(0) + 'b'} width={32} />
-              <Tooltip content={<McTooltip valuesHidden={valuesHidden} />} />
-              <Area dataKey="base" stackId="band" stroke="none" fill="transparent" isAnimationActive={false} />
-              <Area dataKey="range" stackId="band" stroke="none" fill="#093eaa" fillOpacity={0.12} isAnimationActive={false} />
-              <Line dataKey="p50" stroke="#093eaa" strokeWidth={2} dot={false} isAnimationActive={false} />
-            </ComposedChart>
-          </ResponsiveContainer>
+          <div className="flex-1 min-h-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={mcData} margin={{ top: 4, right: 6, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="month" tick={{ fontSize: 9 }} tickFormatter={v => `${v}a`} />
+                <YAxis tick={{ fontSize: 9 }} tickFormatter={v => (v / 1000).toFixed(0) + 'b'} width={32} />
+                <Tooltip content={<McTooltip valuesHidden={valuesHidden} />} />
+                <Area dataKey="base" stackId="band" stroke="none" fill="transparent" isAnimationActive={false} />
+                <Area dataKey="range" stackId="band" stroke="none" fill="#093eaa" fillOpacity={0.12} isAnimationActive={false} />
+                <Line dataKey="p50" stroke="#093eaa" strokeWidth={2} dot={false} isAnimationActive={false} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       )}
     </PortfolioChartCard>
