@@ -1076,8 +1076,6 @@ const en = {
     'is not an investment but a yardstick — it shows how much TL prices rose. If an asset is ABOVE this line your money grew faster than prices (a real gain); if BELOW, the number went up but your purchasing power fell.',
   'ABD mallarının TL fiyatıdır (ABD enflasyonu × USD/TRY) — "dolar alım gücünü korudun mu" ölçüsü. Çizginin yüksekliği ABD enflasyonundan değil, ağırlıkla TL\'nin dolara karşı değer kaybından (USD/TRY artışından) gelir.':
     'is the TL price of US goods (US inflation × USD/TRY) — a "did you keep your dollar purchasing power" yardstick. Its height comes mostly not from US inflation but from the lira losing value against the dollar (USD/TRY rising).',
-  'Enflasyon (TÜFE)': 'Inflation (CPI)',
-  'ABD Enflasyonu': 'US Inflation',
 
 };
 
