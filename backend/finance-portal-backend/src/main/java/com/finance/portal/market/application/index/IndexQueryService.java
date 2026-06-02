@@ -121,7 +121,18 @@ public class IndexQueryService {
             case "XU100" -> stockSymbolProvider.getBist100Symbols();
             // "Tüm"/500/Ana için tüm listeyi göstermek pratik değil → en likit BIST 100 temsilî gösterilir.
             case "XUTUM", "XU500", "XBANA" -> stockSymbolProvider.getBist100Symbols();
-            default -> BistIndexCatalog.curatedConstituents(code).stream().map(s -> s + ".IS").toList();
+            default -> {
+                // Süper-sektör (XUSIN/XUHIZ/XUMAL) → alt sektörlerin küratörlü bileşenlerinin birleşimi.
+                List<String> children = BistIndexCatalog.superSectorChildren(code);
+                if (!children.isEmpty()) {
+                    java.util.LinkedHashSet<String> set = new java.util.LinkedHashSet<>();
+                    for (String child : children) {
+                        for (String s : BistIndexCatalog.curatedConstituents(child)) set.add(s + ".IS");
+                    }
+                    yield new ArrayList<>(set);
+                }
+                yield BistIndexCatalog.curatedConstituents(code).stream().map(s -> s + ".IS").toList();
+            }
         };
     }
 

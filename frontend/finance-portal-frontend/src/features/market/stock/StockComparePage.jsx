@@ -40,10 +40,21 @@ function rebaseToCommonStart(rows, keys) {
   if (startIdx <= 0) return rows; // hepsi zaten aynı tarihten başlıyor
   const baseline = {};
   present.forEach(k => {
-    for (let i = startIdx; i < rows.length; i++) {
+    // Baseline = serinin ortak başlangıç tarihindeki değeri. Önce o tarihte/ÖNCESİNDE son bilinen
+    // değer (floor) — aylık seri (TÜFE/mevduat) gün-bazlı seriyle hizalanıp ortak başlangıç ay ortasına
+    // denk gelince baseline'ı bir SONRAKİ aya kaydırıp enflasyonu eksik göstermesin. Yoksa sonraki ilk değer.
+    let b = null;
+    for (let i = startIdx; i >= 0; i--) {
       const p = rows[i][`__price_${k}`];
-      if (p != null) { baseline[k] = p; break; }
+      if (p != null) { b = p; break; }
     }
+    if (b == null) {
+      for (let i = startIdx + 1; i < rows.length; i++) {
+        const p = rows[i][`__price_${k}`];
+        if (p != null) { b = p; break; }
+      }
+    }
+    baseline[k] = b;
   });
   return rows.slice(startIdx).map(row => {
     const r = { ...row };

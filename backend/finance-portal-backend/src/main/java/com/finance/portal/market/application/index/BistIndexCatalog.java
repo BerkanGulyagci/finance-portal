@@ -141,12 +141,31 @@ public final class BistIndexCatalog {
             Map.entry("XTRZM", List.of(
                     "MAALT", "AYCES", "TEKTU", "MARTI", "UTPYA", "METUR", "PKENT")),
             Map.entry("XSPOR", List.of(
-                    "GSRAY", "FENER", "BJKAS", "TSPOR"))
+                    "GSRAY", "FENER", "BJKAS", "TSPOR")),
+            // BIST Banka Dışı Likit 10 — en likit 10 banka-dışı (BIST 30'dan, banka hariç).
+            Map.entry("X10XB", List.of(
+                    "ASELS", "THYAO", "KCHOL", "SAHOL", "FROTO", "EREGL", "BIMAS", "TUPRS", "TCELL", "SISE"))
+    );
+
+    /**
+     * Süper-sektör → alt sektör kodları. Bu endekslerin bileşenleri çocuk sektörlerin küratörlü
+     * listelerinin BİRLEŞİMİdir (XUMAL=mali sektörler, XUSIN=sınai, XUHIZ=hizmet).
+     */
+    private static final Map<String, List<String>> SUPER_SECTORS = Map.of(
+            "XUMAL", List.of("XBANK", "XSGRT", "XHOLD", "XGMYO", "XFINK", "XYORT"),
+            "XUSIN", List.of("XGIDA", "XKMYA", "XMANA", "XMESY", "XTAST", "XTEKS", "XKAGT"),
+            "XUHIZ", List.of("XTCRT", "XULAS", "XTRZM", "XILTM", "XELKT", "XSPOR", "XINSA", "XBLSM")
     );
 
     /** Sektör/tema endeksi için küratörlü bileşen kodları (.IS'siz). Yoksa boş liste. */
     public static List<String> curatedConstituents(String code) {
         if (code == null) return List.of();
         return CONSTITUENTS.getOrDefault(code.trim().toUpperCase(java.util.Locale.ROOT), List.of());
+    }
+
+    /** Süper-sektör endeksinin alt sektör kodları (bileşen = bu sektörlerin birleşimi). Yoksa boş. */
+    public static List<String> superSectorChildren(String code) {
+        if (code == null) return List.of();
+        return SUPER_SECTORS.getOrDefault(code.trim().toUpperCase(java.util.Locale.ROOT), List.of());
     }
 }
