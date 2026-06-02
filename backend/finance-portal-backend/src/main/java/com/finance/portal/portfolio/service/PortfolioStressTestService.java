@@ -44,7 +44,9 @@ public class PortfolioStressTestService {
             new Crisis("crisis2018", "2018 TL Kur Krizi", "Ağu – Eyl 2018",
                     LocalDate.of(2018, 8, 1), LocalDate.of(2018, 9, 14)),
             new Crisis("covid2020", "Mart 2020 Covid Çöküşü", "Şub – Mar 2020",
-                    LocalDate.of(2020, 2, 19), LocalDate.of(2020, 3, 23)));
+                    LocalDate.of(2020, 2, 19), LocalDate.of(2020, 3, 23)),
+            new Crisis("crisis2022", "2022 Faiz Şoku & Kripto Kışı", "Oca – Kas 2022",
+                    LocalDate.of(2022, 1, 3), LocalDate.of(2022, 11, 21)));
 
     /**
      * Küratörlü tarihsel kriz faktörleri (varlık tipi → fiyat[bitiş]/fiyat[başlangıç]), TL bazlı yatırımcı
@@ -62,7 +64,11 @@ public class PortfolioStressTestService {
                     "SILVER", 1.18, "COMMODITY", 1.18, "BOND", 0.90, "CRYPTO", 0.92),
             "covid2020", Map.of(
                     "STOCK", 0.75, "FUND", 0.88, "FUTURE", 0.62, "FX", 1.08, "GOLD", 1.04,
-                    "SILVER", 0.72, "COMMODITY", 0.45, "BOND", 0.97, "CRYPTO", 0.53));
+                    "SILVER", 0.72, "COMMODITY", 0.45, "BOND", 0.97, "CRYPTO", 0.53),
+            // 2022 faiz şoku & kripto kışı (TL bazlı): kripto sert düştü, TL-hedge (döviz/altın/BIST) yükseldi.
+            "crisis2022", Map.of(
+                    "STOCK", 1.50, "FUND", 1.15, "FUTURE", 1.35, "FX", 1.45, "GOLD", 1.50,
+                    "SILVER", 1.30, "COMMODITY", 1.25, "BOND", 0.92, "CRYPTO", 0.48));
 
     private final PortfolioHistoricalPricePort pricePort;
     /** Kriz faktörleri tarihsel sabit → kalıcı cache (anahtar: crisisKey + proxy). */

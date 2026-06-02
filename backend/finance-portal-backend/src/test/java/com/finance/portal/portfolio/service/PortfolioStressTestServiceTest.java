@@ -44,7 +44,7 @@ class PortfolioStressTestServiceTest {
         Map<String, Double> weights = Map.of("STOCK", 0.6, "FX", 0.4);
         var out = service.compute(weights);
 
-        assertThat(out).hasSize(3); // 2008 / 2018 / 2020
+        assertThat(out).hasSize(4); // 2008 / 2018 / 2020 / 2022
         // Her kriz: 0.6×(0.7−1) + 0.4×(1.4−1) = −0.18 + 0.16 = −0.02 → %−2
         for (StressTest st : out) {
             assertThat(st.available()).isTrue();
@@ -70,7 +70,7 @@ class PortfolioStressTestServiceTest {
         // Emtia (petrol) için canlı derin-geçmiş temsilci yok → tarihsel tablo. 3 kriz de kapsanır
         // ("o tarihte yoktu" diye dışlanmaz). Covid emtia faktörü 0.45 → ≈ %-55.
         var out = service.compute(Map.of("COMMODITY", 1.0));
-        assertThat(out).hasSize(3).allSatisfy(st -> assertThat(st.available()).isTrue());
+        assertThat(out).hasSize(4).allSatisfy(st -> assertThat(st.available()).isTrue());
         var byKey = out.stream().collect(java.util.stream.Collectors.toMap(StressTest::key, st -> st));
         assertThat(byKey.get("covid2020").impactPercent().doubleValue()).isCloseTo(-55.0, offset(1.0));
     }
