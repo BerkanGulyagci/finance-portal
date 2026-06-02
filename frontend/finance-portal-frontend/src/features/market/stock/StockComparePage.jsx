@@ -56,11 +56,20 @@ function rebaseToCommonStart(rows, keys) {
     }
     baseline[k] = b;
   });
-  return rows.slice(startIdx).map(row => {
+  return rows.slice(startIdx).map((row, idx) => {
     const r = { ...row };
     present.forEach(k => {
       const p = r[`__price_${k}`];
-      r[k] = (p != null && baseline[k]) ? parseFloat(((p - baseline[k]) / baseline[k] * 100).toFixed(3)) : null;
+      if (p != null && baseline[k]) {
+        r[k] = parseFloat(((p - baseline[k]) / baseline[k] * 100).toFixed(3));
+      } else if (idx === 0 && baseline[k] != null) {
+        // İlk satır = ortak başlangıç. Aylık seri (TÜFE) burada veri taşımıyorsa %0 baseline noktası
+        // koy ki çizgi %0'dan başlasın — ilk ayı bir gün önceye denk gelip kırpılmasın/+%X'ten başlamasın.
+        r[k] = 0;
+        r[`__price_${k}`] = baseline[k];
+      } else {
+        r[k] = null;
+      }
     });
     return r;
   });
@@ -677,6 +686,11 @@ export default function StockComparePage() {
             <p className="text-xs text-gray-400 mt-0.5">
               {t('Hepsi ortak başlangıç tarihinden 0%\'dan başlar (en geç başlayan varlığın tarihi) — adil kümülatif % kıyas · Scroll ile zoom')}
             </p>
+            {extraItems.some(e => ['TUFE', 'USCPI_TRY', 'DEPOSIT'].includes(e.symbol)) && (
+              <p className="text-[11px] text-amber-600 mt-1">
+                {t('Not: Enflasyon (TÜFE) son yayımlanan aya kadardır (~1–2 ay gecikmeli); kısa aralıklarda (3A vb.) son ayları içermeyip düz görünebilir.')}
+              </p>
+            )}
           </div>
           <EChartsCompareChart chartData={chartData} seriesDefs={chartSeriesDefs} />
         </div>

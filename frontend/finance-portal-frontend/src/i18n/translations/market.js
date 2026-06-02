@@ -1070,6 +1070,8 @@ const en = {
   'Borsa İstanbul Endeksi': 'Borsa İstanbul Index',
   'Kaynak: Yahoo Finance': 'Source: Yahoo Finance',
   'bugün': 'today',
+  'Not: Enflasyon (TÜFE) son yayımlanan aya kadardır (~1–2 ay gecikmeli); kısa aralıklarda (3A vb.) son ayları içermeyip düz görünebilir.':
+    'Note: Inflation (CPI) only runs through the last published month (~1–2 month lag); over short ranges (3M etc.) it may miss the latest months and look flat.',
 
 };
 
