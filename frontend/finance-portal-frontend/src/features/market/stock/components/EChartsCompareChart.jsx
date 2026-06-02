@@ -32,9 +32,11 @@ export default function EChartsCompareChart({ chartData, seriesDefs }) {
         connectNulls: true,
       }));
 
-      // Benchmark (enflasyon/faiz) serileri fiyat değil endekstir → tooltip'te ₺ gösterme
-      const indicatorNames = new Set(
-        (seriesDefs || []).filter(d => String(d.key).startsWith('INDICATOR|')).map(d => d.name),
+      // Yalnız enflasyon/faiz benchmark'ları fiyat değil soyut endekstir → tooltip'te ₺ gösterme.
+      // BIST endeksleri (INDICATOR|XBANK …) GERÇEK ₺ değeri taşır → onlarda ₺ göster.
+      const BENCHMARK_KEYS = new Set(['INDICATOR|TUFE', 'INDICATOR|USCPI_TRY', 'INDICATOR|DEPOSIT']);
+      const noPriceNames = new Set(
+        (seriesDefs || []).filter(d => BENCHMARK_KEYS.has(String(d.key))).map(d => d.name),
       );
 
       const option = {
@@ -89,7 +91,7 @@ export default function EChartsCompareChart({ chartData, seriesDefs }) {
               html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
                 <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${p.color};flex-shrink:0"></span>
                 <span style="font-weight:700;color:#374151;min-width:60px">${p.seriesName}:</span>
-                ${price != null && !indicatorNames.has(p.seriesName) ? `<span style="color:#6b7280;font-family:monospace">₺${parseFloat(price).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>` : ''}
+                ${price != null && !noPriceNames.has(p.seriesName) ? `<span style="color:#6b7280;font-family:monospace">₺${parseFloat(price).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>` : ''}
                 <span style="font-weight:700;color:${pctColor};margin-left:auto">${isPos ? '+' : ''}${p.value.toFixed(2)}%</span>
               </div>`;
             });

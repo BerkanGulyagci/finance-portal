@@ -890,8 +890,8 @@ export default function InstrumentSearchModal({ portfolioName, onSelect, onClose
           </button>
         </div>
 
-        {/* Tip sekmeleri — alt çizgili (M3) */}
-        <div className="px-3 pt-2 sm:px-6 bg-[#f3f3fc]/60 border-b border-[#e2e1eb] flex gap-1 overflow-x-auto shrink-0 [&::-webkit-scrollbar]:hidden">
+        {/* Tip sekmeleri — alt çizgili (M3). Taşmasın diye alt satıra sarar (İngilizce'de "Indices" kesilmesin). */}
+        <div className="px-3 pt-2 sm:px-6 bg-[#f3f3fc]/60 border-b border-[#e2e1eb] flex flex-wrap gap-x-1 gap-y-0.5 shrink-0">
           {ASSET_TYPES.filter(at => at.value !== 'INDICATOR' || allowIndices).map(at => (
             <button
               key={at.value}
