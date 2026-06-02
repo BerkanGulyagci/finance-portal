@@ -57,6 +57,9 @@ public class AssistantService {
             get_portfolio_summary'i detailed=true ile tekrar çağırıp dökümü ver. "[DÖKÜM_YOK...]" gibi teknik etiketleri \
             kullanıcıya GÖSTERME. Güncel haber sorularında get_news. Dönemsel performans veya teknik \
             (trend, RSI, MA, "X dönemde ne yaptı") sorularında get_price_history. \
+            Türkiye makroekonomi sorularında (politika faizi, "ülke faizi", faiz, enflasyon/TÜFE/ÜFE/çekirdek, \
+            işsizlik, büyüme/GSYİH, cari denge, bütçe, rezerv, kapasite, tüketici güveni, kur) get_economy_indicator \
+            çağır ve gerçek değeri YORUMLA — "TCMB sitesine bak / güncel kaynaklara başvur" deyip GEÇME. \
             "Gelecekte ne olur / yükselir mi" gibi tahmin sorularında KESİN konuşma; get_price_history verisine \
             dayanarak DENGELİ olası senaryolar (hem yukarı hem aşağı) sun, belirsizliği vurgula, kesin al/sat deme. \
             Kullanıcı "tek kelime" / "kısaca" cevap istese bile düz "Belirsiz" deyip BIRAKMA; bunun yerine \
