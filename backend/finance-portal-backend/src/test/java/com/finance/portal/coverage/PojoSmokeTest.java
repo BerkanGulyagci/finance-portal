@@ -178,7 +178,53 @@ class PojoSmokeTest {
             safe(() -> a.equals(dd));
             safe(() -> dd.equals(a));
         }
+
+        // Tek-alan-null: equals/hashCode'un "this/other null" branch'leri. equals ilk farklı alanda
+        // kısa devre yaptığı için, K alanını null + 1..K-1'i a ile eşit yapan eşler gerekir. Sadece
+        // object alanlar (primitive null olamaz).
+        for (Field f : fields) {
+            if (f.getType().isPrimitive() || sample(f.getType(), 1) == null) {
+                continue;
+            }
+            Object cn = newInstance(c);
+            if (cn == null) {
+                break;
+            }
+            for (Field g : fields) {
+                Object v = sample(g.getType(), 1);
+                if (v != null) {
+                    setVia(c, cn, g, v);
+                }
+            }
+            setFieldNull(c, cn, f);
+            final Object n1 = cn;
+            safe(() -> a.equals(n1)); // this.f non-null, other.f null
+            safe(() -> n1.equals(a)); // this.f null, other.f non-null (K'da kısa devre)
+            safe(n1::hashCode);       // null-alan hashCode branch'i
+        }
         return true;
+    }
+
+    private void setFieldNull(Class<?> c, Object target, Field f) {
+        String setter = "set" + cap(f.getName());
+        for (Method m : c.getMethods()) {
+            if (m.getName().equals(setter) && m.getParameterCount() == 1
+                    && !m.getParameterTypes()[0].isPrimitive()) {
+                try {
+                    m.setAccessible(true);
+                    m.invoke(target, new Object[]{null});
+                    return;
+                } catch (Throwable ignored) {
+                    // setter null kabul etmedi — alan üzerinden dene
+                }
+            }
+        }
+        try {
+            f.setAccessible(true);
+            f.set(target, null);
+        } catch (Throwable ignored) {
+            // erişilemeyen alan — atla
+        }
     }
 
     private boolean exerciseRecord(Class<?> c) {

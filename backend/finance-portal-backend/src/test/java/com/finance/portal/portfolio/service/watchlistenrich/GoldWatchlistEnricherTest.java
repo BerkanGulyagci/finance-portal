@@ -13,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -88,6 +89,12 @@ class GoldWatchlistEnricherTest {
         return p;
     }
 
+    private static GoldHistoryResponse weekly(GoldHistoryPoint point) {
+        GoldHistoryResponse h = new GoldHistoryResponse();
+        h.setPoints(List.of(point));
+        return h;
+    }
+
     @Test
     @DisplayName("enrich: GRAM → lastPrice/currency + 1W overlay close ile open/change/asOf")
     void enrich_gram_corePath() {
@@ -110,6 +117,8 @@ class GoldWatchlistEnricherTest {
         assertThat(r.getVolume()).isEqualTo(1234L);
         // change = close - open = 2810 - 2780 = 30
         assertThat(r.getChange()).isEqualByComparingTo("30");
+        // changePercent = 30 / 2780 * 100 = 1.08 (6dp div, 2dp scale)
+        assertThat(r.getChangePercent()).isEqualByComparingTo("1.08");
         assertThat(r.getAsOf()).isNotNull();
     }
 
@@ -143,6 +152,105 @@ class GoldWatchlistEnricherTest {
         assertThat(r.getChangePercent()).isEqualByComparingTo("0.25");
         // onsChange × usdTry = 5 × 35 = 175
         assertThat(r.getChange()).isEqualByComparingTo("175");
+        // onsHigh × usdTry = 2010 × 35 = 70350
+        assertThat(r.getHigh()).isEqualByComparingTo("70350.00");
+        // onsLow × usdTry = 1990 × 35 = 69650
+        assertThat(r.getLow()).isEqualByComparingTo("69650.00");
+    }
+
+    @Test
+    @DisplayName("enrich: GOLD onsTry null → onsUsd×usdTry; 1W USD overlay + 1Y USD closes×usdTry")
+    void enrich_gold_onsComputedAndUsdHistory() {
+        GoldSpotResponse s = spot();
+        s.setOnsTry(null); // compute from onsUsd × usdTry
+        when(goldMarketService.getSpotGold()).thenReturn(s);
+        when(goldMarketService.getGoldHistory("1W", "USD"))
+                .thenReturn(weekly(ohlc(new BigDecimal("1995"), new BigDecimal("2015"),
+                        new BigDecimal("1985"), new BigDecimal("2005"), 4242L)));
+        // 3 USD closes → ×35 = 70000, 70350, 69650
+        when(goldMarketService.getGoldHistory("1Y", "USD"))
+                .thenReturn(history(new BigDecimal("2000"), new BigDecimal("2010"), new BigDecimal("1990")));
+
+        WatchlistItemResponse r = new WatchlistItemResponse();
+        enricher.enrich(r, "GOLD");
+
+        // onsTry computed = 2000 × 35 = 70000.00
+        assertThat(r.getLastPrice()).isEqualByComparingTo("70000.00");
+        // 1W USD overlay: open + volume; high/low from the 1W point (USD), not scaled
+        assertThat(r.getOpen()).isEqualByComparingTo("1995");
+        assertThat(r.getVolume()).isEqualTo(4242L);
+        assertThat(r.getHigh()).isEqualByComparingTo("2015");
+        assertThat(r.getLow()).isEqualByComparingTo("1985");
+        // 1Y USD closes × usdTry: 70000, 70350, 69650
+        assertThat(r.getFiftyTwoWeekHigh()).isEqualByComparingTo("70350.00");
+        assertThat(r.getFiftyTwoWeekLow()).isEqualByComparingTo("69650.00");
+    }
+
+    @Test
+    @DisplayName("enrich: GOLD usdTry null → ham ons high/low/change + 52w hesaplanmaz")
+    void enrich_gold_noUsdTryRawFields() {
+        GoldSpotResponse s = spot();
+        s.setUsdTry(null); // high/low/change stay raw; closes1y returns null
+        when(goldMarketService.getSpotGold()).thenReturn(s);
+        when(goldMarketService.getGoldHistory("1W", "USD")).thenReturn(null);
+
+        WatchlistItemResponse r = new WatchlistItemResponse();
+        enricher.enrich(r, "GOLD");
+
+        assertThat(r.getLastPrice()).isEqualByComparingTo("70000"); // onsTry used directly
+        assertThat(r.getHigh()).isEqualByComparingTo("2010"); // raw onsHigh, not scaled
+        assertThat(r.getLow()).isEqualByComparingTo("1990");
+        assertThat(r.getChange()).isEqualByComparingTo("5");
+        assertThat(r.getFiftyTwoWeekHigh()).isNull();
+        assertThat(r.getFiftyTwoWeekLow()).isNull();
+    }
+
+    @Test
+    @DisplayName("enrich: CEYREK 1W overlay → gram oranıyla change/open/high/low ölçeklenir")
+    void enrich_ceyrek_weeklyScaled() {
+        when(goldMarketService.getSpotGold()).thenReturn(spot());
+        // gramRef = officialPureGoldGramTry = 2800
+        when(goldMarketService.getGoldHistory("1W", "TRY"))
+                .thenReturn(weekly(ohlc(new BigDecimal("2800"), new BigDecimal("2870"),
+                        new BigDecimal("2730"), new BigDecimal("2828"), 777L)));
+        when(goldMarketService.getGoldHistory("1Y", "TRY")).thenReturn(null);
+
+        WatchlistItemResponse r = new WatchlistItemResponse();
+        enricher.enrich(r, "CEYREK");
+
+        // lastPrice = quarter spot = 4502
+        assertThat(r.getLastPrice()).isEqualByComparingTo("4502");
+        // ratio = 4502 / 2800 = 1.60785714 (8dp)
+        // gramCh = 2828 - 2800 = 28 ; coinChange = 28 * 1.60785714 = 45.02 (2dp)
+        assertThat(r.getChange()).isEqualByComparingTo("45.02");
+        // gramPct = 28 / 2800 * 100 = 1.00
+        assertThat(r.getChangePercent()).isEqualByComparingTo("1.00");
+        // open = lastPrice - coinChange = 4502 - 45.02 = 4456.98
+        assertThat(r.getOpen()).isEqualByComparingTo("4456.98");
+        assertThat(r.getVolume()).isEqualTo(777L);
+        // high = 2870 * ratio (2dp), low = 2730 * ratio (2dp) — non-null and scaled up
+        assertThat(r.getHigh()).isNotNull();
+        assertThat(r.getLow()).isNotNull();
+        assertThat(r.getHigh()).isGreaterThan(r.getLow());
+    }
+
+    @Test
+    @DisplayName("enrich: CEYREK 1W overlay open null → ölçekleme atlanır, sadece volume yazılır")
+    void enrich_ceyrek_weeklyMissingOpen_onlyVolume() {
+        when(goldMarketService.getSpotGold()).thenReturn(spot());
+        // open null → coin-scaling guard fails → else branch sets only volume
+        when(goldMarketService.getGoldHistory("1W", "TRY"))
+                .thenReturn(weekly(ohlc(null, new BigDecimal("2870"),
+                        new BigDecimal("2730"), new BigDecimal("2828"), 888L)));
+        when(goldMarketService.getGoldHistory("1Y", "TRY")).thenReturn(null);
+
+        WatchlistItemResponse r = new WatchlistItemResponse();
+        enricher.enrich(r, "YARIM");
+
+        assertThat(r.getLastPrice()).isEqualByComparingTo("9004"); // half spot kept
+        assertThat(r.getVolume()).isEqualTo(888L);
+        assertThat(r.getChange()).isNull();
+        assertThat(r.getOpen()).isNull();
     }
 
     @Test
@@ -157,6 +265,36 @@ class GoldWatchlistEnricherTest {
         enricher.enrich(r, "14AYAR");
 
         assertThat(r.getLastPrice()).isEqualByComparingTo("1600");
+    }
+
+    @Test
+    @DisplayName("enrich: 22AYAR twentyTwoK null ise ayar22Tl fallback")
+    void enrich_twentyTwoK_fallback() {
+        GoldSpotResponse s = spot();
+        s.setTwentyTwoKBraceletTry(null);
+        when(goldMarketService.getSpotGold()).thenReturn(s);
+        when(goldMarketService.getGoldHistory(any(), any())).thenReturn(null);
+
+        WatchlistItemResponse r = new WatchlistItemResponse();
+        enricher.enrich(r, "AYAR22");
+
+        assertThat(r.getLastPrice()).isEqualByComparingTo("2500");
+    }
+
+    @Test
+    @DisplayName("enrich: asOf lastUpdated parse edilemezse updatedAt'ten alınır")
+    void enrich_asOf_fallbackToUpdatedAt() {
+        GoldSpotResponse s = spot();
+        s.setLastUpdated(null);
+        s.setUpdatedAt("2026-05-01T08:00:00");
+        when(goldMarketService.getSpotGold()).thenReturn(s);
+        when(goldMarketService.getGoldHistory(any(), any())).thenReturn(null);
+
+        WatchlistItemResponse r = new WatchlistItemResponse();
+        enricher.enrich(r, "CUMHUR");
+
+        assertThat(r.getAsOf()).isEqualTo(LocalDateTime.parse("2026-05-01T08:00:00"));
+        assertThat(r.getLastPrice()).isEqualByComparingTo("18520");
     }
 
     @Test
@@ -176,6 +314,24 @@ class GoldWatchlistEnricherTest {
         assertThat(r.getFiftyTwoWeekHigh()).isEqualByComparingTo("20");
         assertThat(r.getFiftyTwoWeekLow()).isEqualByComparingTo("1");
         assertThat(r.getMa20()).isEqualByComparingTo("10.5");
+    }
+
+    @Test
+    @DisplayName("enrich: CEYREK 1Y history → teorik çarpan ile 52w hesaplanır")
+    void enrich_ceyrek_yearFactorApplied() {
+        when(goldMarketService.getSpotGold()).thenReturn(spot());
+        when(goldMarketService.getGoldHistory("1W", "TRY")).thenReturn(null);
+        when(goldMarketService.getGoldHistory("1Y", "TRY"))
+                .thenReturn(history(new BigDecimal("2800"), new BigDecimal("2900"), new BigDecimal("2700")));
+
+        WatchlistItemResponse r = new WatchlistItemResponse();
+        enricher.enrich(r, "CEYREK");
+
+        // factor = 1.754 * 0.9166 ≈ 1.6077; closes scaled up → all > raw gram values
+        assertThat(r.getFiftyTwoWeekHigh()).isNotNull();
+        assertThat(r.getFiftyTwoWeekLow()).isNotNull();
+        assertThat(r.getFiftyTwoWeekHigh()).isGreaterThan(new BigDecimal("2900"));
+        assertThat(r.getFiftyTwoWeekLow()).isGreaterThan(new BigDecimal("2700"));
     }
 
     @Test
