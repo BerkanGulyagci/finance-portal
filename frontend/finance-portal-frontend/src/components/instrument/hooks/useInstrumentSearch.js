@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import client from '../../lib/http';
-import { parseTrNumber } from '../../utils/numberFormat';
-import { pickCommoditySpotPriceTry, pickCommoditySpotPriceUsd, isYahooCommoditySymbol } from '../../utils/commodityPriceUtils';
-import { pickSilverGramCloseTry } from '../../utils/silverPriceUtils';
+import client from '../../../lib/http';
+import { parseTrNumber } from '../../../utils/numberFormat';
+import { pickCommoditySpotPriceTry, pickCommoditySpotPriceUsd, isYahooCommoditySymbol } from '../../../utils/commodityPriceUtils';
+import { pickSilverGramCloseTry } from '../../../utils/silverPriceUtils';
 import {
   ASSET_TYPES, SEE_ALL_LINKS, PAGE_SIZE, TYPE_CACHE,
   pickGoldSpotPrice, fetchAll, filterItems, buildCommoditySections,
-} from './instrumentSearchUtils';
+} from '../utils/instrumentSearchUtils';
 
 /**
  * InstrumentSearchModal'in TÜM durum + veri-çekme mantığı: tür-bazlı liste yükleme (cache'li, progressive),

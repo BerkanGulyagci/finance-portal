@@ -1,8 +1,8 @@
 import { createPortal } from 'react-dom';
 import { Search, X, Plus } from 'lucide-react';
 import { useTranslation } from '../../context/LanguageContext';
-import { ASSET_TYPES, BOND_CATEGORY_LABELS } from './instrumentSearchUtils';
-import { useInstrumentSearch } from './useInstrumentSearch';
+import { ASSET_TYPES, BOND_CATEGORY_LABELS } from './utils/instrumentSearchUtils';
+import { useInstrumentSearch } from './hooks/useInstrumentSearch';
 
 /**
  * Yeniden kullanılabilir enstrüman arama modal'ı.

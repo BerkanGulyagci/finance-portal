@@ -1,8 +1,8 @@
 // InstrumentSearchModal'dan çıkarılan SAF veri sabitleri + yardımcılar (veri-çekme, filtre, sıralama,
 // emtia bölümleme). React/JSX yok. Davranış orijinaliyle birebir aynıdır (taşıma; mantık değişmedi).
 
-import client from '../../lib/http';
-import { parseTrNumber } from '../../utils/numberFormat';
+import client from '../../../lib/http';
+import { parseTrNumber } from '../../../utils/numberFormat';
 
 export const ASSET_TYPES = [
   { value: 'STOCK',     label: 'Hisse',    placeholder: 'THYAO.IS, AAPL, GARAN...' },
