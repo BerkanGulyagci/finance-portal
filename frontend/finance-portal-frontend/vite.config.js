@@ -22,5 +22,18 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.js'],
     include: ['src/**/*.{test,spec}.{js,jsx}'],
     css: false,
+    // SonarQube için coverage: v8 sağlayıcı → lcov (sonar.javascript.lcov.reportPaths ile okunur).
+    coverage: {
+      provider: 'v8',
+      reporter: ['text-summary', 'lcov'],
+      reportsDirectory: './coverage',
+      include: ['src/**/*.{js,jsx}'],
+      exclude: [
+        'src/**/*.{test,spec}.{js,jsx}',
+        'src/test/**',
+        'src/main.jsx',
+        'src/**/*.config.js',
+      ],
+    },
   },
 })
