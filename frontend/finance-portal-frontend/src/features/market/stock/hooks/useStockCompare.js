@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getStockChart, getStockMidasDetail, getAllStocks, getMarketPriceHistory } from '../../../../api/marketApi';
+import { getStockChart, getStockMidasDetail, getAllStocks, getMarketPriceHistory, getFundCompareHistory } from '../../../../api/marketApi';
 import { STOCK_CHART_RANGES } from '../utils/stockChartRanges';
 import { INDEX_SHORTCUTS, COLORS, MAX_STOCKS, rebaseToCommonStart, interpolateSeries, toGenericRange } from '../utils/stockCompareUtils';
 
@@ -141,7 +141,11 @@ export function useStockCompare() {
       const gr = toGenericRange(rangeObj.range);
       const results = await Promise.all(defs.map(async d => {
         try {
-          const res = await getMarketPriceHistory(d.assetType, d.symbol, gr);
+          // Fonlar: Rasyonet fon-kartından (TEK hızlı çağrı) — TEFAS-aralık yolu pencere-pencere
+          // throttle'lı olduğu için yavaştı. TEFAS Compare ile aynı kaynak. Diğer türler: generic.
+          const res = d.assetType === 'FUND'
+            ? await getFundCompareHistory(d.symbol, gr)
+            : await getMarketPriceHistory(d.assetType, d.symbol, gr);
           return { key: d.key, timestamps: res?.timestamps ?? [], prices: res?.closePrices ?? [] };
         } catch {
           return { key: d.key, timestamps: [], prices: [] };

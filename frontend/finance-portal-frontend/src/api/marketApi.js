@@ -274,6 +274,26 @@ export async function getTefasFundDetail(code) {
 }
 
 /**
+ * Varlık-kıyas sayfası için fon fiyat geçmişi — Rasyonet fon kartından (TEK hızlı çağrı, ~1 yıl),
+ * generic price-history'nin TEFAS-aralık yolu yerine (o pencere-pencere throttle'lı çekim yaptığından
+ * fon kıyası yavaştı). TEFAS Compare ile AYNI kaynak. Verilen aralığa (1M/3M/6M/1Y/5Y/ALL) kırpılır;
+ * getMarketPriceHistory ile aynı `{ timestamps(sn), closePrices }` formatını döner.
+ */
+export async function getFundCompareHistory(code, range = '1Y') {
+  const detail = await getRasyonetFundDetail(code);
+  const ph = detail?.priceHistory ?? [];
+  if (!ph.length) return { timestamps: [], closePrices: [] };
+  const dayMap = { '1M': 31, '3M': 93, '6M': 186, '1Y': 366, '5Y': 1830 };
+  const days = dayMap[range]; // ALL/MAX → undefined → kırpma yok (Rasyonet zaten ~1 yıl)
+  const cutoff = days != null ? Date.now() - days * 86_400_000 : null;
+  const pts = ph
+    .map(p => ({ ms: new Date(p.date).getTime(), price: parseFloat(p.price) }))
+    .filter(p => Number.isFinite(p.ms) && Number.isFinite(p.price) && (cutoff == null || p.ms >= cutoff))
+    .sort((a, b) => a.ms - b.ms);
+  return { timestamps: pts.map(p => Math.floor(p.ms / 1000)), closePrices: pts.map(p => p.price) };
+}
+
+/**
  * Fon birim pay fiyatı tarihsel serisi — TEFAS resmi API (grafik için, 5 yıla kadar).
  * type: YAT (TEFAS yatırım fonu) | EMK (emeklilik). points boşsa frontend Rasyonet'e fallback eder.
  */
