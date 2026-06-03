@@ -13,7 +13,7 @@
 import * as XLSX from 'xlsx';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
-import { renderCellForExport, ALL_COLS } from '../components/HoldingsTable';
+import { renderCellForExport, ALL_COLS } from './holdingsTableUtils';
 
 // ── Sabitler ────────────────────────────────────────────────────────────────
 const BRAND_NAVY_RGB = '093eaa';

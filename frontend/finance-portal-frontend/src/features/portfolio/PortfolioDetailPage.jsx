@@ -3,7 +3,7 @@ import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, FileSpreadsheet, FileText, Pencil, Sparkles } from 'lucide-react';
 import { getPortfolioById } from '../../api/portfolioApi';
 import { downloadPortfolioExcel, downloadPortfolioPdf } from './utils/portfolioReportExport';
-import { buildVisibleCols } from './components/HoldingsTable';
+import { buildVisibleCols } from './utils/holdingsTableUtils';
 import PortfolioTypeBadge from './components/PortfolioTypeBadge';
 import EditPortfolioModal from './components/EditPortfolioModal';
 import HoldingsDetail from './components/HoldingsDetail';
