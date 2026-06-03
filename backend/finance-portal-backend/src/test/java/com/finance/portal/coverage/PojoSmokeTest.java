@@ -62,6 +62,8 @@ class PojoSmokeTest {
             "com.finance.portal.market.infrastructure.external.gold.BistGoldHistoryResponse",
             "com.finance.portal.market.infrastructure.external.gold.GoldPriceEntry",
             "com.finance.portal.market.infrastructure.external.precious.BistMetalFiyatlariPoint",
+            "com.finance.portal.market.infrastructure.external.precious.BistPreciousMetalsClient$BistApiResponse",
+            "com.finance.portal.market.infrastructure.external.precious.BistMetalFiyatlariClient$MetalApiResponse",
             "com.finance.portal.market.infrastructure.external.crypto.dto.CoinGeckoMarketItemDto",
             "com.finance.portal.market.infrastructure.external.fx.hesapkurdu.HesapkurduFxResponse",
             "com.finance.portal.market.infrastructure.external.fx.dto.TcmbCurrencyDto",
@@ -149,12 +151,21 @@ class PojoSmokeTest {
 
         // null-alan branch'leri için boş nesne (toString/hashCode/equals).
         Object empty = newInstance(c);
+        Object empty2 = newInstance(c);
         if (empty != null) {
             invokeGetters(c, empty);
             safe(empty::toString);
             safe(empty::hashCode);
             safe(() -> a.equals(empty));
             safe(() -> empty.equals(a));
+            if (empty2 != null) {
+                // İki tümü-null nesne: equals HER alanı "ikisi de null → devam" kolundan geçirir.
+                // Tek-alan-null/differ döngüleri ilk farkta kısa devre yaptığından bu branch'i kapatamaz;
+                // Lombok @EqualsAndHashCode'da alan başına 1 branch (büyük DTO'larda en büyük açık).
+                safe(() -> empty.equals(empty2));
+                safe(() -> empty2.equals(empty));
+                safe(() -> empty.hashCode() == empty2.hashCode());
+            }
         }
 
         // Tek-alan-farklı: her alan için equals'ın o alana ait branch'ini kapat.
