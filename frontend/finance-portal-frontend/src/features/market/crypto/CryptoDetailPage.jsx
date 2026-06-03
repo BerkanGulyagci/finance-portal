@@ -6,7 +6,6 @@ import TrendBadge from '../../../components/common/TrendBadge';
 import InstrumentActionButtons from '../../../components/instrument/InstrumentActionButtons';
 import { buildTrendItem } from '../../../utils/trendUtils';
 import { getCryptoDetail, getAllCryptos, getCryptoChart, getCryptoOhlc } from '../../../api/marketApi';
-import { useAuth } from '../../../context/AuthContext';
 import CommodityDetailChart from '../commodities/components/CommodityDetailChart';
 import {
   CRYPTO_CHART_RANGES,
@@ -25,15 +24,12 @@ import { COMPARE_COLORS, MA_OPTIONS } from './utils/cryptoChartConfig';
 import CryptoLineChart from './components/CryptoLineChart';
 import CompareDropdown from './components/CompareDropdown';
 import { useTranslation } from '../../../context/LanguageContext';
-import {
-  CURRENCIES, fmtPrice, fmt, pct, calcMA, calcRSI, RSIBadge,
-} from './cryptoDetailParts';
+import { CURRENCIES, fmtPrice, fmt, pct, calcRSI, RSIBadge } from './cryptoDetailParts';
 
 export default function CryptoDetailPage() {
   const { t } = useTranslation();
   const { coinId } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
 
   const [coin, setCoin]           = useState(null);
   const [detail, setDetail]       = useState(null);
@@ -250,37 +246,6 @@ export default function CryptoDetailPage() {
     }).finally(() => setCompareLoading(false));
   }, [compareCoins, rangeConfig, currency, chartMode]);
 
-  // Karşılaştırma modunda normalize edilmiş veri (% değişim bazlı)
-  const normalizedChartData = useCallback(() => {
-    if (!isComparing || chartData.length === 0) return chartData;
-    const base0 = chartData[0]?.price;
-    if (!base0) return chartData;
-
-    return chartData.map((point) => {
-      const row = { date: point.date, ts: point.ts };
-      row[coinId] = base0 > 0 ? ((point.price - base0) / base0) * 100 : 0;
-      row[`${coinId}_price`] = point.price;
-
-      compareCoins.forEach(c => {
-        const prices = compareData[c.id] ?? [];
-        const base = prices[0]?.[1];
-        if (!base || base === 0) { row[c.id] = null; row[`${c.id}_price`] = null; return; }
-
-        // Timestamp bazlı en yakın noktayı bul
-        let closest = prices[0];
-        let minDiff = Math.abs(prices[0][0] - point.ts);
-        for (let j = 1; j < prices.length; j++) {
-          const diff = Math.abs(prices[j][0] - point.ts);
-          if (diff < minDiff) { minDiff = diff; closest = prices[j]; }
-          else break; // Sıralı olduğu için erken çık
-        }
-
-        row[c.id] = ((closest[1] - base) / base) * 100;
-        row[`${c.id}_price`] = closest[1];
-      });
-      return row;
-    });
-  }, [isComparing, chartData, compareCoins, compareData, coinId]);
 
   const addCompare = useCallback((c) => {
     if (compareCoins.length >= 4 || compareCoins.some(x => x.id === c.id) || c.id === coinId) return;
@@ -296,19 +261,6 @@ export default function CryptoDetailPage() {
   const pos24h = (change24h ?? 0) >= 0;
   const mainColor = COMPARE_COLORS[0];
 
-  // MA verilerini chart datasına ekle
-  const chartDataWithMA = useMemo(() => {
-    if (chartData.length === 0) return chartData;
-    const maArrays = {};
-    MA_OPTIONS.forEach(({ period, label }) => {
-      maArrays[label] = calcMA(chartData, period);
-    });
-    return chartData.map((d, i) => {
-      const row = { ...d };
-      MA_OPTIONS.forEach(({ label }) => { row[label] = maArrays[label][i]; });
-      return row;
-    });
-  }, [chartData]);
 
   // RSI hesapla (chart verisi yeterince uzunsa)
   const rsiValue = useMemo(() => calcRSI(chartData), [chartData]);
@@ -316,12 +268,7 @@ export default function CryptoDetailPage() {
   // Benzer coinler — aynı kategorideki coinler
   const similarCoins = useMemo(() => {
     if (!detail?.categories?.length || !allCoins.length) return [];
-    const cats = new Set(detail.categories.map(c => c.toLowerCase()));
     return allCoins
-      .filter(c => c.id !== coinId && detail.categories.some(cat =>
-        // allCoins'de kategori bilgisi yok, market cap rank ile yakın olanları al
-        true
-      ))
       // Fallback: market cap rank'e göre yakın coinleri göster
       .filter(c => c.id !== coinId && c.marketCapRank != null && coin?.marketCapRank != null &&
         Math.abs(c.marketCapRank - coin.marketCapRank) <= 10)
@@ -352,8 +299,6 @@ export default function CryptoDetailPage() {
     [chartData, coin],
   );
 
-  const displayData = isComparing ? normalizedChartData() : chartData;
-  const isLoading = chartLoading || compareLoading;
 
   // CommodityDetailChart için points formatına çevir (çizgi grafik)
   const linePoints = useMemo(() => {
