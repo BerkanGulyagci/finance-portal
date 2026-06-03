@@ -6,6 +6,7 @@ import com.finance.portal.common.domain.AssetType;
 import com.finance.portal.market.application.bond.eurobond.EurobondService;
 import com.finance.portal.market.application.bond.evds.EvdsBondInstrument;
 import com.finance.portal.market.application.bond.evds.EvdsBondService;
+import com.finance.portal.market.application.bond.evds.model.BondCategory;
 import com.finance.portal.market.application.gold.GoldMarketService;
 import com.finance.portal.notification.application.service.NotificationService;
 import com.finance.portal.notification.domain.NotificationType;
@@ -81,6 +82,30 @@ class BondMaturitySchedulerTest {
         b.setInstrumentCode(code);
         b.setMaturityDate(maturity);
         return b;
+    }
+
+    private static EvdsBondInstrument bond(String code, LocalDate maturity, BondCategory cat,
+                                           BigDecimal indicator, BigDecimal couponRate) {
+        EvdsBondInstrument b = bond(code, maturity);
+        b.setCategory(cat);
+        b.setIndicatorValue(indicator);
+        b.setCouponRate(couponRate);
+        return b;
+    }
+
+    private static AdminUserView user(String id) {
+        return new AdminUserView(id, "u", "u@x.com", "U", "1", true, true, List.of(), null, false, null, null);
+    }
+
+    private static PortfolioTransaction lastSell(Portfolio p) {
+        return p.getTransactions().stream()
+                .filter(t -> t.getTransactionType() == TransactionType.SELL)
+                .reduce((a, b) -> b).orElseThrow();
+    }
+
+    private static long couponTxCount(Portfolio p) {
+        return p.getTransactions().stream()
+                .filter(t -> t.getTransactionType() == TransactionType.COUPON_INCOME).count();
     }
 
     @Test
@@ -219,5 +244,105 @@ class BondMaturitySchedulerTest {
 
         assertThat(p.getTransactions()).hasSize(1);
         verify(portfolioRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Döviz bondu itfada GÖSTERGE değerinden kapanır (par 100 değil), kupon yok")
+    void fxBond_itfaAtIndicatorNotPar() {
+        Portfolio p = portfolio("user-1", "P");
+        p.addTransaction(buy("TRT100528F15", new BigDecimal("1000"),
+                new BigDecimal("40000"), LocalDateTime.now().minusMonths(6)));
+
+        when(portfolioRepository.findAll()).thenReturn(List.of(p));
+        when(evdsBondService.getEvdsBondDetail("TRT100528F15"))
+                .thenReturn(bond("TRT100528F15", LocalDate.now().minusDays(1),
+                        BondCategory.FX_DENOMINATED_BOND, new BigDecimal("46060.57"), new BigDecimal("2.6")));
+        when(keycloakUserAdminPort.getUser("user-1")).thenReturn(user("user-1"));
+
+        scheduler.processMaturedBonds();
+
+        assertThat(lastSell(p).getPrice()).isEqualByComparingTo("46060.57"); // gösterge (par 100 DEĞİL)
+        assertThat(couponTxCount(p)).isZero();                                // FX → ayrı kupon yok
+        assertThat(p.getTransactions()).hasSize(2);                           // BUY + SELL
+    }
+
+    @Test
+    @DisplayName("TLREF kupon stripi (ISIN ...K..) itfada gösterge'den kapanır, kupon yok")
+    void tlrefCouponStrip_itfaAtIndicatorNoCoupon() {
+        Portfolio p = portfolio("user-1", "P");
+        p.addTransaction(buy("TRT211229K15", new BigDecimal("1000"),
+                new BigDecimal("4"), LocalDateTime.now().minusMonths(6)));
+
+        when(portfolioRepository.findAll()).thenReturn(List.of(p));
+        when(evdsBondService.getEvdsBondDetail("TRT211229K15"))
+                .thenReturn(bond("TRT211229K15", LocalDate.now().minusDays(1),
+                        BondCategory.TLREF_INDEXED_BOND, new BigDecimal("5.282"), new BigDecimal("18.86")));
+        when(keycloakUserAdminPort.getUser("user-1")).thenReturn(user("user-1"));
+
+        scheduler.processMaturedBonds();
+
+        assertThat(lastSell(p).getPrice()).isEqualByComparingTo("5.282"); // gösterge (par 100 DEĞİL)
+        assertThat(couponTxCount(p)).isZero();                            // strip → kupon yok
+        assertThat(p.getTransactions()).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("TLREF ana para stripi (ISIN ...A..) itfada par 100'den kapanır, kupon yok")
+    void tlrefPrincipalStrip_itfaAtParNoCoupon() {
+        Portfolio p = portfolio("user-1", "P");
+        p.addTransaction(buy("TRT211229A13", new BigDecimal("1000"),
+                new BigDecimal("80"), LocalDateTime.now().minusMonths(6)));
+
+        when(portfolioRepository.findAll()).thenReturn(List.of(p));
+        when(evdsBondService.getEvdsBondDetail("TRT211229A13"))
+                .thenReturn(bond("TRT211229A13", LocalDate.now().minusDays(1),
+                        BondCategory.TLREF_INDEXED_BOND, new BigDecimal("95"), new BigDecimal("18.86")));
+        when(keycloakUserAdminPort.getUser("user-1")).thenReturn(user("user-1"));
+
+        scheduler.processMaturedBonds();
+
+        assertThat(lastSell(p).getPrice()).isEqualByComparingTo("100"); // par (ana para stripi)
+        assertThat(couponTxCount(p)).isZero();                          // strip → kupon yok
+        assertThat(p.getTransactions()).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("TLREF tam tahvil (ISIN ...T..) itfada par 100 + son kupon ile kapanır")
+    void tlrefFullBond_itfaAtParPlusCoupon() {
+        Portfolio p = portfolio("user-1", "P");
+        p.addTransaction(buy("TRT211229T24", new BigDecimal("1000"),
+                new BigDecimal("110"), LocalDateTime.now().minusMonths(6)));
+
+        when(portfolioRepository.findAll()).thenReturn(List.of(p));
+        when(evdsBondService.getEvdsBondDetail("TRT211229T24"))
+                .thenReturn(bond("TRT211229T24", LocalDate.now().minusDays(1),
+                        BondCategory.TLREF_INDEXED_BOND, new BigDecimal("113.7"), new BigDecimal("18.86")));
+        when(keycloakUserAdminPort.getUser("user-1")).thenReturn(user("user-1"));
+
+        scheduler.processMaturedBonds();
+
+        assertThat(lastSell(p).getPrice()).isEqualByComparingTo("100"); // tam → par
+        assertThat(couponTxCount(p)).isEqualTo(1);                      // son kupon eklenir
+        assertThat(p.getTransactions()).hasSize(3);                     // BUY + SELL + COUPON_INCOME
+    }
+
+    @Test
+    @DisplayName("Kira sertifikası kupon stripi (ISIN ...K..) itfada gösterge'den kapanır")
+    void leaseCouponStrip_itfaAtIndicator() {
+        Portfolio p = portfolio("user-1", "P");
+        p.addTransaction(buy("TRD230233K17", new BigDecimal("1000"),
+                new BigDecimal("0.5"), LocalDateTime.now().minusMonths(6)));
+
+        when(portfolioRepository.findAll()).thenReturn(List.of(p));
+        when(evdsBondService.getEvdsBondDetail("TRD230233K17"))
+                .thenReturn(bond("TRD230233K17", LocalDate.now().minusDays(1),
+                        BondCategory.LEASE_CERTIFICATE, new BigDecimal("0.854"), new BigDecimal("5.71")));
+        when(keycloakUserAdminPort.getUser("user-1")).thenReturn(user("user-1"));
+
+        scheduler.processMaturedBonds();
+
+        assertThat(lastSell(p).getPrice()).isEqualByComparingTo("0.854"); // gösterge (par 100 DEĞİL)
+        assertThat(couponTxCount(p)).isZero();
+        assertThat(p.getTransactions()).hasSize(2);
     }
 }

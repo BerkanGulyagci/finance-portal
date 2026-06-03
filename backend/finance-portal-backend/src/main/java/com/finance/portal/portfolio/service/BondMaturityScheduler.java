@@ -7,6 +7,7 @@ import com.finance.portal.market.application.bond.eurobond.EurobondService;
 import com.finance.portal.market.application.bond.evds.EvdsBondInstrument;
 import com.finance.portal.market.application.bond.evds.EvdsBondService;
 import com.finance.portal.market.application.bond.evds.model.BondCategory;
+import com.finance.portal.market.application.bond.evds.model.BondClassifier;
 import com.finance.portal.market.application.gold.GoldMarketService;
 import com.finance.portal.market.application.gold.GoldSpotResponse;
 import com.finance.portal.notification.application.service.NotificationService;
@@ -80,18 +81,22 @@ public class BondMaturityScheduler {
             BondCategory.PRINCIPAL_STRIP,
             BondCategory.FIXED_COUPON_BOND,
             BondCategory.TLREF_INDEXED_BOND,
-            BondCategory.LEASE_CERTIFICATE,
-            BondCategory.FX_DENOMINATED_BOND,
-            BondCategory.FX_LEASE_CERTIFICATE
+            BondCategory.LEASE_CERTIFICATE
     );
 
-    /** EVDS "son Gösterge Değeri" ile ödenen TÜFE-endeksli/kupon stripi ailesi. */
+    /**
+     * EVDS "son Gösterge Değeri" ile ödenen kategoriler: TÜFE-endeksli aile + kupon stripleri +
+     * <b>döviz cinsli senetler</b>. Döviz bondlarında gösterge zaten TL karşılığını (birikmiş +
+     * kur etkili) taşır; par 100 itfası değeri silerdi, bu yüzden gösterge değerinden itfa edilir.
+     */
     private static final Set<BondCategory> INDICATOR_CATEGORIES = Set.of(
             BondCategory.COUPON_STRIP,
             BondCategory.INFLATION_COUPON_STRIP,
             BondCategory.INFLATION_INDEXED_BOND,
             BondCategory.INFLATION_PRINCIPAL_STRIP,
-            BondCategory.INFLATION_INDEXED_LEASE_CERTIFICATE
+            BondCategory.INFLATION_INDEXED_LEASE_CERTIFICATE,
+            BondCategory.FX_DENOMINATED_BOND,
+            BondCategory.FX_LEASE_CERTIFICATE
     );
 
     /** Canlı gram altın TL fiyatı ile ödenen kategoriler. */
@@ -239,6 +244,12 @@ public class BondMaturityScheduler {
      */
     private boolean createItfaTransaction(Portfolio portfolio, MaturedHolding mh, BigDecimal goldGramTry) {
         BondCategory cat = mh.category();
+        // TLREF/Kira ailesinde strip alt-türü ayrı bir kategori değildir — ISIN sonekinden ayrılır:
+        // K = kupon stripi (gösterge değerinden itfa, ayrıca kupon yok), A = ana para stripi (par, kupon yok).
+        boolean tlrefOrLease = cat == BondCategory.TLREF_INDEXED_BOND || cat == BondCategory.LEASE_CERTIFICATE;
+        char isinSuffix = BondClassifier.lastIsinLetterBeforeDigits(mh.symbol);
+        boolean lumpedCouponStrip = tlrefOrLease && isinSuffix == 'K';
+        boolean lumpedPrincipalStrip = tlrefOrLease && isinSuffix == 'A';
         BigDecimal price;
 
         if (GRAM_GOLD_CATEGORIES.contains(cat)) {
@@ -248,15 +259,15 @@ public class BondMaturityScheduler {
                 return false;
             }
             price = goldGramTry;
-        } else if (INDICATOR_CATEGORIES.contains(cat)) {
+        } else if (lumpedCouponStrip || INDICATOR_CATEGORIES.contains(cat)) {
+            // TÜFE aile + döviz + kupon stripleri (sabit-kupon COUPON_STRIP + lumped TLREF/Kira): gösterge.
             if (mh.lastIndicator() == null || mh.lastIndicator().signum() <= 0) {
-                log.warn("[BondMaturity] {} EVDS gösterge değeri boş — TÜFE-endeksli itfa atlandı",
-                        mh.symbol);
+                log.warn("[BondMaturity] {} EVDS gösterge değeri boş — gösterge-bazlı itfa atlandı", mh.symbol);
                 return false;
             }
             price = mh.lastIndicator();
         } else if (PAR_CATEGORIES.contains(cat)) {
-            price = PAR_PRICE;
+            price = PAR_PRICE; // kuponsuz / sabit-kuponlu / TLREF-Kira tam + ana para stripi (lumped A dahil)
         } else {
             log.warn("[BondMaturity] {} kategori={} eşleşmedi — fallback par (100 TL)", mh.symbol, cat);
             price = PAR_PRICE;
@@ -276,8 +287,10 @@ public class BondMaturityScheduler {
         log.info("[BondMaturity] Otomatik itfa: portföy={} symbol={} kategori={} nominal={} fiyat={} vade={}",
                 portfolio.getId(), mh.symbol, cat, mh.openQty, price, mh.maturityDate);
 
-        // Vade gününde son kupon ödemesi (FIXED_COUPON_BOND / TLREF / LEASE_CERTIFICATE)
-        BigDecimal couponAmount = computeFinalCouponTl(mh);
+        // Vade gününde son kupon ödemesi — yalnız TAM kuponlu kıymetlerde (FIXED_COUPON_BOND / TLREF /
+        // Kira). Lumped stripler kupon ödemez: kupon stripinin tutarı zaten gösterge itfasında,
+        // ana para stripinde ise kupon yoktur.
+        BigDecimal couponAmount = (lumpedCouponStrip || lumpedPrincipalStrip) ? null : computeFinalCouponTl(mh);
         if (couponAmount != null && couponAmount.signum() > 0) {
             emitFinalCouponTx(portfolio, mh, couponAmount);
         }

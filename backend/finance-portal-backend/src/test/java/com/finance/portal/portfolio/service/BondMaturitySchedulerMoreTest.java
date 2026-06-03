@@ -447,22 +447,23 @@ class BondMaturitySchedulerMoreTest {
     }
 
     @Test
-    @DisplayName("FX-cinsli bond par (100) ile kapanır, kupon yok")
-    void fxDenominated_par_noCoupon() {
+    @DisplayName("FX-cinsli bond GÖSTERGE değerinden kapanır (par 100 değil), kupon yok")
+    void fxDenominated_indicator_noCoupon() {
         Portfolio p = portfolio("user-fx", "FX");
         p.addTransaction(buy("TRT000000F10", new BigDecimal("2000")));
 
         when(portfolioRepository.findAll()).thenReturn(List.of(p));
         when(evdsBondService.getEvdsBondDetail("TRT000000F10"))
                 .thenReturn(bond("TRT000000F10", LocalDate.now(),
-                        BondCategory.FX_DENOMINATED_BOND, null, new BigDecimal("5")));
+                        BondCategory.FX_DENOMINATED_BOND, new BigDecimal("46000"), new BigDecimal("5")));
         when(keycloakUserAdminPort.getUser("user-fx")).thenReturn(verifiedUser("user-fx"));
 
         scheduler.processMaturedBonds();
 
-        // FX_DENOMINATED_BOND par kategorisinde, FINAL_COUPON listesinde DEĞİL → kupon yok
+        // FX_DENOMINATED_BOND artık INDICATOR kategorisinde (gösterge zaten TL/birikmiş değer) →
+        // par 100 değeri silerdi; gösterge'den itfa edilir, FINAL_COUPON listesinde değil → kupon yok.
         assertThat(p.getTransactions()).hasSize(2);
-        assertThat(lastTx(p).getPrice()).isEqualByComparingTo("100");
+        assertThat(lastTx(p).getPrice()).isEqualByComparingTo("46000");
         assertThat(p.getTransactions()).noneMatch(
                 t -> t.getTransactionType() == TransactionType.COUPON_INCOME);
     }
