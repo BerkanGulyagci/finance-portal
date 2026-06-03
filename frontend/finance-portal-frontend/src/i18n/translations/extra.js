@@ -67,6 +67,10 @@ const en = {
     'Enter the gross amount (tax/withholding not included — simple record).',
   'Bu TÜFE-endeksli bir senettir. Birim fiyat (EVDS gösterge değeri) zaten enflasyona endekslidir — değer TÜFE ile birlikte kendiliğinden büyür. Maliyetiniz alış tutarında sabit kalır; piyasa değeriniz senedin güncel endeksli fiyatından gelir.':
     'This is a CPI-indexed security. The unit price (EVDS indicator value) is already inflation-indexed — the value grows on its own along with CPI. Your cost stays fixed at the purchase amount; your market value comes from the security\'s current indexed price.',
+  'Bu bir kupon stripidir — tek bir gelecek kupon ödemesi. Vade sonunda nominalin tamamını DEĞİL, yalnızca o kupona karşılık gelen (genelde nominalden çok küçük) sabit tutarı alırsınız. İskontolu alıp vade sonunda o sabit tutarı tahsil edersiniz.':
+    'This is a coupon strip — a single future coupon payment. At maturity you receive NOT the full face value, but only the fixed amount corresponding to that coupon (usually far smaller than the face value). You buy it at a discount and collect that fixed amount at maturity.',
+  'Hazine dış borç senedi (Eurobond) — kote USD/EUR cinsindendir, portföye TL olarak eklenir (Model 1: alış tutarı o günkü kura göre). Vade sonunda par (100) değeri o günkü TCMB satış kuruyla TL karşılığı ödenir; K/Z hem tahvil hem kur hareketini içerir.':
+    'A Treasury external-debt security (Eurobond) — quoted in USD/EUR but added to the portfolio in TL (Model 1: purchase amount at that day\'s rate). At maturity the par (100) value is paid in TL at that day\'s CBRT selling rate; P/L reflects both bond and FX movements.',
   'Bu alarm': 'This alert',
   'Bu alarmı silmek istediğinize emin misiniz?': 'Are you sure you want to delete this alert?',
   'Bu kontrat {date} tarihinde işlem görmeye başladı; daha önceki bir tarih seçilemez.':

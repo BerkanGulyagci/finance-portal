@@ -875,26 +875,59 @@ export default function AddTransactionModal({
                       {t('Bu ürün için miktar birimi: {unit}', { unit: commodityUnit })}
                     </p>
                   )}
-                  {isBond && (
-                    <p className="mt-1 text-[11px] text-[#747684] leading-snug">
-                      {t('Aldığınız nominal anaparayı TL olarak girin. Vade sonunda bu nominal kadar ödeme alırsınız.')}
-                    </p>
-                  )}
-                  {isBond && String(instrument?.category ?? '').startsWith('INFLATION_') && (
-                    <p className="mt-1 text-[11px] text-amber-700 leading-snug bg-amber-50 border border-amber-200 rounded-md px-2 py-1">
-                      {t('Bu TÜFE-endeksli bir senettir. Birim fiyat (EVDS gösterge değeri) zaten enflasyona endekslidir — değer TÜFE ile birlikte kendiliğinden büyür. Maliyetiniz alış tutarında sabit kalır; piyasa değeriniz senedin güncel endeksli fiyatından gelir.')}
-                    </p>
-                  )}
-                  {isBond && instrument?.category === 'FX_DENOMINATED_BOND' && (
-                    <p className="mt-1 text-[11px] text-blue-700 leading-snug bg-blue-50 border border-blue-200 rounded-md px-2 py-1">
-                      {t('Yabancı para (EUR/USD) cinsli senettir. Nominal anaparayı yabancı para olarak girin; TL piyasa değeri canlı TCMB satış kuruyla otomatik hesaplanır.')}
-                    </p>
-                  )}
-                  {isBond && instrument?.category === 'GOLD_INDEXED_BOND' && (
-                    <p className="mt-1 text-[11px] text-yellow-800 leading-snug bg-yellow-50 border border-yellow-200 rounded-md px-2 py-1">
-                      {t('Altına dayalı senettir. Birim "adet" = 1 gram has altın varsayılır; TL piyasa değeri canlı gram altın fiyatı ile otomatik hesaplanır.')}
-                    </p>
-                  )}
+                  {isBond && (() => {
+                    if (isEurobond) {
+                      return (
+                        <p className="mt-1 text-[11px] text-blue-700 leading-snug bg-blue-50 border border-blue-200 rounded-md px-2 py-1">
+                          {t('Hazine dış borç senedi (Eurobond) — kote USD/EUR cinsindendir, portföye TL olarak eklenir (Model 1: alış tutarı o günkü kura göre). Vade sonunda par (100) değeri o günkü TCMB satış kuruyla TL karşılığı ödenir; K/Z hem tahvil hem kur hareketini içerir.')}
+                        </p>
+                      );
+                    }
+                    const cat = String(instrument?.category ?? '');
+                    const isInfl = cat.startsWith('INFLATION_');
+                    const isFx = cat === 'FX_DENOMINATED_BOND' || cat === 'FX_LEASE_CERTIFICATE';
+                    const isGoldCat = cat === 'GOLD_INDEXED_BOND' || cat === 'GOLD_INDEXED_LEASE_CERTIFICATE';
+                    // TLREF/Kira ailesinde kupon stripi ayrı kategori değil — ISIN son harfi 'K' ise kupon stripidir.
+                    const lastIsinLetter = (String(instrument?.symbol ?? '').match(/([A-Za-z])\d+$/) || [])[1]?.toUpperCase() || '';
+                    const isLumpedCouponStrip = (cat === 'TLREF_INDEXED_BOND' || cat === 'LEASE_CERTIFICATE') && lastIsinLetter === 'K';
+                    const isCouponStrip = cat === 'COUPON_STRIP' || isLumpedCouponStrip;
+                    // Karşılıklı dışlayan: her senet türü için tek ve doğru açıklama göster.
+                    if (isInfl) {
+                      return (
+                        <p className="mt-1 text-[11px] text-amber-700 leading-snug bg-amber-50 border border-amber-200 rounded-md px-2 py-1">
+                          {t('Bu TÜFE-endeksli bir senettir. Birim fiyat (EVDS gösterge değeri) zaten enflasyona endekslidir — değer TÜFE ile birlikte kendiliğinden büyür. Maliyetiniz alış tutarında sabit kalır; piyasa değeriniz senedin güncel endeksli fiyatından gelir.')}
+                        </p>
+                      );
+                    }
+                    if (isFx) {
+                      return (
+                        <p className="mt-1 text-[11px] text-blue-700 leading-snug bg-blue-50 border border-blue-200 rounded-md px-2 py-1">
+                          {t('Yabancı para (EUR/USD) cinsli senettir. Nominal anaparayı yabancı para olarak girin; TL piyasa değeri canlı TCMB satış kuruyla otomatik hesaplanır.')}
+                        </p>
+                      );
+                    }
+                    if (isGoldCat) {
+                      return (
+                        <p className="mt-1 text-[11px] text-yellow-800 leading-snug bg-yellow-50 border border-yellow-200 rounded-md px-2 py-1">
+                          {t('Altına dayalı senettir. Birim "adet" = 1 gram has altın varsayılır; TL piyasa değeri canlı gram altın fiyatı ile otomatik hesaplanır.')}
+                        </p>
+                      );
+                    }
+                    if (isCouponStrip) {
+                      return (
+                        <p className="mt-1 text-[11px] text-purple-700 leading-snug bg-purple-50 border border-purple-200 rounded-md px-2 py-1">
+                          {t('Bu bir kupon stripidir — tek bir gelecek kupon ödemesi. Vade sonunda nominalin tamamını DEĞİL, yalnızca o kupona karşılık gelen (genelde nominalden çok küçük) sabit tutarı alırsınız. İskontolu alıp vade sonunda o sabit tutarı tahsil edersiniz.')}
+                        </p>
+                      );
+                    }
+                    // Par'a itfa olan türler (kuponsuz bono/tahvil, ana para stripi, sabit kuponlu, TLREF, kira):
+                    // vade sonunda nominal (par) ödenir.
+                    return (
+                      <p className="mt-1 text-[11px] text-[#747684] leading-snug">
+                        {t('Aldığınız nominal anaparayı TL olarak girin. Vade sonunda bu nominal kadar ödeme alırsınız.')}
+                      </p>
+                    );
+                  })()}
                 </>
               )}
             </div>
