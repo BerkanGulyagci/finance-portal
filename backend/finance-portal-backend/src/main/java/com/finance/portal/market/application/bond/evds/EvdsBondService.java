@@ -70,9 +70,23 @@ public class EvdsBondService {
     /** Geçmiş (yavaş, ~değişmeyen) seri LKG ömrü. */
     private static final Duration BOND_HISTORY_LKG_TTL = Duration.ofDays(14);
 
+    /**
+     * "Özel tertip" / kapitalize eden kuponlu kıymetler: kupon ödenmeyip anaparaya eklenir, gösterge
+     * değeri par'ın çok üstüne tırmanır (ör. 142, 352). İtfaları par-100 modeline uymaz (gerçek itfa
+     * biriken tutardır) ve retail enstrüman değiller — evrenden çıkarılırlar. Eşik 130: normal kuponlu
+     * kıymetler ~99–111 aralığında olduğundan onları etkilemez (ör. 49TDOZ, 73TOZ tipi ~2 kıymet).
+     */
+    private static final BigDecimal CAPITALIZING_INDICATOR_THRESHOLD = new BigDecimal("130");
+    private static final Set<BondCategory> FIXED_COUPON_FAMILY = Set.of(
+            BondCategory.FIXED_COUPON_BOND,
+            BondCategory.PRINCIPAL_STRIP,
+            BondCategory.COUPON_STRIP,
+            BondCategory.TLREF_INDEXED_BOND);
+
     private final EvdsBondPort evdsBondPort;
     private final ExecutorService evdsBondFetchExecutor;
     private final LastKnownGoodCache lkg;
+    private final TcmbDibsClassificationService dibsClassification;
 
     @Value("${evds.use-whitelist:false}")
     private boolean useWhitelist;
@@ -91,10 +105,12 @@ public class EvdsBondService {
 
     public EvdsBondService(EvdsBondPort evdsBondPort,
                            @Qualifier("evdsBondFetchExecutor") ExecutorService evdsBondFetchExecutor,
-                           LastKnownGoodCache lkg) {
+                           LastKnownGoodCache lkg,
+                           TcmbDibsClassificationService dibsClassification) {
         this.evdsBondPort = evdsBondPort;
         this.evdsBondFetchExecutor = evdsBondFetchExecutor;
         this.lkg = lkg;
+        this.dibsClassification = dibsClassification;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -367,7 +383,22 @@ public class EvdsBondService {
         // Data group (bie_pydibs vs bie_pyks) Kira Sertifikası ayrımı için kuvvetli sinyal.
         String cbrtCode = info != null ? info.parseCbrtCode() : null;
         String dataGroupCode = info != null ? info.getDatagroupCode() : null;
-        BondCategory category = BondClassifier.classify(instrumentCode, cbrtCode, dataGroupCode);
+        // Otoriter kaynak: TCMB dibs1.txt bölüm üyeliği. Harita yoksa / ISIN bulunamazsa
+        // (TCMB erişilemediyse) eski heuristik kod-deseni sınıflandırıcısına düş.
+        BondCategory category = dibsClassification.categoryOf(instrumentCode);
+        if (category == null) {
+            category = BondClassifier.classify(instrumentCode, cbrtCode, dataGroupCode);
+        }
+        // Kapitalize eden özel-tertip kuponlu kıymetleri evrenden çıkar (gösterge ≫ par → kupon
+        // anaparaya kapitalize oluyor; par-100 itfası yanlış, retail değil). Veri-temelli: gelecekte
+        // böyle bir kıymet çıkarsa otomatik elenir, normal kuponlular (~99–111) etkilenmez.
+        if (FIXED_COUPON_FAMILY.contains(category)
+                && indicatorValue != null
+                && indicatorValue.compareTo(CAPITALIZING_INDICATOR_THRESHOLD) > 0) {
+            log.debug("[EvdsBondService] {} kapitalize özel-tertip (kategori={} gösterge={}) — evrenden çıkarıldı.",
+                    instrumentCode, category, indicatorValue);
+            return null;
+        }
         BondCurrency currency = BondClassifier.currencyFor(category);
 
         // Kupon oranı — sadece kupon ÖDEYEN kategoriler için çek. Kuponsuz bondların EVDS'teki

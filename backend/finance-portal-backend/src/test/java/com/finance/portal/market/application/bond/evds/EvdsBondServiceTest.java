@@ -50,7 +50,10 @@ class EvdsBondServiceTest {
         LastKnownGoodCache lkg = mock(LastKnownGoodCache.class);
         lenient().when(lkg.resilient(anyString(), any(Duration.class), any(), any()))
                 .thenAnswer(inv -> ((Supplier<?>) inv.getArgument(3)).get());
-        service = new EvdsBondService(evdsBondPort, executor, lkg);
+        // TCMB otoriter harita boş (categoryOf → null) → heuristik BondClassifier'a düşülür,
+        // böylece bu testin mevcut kategori beklentileri değişmeden kalır.
+        TcmbDibsClassificationService dibsClassification = mock(TcmbDibsClassificationService.class);
+        service = new EvdsBondService(evdsBondPort, executor, lkg, dibsClassification);
         // default @Value defaults
         ReflectionTestUtils.setField(service, "useWhitelist", false);
         ReflectionTestUtils.setField(service, "whitelistInstruments", List.of());

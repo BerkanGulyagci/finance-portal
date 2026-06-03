@@ -124,6 +124,78 @@ public final class BondClassifier {
         return BondCategory.UNKNOWN;
     }
 
+    /** CBRT kodu bilinmeyen çağrılar için ISIN-suffix tabanlı kısayol. */
+    public static BondCategory classifyFromFamily(DibsSectionFamily family, String isin) {
+        return classifyFromFamily(family, null, isin);
+    }
+
+    /**
+     * Otoriter {@link DibsSectionFamily} (TCMB dibs1.txt bölümü) + strip işaretinden kesin
+     * {@link BondCategory}'yi üretir.
+     *
+     * <p><b>Aile</b> TCMB bölümünden gelir (kod tahmini değil). <b>Strip alt-türü</b> (ana para /
+     * kupon / tam) önce <b>CBRT kodundaki işaretten</b> ({@code ...A}=ana para, {@code ...K}=kupon —
+     * TCMB'nin kendi otoriter kodu), bulunamazsa <b>ISIN son harfinden</b> ({@code A}/{@code K}/diğer)
+     * belirlenir. CBRT önceliği, {@code "TRT160926KA0"} gibi tek-harf konvansiyonuna uymayan ISIN'lerde
+     * ("KA" → basit kural yanlışlıkla 'A' okur) doğru olan tek sinyaldir. Strip ayrımları korunur;
+     * sadece "hangi aile" + "hangi strip" otoriter kaynaktan gelir.
+     */
+    public static BondCategory classifyFromFamily(DibsSectionFamily family, String cbrtCode, String isin) {
+        if (family == null) {
+            return BondCategory.UNKNOWN;
+        }
+        String sym = isin == null ? "" : isin.trim().toUpperCase(Locale.ROOT);
+        char strip = stripMarkerFromCbrt(cbrtCode);
+        if (strip == '\0') {
+            strip = lastIsinLetterBeforeDigits(sym);
+        }
+        return switch (family) {
+            case ZERO_COUPON -> sym.startsWith("TRB")
+                    ? BondCategory.ZERO_COUPON_BILL
+                    : BondCategory.ZERO_COUPON_BOND;
+            case FIXED_COUPON -> switch (strip) {
+                case 'A' -> BondCategory.PRINCIPAL_STRIP;
+                case 'K' -> BondCategory.COUPON_STRIP;
+                default  -> BondCategory.FIXED_COUPON_BOND;
+            };
+            case INFLATION -> switch (strip) {
+                case 'A' -> BondCategory.INFLATION_PRINCIPAL_STRIP;
+                case 'K' -> BondCategory.INFLATION_COUPON_STRIP;
+                default  -> BondCategory.INFLATION_INDEXED_BOND;
+            };
+            case GOLD            -> BondCategory.GOLD_INDEXED_BOND;
+            case FX              -> BondCategory.FX_DENOMINATED_BOND;
+            case TLREF           -> BondCategory.TLREF_INDEXED_BOND;
+            case LIQUIDITY       -> BondCategory.ZERO_COUPON_BILL;
+            case LEASE           -> BondCategory.LEASE_CERTIFICATE;
+            case LEASE_INFLATION -> BondCategory.INFLATION_INDEXED_LEASE_CERTIFICATE;
+            case LEASE_GOLD      -> BondCategory.GOLD_INDEXED_LEASE_CERTIFICATE;
+            case LEASE_FX        -> BondCategory.FX_LEASE_CERTIFICATE;
+        };
+    }
+
+    /**
+     * CBRT kodundaki strip işareti: sondaki rakamlar atıldıktan sonra son harf {@code 'A'} (ana
+     * para stripi) ya da {@code 'K'} (kupon stripi) ise onu döner; aksi halde {@code '\0'} (belirgin
+     * işaret yok → çağıran ISIN suffix'ine düşer). Örn. {@code 121T2A}→A, {@code 24T2K1150328}→K,
+     * {@code 121T2D}/{@code 121TDOZ}→yok (tam tahvil).
+     */
+    private static char stripMarkerFromCbrt(String cbrtCode) {
+        if (cbrtCode == null) {
+            return '\0';
+        }
+        String c = cbrtCode.trim().toUpperCase(Locale.ROOT);
+        int end = c.length();
+        while (end > 0 && Character.isDigit(c.charAt(end - 1))) {
+            end--;
+        }
+        if (end == 0) {
+            return '\0';
+        }
+        char last = c.charAt(end - 1);
+        return (last == 'A' || last == 'K') ? last : '\0';
+    }
+
     /**
      * Kategoriye uygun nominal para birimi.
      *
