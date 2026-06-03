@@ -242,6 +242,7 @@ export default function FxDetailPage() {
           </div>
 
           <FxChart
+            symbol={sym}
             chartPoints={chartPoints}
             lineColor={strokeColor}
             mainLabel={`${sym}/TRY`}

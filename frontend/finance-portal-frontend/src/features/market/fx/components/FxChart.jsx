@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { ChevronDown, Trash2, X, SlidersHorizontal } from 'lucide-react';
 import { init as klineInit, dispose as klineDispose, registerOverlay } from 'klinecharts';
 import { useTranslation } from '../../../../context/LanguageContext';
+import { useChartDrawings } from '../../../../hooks/useChartDrawings';
 
 // ── Sabitler ──────────────────────────────────────────────────────────────────
 const RANGES = ['1W', '1M', '3M', '6M', '1Y', 'ALL'];
@@ -151,7 +152,7 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
 }
 
 // ── FX grafiği — kompakt MA + indikatör + çizim araçlı ────────────────────────
-export default function FxChart({ chartPoints, lineColor, mainLabel, range, onRangeChange, loadingChart }) {
+export default function FxChart({ symbol, chartPoints, lineColor, mainLabel, range, onRangeChange, loadingChart }) {
   const { t } = useTranslation();
   const chartId = useRef(`kline_fx_${Date.now()}`);
   const chartRef = useRef(null);
@@ -159,8 +160,12 @@ export default function FxChart({ chartPoints, lineColor, mainLabel, range, onRa
 
   const [activeMAs, setActiveMAs] = useState([]);
   const [activeSubInds, setActiveSubInds] = useState([]);
-  const [activeTool, setActiveTool] = useState(null);
   const [indMenuOpen, setIndMenuOpen] = useState(false);
+
+  // Çizim kalıcılığı — ortak hook (mouseup snapshot → localStorage + sunucu senkronu).
+  const {
+    activeTool, setActiveTool, handleSelectTool, handleDeleteSelected, handleClearAll, restoreOverlays,
+  } = useChartDrawings({ chartRef, chartIdRef: chartId, persistKey: symbol ? `chart-overlays:fx:${symbol}` : '' });
 
   const applyMA = useCallback((periods) => {
     const chart = chartRef.current;
@@ -201,22 +206,11 @@ export default function FxChart({ chartPoints, lineColor, mainLabel, range, onRa
     });
   }, []);
 
-  const handleSelectTool = useCallback((toolId) => {
-    setActiveTool(toolId);
-    if (!chartRef.current) return;
-    if (toolId) { try { chartRef.current.createOverlay({ name: toolId }); } catch (_) { /* yoksay */ } }
-  }, []);
-  const handleDeleteSelected = useCallback(() => { try { chartRef.current?.removeOverlay(); } catch (_) { /* yoksay */ } }, []);
-  const handleClearAll = useCallback(() => {
-    DRAWING_TOOLS.flatMap(g => g.tools).forEach(tool => { try { chartRef.current?.removeOverlay({ name: tool.id }); } catch (_) { /* yoksay */ } });
-    setActiveTool(null);
-  }, []);
-
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') setActiveTool(null); };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [setActiveTool]);
 
   // Veri uygulandığında chart'ı kur / yeniden çiz ve aktif indikatörleri geri ekle
   useEffect(() => {
@@ -275,6 +269,9 @@ export default function FxChart({ chartPoints, lineColor, mainLabel, range, onRa
     activeSubInds.forEach(indName => {
       try { const paneId = chart.createIndicator({ name: indName }, true, { height: 80 }); if (paneId) indicatorPaneIds.current[indName] = paneId; } catch (_) { /* yoksay */ }
     });
+
+    // Kaydedilmiş çizimleri geri yükle (applyNewData'dan sonra).
+    restoreOverlays(klineData);
 
     return () => { klineDispose(id); chartRef.current = null; indicatorPaneIds.current = {}; };
     // eslint-disable-next-line react-hooks/exhaustive-deps

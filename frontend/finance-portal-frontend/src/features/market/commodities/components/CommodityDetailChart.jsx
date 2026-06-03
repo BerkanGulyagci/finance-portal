@@ -3,6 +3,7 @@ import { init as klineInit, dispose as klineDispose, registerOverlay } from 'kli
 import { Trash2, X, ChevronDown, TrendingUp, TrendingDown } from 'lucide-react';
 import { computeKlinePricePrecision, computeKlineVolumePrecision } from '../../../../utils/numberFormat';
 import { useTranslation } from '../../../../context/LanguageContext';
+import { useChartDrawings } from '../../../../hooks/useChartDrawings';
 import TrendBadge from '../../../../components/common/TrendBadge';
 import IndicatorMenu from '../../../../components/common/IndicatorMenu';
 import { buildTrendItem } from '../../../../utils/trendUtils';
@@ -177,6 +178,7 @@ export default function CommodityDetailChart({
   sourceNote,
   sourceWarning = null,
   valueFormatter = null,
+  persistId = null,   // çizim kalıcılık anahtarı (ör. `crypto:bitcoin`, `commodity:XAU`); yoksa kapalı
 }) {
   const { t } = useTranslation();
   const resolvedSourceNote = sourceNote ?? t('Kaynak: Yahoo Finance · OHLC verisi');
@@ -196,7 +198,11 @@ export default function CommodityDetailChart({
 
   const [activeMAs,      setActiveMAs]      = useState([]);
   const [activeSubInds,  setActiveSubInds]  = useState([]);
-  const [activeTool,     setActiveTool]     = useState(null);
+
+  // Çizim kalıcılığı — ortak hook (mouseup snapshot → localStorage + sunucu senkronu).
+  const {
+    activeTool, setActiveTool, handleSelectTool, handleDeleteSelected, handleClearAll, restoreOverlays,
+  } = useChartDrawings({ chartRef, chartIdRef: chartId, persistKey: persistId ? `chart-overlays:${persistId}` : '' });
 
   // Trend rozeti — fiyat serisinden (MA20/50 + 52h konumu)
   const trendItem = useMemo(
@@ -254,30 +260,11 @@ export default function CommodityDetailChart({
     });
   }, []);
 
-  // ── Drawing toolbar ────────────────────────────────────────────────────────
-  const handleSelectTool = useCallback((toolId) => {
-    setActiveTool(toolId);
-    if (chartRef.current && toolId) {
-      chartRef.current.createOverlay({ name: toolId });
-    }
-  }, []);
-
-  const handleDeleteSelected = useCallback(() => {
-    chartRef.current?.removeOverlay();
-  }, []);
-
-  const handleClearAll = useCallback(() => {
-    DRAWING_TOOLS.flatMap(g => g.tools).forEach(t => {
-      try { chartRef.current?.removeOverlay({ name: t.id }); } catch {}
-    });
-    setActiveTool(null);
-  }, []);
-
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') setActiveTool(null); };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [setActiveTool]);
 
   // ── Grafik render ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -347,6 +334,9 @@ export default function CommodityDetailChart({
     }
 
     chart.applyNewData(klineData);
+
+    // Kaydedilmiş çizimleri geri yükle (applyNewData'dan sonra).
+    restoreOverlays(klineData);
 
     // ── Hover tooltip mekanizması (yalnız çizgi modu) ──────────────────────────
     klineDataRef.current = klineData;

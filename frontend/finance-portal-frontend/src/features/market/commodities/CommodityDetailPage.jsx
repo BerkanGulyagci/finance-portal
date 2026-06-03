@@ -161,6 +161,7 @@ export default function CommodityDetailPage() {
 
         <CommodityDetailChart
           key={`${range}-${chartMode}`}
+          persistId={decodedSymbol ? `commodity:${decodedSymbol}` : null}
           points={displayPoints}
           chartMode={chartMode}
           loading={loadingChart}

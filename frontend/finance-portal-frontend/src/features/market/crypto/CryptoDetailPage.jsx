@@ -783,6 +783,7 @@ export default function CryptoDetailPage() {
                 /* Normal mod: CommodityDetailChart */
                 <CommodityDetailChart
                   key={`${coinId}-${rangeIdx}-${chartMode}-${currency}`}
+                  persistId={coinId ? `crypto:${coinId}` : null}
                   points={chartMode === 'candle' ? ohlcData : linePoints}
                   chartMode={chartMode}
                   valueFormatter={(v) => fmtPrice(v, currency)}

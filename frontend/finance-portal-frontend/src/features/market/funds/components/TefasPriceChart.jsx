@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { init as klineInit, dispose as klineDispose } from 'klinecharts';
+import { useChartDrawings } from '../../../../hooks/useChartDrawings';
 import { getFundPriceHistory } from '../../../../api/marketApi';
 import { FUND_CHART_RANGES, buildFundChartSeries } from '../utils/fundChartSeries';
 import { buildTrendItem } from '../../../../utils/trendUtils';
@@ -104,10 +105,16 @@ export default function TefasPriceChart({ code, fonTipi, priceHistory, monthlyRe
   const [range, setRange]           = useState('1Y');
   const [activeMAs, setActiveMAs]   = useState([]);
   const [showTrend, setShowTrend]   = useState(false);
-  const [activeTool, setActiveTool] = useState(null);
   const chartId        = useRef(`fund_chart_${Math.random().toString(36).slice(2)}`);
   const chartRef       = useRef(null);
   const trendOverlayId = useRef(null);
+
+  // Çizim kalıcılığı — ortak hook (mouseup snapshot). Trend overlay'i ayrı (liveIds'e girmez → kaydedilmez).
+  const {
+    activeTool, setActiveTool, handleSelectTool, handleDeleteSelected,
+    handleClearAll: clearDrawings, restoreOverlays,
+  } = useChartDrawings({ chartRef, chartIdRef: chartId, persistKey: code ? `chart-overlays:fund:${code}` : '' });
+  const handleClearAll = useCallback(() => { clearDrawings(); trendOverlayId.current = null; }, [clearDrawings]);
 
   // Fiyat geçmişi: önce TEFAS (5 yıla kadar gerçek günlük seri), boşsa Rasyonet
   // (~1 yıl + 5Y için aylık tahmin) fallback. Künye verisi yine Rasyonet'ten geliyor.
@@ -248,28 +255,6 @@ export default function TefasPriceChart({ code, fonTipi, priceHistory, monthlyRe
     });
   }, [applyTrend, trendInfo]);
 
-  // Drawing tool — tekrar tıklayınca kaldır
-  const handleSelectTool = useCallback((toolId) => {
-    setActiveTool(toolId);
-    if (!chartRef.current) return;
-    if (toolId) { try { chartRef.current.createOverlay({ name: toolId }); } catch (_) {} }
-  }, []);
-
-  const handleDeleteSelected = useCallback(() => {
-    try { chartRef.current?.removeOverlay(); } catch (_) {}
-  }, []);
-
-  const handleClearAll = useCallback(() => {
-    FUND_DRAWING_TOOLS.flatMap(g => g.tools).forEach(t => {
-      try { chartRef.current?.removeOverlay({ name: t.id }); } catch (_) {}
-    });
-    if (trendOverlayId.current) {
-      try { chartRef.current?.removeOverlay({ id: trendOverlayId.current }); } catch (_) {}
-      trendOverlayId.current = null;
-    }
-    setActiveTool(null);
-  }, []);
-
   // Custom tooltip state — KLineCharts tooltip yerine React ile
   const [hoverInfo, setHoverInfo] = useState(null); // { price, date, x, y }
 
@@ -338,6 +323,9 @@ export default function TefasPriceChart({ code, fonTipi, priceHistory, monthlyRe
       .sort((a, b) => a.timestamp - b.timestamp);
 
     chart.applyNewData(klineData);
+
+    // Kaydedilmiş çizimleri geri yükle (applyNewData'dan sonra; trend overlay'i ayrı oluşturulur).
+    restoreOverlays(klineData);
 
     // subscribeAction ile crosshair verisini dinle → React custom tooltip
     try {

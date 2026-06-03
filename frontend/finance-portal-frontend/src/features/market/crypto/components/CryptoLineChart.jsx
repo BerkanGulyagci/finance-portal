@@ -3,6 +3,8 @@ import { init as klineInit, dispose as klineDispose } from 'klinecharts';
 import { computeKlinePricePrecision, computeKlineVolumePrecision } from '../../../../utils/numberFormat';
 import { COMPARE_COLORS, MA_OPTIONS } from '../utils/cryptoChartConfig';
 import { useTranslation } from '../../../../context/LanguageContext';
+import { useChartDrawings } from '../../../../hooks/useChartDrawings';
+import DrawingToolbar from '../../stock/components/DrawingToolbar';
 
 export default function CryptoLineChart({ chartData, currency, compareCoins, compareData, coinId, mainCoinSymbol, activeMAs }) {
   const { t } = useTranslation();
@@ -16,6 +18,14 @@ export default function CryptoLineChart({ chartData, currency, compareCoins, com
   // Karşılaştırma için normalize edilmiş veri ref (tooltip'te kullanmak için)
   const normalizedDataRef = useRef([]);
   const compareOverlayRef = useRef({}); // {coinId: [{ts, value}]}
+
+  // Çizim kalıcılığı — ortak hook. Karşılaştırma modunda kapalı (persistKey boş → no-op).
+  const {
+    activeTool, handleSelectTool, handleDeleteSelected, handleClearAll, restoreOverlays,
+  } = useChartDrawings({
+    chartRef, chartIdRef: chartId,
+    persistKey: (coinId && !isComparing) ? `chart-overlays:crypto:${coinId}` : '',
+  });
 
   useEffect(() => {
     if (!chartData || chartData.length === 0) return;
@@ -238,6 +248,9 @@ export default function CryptoLineChart({ chartData, currency, compareCoins, com
           { id: 'candle_pane' }
         );
       }
+
+      // Kaydedilmiş çizimleri geri yükle (tekil coin modunda; applyNewData'dan sonra).
+      restoreOverlays(klineData);
     }
 
     return () => { klineDispose(id); };
@@ -256,6 +269,14 @@ export default function CryptoLineChart({ chartData, currency, compareCoins, com
       className="relative"
       onMouseLeave={() => setHoverData(null)}
     >
+      {!isComparing && (
+        <DrawingToolbar
+          activeTool={activeTool}
+          onSelectTool={handleSelectTool}
+          onDeleteSelected={handleDeleteSelected}
+          onClearAll={handleClearAll}
+        />
+      )}
       <div id={chartId.current} style={{ width: '100%', height: '520px' }} />
 
       {/* Hover tooltip — sadece karşılaştırma modunda */}
