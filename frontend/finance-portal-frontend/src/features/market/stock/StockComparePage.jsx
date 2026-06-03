@@ -1,6 +1,8 @@
 import EChartsCompareChart from './components/EChartsCompareChart';
 import PerformanceMetricsTable from './components/PerformanceMetricsTable';
 import TlInvestmentSimulation from './components/TlInvestmentSimulation';
+import FinancialComparisonTable from './components/FinancialComparisonTable';
+import BounceDots from './components/BounceDots';
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, X, Plus, BarChart2 } from 'lucide-react';
@@ -14,18 +16,6 @@ import {
 } from './utils/stockCompareUtils';
 
 const RANGES = STOCK_CHART_RANGES;
-
-// ── Yükleniyor göstergesi ─────────────────────────────────────────────────────
-function BounceDots({ size = 'md' }) {
-  const sz = size === 'sm' ? 'w-1.5 h-1.5' : 'w-2 h-2';
-  return (
-    <div className="flex gap-1.5 items-center justify-center">
-      <div className={`${sz} bg-[#093eaa] rounded-full animate-bounce`} />
-      <div className={`${sz} bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]`} />
-      <div className={`${sz} bg-[#093eaa]/30 rounded-full animate-bounce [animation-delay:200ms]`} />
-    </div>
-  );
-}
 
 // ── ECharts Karşılaştırma Grafiği ─────────────────────────────────────────────
 export default function StockComparePage() {
@@ -278,38 +268,6 @@ export default function StockComparePage() {
     return details;
   }
 
-  // ── Tablo metrikleri ──────────────────────────────────────────────────────
-  const TABLE_ROWS = [
-    { label: 'Hisse Senedi Fiyatı',  key: 'currentPrice' },
-    { label: 'Sermaye',              key: 'capital' },
-    { label: 'Piyasa Değeri (TL)',   key: 'marketCap' },
-    { label: 'F/K',                  key: 'peRatio' },
-    { label: 'Hacim (mTL)',          key: 'dailyVolume' },
-    { label: 'Net Kâr',              key: 'netProfit' },
-    { label: 'Günlük Değişim (%)',   key: 'dailyChangePercent' },
-    { label: 'Haftalık En Yüksek',   key: 'weeklyHigh' },
-    { label: 'Haftalık En Düşük',    key: 'weeklyLow' },
-    { label: 'Aylık En Yüksek',      key: 'monthlyHigh' },
-    { label: 'Aylık En Düşük',       key: 'monthlyLow' },
-  ];
-
-  function getCellValue(symbol, key) {
-    const d = midasDetails[symbol];
-    if (!d) return '-';
-    const val = d[key];
-    if (val == null || val === '') return '-';
-    return val;
-  }
-
-  function getCellStyle(key, value) {
-    if (key === 'dailyChangePercent' && value !== '-') {
-      const str = String(value);
-      if (str.startsWith('-')) return 'text-rose-600 font-semibold';
-      if (str !== '0' && str !== '0.00' && str !== '%0') return 'text-emerald-600 font-semibold';
-    }
-    return 'text-gray-800';
-  }
-
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -528,62 +486,14 @@ export default function StockComparePage() {
       )}
 
       {/* ── Finansal Karşılaştırma Tablosu — sadece gerçek hisseler için ── */}
-      {compared && !chartLoading && !mixedMode && (() => {
-        // Endeks sembollerini filtrele
-        const stockSymbols = selectedSymbols.filter(sym =>
-          !INDEX_SHORTCUTS.some(idx => idx.symbol === sym)
-        );
-        if (stockSymbols.length === 0) return null;
-        return (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="font-bold text-gray-900">{t('Finansal Karşılaştırma')}</h2>
-            <p className="text-xs text-gray-400 mt-0.5">{t('Kaynak: Midas · Veriler 15 dk gecikmeli')}</p>
-          </div>
-          {detailsLoading ? (
-            <div className="p-12 flex items-center justify-center"><BounceDots /></div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[560px]">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="text-left px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 w-44">{t('Metrik')}</th>
-                    {stockSymbols.map((sym, idx) => {
-                      const globalIdx = selectedSymbols.indexOf(sym);
-                      return (
-                      <th key={sym} className="text-right px-5 py-3 text-xs font-bold uppercase tracking-wider border-b border-gray-200 whitespace-nowrap" style={{ color: COLORS[globalIdx % COLORS.length] }}>
-                        <div className="flex items-center justify-end gap-1.5">
-                          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: COLORS[globalIdx % COLORS.length] }} />
-                          {sym.replace('.IS', '').toUpperCase()}
-                        </div>
-                        {midasDetails[sym]?.name && <p className="text-gray-400 font-normal normal-case text-xs mt-0.5 truncate max-w-[140px] ml-auto">{midasDetails[sym].name}</p>}
-                      </th>
-                      );
-                    })}
-                  </tr>
-                </thead>
-                <tbody>
-                  {TABLE_ROWS.filter(row => {
-                    return stockSymbols.some(sym => {
-                      const val = getCellValue(sym, row.key);
-                      return val !== '-' && val != null && val !== '';
-                    });
-                  }).map((row, rowIdx) => (
-                    <tr key={row.key} className={`border-t border-gray-100 hover:bg-gray-50 ${rowIdx % 2 === 0 ? '' : 'bg-gray-50/40'}`}>
-                      <td className="px-5 py-3 text-sm text-gray-500 font-medium whitespace-nowrap">{t(row.label)}</td>
-                      {stockSymbols.map(sym => {
-                        const val = getCellValue(sym, row.key);
-                        return <td key={sym} className={`px-5 py-3 text-sm text-right font-mono ${getCellStyle(row.key, val)}`}>{val}</td>;
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-        );
-      })()}
+      {compared && !chartLoading && !mixedMode && (
+        <FinancialComparisonTable
+          selectedSymbols={selectedSymbols}
+          midasDetails={midasDetails}
+          detailsLoading={detailsLoading}
+          t={t}
+        />
+      )}
 
       {/* ── TL Yatırım Simülasyonu — sadece gerçek hisseler için ── */}
       {compared && !chartLoading && !mixedMode && (
