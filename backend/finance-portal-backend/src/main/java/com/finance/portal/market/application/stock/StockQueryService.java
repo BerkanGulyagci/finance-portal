@@ -292,6 +292,10 @@ public class StockQueryService {
     }
 
     private StockChartResponse toChartResponse(String symbol, YahooChartSnapshot snapshot) {
+        if (snapshot == null) {
+            logger.info("Stock chart snapshot null for symbol: {}", symbol);
+            throw new ResourceNotFoundException("Stock chart data not available for symbol: " + symbol);
+        }
         List<Long> timestamps = snapshot.getTimestamps();
         List<BigDecimal> closes = snapshot.getQuote() != null ? snapshot.getQuote().getClose() : null;
 

@@ -112,7 +112,7 @@ public class PortfolioHistoricalRiskService {
                 }
             }
             if (covered >= MIN_COVERAGE) {
-                double r = weighted / covered;
+                double r = safeDiv(weighted, covered);
                 portRet.add(r);
                 bistRetAligned.add((bist[t] > 0 && bist[t - 1] > 0) ? (bist[t] / bist[t - 1] - 1) : null);
             }
@@ -130,9 +130,9 @@ public class PortfolioHistoricalRiskService {
         }
         double annualReturn = Math.pow(Math.max(idx, 1e-6), 1.0 / years) - 1;
         double annualVol = stddev(portRet) * Math.sqrt(12);
-        double sharpe = annualVol > 1e-9 ? annualReturn / annualVol : 0.0; // rf=0
+        double sharpe = annualVol > 1e-9 ? safeDiv(annualReturn, annualVol) : 0.0; // rf=0
         double downside = downsideDev(portRet) * Math.sqrt(12);
-        double sortino = downside > 1e-9 ? annualReturn / downside : 0.0;
+        double sortino = downside > 1e-9 ? safeDiv(annualReturn, downside) : 0.0;
         double maxDd = maxDrawdownFromReturns(portRet);
 
         // Beta — yalnız hem portföy hem BIST getirisinin geçerli olduğu aylardan.
@@ -149,7 +149,7 @@ public class PortfolioHistoricalRiskService {
         if (pPairs.size() >= MIN_SAMPLES) {
             double varB = variance(bPairs);
             if (varB > 1e-12) {
-                beta = covariance(pPairs, bPairs) / varB;
+                beta = safeDiv(covariance(pPairs, bPairs), varB);
             }
         }
 
@@ -192,6 +192,11 @@ public class PortfolioHistoricalRiskService {
             s += x;
         }
         return s / xs.size();
+    }
+
+    /** Sıfıra bölmeyi engelleyen güvenli bölme (Sonar S3518): payda 0 ise 0 döner. */
+    private static double safeDiv(double a, double b) {
+        return b != 0.0 ? a / b : 0.0;
     }
 
     private static double variance(List<Double> xs) {

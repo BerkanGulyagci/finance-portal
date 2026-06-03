@@ -456,9 +456,9 @@ public class PortfolioAnalysisService {
                 ? Math.pow(Math.max(depRatio.get(depRatio.size() - 1), 0.0001), 1.0 / years) - 1
                 : 0.0;
 
-        double sharpe = annualVol > 1e-9 ? (annualReturn - rf) / annualVol : 0.0;
+        double sharpe = annualVol > 1e-9 ? safeDiv(annualReturn - rf, annualVol) : 0.0;
         double downside = downsideDev(rPort) * Math.sqrt(12);
-        double sortino = downside > 1e-9 ? (annualReturn - rf) / downside : 0.0;
+        double sortino = downside > 1e-9 ? safeDiv(annualReturn - rf, downside) : 0.0;
         double maxDd = maxDrawdown(portRatio);
 
         // Beta — BIST100 oran serisine karşı (kovaryans/varyans, aylık getirilerden).
@@ -468,7 +468,7 @@ public class PortfolioAnalysisService {
             List<Double> rBist = returns(bistRatio);
             double varB = variance(rBist);
             if (varB > 1e-12 && rBist.size() == rPort.size()) {
-                beta = covariance(rPort, rBist) / varB;
+                beta = safeDiv(covariance(rPort, rBist), varB);
             }
         }
 
@@ -762,6 +762,11 @@ public class PortfolioAnalysisService {
         double s = 0;
         for (double x : xs) s += x;
         return s / xs.size();
+    }
+
+    /** Sıfıra bölmeyi engelleyen güvenli bölme (Sonar S3518): payda 0 ise 0 döner. */
+    private static double safeDiv(double a, double b) {
+        return b != 0.0 ? a / b : 0.0;
     }
 
     private static double variance(List<Double> xs) {
