@@ -11,10 +11,10 @@ import com.finance.portal.common.application.logging.port.IntegrationLogPublishe
 import com.finance.portal.common.application.logging.port.RequestLogPublisherPort;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -22,15 +22,20 @@ public class RequestLogKafkaPublisher implements RequestLogPublisherPort, ErrorL
 
     private static final Logger log = LogManager.getLogger(RequestLogKafkaPublisher.class);
 
-    @Autowired(required = false)
-    @Qualifier("kafkaTemplate")
-    private KafkaTemplate<String, String> kafkaTemplate;
+    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final ObjectMapper objectMapper;
+    private final String topic;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @Value("${app.logging.kafka.topic:finance-portal-logs}")
-    private String topic;
+    // Constructor injection (S6813). kafkaTemplate Kafka yapılandırılmamışsa null olabilir
+    // (@Nullable — eski @Autowired(required = false) davranışını birebir korur).
+    public RequestLogKafkaPublisher(
+            @Nullable @Qualifier("kafkaTemplate") KafkaTemplate<String, String> kafkaTemplate,
+            ObjectMapper objectMapper,
+            @Value("${app.logging.kafka.topic:finance-portal-logs}") String topic) {
+        this.kafkaTemplate = kafkaTemplate;
+        this.objectMapper = objectMapper;
+        this.topic = topic;
+    }
 
     @Override
     public void publish(RequestLogEvent event) {
