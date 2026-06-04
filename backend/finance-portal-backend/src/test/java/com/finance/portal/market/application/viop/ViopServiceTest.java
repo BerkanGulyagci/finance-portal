@@ -1,6 +1,7 @@
 package com.finance.portal.market.application.viop;
 
 import com.finance.portal.common.application.exception.ResourceNotFoundException;
+import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.viop.model.ViopContractDetail;
 import com.finance.portal.market.application.viop.port.ViopContractListPort;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,12 +15,17 @@ import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -39,11 +45,22 @@ class ViopServiceTest {
 
     private ViopService service;
 
+    /**
+     * LKG pass-through: resilient(...) sadece supplier'ı çağırır (port verify sayıları korunur).
+     * lenient — statik-metod testleri getAllContracts çağırmaz, bu stub onlarda kullanılmaz.
+     */
+    private static LastKnownGoodCache passThroughLkg() {
+        LastKnownGoodCache lkg = mock(LastKnownGoodCache.class);
+        lenient().when(lkg.resilient(anyString(), any(Duration.class), any(), any()))
+                .thenAnswer(inv -> ((Supplier<?>) inv.getArgument(3)).get());
+        return lkg;
+    }
+
     @BeforeEach
     void setUp() {
         // Bu instance'taki testler self proxy kullanmaz (getContractDetail hariç,
         // o testler kendi mock self'leriyle ayrı instance kurar). self = null güvenli.
-        service = new ViopService(contractListPort, null, indexCodeMapper);
+        service = new ViopService(contractListPort, null, indexCodeMapper, passThroughLkg());
     }
 
     private static ViopContract contract(String name) {
@@ -392,7 +409,7 @@ class ViopServiceTest {
     @DisplayName("getContractDetail: self proxy'ye trimlenmiş symbol ile delege eder")
     void getDetail_delegatesToSelf() {
         ViopService selfMock = mock(ViopService.class);
-        ViopService svc = new ViopService(contractListPort, selfMock, indexCodeMapper);
+        ViopService svc = new ViopService(contractListPort, selfMock, indexCodeMapper, passThroughLkg());
         ViopContractDetail expected = new ViopContractDetail();
         when(selfMock.getContractDetailCached("AKBNK (30 Haz 26) Vadeli FIZ"))
                 .thenReturn(expected);
@@ -403,7 +420,7 @@ class ViopServiceTest {
     @DisplayName("getContractDetail: IllegalArgumentException olduğu gibi yeniden fırlatılır")
     void getDetail_rethrowsIllegalArgument() {
         ViopService selfMock = mock(ViopService.class);
-        ViopService svc = new ViopService(contractListPort, selfMock, indexCodeMapper);
+        ViopService svc = new ViopService(contractListPort, selfMock, indexCodeMapper, passThroughLkg());
         when(selfMock.getContractDetailCached("X")).thenThrow(new IllegalArgumentException("boom"));
         assertThatThrownBy(() -> svc.getContractDetail("X"))
                 .isInstanceOf(IllegalArgumentException.class).hasMessage("boom");
@@ -413,7 +430,7 @@ class ViopServiceTest {
     @DisplayName("getContractDetail: ResourceNotFoundException olduğu gibi yeniden fırlatılır")
     void getDetail_rethrowsResourceNotFound() {
         ViopService selfMock = mock(ViopService.class);
-        ViopService svc = new ViopService(contractListPort, selfMock, indexCodeMapper);
+        ViopService svc = new ViopService(contractListPort, selfMock, indexCodeMapper, passThroughLkg());
         when(selfMock.getContractDetailCached("X")).thenThrow(new ResourceNotFoundException("nf"));
         assertThatThrownBy(() -> svc.getContractDetail("X"))
                 .isInstanceOf(ResourceNotFoundException.class).hasMessage("nf");
@@ -423,7 +440,7 @@ class ViopServiceTest {
     @DisplayName("getContractDetail: beklenmeyen hata → ResourceNotFoundException'a sarılır")
     void getDetail_wrapsUnexpected() {
         ViopService selfMock = mock(ViopService.class);
-        ViopService svc = new ViopService(contractListPort, selfMock, indexCodeMapper);
+        ViopService svc = new ViopService(contractListPort, selfMock, indexCodeMapper, passThroughLkg());
         when(selfMock.getContractDetailCached("X")).thenThrow(new RuntimeException("upstream down"));
         assertThatThrownBy(() -> svc.getContractDetail("X"))
                 .isInstanceOf(ResourceNotFoundException.class)

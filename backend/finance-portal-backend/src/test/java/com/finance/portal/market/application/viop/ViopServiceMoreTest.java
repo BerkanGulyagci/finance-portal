@@ -1,5 +1,6 @@
 package com.finance.portal.market.application.viop;
 
+import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.viop.model.ViopContractDetail;
 import com.finance.portal.market.application.viop.port.ViopContractListPort;
 import org.junit.jupiter.api.DisplayName;
@@ -10,11 +11,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
@@ -39,8 +45,16 @@ class ViopServiceMoreTest {
 
     private ViopService service;
 
+    /** LKG pass-through: resilient(...) sadece supplier'ı çağırır. */
+    private static LastKnownGoodCache passThroughLkg() {
+        LastKnownGoodCache lkg = mock(LastKnownGoodCache.class);
+        when(lkg.resilient(anyString(), any(Duration.class), any(), any()))
+                .thenAnswer(inv -> ((Supplier<?>) inv.getArgument(3)).get());
+        return lkg;
+    }
+
     private ViopService newService() {
-        return new ViopService(contractListPort, null, indexCodeMapper);
+        return new ViopService(contractListPort, null, indexCodeMapper, passThroughLkg());
     }
 
     private static ViopContract contract(String name) {

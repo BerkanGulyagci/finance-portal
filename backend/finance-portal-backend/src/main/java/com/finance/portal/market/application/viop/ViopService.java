@@ -1,6 +1,8 @@
 package com.finance.portal.market.application.viop;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.finance.portal.common.application.exception.ResourceNotFoundException;
+import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.viop.model.ViopContractDetail;
 import com.finance.portal.market.application.viop.port.ViopContractListPort;
 import org.slf4j.Logger;
@@ -10,6 +12,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -49,21 +52,43 @@ public class ViopService {
         // Sadece bilinen ve doğrulanmış sembolleri ekleyin
     }
 
+    /**
+     * VİOP listesi LKG ömrü — Akbank kaynağı çöktüğünde en fazla bu kadar eski liste sunulur.
+     * Cache TTL'inden (10 dk) çok daha uzun: kaynak günlerce flaky/down olsa bile kullanıcı boş
+     * VİOP listesi görmesin (diğer market servisleriyle tutarlı stale-if-error dayanıklılığı).
+     */
+    private static final Duration CONTRACTS_LKG_TTL = Duration.ofDays(3);
+    private static final TypeReference<List<ViopContract>> CONTRACTS_TYPE = new TypeReference<>() { };
+
     private final ViopContractListPort viopContractListPort;
     private final ViopService self;
     private final ViopIndexCodeMapper indexCodeMapper;
+    private final LastKnownGoodCache lkg;
 
     public ViopService(ViopContractListPort viopContractListPort,
                        @Lazy ViopService self,
-                       ViopIndexCodeMapper indexCodeMapper) {
+                       ViopIndexCodeMapper indexCodeMapper,
+                       LastKnownGoodCache lkg) {
         this.viopContractListPort = viopContractListPort;
         this.self = self;
         this.indexCodeMapper = indexCodeMapper;
+        this.lkg = lkg;
     }
 
+    /**
+     * Tüm VİOP sözleşmeleri (Akbank liste scrape). İki katman:
+     * <ul>
+     *   <li>{@code @Cacheable} — 10 dk içinde Redis'ten hızlı döner (kaynağı yormaz).</li>
+     *   <li>{@code lkg.resilient} — cache MISS olunca Akbank'ı çağırır; Akbank ÇÖKERSE/boş dönerse
+     *       son başarılı listeyi (≤3 gün eski) servis eder → boş ekran yerine eski-iyi veri.</li>
+     * </ul>
+     * (VİOP detayı bu listeden türetildiğinden ayrı LKG gerektirmez — liste korununca detay da korunur.)
+     */
     @Cacheable(cacheNames = "market.viop.contracts", key = "'all'")
     public List<ViopContract> getAllContracts() {
-        List<ViopContract> list = viopContractListPort.fetchContracts();
+        List<ViopContract> list = lkg.resilient(
+                "viop.contracts.all", CONTRACTS_LKG_TTL, CONTRACTS_TYPE,
+                viopContractListPort::fetchContracts);
         return list != null ? list : List.of();
     }
 
