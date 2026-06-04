@@ -66,6 +66,8 @@ const en = {
   'Piyasanın Hareketlileri': 'Market Movers',
   'En Çok Yükselenler': 'Top Gainers',
   'En Çok Düşenler': 'Top Losers',
+  'Bugün yükselen yok': 'No gainers today',
+  'Bugün düşen yok': 'No losers today',
   'BIST Hisse': 'BIST Stocks',
 
   // Hacim Liderleri (Volume Leaders)

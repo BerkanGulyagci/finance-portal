@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart3 } from 'lucide-react';
 import DashCard from './DashCard';
+import CardTabs from './CardTabs';
 import { num } from '../utils/dashUtils';
 import { useTranslation } from '../../../context/LanguageContext';
 import { getVolumeLeaders } from '../../../api/marketApi';
@@ -12,7 +13,9 @@ const ROUTE_SEG = { CRYPTO: 'crypto', STOCK: 'stocks', FX: 'fx', COMMODITY: 'com
 /** Büyük hacmi kompakt yazar: 1.234.567.890 → "1,23 Mr", 8.500.000 → "8,50 Mn". */
 function fmtVolume(v, currency) {
   const n = num(v);
-  const sym = currency === 'TRY' ? '₺' : currency === 'USD' ? '$' : '';
+  // currency="LOT" → hisse/emtia işlem ADEDİ (lot, parasal değil); ₺/$ yerine "lot" eki.
+  const isLot = currency === 'LOT';
+  const sym = isLot ? '' : currency === 'TRY' ? '₺' : currency === 'USD' ? '$' : '';
   const abs = Math.abs(n);
   let out;
   if (abs >= 1e12) out = `${(n / 1e12).toLocaleString('tr-TR', { maximumFractionDigits: 2 })} Tr`;
@@ -20,7 +23,7 @@ function fmtVolume(v, currency) {
   else if (abs >= 1e6) out = `${(n / 1e6).toLocaleString('tr-TR', { maximumFractionDigits: 2 })} Mn`;
   else if (abs >= 1e3) out = `${(n / 1e3).toLocaleString('tr-TR', { maximumFractionDigits: 1 })} B`;
   else out = n.toLocaleString('tr-TR', { maximumFractionDigits: 0 });
-  return `${sym}${out}`;
+  return isLot ? `${out} lot` : `${sym}${out}`;
 }
 
 function LeaderRow({ m, navigate }) {
@@ -68,19 +71,7 @@ export default function VolumeLeadersCard() {
   return (
     <DashCard title={t('Hacim Liderleri')} icon={BarChart3} accent="#093eaa" scroll>
       {cats.length > 0 && (
-        <div className="flex flex-wrap gap-1 mb-3">
-          {cats.map((c, i) => (
-            <button
-              key={c.key}
-              onClick={() => setActive(i)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${
-                i === active ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {t(c.label)}
-            </button>
-          ))}
-        </div>
+        <CardTabs tabs={cats} active={active} onChange={setActive} t={t} accent="#093eaa" />
       )}
 
       {loading ? (

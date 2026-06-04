@@ -30,6 +30,7 @@ import PersonalNewsCard from './components/PersonalNewsCard';
 import MarketListCard from './components/MarketListCard';
 import MarketMoversCard from './components/MarketMoversCard';
 import VolumeLeadersCard from './components/VolumeLeadersCard';
+import DrawnChartsCard from './components/DrawnChartsCard';
 import EconomyCard from './components/EconomyCard';
 import FavoritesCard from './components/FavoritesCard';
 import { num } from './utils/dashUtils';
@@ -291,6 +292,7 @@ export default function DashboardPage() {
   });
   items.push({ key: 'movers', w: 4, h: 8, node: <MarketMoversCard /> });
   items.push({ key: 'volume-leaders', w: 4, h: 8, node: <VolumeLeadersCard /> });
+  items.push({ key: 'drawn-charts', w: 4, h: 7, node: <DrawnChartsCard /> });
 
   charts.forEach(c => {
     const owner = assetPortfolios.find(p =>

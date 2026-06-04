@@ -2,9 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { BarChart3, TrendingUp, ArrowUpDown, CalendarDays, ChevronDown } from 'lucide-react';
 import { getFxTcmb, getEconomicIndicators, getEconomy } from '../../../api/marketApi';
-import { getNews } from '../../../api/newsApi';
 import { getIpos } from '../../../api/ipoApi';
 import StockLogo from '../../dashboard/components/StockLogo';
+import MarketMoversCard from '../../dashboard/components/MarketMoversCard';
+import VolumeLeadersCard from '../../dashboard/components/VolumeLeadersCard';
 import { useTranslation } from '../../../context/LanguageContext';
 
 /** Site tasarımına uygun, tarayıcı select'i yerine özel açılır menü. */
@@ -51,7 +52,6 @@ export function Sidebar() {
   const [selectedCurrency, setSelectedCurrency] = useState('USD');
   const [amount, setAmount] = useState(1000);
   const [swapped, setSwapped] = useState(false);
-  const [mostRead, setMostRead] = useState([]);
   const [ipos, setIpos] = useState([]);
   const [indicators, setIndicators] = useState({ policyRate: '...', inflation: '...' });
   const [fxChange, setFxChange] = useState({}); // { USD: %, EUR: % } — günlük değişim (renk için)
@@ -72,10 +72,6 @@ export function Sidebar() {
     }).catch(() => {});
   }, []);
 
-  useEffect(() => {
-    getNews({ region: 'TR', pageSize: 3, lang: language }).then(d => setMostRead(d.items ?? [])).catch(() => {});
-  }, [language]);
-
   const selectedRate = rates.find(r => r.symbol === selectedCurrency);
   // swapped=false: girilen tutar yabancı para → TRY; swapped=true: girilen tutar TRY → yabancı para
   const result = selectedRate ? (swapped ? amount / selectedRate.sell : amount * selectedRate.sell) : null;
@@ -90,24 +86,14 @@ export function Sidebar() {
 
   return (
     <aside className="space-y-8">
-      {/* En Son Haberler */}
-      <div>
-        <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-[#093eaa]" /> {t('En Son Haberler')}
-        </h3>
-        <div className="bg-white rounded-md border border-gray-200 overflow-hidden shadow-sm">
-          {mostRead.length === 0 && <div className="p-4 text-sm text-gray-400">{t('Yükleniyor...')}</div>}
-          {mostRead.map((item, i) => (
-            <div key={i} className={`p-4 flex gap-4 hover:bg-gray-50 transition-colors ${i < mostRead.length - 1 ? 'border-b border-gray-100' : ''}`}>
-              <span className="text-2xl font-black text-gray-200">{String(i + 1).padStart(2, '0')}</span>
-              <p className="text-sm font-semibold leading-tight">
-                <Link to={item.id ? `/news/${item.id}` : '/news'} className="hover:text-[#093eaa] transition-colors">
-                  {item.title}
-                </Link>
-              </p>
-            </div>
-          ))}
-        </div>
+      {/* Piyasanın Hareketlileri (dashboard kartı — kendi verisini çeker) */}
+      <div className="h-[380px]">
+        <MarketMoversCard />
+      </div>
+
+      {/* Hacim Liderleri */}
+      <div className="h-[360px]">
+        <VolumeLeadersCard />
       </div>
 
       {/* Döviz Çevirici — site tasarımına uygun açık tema */}

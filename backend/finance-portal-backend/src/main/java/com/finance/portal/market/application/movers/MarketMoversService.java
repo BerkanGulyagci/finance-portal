@@ -184,13 +184,13 @@ public class MarketMoversService {
     //  her tip kendi içinde sıralanır. Hacmi olmayan tipler (döviz/fon/tahvil) yok.
     // ════════════════════════════════════════════════════════════════════════
 
-    /** Tüm kategoriler için günlük hacmi en yüksek top-N. Cache 120 sn. */
+    /** Tüm kategoriler için günlük hacmi en yüksek top-N. Cache 120 sn.
+     *  Emtia HARİÇ: Yahoo emtia hacmi kontrat adedi (lot) — parasal değil, kıyas anlamsız. */
     @Cacheable(cacheNames = "market.volumeLeaders", key = "'all:' + #limit")
     public List<MoversCategory> getVolumeLeaders(int limit) {
         return new ArrayList<>(List.of(
                 cryptoVolumeLeaders(limit),
-                stockVolumeLeaders(limit),
-                commodityVolumeLeaders(limit)));
+                stockVolumeLeaders(limit)));
     }
 
     private MoversCategory cryptoVolumeLeaders(int limit) {
@@ -228,34 +228,13 @@ public class MarketMoversService {
     private void addStockVolumes(List<MarketMover> out, List<StockSummary> content) {
         if (content == null) return;
         for (StockSummary s : content) {
-            if (s.getVolume() == null || s.getSymbol() == null) continue;
+            if (s.getSymbol() == null || s.getVolume() == null || s.getVolume() <= 0) continue;
+            // Yahoo volume = işlem gören PAY ADEDİ (lot, parasal değil). Ham adet gösterilir;
+            // currency="LOT" işareti frontend'e "adet, ₺ değil" der (emtia ile tutarlı).
             out.add(new MarketMover("STOCK", s.getSymbol(), s.getSymbol(), s.getName(),
-                    s.getPrice(), "TRY", s.getChangePercent(), null,
+                    s.getPrice(), "LOT", s.getChangePercent(), null,
                     BigDecimal.valueOf(s.getVolume())));
         }
-    }
-
-    private MoversCategory commodityVolumeLeaders(int limit) {
-        List<MarketMover> all = new ArrayList<>();
-        try {
-            for (CommodityDto cd : commodityService.listEnabledCommodities()) {
-                try {
-                    CommoditySpotDto spot = commodityService.getSpot(cd.getSymbol());
-                    if (spot == null || spot.getVolume() == null) continue;
-                    String display = cd.getDisplayNameTr() != null ? cd.getDisplayNameTr()
-                            : (cd.getDisplayNameEn() != null ? cd.getDisplayNameEn() : cd.getSymbol());
-                    String cur = spot.getDisplayCurrency() != null ? spot.getDisplayCurrency() : "USD";
-                    all.add(new MarketMover("COMMODITY", cd.getSymbol(), display, display,
-                            spot.getDisplayPrice(), cur, spot.getChangePercent(), null,
-                            BigDecimal.valueOf(spot.getVolume())));
-                } catch (Exception ignore) {
-                    // tek emtia hatası tüm kategoriyi düşürmesin
-                }
-            }
-        } catch (Exception e) {
-            log.warn("[VolumeLeaders] emtia listesi alınamadı: {}", e.getMessage());
-        }
-        return new MoversCategory("commodity", "Emtia", topByVolume(all, limit), new ArrayList<>());
     }
 
     /** Hacme göre azalan sırada top-n (volume null/<=0 elenir). ArrayList döner. */

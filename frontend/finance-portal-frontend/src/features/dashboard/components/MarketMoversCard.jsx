@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TrendingUp, TrendingDown, Flame } from 'lucide-react';
 import DashCard from './DashCard';
+import CardTabs from './CardTabs';
 import { fmtPct, pctClass, num } from '../utils/dashUtils';
 import { useTranslation } from '../../../context/LanguageContext';
 import { getMarketMovers } from '../../../api/marketApi';
@@ -53,19 +54,7 @@ export default function MarketMoversCard() {
   return (
     <DashCard title={t('Piyasanın Hareketlileri')} icon={Flame} accent="#ef4444" scroll>
       {cats.length > 0 && (
-        <div className="flex flex-wrap gap-1 mb-3">
-          {cats.map((c, i) => (
-            <button
-              key={c.key}
-              onClick={() => setActive(i)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${
-                i === active ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {t(c.label)}
-            </button>
-          ))}
-        </div>
+        <CardTabs tabs={cats} active={active} onChange={setActive} t={t} accent="#ef4444" />
       )}
 
       {loading ? (
@@ -84,7 +73,9 @@ export default function MarketMoversCard() {
             </div>
             <div className="divide-y divide-gray-50">
               {(cat.gainers ?? []).map(m => <MoverRow key={`g-${m.type}-${m.id}`} m={m} navigate={navigate} />)}
-              {(cat.gainers?.length ?? 0) === 0 && <p className="text-xs text-gray-400 py-1.5 px-1">—</p>}
+              {(cat.gainers?.length ?? 0) === 0 && (
+                <p className="text-[11px] text-gray-400 py-2 px-1 italic">{t('Bugün yükselen yok')}</p>
+              )}
             </div>
           </div>
           <div>
@@ -93,7 +84,9 @@ export default function MarketMoversCard() {
             </div>
             <div className="divide-y divide-gray-50">
               {(cat.losers ?? []).map(m => <MoverRow key={`l-${m.type}-${m.id}`} m={m} navigate={navigate} />)}
-              {(cat.losers?.length ?? 0) === 0 && <p className="text-xs text-gray-400 py-1.5 px-1">—</p>}
+              {(cat.losers?.length ?? 0) === 0 && (
+                <p className="text-[11px] text-gray-400 py-2 px-1 italic">{t('Bugün düşen yok')}</p>
+              )}
             </div>
           </div>
         </div>

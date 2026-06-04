@@ -31,7 +31,7 @@ export default function DashCard({
         </h2>
         {action || (to && <CardLink to={to}>{toLabel}</CardLink>)}
       </header>
-      <div className={`px-3.5 pb-3 flex-1 min-h-0 ${scroll ? 'overflow-y-auto' : ''} ${bodyClass}`}>{children}</div>
+      <div className={`px-3.5 pb-3 flex-1 min-h-0 ${scroll ? 'overflow-y-auto m3-scroll' : ''} ${bodyClass}`}>{children}</div>
     </section>
   );
 }
