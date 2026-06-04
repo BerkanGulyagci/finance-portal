@@ -5,8 +5,9 @@ import { useTranslation } from '../../../../context/LanguageContext';
 import { useChartDrawings } from '../../../../hooks/useChartDrawings';
 
 // ── Sabitler ──────────────────────────────────────────────────────────────────
-const RANGES = ['1W', '1M', '3M', '6M', '1Y', 'ALL'];
-const RANGE_LABELS = { '1W': '1H', '1M': '1A', '3M': '3A', '6M': '6A', '1Y': '1Y', 'ALL': 'Tümü' };
+// FX geçmişi TCMB'den gün-gün çekildiği için "Tüm" yok; en uzun 10Y (yıl başına ~260 istek, cache+LKG'li).
+const RANGES = ['1W', '1M', '3M', '6M', '1Y', '5Y', '10Y'];
+const RANGE_LABELS = { '1W': '1H', '1M': '1A', '3M': '3A', '6M': '6A', '1Y': '1Y', '5Y': '5Y', '10Y': '10Y' };
 
 const FX_MA = [
   { period: 20,  color: '#f59e0b', label: 'MA20'  },

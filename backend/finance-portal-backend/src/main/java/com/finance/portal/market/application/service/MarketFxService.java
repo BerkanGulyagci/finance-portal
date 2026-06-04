@@ -146,6 +146,10 @@ public class MarketFxService {
             case "3M" -> today.minusMonths(3);
             case "6M" -> today.minusMonths(6);
             case "1Y" -> today.minusYears(1);
+            case "5Y" -> today.minusYears(5);
+            // TCMB geçmişi gün-gün çekildiği için (yıl başına ~260 istek) 10 yıl üst sınır:
+            // detay + döviz-kıyas sayfalarında "Tüm" yerine açık 5Y/10Y butonları kullanılır.
+            case "10Y" -> today.minusYears(10);
             case "ALL" -> today.minusYears(5);
             default -> today.minusMonths(1);
         };

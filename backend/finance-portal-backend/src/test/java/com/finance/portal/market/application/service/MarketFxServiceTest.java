@@ -367,4 +367,20 @@ class MarketFxServiceTest {
         assertThat(from.getAllValues()).containsExactly(
                 today.minusMonths(3), today.minusMonths(6), today.minusYears(1));
     }
+
+    @Test
+    @DisplayName("FX history: '5Y'/'10Y' resolve to today minus five/ten years")
+    void getFxHistory_5Y_10Y_fromDates() {
+        when(tcmbFxHistoryPort.fetchHistory(eq("USD"), any(), any())).thenReturn(List.of());
+        LocalDate today = LocalDate.now(ISTANBUL);
+
+        service.getFxHistory("USD", "5Y");
+        service.getFxHistory("USD", "10Y");
+
+        ArgumentCaptor<LocalDate> from = ArgumentCaptor.forClass(LocalDate.class);
+        verify(tcmbFxHistoryPort, org.mockito.Mockito.times(2))
+                .fetchHistory(eq("USD"), from.capture(), any());
+        assertThat(from.getAllValues()).containsExactly(
+                today.minusYears(5), today.minusYears(10));
+    }
 }

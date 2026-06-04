@@ -292,7 +292,7 @@ export function Header() {
         { label: 'TCMB Kurları', path: '/market/fx', desc: 'Resmi döviz kurları' },
         { label: 'Open Exchange Rates', path: '/market/fx', desc: 'Gerçek zamanlı kurlar' },
         { label: 'Banka Kurları', path: '/market/fx?tab=banks', desc: 'Türk bankalarının alış/satış kurları' },
-        { label: 'Karşılaştır', path: '/market/compare', desc: 'Dövizleri karşılaştır' },
+        { label: 'Karşılaştır', path: '/market/fx/compare', desc: 'Dövizleri karşılaştır' },
       ],
     },
     {

@@ -24,8 +24,9 @@ const SUGGESTIONS = [
   { key: 'RUB', label: 'RUB/TRY', type: 'fx' },
 ];
 
-const RANGES = ['1W', '1M', '3M', '6M', '1Y'];
-const RANGE_LABELS = { '1W': '1H', '1M': '1A', '3M': '3A', '6M': '6A', '1Y': '1Y' };
+// FX geçmişi TCMB'den gün-gün çekildiği için "Tüm" yok; en uzun 10Y (cache+LKG'li, bkz. MarketFxService).
+const RANGES = ['1W', '1M', '3M', '6M', '1Y', '5Y', '10Y'];
+const RANGE_LABELS = { '1W': '1H', '1M': '1A', '3M': '3A', '6M': '6A', '1Y': '1Y', '5Y': '5Y', '10Y': '10Y' };
 
 // ── ECharts Compare Chart ─────────────────────────────────────────────────────
 function EChartsCompareChart({ chartData, instruments, formatDate }) {
@@ -180,7 +181,7 @@ export default function ComparePage() {
   // URL'i enstrümanlara göre güncelle
   function syncUrl(newInstruments) {
     const symbols = newInstruments.map(i => i.key).join(',');
-    navigate(`/market/compare?symbols=${symbols}`, { replace: true });
+    navigate(`/market/fx/compare?symbols=${symbols}`, { replace: true });
   }
 
   // Enstrüman ekle

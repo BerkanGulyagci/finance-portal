@@ -371,7 +371,7 @@ export default function FxPage() {
                       <td className="px-4 py-3 text-sm text-[#5a6472] text-right tabular-nums">{num(r.effectiveSell)}</td>
                       <td className="px-2 py-3">
                         <Link
-                          to={`/market/compare?symbols=${r.symbol}`}
+                          to={`/market/fx/compare?symbols=${r.symbol}`}
                           onClick={e => e.stopPropagation()}
                           title={t('Karşılaştır')}
                           className="m3-state p-2 sm:p-1.5 rounded-full bg-[#eef2f8] hover:bg-[#093eaa] hover:text-white text-[#5a6472] transition-all inline-flex text-[#5a6472]"

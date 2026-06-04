@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import AppLayout from '../app/layout/AppLayout';
 import ProtectedRoute from '../app/layout/ProtectedRoute';
 import AdminRoute from '../features/admin/components/AdminRoute';
@@ -49,6 +49,12 @@ import ProfilePage from '../features/profile/ProfilePage';
 import AlarmsPage from '../features/alarms/AlarmsPage';
 import NotificationsPage from '../features/notifications/NotificationsPage';
 
+// Eski /market/compare → yeni /market/fx/compare (query string'i koruyarak). Bookmark/eski linkler kırılmaz.
+function FxCompareRedirect() {
+  const { search } = useLocation();
+  return <Navigate to={`/market/fx/compare${search}`} replace />;
+}
+
 export default function AppRouter() {
   return (
     <BrowserRouter>
@@ -92,7 +98,8 @@ export default function AppRouter() {
           <Route path="/market/commodities/compare" element={<CommodityComparePage />} />
           <Route path="/market/commodities" element={<CommoditiesPage />} />
           <Route path="/market/commodities/:symbol" element={<CommodityDetailPage />} />
-          <Route path="/market/compare"    element={<ComparePage />} />
+          <Route path="/market/fx/compare" element={<ComparePage />} />
+          <Route path="/market/compare"    element={<FxCompareRedirect />} />
 
           {/* 404 fallback (public layout içinde — header/footer ile sarılır) */}
           <Route path="*" element={<NotFoundPage />} />

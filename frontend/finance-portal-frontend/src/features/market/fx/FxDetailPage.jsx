@@ -233,7 +233,7 @@ export default function FxDetailPage() {
               <button onClick={loadHistory} className="m3-state p-2 rounded-full bg-[#eef2f8] hover:bg-[#e3eaf6] transition-all text-[#5a6472]" title={t('Yenile')}>
                 <RefreshCw className={`w-4 h-4 ${loadingChart ? 'animate-spin' : ''}`} />
               </button>
-              <Link to={`/market/compare?symbols=${sym}`} title={t('Dövizleri kendi karşılaştırma sayfasında kıyasla')}
+              <Link to={`/market/fx/compare?symbols=${sym}`} title={t('Dövizleri kendi karşılaştırma sayfasında kıyasla')}
                 className="m3-state inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border border-[#093eaa]/25 text-[#093eaa] bg-[#093eaa]/5 hover:bg-[#093eaa]/10 transition-all">
                 <BarChart2 className="w-3.5 h-3.5" /> {t('Karşılaştır')}
               </Link>
