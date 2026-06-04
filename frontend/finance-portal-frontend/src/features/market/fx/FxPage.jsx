@@ -452,7 +452,7 @@ export default function FxPage() {
                       <SortableTh {...bankTh('currencyCode', t('Döviz'))} />
                       <SortableTh {...bankTh('buyRate', t('Alış'), 'right')} />
                       <SortableTh {...bankTh('sellRate', t('Satış'), 'right')} />
-                      <SortableTh {...bankTh('spread', t('Makas'), 'right')} />
+                      <SortableTh {...bankTh('spread', `${t('Makas')} (TL / %)`, 'right')} />
                       <SortableTh {...bankTh('dailyChangePercent', t('Günlük %'), 'right')} />
                       <th className="text-right px-4 py-3 text-xs font-bold text-[#5a6472] uppercase tracking-wider border-b border-[#e2e8f0]">
                         {t('Son Güncelleme')}
@@ -483,7 +483,19 @@ export default function FxPage() {
                           </td>
                           <td className="px-4 py-3 text-sm font-semibold text-[#1a1c1e] text-right tabular-nums">{numAuto(r.buyRate)}</td>
                           <td className="px-4 py-3 text-sm font-semibold text-[#1a1c1e] text-right tabular-nums">{numAuto(r.sellRate)}</td>
-                          <td className="px-4 py-3 text-sm text-[#5a6472] text-right tabular-nums">{numAuto(r.spread)}</td>
+                          <td className="px-4 py-3 text-sm text-right tabular-nums leading-tight">
+                            <span className="block text-[#5a6472]">{numAuto(r.spread)}</span>
+                            {(() => {
+                              const sp = parseFloat(r.spread);
+                              const sl = parseFloat(r.sellRate);
+                              if (isNaN(sp) || isNaN(sl) || sl <= 0) return null;
+                              return (
+                                <span className="block text-[11px] text-[#9aa6b6]">
+                                  %{((sp / sl) * 100).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                              );
+                            })()}
+                          </td>
                           <td className="px-4 py-3 text-sm text-right tabular-nums">{numChange(r.dailyChangePercent)}</td>
                           <td className="px-4 py-3 text-xs text-[#9aa6b6] text-right">{formatUpdatedAt(r.sourceUpdatedAt)}</td>
                         </tr>

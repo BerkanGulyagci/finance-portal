@@ -10,6 +10,22 @@ function fmtAuto(v) {
 }
 
 /**
+ * Alış/satış makası (spread): TL farkı + farkın satışa oranı (%).
+ * Döner: { tl, pct } veya değer eksikse null.
+ */
+function calcSpread(buy, sell) {
+  const b = parseFloat(buy);
+  const s = parseFloat(sell);
+  if (isNaN(b) || isNaN(s) || s <= 0 || s < b) return null;
+  const tl = s - b;
+  return { tl, pct: (tl / s) * 100 };
+}
+
+function fmtSpreadTl(v) {
+  return v.toLocaleString('tr-TR', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+}
+
+/**
  * Diğer Bankalar kartı — verilen sembolün ulaşılabilir banka kurları listesi.
  *
  * Props:
@@ -40,19 +56,31 @@ export default function BankRatesCard({ rates, loading }) {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 text-[10px] font-bold text-[#9aa6b6] uppercase tracking-wider pb-1.5 border-b border-[#eef2f8]">
+          <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 text-[10px] font-bold text-[#9aa6b6] uppercase tracking-wider pb-1.5 border-b border-[#eef2f8]">
             <span>{t('Banka')}</span>
             <span className="text-right">{t('Alış')}</span>
             <span className="text-right">{t('Satış')}</span>
+            <span className="text-right">{t('Makas')}</span>
           </div>
           <div className="divide-y divide-[#f1f5f9] m3-stagger">
-            {present.map((r, i) => (
-              <div key={`${r.bankName}-${i}`} className="grid grid-cols-[1fr_auto_auto] gap-x-3 items-center py-2 text-sm">
-                <span className="font-semibold text-[#1a1c1e] truncate">{r.bankName}</span>
-                <span className="text-right tabular-nums text-[#5a6472]">{fmtAuto(r.buyRate)}</span>
-                <span className="text-right tabular-nums font-semibold text-[#1a1c1e]">{fmtAuto(r.sellRate)}</span>
-              </div>
-            ))}
+            {present.map((r, i) => {
+              const spread = calcSpread(r.buyRate, r.sellRate);
+              return (
+                <div key={`${r.bankName}-${i}`} className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 items-center py-2 text-sm">
+                  <span className="font-semibold text-[#1a1c1e] truncate">{r.bankName}</span>
+                  <span className="text-right tabular-nums text-[#5a6472]">{fmtAuto(r.buyRate)}</span>
+                  <span className="text-right tabular-nums font-semibold text-[#1a1c1e]">{fmtAuto(r.sellRate)}</span>
+                  {spread ? (
+                    <span className="text-right tabular-nums leading-tight">
+                      <span className="block font-semibold text-[#1a1c1e]">{fmtSpreadTl(spread.tl)}</span>
+                      <span className="block text-[11px] text-[#9aa6b6]">%{spread.pct.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </span>
+                  ) : (
+                    <span className="text-right tabular-nums text-[#9aa6b6]">-</span>
+                  )}
+                </div>
+              );
+            })}
           </div>
           {absent.length > 0 && (
             <p className="mt-3 pt-3 border-t border-[#eef2f8] text-[11px] text-[#9aa6b6] leading-snug">

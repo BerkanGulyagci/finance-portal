@@ -8,6 +8,7 @@ import { buildTrendItem } from '../../../../utils/trendUtils';
 import TrendBadge from '../../../../components/common/TrendBadge';
 import { useTranslation } from '../../../../context/LanguageContext';
 import IndicatorMenu from '../../../../components/common/IndicatorMenu';
+import { useYAxisWheelZoom } from '../../../../hooks/useYAxisWheelZoom';
 
 function toFloat(v) {
   if (v == null) return null;
@@ -121,6 +122,7 @@ export default function TefasPriceChart({ code, fonTipi, priceHistory, monthlyRe
   const [filtered, setFiltered]         = useState([]);
   const [chartLoading, setChartLoading] = useState(true);
   const [chartSource, setChartSource]   = useState('Rasyonet');
+  useYAxisWheelZoom(chartRef, !chartLoading);
 
   useEffect(() => {
     let cancelled = false;

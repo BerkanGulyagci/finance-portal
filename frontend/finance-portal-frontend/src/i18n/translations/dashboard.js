@@ -68,6 +68,10 @@ const en = {
   'En Çok Düşenler': 'Top Losers',
   'BIST Hisse': 'BIST Stocks',
 
+  // Hacim Liderleri (Volume Leaders)
+  'Hacim Liderleri': 'Volume Leaders',
+  'En Yüksek Günlük Hacim': 'Highest Daily Volume',
+
   // Ekonomi Göstergeleri
   'Ekonomi Göstergeleri': 'Economic Indicators',
   'Enflasyon (TÜFE, yıllık)': 'Inflation (CPI, annual)',

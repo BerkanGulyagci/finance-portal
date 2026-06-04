@@ -5,10 +5,12 @@ import com.finance.portal.news.application.model.NewsArticle;
 import com.finance.portal.news.application.model.NewsDetail;
 import com.finance.portal.news.application.model.NewsPage;
 import com.finance.portal.news.application.model.NewsQueryResult;
+import com.finance.portal.news.application.model.RelatedAsset;
 import com.finance.portal.news.domain.NewsCategory;
 import com.finance.portal.news.domain.NewsIdUtil;
 import com.finance.portal.news.presentation.dto.NewsDetailResponse;
 import com.finance.portal.news.presentation.dto.NewsItemDto;
+import com.finance.portal.news.presentation.dto.RelatedAssetDto;
 import com.finance.portal.news.presentation.dto.NewsListResponse;
 import com.finance.portal.news.presentation.dto.NewsResponse;
 import org.springframework.stereotype.Component;
@@ -83,6 +85,14 @@ public class NewsPresentationMapper {
         return new NewsDetailResponse(
                 toNewsItemDto(detail.article()),
                 toNewsItemDtoList(detail.related()),
-                detail.content());
+                detail.content(),
+                toRelatedAssetDtoList(detail.relatedAssets()));
+    }
+
+    private List<RelatedAssetDto> toRelatedAssetDtoList(List<RelatedAsset> assets) {
+        if (assets == null) return List.of();
+        return assets.stream()
+                .map(a -> new RelatedAssetDto(a.symbol(), a.name(), a.type()))
+                .collect(Collectors.toList());
     }
 }

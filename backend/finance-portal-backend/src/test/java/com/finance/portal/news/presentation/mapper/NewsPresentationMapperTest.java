@@ -5,6 +5,7 @@ import com.finance.portal.news.application.model.NewsArticle;
 import com.finance.portal.news.application.model.NewsDetail;
 import com.finance.portal.news.application.model.NewsPage;
 import com.finance.portal.news.application.model.NewsQueryResult;
+import com.finance.portal.news.application.model.RelatedAsset;
 import com.finance.portal.news.domain.NewsCategory;
 import com.finance.portal.news.domain.NewsIdUtil;
 import com.finance.portal.news.presentation.dto.NewsDetailResponse;
@@ -247,7 +248,8 @@ class NewsPresentationMapperTest {
         NewsArticle main = fullArticle();
         NewsArticle related = new NewsArticle(
                 "İlgili", "d", "https://x.test/rel", null, null, null, null, "FX", "tr", null);
-        NewsDetail detail = new NewsDetail(main, List.of(related), "<p>tam metin</p>");
+        NewsDetail detail = new NewsDetail(main, List.of(related), "<p>tam metin</p>",
+                List.of(new RelatedAsset("THYAO.IS", "Türk Hava Yolları", "STOCK")));
 
         NewsDetailResponse response = mapper.toDetailResponse(detail);
 
@@ -257,12 +259,15 @@ class NewsPresentationMapperTest {
         assertThat(response.getRelated()).hasSize(1);
         assertThat(response.getRelated().get(0).getTitle()).isEqualTo("İlgili");
         assertThat(response.getContent()).isEqualTo("<p>tam metin</p>");
+        assertThat(response.getRelatedAssets()).hasSize(1);
+        assertThat(response.getRelatedAssets().get(0).getSymbol()).isEqualTo("THYAO.IS");
+        assertThat(response.getRelatedAssets().get(0).getType()).isEqualTo("STOCK");
     }
 
     @Test
     @DisplayName("toDetailResponse: boş related + null content")
     void toDetailResponse_emptyRelatedNullContent() {
-        NewsDetail detail = new NewsDetail(fullArticle(), List.of(), null);
+        NewsDetail detail = new NewsDetail(fullArticle(), List.of(), null, List.of());
 
         NewsDetailResponse response = mapper.toDetailResponse(detail);
 

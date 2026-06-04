@@ -101,24 +101,30 @@ export default function GoldPriceStats({ spot, activeTab, historyPoints }) {
       colored: periodChange != null,
       positive: periodChange != null && periodChange >= 0,
     },
-    {
-      label: 'İşlem Hacmi',
-      value: stats?.totalVolume != null
-        ? `${sym}${fmt(stats.totalVolume, 0)}`
-        : '-',
-    },
-    {
-      label: 'Miktar (Kg)',
-      value: stats?.totalQty != null
-        ? `${fmt(stats.totalQty, 3)} Kg`
-        : '-',
-    },
-    {
-      label: 'İşlem Sayısı',
-      value: stats?.totalTxCount != null
-        ? stats.totalTxCount.toLocaleString('tr-TR')
-        : '-',
-    },
+    // Hacim/Miktar/İşlem Sayısı YALNIZCA Ons Altın'da (USD) gösterilir.
+    // BIST işlem hacmi verisi yalnız has-altın ONS bazında anlamlıdır; gram ve teorik
+    // ürünlerde (çeyrek/yarım/cumhuriyet/ziynet/bilezik) bunlar fiyat türevidir, kendi
+    // işlem hacimleri yoktur — history'de TL hacmi de bulunmadığından gösterilmez.
+    ...(isUsd ? [
+      {
+        label: 'İşlem Hacmi',
+        value: stats?.totalVolume != null
+          ? `${sym}${fmt(stats.totalVolume, 0)}`
+          : '-',
+      },
+      {
+        label: 'Miktar (Kg)',
+        value: stats?.totalQty != null
+          ? `${fmt(stats.totalQty, 3)} Kg`
+          : '-',
+      },
+      {
+        label: 'İşlem Sayısı',
+        value: stats?.totalTxCount != null
+          ? stats.totalTxCount.toLocaleString('tr-TR')
+          : '-',
+      },
+    ] : []),
   ];
 
   return (

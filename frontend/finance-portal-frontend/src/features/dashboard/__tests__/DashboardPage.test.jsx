@@ -107,6 +107,9 @@ vi.mock('../../../components/common/GridBoard', () => ({
 vi.mock('../components/MarketMoversCard', () => ({
   default: () => <div data-testid="movers-card">movers</div>,
 }));
+vi.mock('../components/VolumeLeadersCard', () => ({
+  default: () => <div data-testid="volume-leaders-card">volume</div>,
+}));
 vi.mock('../components/PersonalNewsCard', () => ({
   default: () => <div data-testid="personal-news-card">news</div>,
 }));

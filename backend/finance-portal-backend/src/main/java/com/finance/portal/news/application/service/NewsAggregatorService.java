@@ -2,6 +2,7 @@ package com.finance.portal.news.application.service;
 
 import com.finance.portal.news.application.model.NewsArticle;
 import com.finance.portal.news.application.model.NewsDetail;
+import com.finance.portal.news.application.model.RelatedAsset;
 import com.finance.portal.news.application.model.NewsQueryResult;
 import com.finance.portal.news.application.port.TranslationPort;
 import com.finance.portal.news.application.port.UserHoldingsPort;
@@ -42,15 +43,18 @@ public class NewsAggregatorService {
     private final com.finance.portal.news.application.port.ArticleContentPort contentPort;
     private final TranslationPort translationPort;
     private final UserHoldingsPort holdingsPort;
+    private final NewsAssetMatcher assetMatcher;
 
     public NewsAggregatorService(NewsAggregateCache cache,
                                  com.finance.portal.news.application.port.ArticleContentPort contentPort,
                                  TranslationPort translationPort,
-                                 UserHoldingsPort holdingsPort) {
+                                 UserHoldingsPort holdingsPort,
+                                 NewsAssetMatcher assetMatcher) {
         this.cache = cache;
         this.contentPort = contentPort;
         this.translationPort = translationPort;
         this.holdingsPort = holdingsPort;
+        this.assetMatcher = assetMatcher;
     }
 
     @WithSpan("NewsAggregatorService.query")
@@ -131,6 +135,15 @@ public class NewsAggregatorService {
             content = contentPort.fetchContent(matchUrl);
         }
 
+        // İlgili varlık tespiti — ÇEVİRİDEN ÖNCE, orijinal metinden (sembol/ad eşleşmesi
+        // en güvenli orijinal dilde; çeviri sembolleri/özel adları bozabilir).
+        List<RelatedAsset> relatedAssets;
+        try {
+            relatedAssets = assetMatcher.match(match.getTitle(), match.getDescription(), content);
+        } catch (Exception e) {
+            relatedAssets = List.of();
+        }
+
         // UI dili makale dilinden farklıysa başlık+özet+içerik (ve ilgili başlıkları) çevir — best-effort.
         NewsArticle out = match;
         String tgt = norm(lang);
@@ -144,7 +157,7 @@ public class NewsAggregatorService {
             }
             related = translatePage(related, tgt);
         }
-        return new NewsDetail(out, related, content);
+        return new NewsDetail(out, related, content, relatedAssets);
     }
 
     /**

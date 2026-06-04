@@ -32,6 +32,14 @@ public class MarketMover {
     private final BigDecimal changePercent;
     /** Logo URL (kripto), yoksa null. */
     private final String image;
+    /** Günlük işlem hacmi (hacim liderleri için; movers'ta null olabilir). Birimi currency'ye göre. */
+    private final BigDecimal volume;
+
+    /** Eski 8-parametreli kurucu — hareketliler (movers) yolunda hacim taşınmaz (volume=null). */
+    public MarketMover(String type, String id, String symbol, String name,
+                       BigDecimal price, String currency, BigDecimal changePercent, String image) {
+        this(type, id, symbol, name, price, currency, changePercent, image, null);
+    }
 
     @JsonCreator
     public MarketMover(
@@ -42,7 +50,8 @@ public class MarketMover {
             @JsonProperty("price") BigDecimal price,
             @JsonProperty("currency") String currency,
             @JsonProperty("changePercent") BigDecimal changePercent,
-            @JsonProperty("image") String image
+            @JsonProperty("image") String image,
+            @JsonProperty("volume") BigDecimal volume
     ) {
         this.type = type;
         this.id = id;
@@ -52,5 +61,6 @@ public class MarketMover {
         this.currency = currency;
         this.changePercent = changePercent;
         this.image = image;
+        this.volume = volume;
     }
 }

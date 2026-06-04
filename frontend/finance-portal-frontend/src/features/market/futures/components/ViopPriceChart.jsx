@@ -7,6 +7,7 @@ import UniversalCompareButton from '../../../../components/common/UniversalCompa
 import TrendBadge from '../../../../components/common/TrendBadge';
 import IndicatorMenu from '../../../../components/common/IndicatorMenu';
 import { buildTrendItem } from '../../../../utils/trendUtils';
+import { useYAxisWheelZoom } from '../../../../hooks/useYAxisWheelZoom';
 
 // ── Custom Overlay Kayıtları (bir kez çalışır) ────────────────────────────────
 let overlaysRegistered = false;
@@ -565,6 +566,9 @@ export default function ViopPriceChart({ contractName }) {
   const rsiPaneId = useRef(null); // RSI pane ID'sini sakla
 
   const chartInstanceRef = useRef(null);
+
+  // Fiyat ekseninde fare tekerleği ile dikey zoom.
+  useYAxisWheelZoom(chartInstanceRef, !loading);
 
   const [compareName, setCompareName]       = useState(null);
   const [comparePoints, setComparePoints]   = useState([]);

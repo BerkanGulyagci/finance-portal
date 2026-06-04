@@ -3,6 +3,7 @@ import { ChevronDown, Trash2, X, SlidersHorizontal } from 'lucide-react';
 import { init as klineInit, dispose as klineDispose, registerOverlay } from 'klinecharts';
 import { useTranslation } from '../../../../context/LanguageContext';
 import { useChartDrawings } from '../../../../hooks/useChartDrawings';
+import { useYAxisWheelZoom } from '../../../../hooks/useYAxisWheelZoom';
 
 // ── Sabitler ──────────────────────────────────────────────────────────────────
 // FX geçmişi TCMB'den gün-gün çekildiği için "Tüm" yok; en uzun 10Y (yıl başına ~260 istek, cache+LKG'li).
@@ -158,6 +159,9 @@ export default function FxChart({ symbol, chartPoints, lineColor, mainLabel, ran
   const chartId = useRef(`kline_fx_${Date.now()}`);
   const chartRef = useRef(null);
   const indicatorPaneIds = useRef({});
+
+  // Fiyat ekseninde fare tekerleği ile dikey zoom.
+  useYAxisWheelZoom(chartRef, !loadingChart);
 
   const [activeMAs, setActiveMAs] = useState([]);
   const [activeSubInds, setActiveSubInds] = useState([]);

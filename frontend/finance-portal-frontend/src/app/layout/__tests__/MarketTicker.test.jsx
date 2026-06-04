@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { MarketTicker } from '../MarketTicker';
 import { LanguageProvider } from '../../../context/LanguageContext';
 import { TICKER_PREFS_KEY } from '../../../utils/tickerPrefs';
@@ -27,9 +28,11 @@ const TICKER_OPEN_STORAGE_KEY = 'finance-portal-market-ticker-open';
 // LanguageProvider varsayılan dili "tr" → t(key) anahtarın kendisini döndürür.
 function renderTicker() {
   return render(
-    <LanguageProvider>
-      <MarketTicker />
-    </LanguageProvider>
+    <MemoryRouter>
+      <LanguageProvider>
+        <MarketTicker />
+      </LanguageProvider>
+    </MemoryRouter>
   );
 }
 

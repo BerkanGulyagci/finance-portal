@@ -265,6 +265,12 @@ public class CacheConfig {
                                 .entryTtl(Duration.ofSeconds(120))
                                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(
                                         new GenericJackson2JsonRedisSerializer())))
+                // Hacim liderleri — movers ile aynı kaynak/tazelik (günlük işlem hacmine göre top-N)
+                .withCacheConfiguration("market.volumeLeaders",
+                        RedisCacheConfiguration.defaultCacheConfig()
+                                .entryTtl(Duration.ofSeconds(120))
+                                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(
+                                        new GenericJackson2JsonRedisSerializer())))
                 .withCacheConfiguration("market.crypto.chart", cryptoChartCacheConfig)
                 .withCacheConfiguration("market.crypto.ohlc", cryptoChartCacheConfig)
                 .withCacheConfiguration("market.crypto.binance.candles", cryptoChartCacheConfig)

@@ -44,12 +44,14 @@ class NewsAggregatorServiceMoreTest {
     private TranslationPort translationPort;
     @Mock
     private UserHoldingsPort holdingsPort;
+    @Mock
+    private NewsAssetMatcher assetMatcher;
 
     private NewsAggregatorService service;
 
     @BeforeEach
     void setUp() {
-        service = new NewsAggregatorService(cache, contentPort, translationPort, holdingsPort);
+        service = new NewsAggregatorService(cache, contentPort, translationPort, holdingsPort, assetMatcher);
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────

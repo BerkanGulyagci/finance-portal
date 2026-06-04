@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useState, useRef, useId, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ChevronDown, ChevronUp, LineChart } from 'lucide-react';
 import {
   readTickerPrefs,
@@ -25,6 +26,48 @@ const TICKER_OPEN_STORAGE_KEY = 'finance-portal-market-ticker-open';
 const COLOR_UP = '#10b981';
 const COLOR_DOWN = '#ef4444';
 const COLOR_NEUTRAL = '#64748b';
+
+// Custom ticker varlık tipi → detay route segmenti
+const CUSTOM_ROUTE_SEG = {
+  STOCK: 'stocks', CRYPTO: 'crypto', FX: 'fx', FUTURE: 'futures',
+  COMMODITY: 'commodities', FUND: 'tefas', BOND: 'bonds',
+};
+
+/**
+ * Ticker öğesinin tıklanınca gideceği detay route'unu çözer.
+ * Karşılığı olmayan (ekonomi göstergesi gibi) öğelerde null döner → tıklanamaz.
+ */
+function tickerHref(item) {
+  const key = item.key || '';
+  const [kind, rest] = key.split(':');
+
+  switch (kind) {
+    case 'fx':
+    case 'bank':
+      return rest ? `/market/fx/${encodeURIComponent(rest.toUpperCase())}` : null;
+    case 'crypto':
+      // Detay route coinId ister (ör. "bitcoin"); yoksa link verme.
+      return item.coinId ? `/market/crypto/${encodeURIComponent(item.coinId)}` : null;
+    case 'bist':
+      return rest ? `/market/indices/${encodeURIComponent(rest.toUpperCase())}` : null;
+    case 'gold':
+      return '/market/gold';
+    case 'eco':
+      // Ekonomi göstergeleri (TÜFE/faiz/ÜFE/mevduat) → Türkiye ekonomisi sayfası
+      return '/market/economy';
+    case 'custom': {
+      // key = custom:ASSETTYPE:SYMBOL
+      const parts = key.split(':');
+      const assetType = parts[1];
+      const symbol = parts.slice(2).join(':');
+      if (assetType === 'GOLD') return '/market/gold';
+      const seg = CUSTOM_ROUTE_SEG[assetType];
+      return seg && symbol ? `/market/${seg}/${encodeURIComponent(symbol)}` : null;
+    }
+    default:
+      return null;
+  }
+}
 
 function Sparkline({ data, color }) {
   const gradId = useId().replace(/:/g, '');
@@ -148,6 +191,7 @@ function sparkFromGoldHist(hist, maxPoints = 36) {
 
 export function MarketTicker() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [allItems, setAllItems] = useState([]);
   const [customItems, setCustomItems] = useState([]);
   const [customDefs, setCustomDefs] = useState(readCustomTickerItems);
@@ -275,7 +319,7 @@ export function MarketTicker() {
         addBankRate(bankEur, 'EUR', histEur);
         addBankRate(bankGbp, 'GBP', histGbp);
 
-        // Altın/ONS — spot + /api/gold/history (USD ONS) ile büyük grafikle aynı seri
+        // Altın/ONS — spot + /api/v1/gold/history (USD ONS) ile büyük grafikle aynı seri
         if (goldSpot?.price) {
           const val = parseFloat(goldSpot.price);
           const spotChg = parseFloat(goldSpot.changePercent ?? 0);
@@ -312,6 +356,7 @@ export function MarketTicker() {
           const d = dir ?? dirFromChangePct(chgApi);
           result.push({
             key: `crypto:${sym}`,
+            coinId: c.id,            // CoinGecko id (ör. "bitcoin") — detay route'u için
             label: c.symbol?.toUpperCase(),
             value: val.toLocaleString('tr-TR', { minimumFractionDigits: 0 }),
             change: ch,
@@ -490,8 +535,10 @@ export function MarketTicker() {
     const isDown = item.dir === 'down';
     const valueColor = isUp ? COLOR_UP : isDown ? COLOR_DOWN : COLOR_NEUTRAL;
     const sparkColor = isUp ? COLOR_UP : isDown ? COLOR_DOWN : COLOR_NEUTRAL;
-    return (
-      <div className="flex items-center gap-3 shrink-0 px-5 border-r border-gray-200 last:border-r-0 min-w-[160px] max-w-[240px]">
+    const href = tickerHref(item);
+
+    const inner = (
+      <>
         <div className="flex-1 min-w-0">
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5 truncate" title={item.label}>{item.label}</p>
           <p className="text-sm font-bold leading-tight" style={{ color: valueColor }}>{item.value}</p>
@@ -502,8 +549,25 @@ export function MarketTicker() {
           )}
         </div>
         <Sparkline data={item.spark} color={sparkColor} />
-      </div>
+      </>
     );
+
+    const baseCls = 'flex items-center gap-3 shrink-0 px-5 border-r border-gray-200 last:border-r-0 min-w-[160px] max-w-[240px]';
+
+    // Detay sayfası olan öğeler tıklanabilir; olmayanlar (ekonomi göstergesi) düz kutu.
+    if (href) {
+      return (
+        <button
+          type="button"
+          onClick={() => navigate(href)}
+          className={`${baseCls} text-left cursor-pointer hover:bg-[#eef4ff] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#093eaa]/40`}
+          title={`${item.label} ${t('detayına git')}`}
+        >
+          {inner}
+        </button>
+      );
+    }
+    return <div className={baseCls}>{inner}</div>;
   };
 
   return (

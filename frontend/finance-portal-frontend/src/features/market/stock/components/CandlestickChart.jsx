@@ -4,6 +4,7 @@ import { init as klineInit, dispose as klineDispose } from 'klinecharts';
 import DrawingToolbar from './DrawingToolbar';
 import { getStockOhlc } from '../../../../api/marketApi';
 import { useChartDrawings } from '../../../../hooks/useChartDrawings';
+import { useYAxisWheelZoom } from '../../../../hooks/useYAxisWheelZoom';
 import {
   MA_PERIODS, SUB_INDICATORS,
   maLineStyles, STOCK_WARMUP_RANGE, RANGE_WINDOW_MS, fitVisibleToWindow,
@@ -45,6 +46,9 @@ export default function CandlestickChart({ symbol }) {
   const {
     activeTool, setActiveTool, handleSelectTool, handleDeleteSelected, handleClearAll, restoreOverlays,
   } = useChartDrawings({ chartRef, chartIdRef: chartId, persistKey: `chart-overlays:${symbol}` });
+
+  // Fiyat ekseni üzerinde fare tekerleği = dikey zoom (sürükleme zaten klinecharts'ta var).
+  useYAxisWheelZoom(chartRef, !loading);
 
   // MA toggle — calcParams ile tüm aktif periyotları tek seferde set et
   const applyMA = useCallback((periods) => {

@@ -177,4 +177,93 @@ public class MarketMoversService {
                 .limit(n)
                 .collect(Collectors.toCollection(ArrayList::new));
     }
+
+    // ════════════════════════════════════════════════════════════════════════
+    //  Hacim liderleri — günlük işlem hacmi EN YÜKSEK enstrümanlar (tip-bazlı).
+    //  Birimler tipler arası farklı (hisse/kripto TL, emtia/ons USD) → sekmeli,
+    //  her tip kendi içinde sıralanır. Hacmi olmayan tipler (döviz/fon/tahvil) yok.
+    // ════════════════════════════════════════════════════════════════════════
+
+    /** Tüm kategoriler için günlük hacmi en yüksek top-N. Cache 120 sn. */
+    @Cacheable(cacheNames = "market.volumeLeaders", key = "'all:' + #limit")
+    public List<MoversCategory> getVolumeLeaders(int limit) {
+        return new ArrayList<>(List.of(
+                cryptoVolumeLeaders(limit),
+                stockVolumeLeaders(limit),
+                commodityVolumeLeaders(limit)));
+    }
+
+    private MoversCategory cryptoVolumeLeaders(int limit) {
+        List<MarketMover> all = new ArrayList<>();
+        try {
+            for (CryptoMarketItem c : cryptoMarketService.getAllCoins("try")) {
+                if (c.getTotalVolume() == null || c.getCurrentPrice() == null) continue;
+                all.add(new MarketMover(
+                        "CRYPTO", c.getId(),
+                        c.getSymbol() != null ? c.getSymbol().toUpperCase(Locale.ROOT) : c.getId(),
+                        c.getName(), c.getCurrentPrice(), "TRY",
+                        c.getPriceChangePercentage24h(), c.getImage(), c.getTotalVolume()));
+            }
+        } catch (Exception e) {
+            log.warn("[VolumeLeaders] kripto listesi alınamadı: {}", e.getMessage());
+        }
+        return new MoversCategory("crypto", "Kripto", topByVolume(all, limit), new ArrayList<>());
+    }
+
+    private MoversCategory stockVolumeLeaders(int limit) {
+        List<MarketMover> all = new ArrayList<>();
+        try {
+            StockPageResponse first = stockQueryService.getPagedStockSummaries(0, STOCK_PAGE_SIZE);
+            addStockVolumes(all, first.getContent());
+            int totalPages = first.getTotalPages();
+            for (int p = 1; p < totalPages; p++) {
+                addStockVolumes(all, stockQueryService.getPagedStockSummaries(p, STOCK_PAGE_SIZE).getContent());
+            }
+        } catch (Exception e) {
+            log.warn("[VolumeLeaders] hisse listesi alınamadı: {}", e.getMessage());
+        }
+        return new MoversCategory("stock", "BIST Hisse", topByVolume(all, limit), new ArrayList<>());
+    }
+
+    private void addStockVolumes(List<MarketMover> out, List<StockSummary> content) {
+        if (content == null) return;
+        for (StockSummary s : content) {
+            if (s.getVolume() == null || s.getSymbol() == null) continue;
+            out.add(new MarketMover("STOCK", s.getSymbol(), s.getSymbol(), s.getName(),
+                    s.getPrice(), "TRY", s.getChangePercent(), null,
+                    BigDecimal.valueOf(s.getVolume())));
+        }
+    }
+
+    private MoversCategory commodityVolumeLeaders(int limit) {
+        List<MarketMover> all = new ArrayList<>();
+        try {
+            for (CommodityDto cd : commodityService.listEnabledCommodities()) {
+                try {
+                    CommoditySpotDto spot = commodityService.getSpot(cd.getSymbol());
+                    if (spot == null || spot.getVolume() == null) continue;
+                    String display = cd.getDisplayNameTr() != null ? cd.getDisplayNameTr()
+                            : (cd.getDisplayNameEn() != null ? cd.getDisplayNameEn() : cd.getSymbol());
+                    String cur = spot.getDisplayCurrency() != null ? spot.getDisplayCurrency() : "USD";
+                    all.add(new MarketMover("COMMODITY", cd.getSymbol(), display, display,
+                            spot.getDisplayPrice(), cur, spot.getChangePercent(), null,
+                            BigDecimal.valueOf(spot.getVolume())));
+                } catch (Exception ignore) {
+                    // tek emtia hatası tüm kategoriyi düşürmesin
+                }
+            }
+        } catch (Exception e) {
+            log.warn("[VolumeLeaders] emtia listesi alınamadı: {}", e.getMessage());
+        }
+        return new MoversCategory("commodity", "Emtia", topByVolume(all, limit), new ArrayList<>());
+    }
+
+    /** Hacme göre azalan sırada top-n (volume null/<=0 elenir). ArrayList döner. */
+    private List<MarketMover> topByVolume(List<MarketMover> items, int n) {
+        return items.stream()
+                .filter(m -> m.getVolume() != null && m.getVolume().signum() > 0)
+                .sorted(Comparator.comparing(MarketMover::getVolume).reversed())
+                .limit(n)
+                .collect(Collectors.toCollection(ArrayList::new));
+    }
 }

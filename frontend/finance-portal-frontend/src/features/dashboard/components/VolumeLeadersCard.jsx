@@ -1,15 +1,29 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, TrendingDown, Flame } from 'lucide-react';
+import { BarChart3 } from 'lucide-react';
 import DashCard from './DashCard';
-import { fmtPct, pctClass, num } from '../utils/dashUtils';
+import { num } from '../utils/dashUtils';
 import { useTranslation } from '../../../context/LanguageContext';
-import { getMarketMovers } from '../../../api/marketApi';
+import { getVolumeLeaders } from '../../../api/marketApi';
 import AssetIcon from '../../../components/instrument/AssetIcon';
 
 const ROUTE_SEG = { CRYPTO: 'crypto', STOCK: 'stocks', FX: 'fx', COMMODITY: 'commodities' };
 
-function MoverRow({ m, navigate }) {
+/** Büyük hacmi kompakt yazar: 1.234.567.890 → "1,23 Mr", 8.500.000 → "8,50 Mn". */
+function fmtVolume(v, currency) {
+  const n = num(v);
+  const sym = currency === 'TRY' ? '₺' : currency === 'USD' ? '$' : '';
+  const abs = Math.abs(n);
+  let out;
+  if (abs >= 1e12) out = `${(n / 1e12).toLocaleString('tr-TR', { maximumFractionDigits: 2 })} Tr`;
+  else if (abs >= 1e9) out = `${(n / 1e9).toLocaleString('tr-TR', { maximumFractionDigits: 2 })} Mr`;
+  else if (abs >= 1e6) out = `${(n / 1e6).toLocaleString('tr-TR', { maximumFractionDigits: 2 })} Mn`;
+  else if (abs >= 1e3) out = `${(n / 1e3).toLocaleString('tr-TR', { maximumFractionDigits: 1 })} B`;
+  else out = n.toLocaleString('tr-TR', { maximumFractionDigits: 0 });
+  return `${sym}${out}`;
+}
+
+function LeaderRow({ m, navigate }) {
   const seg = ROUTE_SEG[m.type] || 'stocks';
   const to = `/market/${seg}/${encodeURIComponent(m.id)}`;
   return (
@@ -17,21 +31,21 @@ function MoverRow({ m, navigate }) {
       onClick={() => navigate(to)}
       className="w-full flex items-center gap-2 py-1.5 px-1 rounded-lg hover:bg-gray-50 transition-colors text-left"
     >
-      {/* kripto→logo, hisse→Midas, döviz→bayrak (aynı); emtia→kaliteli lucide ikon */}
       <AssetIcon assetType={m.type} symbol={m.id} name={m.name} image={m.image} size={20} />
       <span className="text-xs font-semibold text-gray-800 flex-1 min-w-0 truncate">{m.symbol}</span>
-      <span className={`text-xs font-bold tabular-nums shrink-0 ${pctClass(num(m.changePercent))}`}>
-        {fmtPct(num(m.changePercent))}
+      <span className="text-xs font-bold tabular-nums shrink-0 text-[#093eaa]">
+        {fmtVolume(m.volume, m.currency)}
       </span>
     </button>
   );
 }
 
 /**
- * Piyasanın Hareketlileri — günün en çok yükselen/düşen enstrümanları (tüm piyasa, sahip olunanlardan bağımsız).
- * Sekmeli: Kripto / BIST Hisse. Kendi verisini çeker (/api/v1/market/movers).
+ * Hacim Liderleri — günlük işlem hacmi en yüksek enstrümanlar (tüm piyasa, portföyden bağımsız).
+ * Sekmeli: Kripto / BIST Hisse / Emtia. Her tip kendi içinde hacme göre sıralanır
+ * (birimler farklı: hisse/kripto TL, emtia USD). Kendi verisini çeker (/api/v1/market/volume-leaders).
  */
-export default function MarketMoversCard() {
+export default function VolumeLeadersCard() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [cats, setCats] = useState([]);
@@ -40,7 +54,7 @@ export default function MarketMoversCard() {
 
   useEffect(() => {
     let cancelled = false;
-    getMarketMovers(5)
+    getVolumeLeaders(5)
       .then(list => { if (!cancelled) setCats(Array.isArray(list) ? list : []); })
       .catch(() => {})
       .finally(() => { if (!cancelled) setLoading(false); });
@@ -48,10 +62,11 @@ export default function MarketMoversCard() {
   }, []);
 
   const cat = cats[active];
-  const empty = !cat || ((cat.gainers?.length ?? 0) === 0 && (cat.losers?.length ?? 0) === 0);
+  const leaders = cat?.gainers ?? [];
+  const empty = leaders.length === 0;
 
   return (
-    <DashCard title={t('Piyasanın Hareketlileri')} icon={Flame} accent="#ef4444" scroll>
+    <DashCard title={t('Hacim Liderleri')} icon={BarChart3} accent="#093eaa" scroll>
       {cats.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-3">
           {cats.map((c, i) => (
@@ -77,24 +92,12 @@ export default function MarketMoversCard() {
       ) : empty ? (
         <div className="py-6 text-center text-xs text-gray-400">{t('Veri yok')}</div>
       ) : (
-        <div className="space-y-3">
-          <div>
-            <div className="flex items-center gap-1.5 mb-1 text-[11px] font-bold text-emerald-600 uppercase tracking-wider">
-              <TrendingUp className="w-3.5 h-3.5" /> {t('En Çok Yükselenler')}
-            </div>
-            <div className="divide-y divide-gray-50">
-              {(cat.gainers ?? []).map(m => <MoverRow key={`g-${m.type}-${m.id}`} m={m} navigate={navigate} />)}
-              {(cat.gainers?.length ?? 0) === 0 && <p className="text-xs text-gray-400 py-1.5 px-1">—</p>}
-            </div>
+        <div>
+          <div className="flex items-center gap-1.5 mb-1 text-[11px] font-bold text-[#093eaa] uppercase tracking-wider">
+            <BarChart3 className="w-3.5 h-3.5" /> {t('En Yüksek Günlük Hacim')}
           </div>
-          <div>
-            <div className="flex items-center gap-1.5 mb-1 text-[11px] font-bold text-rose-600 uppercase tracking-wider">
-              <TrendingDown className="w-3.5 h-3.5" /> {t('En Çok Düşenler')}
-            </div>
-            <div className="divide-y divide-gray-50">
-              {(cat.losers ?? []).map(m => <MoverRow key={`l-${m.type}-${m.id}`} m={m} navigate={navigate} />)}
-              {(cat.losers?.length ?? 0) === 0 && <p className="text-xs text-gray-400 py-1.5 px-1">—</p>}
-            </div>
+          <div className="divide-y divide-gray-50">
+            {leaders.map(m => <LeaderRow key={`v-${m.type}-${m.id}`} m={m} navigate={navigate} />)}
           </div>
         </div>
       )}

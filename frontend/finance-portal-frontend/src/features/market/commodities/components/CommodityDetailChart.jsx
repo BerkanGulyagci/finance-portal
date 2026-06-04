@@ -4,6 +4,7 @@ import { Trash2, X, ChevronDown, TrendingUp, TrendingDown } from 'lucide-react';
 import { computeKlinePricePrecision, computeKlineVolumePrecision } from '../../../../utils/numberFormat';
 import { useTranslation } from '../../../../context/LanguageContext';
 import { useChartDrawings } from '../../../../hooks/useChartDrawings';
+import { useYAxisWheelZoom } from '../../../../hooks/useYAxisWheelZoom';
 import TrendBadge from '../../../../components/common/TrendBadge';
 import IndicatorMenu from '../../../../components/common/IndicatorMenu';
 import { buildTrendItem } from '../../../../utils/trendUtils';
@@ -203,6 +204,9 @@ export default function CommodityDetailChart({
   const {
     activeTool, setActiveTool, handleSelectTool, handleDeleteSelected, handleClearAll, restoreOverlays,
   } = useChartDrawings({ chartRef, chartIdRef: chartId, persistKey: persistId ? `chart-overlays:${persistId}` : '' });
+
+  // Fiyat ekseninde fare tekerleği ile dikey zoom
+  useYAxisWheelZoom(chartRef);
 
   // Trend rozeti — fiyat serisinden (MA20/50 + 52h konumu)
   const trendItem = useMemo(

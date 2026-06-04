@@ -4,6 +4,7 @@ import { computeKlinePricePrecision, computeKlineVolumePrecision } from '../../.
 import { COMPARE_COLORS, MA_OPTIONS } from '../utils/cryptoChartConfig';
 import { useTranslation } from '../../../../context/LanguageContext';
 import { useChartDrawings } from '../../../../hooks/useChartDrawings';
+import { useYAxisWheelZoom } from '../../../../hooks/useYAxisWheelZoom';
 import DrawingToolbar from '../../stock/components/DrawingToolbar';
 
 export default function CryptoLineChart({ chartData, currency, compareCoins, compareData, coinId, mainCoinSymbol, activeMAs }) {
@@ -26,6 +27,9 @@ export default function CryptoLineChart({ chartData, currency, compareCoins, com
     chartRef, chartIdRef: chartId,
     persistKey: (coinId && !isComparing) ? `chart-overlays:crypto:${coinId}` : '',
   });
+
+  // Fiyat ekseninde fare tekerleği ile dikey zoom
+  useYAxisWheelZoom(chartRef);
 
   useEffect(() => {
     if (!chartData || chartData.length === 0) return;

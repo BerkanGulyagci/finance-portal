@@ -29,6 +29,7 @@ import RecentTransactionsCard from './components/RecentTransactionsCard';
 import PersonalNewsCard from './components/PersonalNewsCard';
 import MarketListCard from './components/MarketListCard';
 import MarketMoversCard from './components/MarketMoversCard';
+import VolumeLeadersCard from './components/VolumeLeadersCard';
 import EconomyCard from './components/EconomyCard';
 import FavoritesCard from './components/FavoritesCard';
 import { num } from './utils/dashUtils';
@@ -289,6 +290,7 @@ export default function DashboardPage() {
       type="FUND" logoKind="letter" defaultRows={fundRows} loading={fundLoading} storageKey="fp-dash-fund-extra" />,
   });
   items.push({ key: 'movers', w: 4, h: 8, node: <MarketMoversCard /> });
+  items.push({ key: 'volume-leaders', w: 4, h: 8, node: <VolumeLeadersCard /> });
 
   charts.forEach(c => {
     const owner = assetPortfolios.find(p =>

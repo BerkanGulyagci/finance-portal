@@ -1,10 +1,23 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, ExternalLink, Newspaper, Clock, User, Link2 } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Newspaper, Clock, User, Link2, TrendingUp, ArrowUpRight } from 'lucide-react';
 import { getNewsDetail, proxyImageUrl } from '../../api/newsApi';
 import { Sidebar } from './components/Sidebar';
 import { useTranslation } from '../../context/LanguageContext';
 import { categoryBadgeClass, formatNewsDate, formatNewsTime } from '../../utils/newsUtils';
+
+// Tespit edilen varlık → detay grafik route'u (type'a göre)
+const ASSET_ROUTE_SEG = { STOCK: 'stocks', CRYPTO: 'crypto', FX: 'fx' };
+function assetChartHref(a) {
+  const seg = ASSET_ROUTE_SEG[a.type] || 'stocks';
+  return `/market/${seg}/${encodeURIComponent(a.symbol)}`;
+}
+// Rozette gösterilecek kısa sembol: hisse THYAO.IS → THYAO, kripto id "bitcoin" → BTC değil ad zaten var
+function displayAssetSymbol(a) {
+  if (a.type === 'STOCK' && a.symbol.includes('.')) return a.symbol.split('.')[0];
+  if (a.type === 'CRYPTO') return a.symbol.toUpperCase();
+  return a.symbol;
+}
 
 function ShareButtons({ url, title }) {
   const enc = encodeURIComponent(url || window.location.href);
@@ -86,6 +99,7 @@ export default function NewsDetailPage() {
   const article = data?.article;
   const related = data?.related ?? [];
   const content = data?.content;
+  const relatedAssets = data?.relatedAssets ?? [];
   const paragraphs = content ? content.split(/\n\n+/).filter(p => p.trim()) : [];
 
   return (
@@ -171,6 +185,28 @@ export default function NewsDetailPage() {
               <ShareButtons url={article.url} title={article.title} />
             </div>
           </article>
+        )}
+
+        {!loading && relatedAssets.length > 0 && (
+          <section className="mt-6">
+            <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-[#093eaa]" /> {t('Bu haberin ilgili olduğu varlıklar')}
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {relatedAssets.map(a => (
+                <Link
+                  key={`${a.type}-${a.symbol}`}
+                  to={assetChartHref(a)}
+                  className="inline-flex items-center gap-2 rounded-full border border-[#093eaa]/20 bg-[#093eaa]/5 px-3.5 py-1.5 text-sm font-semibold text-[#093eaa] hover:bg-[#093eaa]/10 transition-colors"
+                  title={`${a.name} ${t('grafiğine git')}`}
+                >
+                  <span className="font-bold">{displayAssetSymbol(a)}</span>
+                  <span className="text-xs text-gray-500 max-w-[140px] truncate">{a.name}</span>
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </Link>
+              ))}
+            </div>
+          </section>
         )}
 
         {!loading && related.length > 0 && (

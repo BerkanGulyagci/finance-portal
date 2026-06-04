@@ -3,6 +3,7 @@ import { Trash2, X, ChevronDown } from 'lucide-react';
 import { init as klineInit, dispose as klineDispose, registerOverlay } from 'klinecharts';
 import { getGlobalBondChart } from '../../../../api/marketApi';
 import { useTranslation } from '../../../../context/LanguageContext';
+import { useYAxisWheelZoom } from '../../../../hooks/useYAxisWheelZoom';
 
 // Custom overlay'leri bir kez kaydet (hisse sayfasıyla aynı; yeniden kayıt zararsız).
 let overlaysReady = false;
@@ -123,6 +124,7 @@ export default function EurobondChart({ isin }) {
   useEffect(() => { modeRef.current = mode; }, [mode]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  useYAxisWheelZoom(chartRef, !loading);
   const [activeMAs, setActiveMAs] = useState([]);
   const [activeSubs, setActiveSubs] = useState([]);
   const [activeTool, setActiveTool] = useState(null);

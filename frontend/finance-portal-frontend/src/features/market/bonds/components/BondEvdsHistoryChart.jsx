@@ -8,6 +8,7 @@ import UniversalCompareButton from '../../../../components/common/UniversalCompa
 import TrendBadge from '../../../../components/common/TrendBadge';
 import IndicatorMenu from '../../../../components/common/IndicatorMenu';
 import { buildTrendItem } from '../../../../utils/trendUtils';
+import { useYAxisWheelZoom } from '../../../../hooks/useYAxisWheelZoom';
 import {
   BOND_CHART_PERIODS,
   toKlineData, normalizeSeries, mergeByDate,
@@ -121,6 +122,7 @@ function BondKlineChart({
   const chartId  = useRef(`kline_bond_${Date.now()}`);
   const chartRef = useRef(null);
   const isComparing = !!compareCode && comparePoints.length > 0;
+  useYAxisWheelZoom(chartRef, !!(mainPoints && mainPoints.length > 0));
 
   // ── Grafik verisi değişince yeniden oluştur ──────────────────────────────
   useEffect(() => {

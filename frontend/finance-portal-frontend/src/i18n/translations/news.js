@@ -15,6 +15,8 @@ const en = {
   'Haber bulunamadı veya artık güncel listede değil.': 'News not found or no longer in the current list.',
   'Haberin devamını kaynakta oku': 'Read the full story at the source',
   'Bunlar da İlginizi Çekebilir': 'You Might Also Like',
+  'Bu haberin ilgili olduğu varlıklar': 'Assets related to this news',
+  'grafiğine git': 'go to chart',
 };
 
 export default { en };
