@@ -196,7 +196,7 @@ export default function StockComparePage() {
       )}
 
       {/* ── Normalize Grafik ── */}
-      {compared && !chartLoading && chartData.length > 0 && (
+      {compared && !chartLoading && chartData.length >= 2 && (
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3 sm:p-6">
           <div className="mb-4">
             <h2 className="font-bold text-gray-900">{t('Göreceli Performans (%)')}</h2>
@@ -228,6 +228,17 @@ export default function StockComparePage() {
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Yeterli veri yok (kıyaslandı ama ortak/çizilebilir veri < 2 nokta) ── */}
+      {compared && !chartLoading && chartData.length < 2 && (
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 sm:p-14 text-center">
+          <BarChart2 className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+          <p className="text-gray-500 font-semibold">{t('Yeterli veri bulunamadı')}</p>
+          <p className="text-gray-400 text-sm mt-1">
+            {t('Seçili varlıkların bu aralıkta ortak/yeterli geçmişi yok. Daha kısa bir aralık (ör. 6A) deneyin ya da farklı varlık seçin.')}
+          </p>
         </div>
       )}
 

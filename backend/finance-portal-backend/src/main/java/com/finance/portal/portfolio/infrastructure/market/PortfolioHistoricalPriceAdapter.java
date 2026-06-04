@@ -587,17 +587,29 @@ public class PortfolioHistoricalPriceAdapter implements PortfolioHistoricalPrice
             // 2) Yahoo USD × TCMB fallback
             NavigableMap<LocalDate, BigDecimal> usdDerived = fetchCryptoUsdFxFallback(baseSym, from, to);
             // Yahoo ticker çakışması koruması: türetilen güncel TL değeri coin'in gerçek güncel TRY
-            // fiyatından çok uzaksa (ör. HYPE-USD = farklı/ölü bir token) → yanlış token, kullanma.
+            // fiyatından çok uzaksa (ör. HYPE-USD = farklı/ölü bir token) → yanlış token.
+            boolean tokenMismatch = false;
             if (!usdDerived.isEmpty() && item != null && item.getCurrentPrice() != null
                     && item.getCurrentPrice().signum() > 0) {
                 double ratio = usdDerived.lastEntry().getValue().doubleValue()
                         / item.getCurrentPrice().doubleValue();
                 if (ratio < 0.2 || ratio > 5.0) {
                     log.debug("Crypto Yahoo fallback {} reddedildi (oran {} — yanlış token olabilir)", symbol, ratio);
-                    return PortfolioHistoricalPriceSeriesSupport.emptyMap();
+                    tokenMismatch = true;
                 }
             }
-            return usdDerived;
+            // Dar pencere (≤60 gün = price-at): Yahoo sonucunu olduğu gibi döndür. CoinGecko ~1 yıl ile
+            // sınırlı olduğundan eski tarihli price-at'te yanlış (güncel) fiyat vermesin diye CoinGecko'ya DÜŞME.
+            if (ChronoUnit.DAYS.between(from, to) <= 60) {
+                return tokenMismatch ? PortfolioHistoricalPriceSeriesSupport.emptyMap() : usdDerived;
+            }
+            // Geniş pencere (grafik): Yahoo'da ≥2 nokta + doğru token varsa kullan. Yoksa coin'in Binance/
+            // Yahoo'da uzun geçmişi yok (çok küçük/yeni coin) → CoinGecko'nun ~1 yıllık TRY serisine düş
+            // (5Y/Tüm istense bile elde edilebilir TÜM geçmişi ~1 yıl olabilir → 1 nokta yerine onu göster;
+            // rebase common-start kıyası adil tutar). Aşağıdaki CoinGecko bloğuna düşülür.
+            if (!tokenMismatch && usdDerived.size() >= 2) {
+                return usdDerived;
+            }
         }
 
         // Yakın tarih (≤1 yıl): önce CoinGecko TRY
@@ -1016,10 +1028,10 @@ public class PortfolioHistoricalPriceAdapter implements PortfolioHistoricalPrice
 
     /** Kripto gün sayısı (CoinGecko): 365 / N / max. */
     private static String cryptoDays(LocalDate from) {
-        long d = daysSince(from) + 5;
-        if (d <= 365) return "365";
-        if (d >= 1800) return "max";
-        return String.valueOf(d);
+        // CoinGecko ÜCRETSIZ market_chart en fazla 365 gün verir; daha fazlası (ör. 1Y için "370")
+        // 401/boş döner → seri gelmez, çağıran Yahoo'ya düşer (obscure coin'de 1 noktaya iner).
+        // Kısa-vade CoinGecko yolu en çok ~1 yıl ister → her zaman tam tavan: 365 gün.
+        return "365";
     }
 
     private static BigDecimal goldTheoryFactor(String upper) {
