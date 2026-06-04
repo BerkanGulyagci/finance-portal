@@ -952,6 +952,7 @@ const en = {
   'Hisse': 'Stock',
   'hisse': 'stocks',
   'sonuç (tüm hisseler)': 'results (all stocks)',
+  'hisse (tümü sıralandı)': 'stocks (all sorted)',
   'Tüm Hisseler': 'All Stocks',
   'Borsa İstanbul (BIST) hisse senedi fiyatları': 'Borsa Istanbul (BIST) stock prices',
   'Borsa İstanbul · Veriler 15 dk gecikmeli · Kaynak: Midas':

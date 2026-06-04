@@ -8,6 +8,7 @@ const en = {
   'haber': 'news',
   'Bu filtrelerde haber bulunamadı.': 'No news found for these filters.',
   'Daha Fazla Yükle': 'Load More',
+  'Daha Az Göster': 'Show Less',
   'az önce': 'just now',
   'dk önce': 'min ago',
   'saat önce': 'hours ago',

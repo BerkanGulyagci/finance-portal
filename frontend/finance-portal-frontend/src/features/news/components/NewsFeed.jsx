@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { RefreshCw, Newspaper } from 'lucide-react';
+import { RefreshCw, Newspaper, ChevronUp } from 'lucide-react';
 import { getNews, proxyImageUrl } from '../../../api/newsApi';
 import { useTranslation } from '../../../context/LanguageContext';
 import { categoryBadgeClass, formatNewsTime } from '../../../utils/newsUtils';
@@ -93,6 +93,14 @@ export function NewsFeed({ filters, onFacets }) {
       .finally(() => setLoading(false));
   }
 
+  // "Daha Az Göster" — yüklenen fazlalığı geri sar, ilk sayfaya (PAGE_SIZE) dön.
+  // İlk sayfa zaten elde olduğundan yeniden fetch gerekmez.
+  function showLess() {
+    setItems(prev => prev.slice(0, PAGE_SIZE));
+    setPage(1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   return (
     <div className="space-y-4">
       <p className="text-xs text-gray-400 px-1">{total} {t('haber')}</p>
@@ -121,15 +129,26 @@ export function NewsFeed({ filters, onFacets }) {
         </div>
       )}
 
-      {!loading && page < totalPages && items.length > 0 && (
-        <div className="flex justify-center pt-2">
-          <button
-            onClick={loadMore}
-            className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-6 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            {t('Daha Fazla Yükle')}
-            <RefreshCw className="w-4 h-4" />
-          </button>
+      {!loading && items.length > 0 && (page < totalPages || page > 1) && (
+        <div className="flex justify-center items-center gap-3 pt-2">
+          {page < totalPages && (
+            <button
+              onClick={loadMore}
+              className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-6 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              {t('Daha Fazla Yükle')}
+              <RefreshCw className="w-4 h-4" />
+            </button>
+          )}
+          {page > 1 && (
+            <button
+              onClick={showLess}
+              className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-6 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <ChevronUp className="w-4 h-4" />
+              {t('Daha Az Göster')}
+            </button>
+          )}
         </div>
       )}
     </div>

@@ -2,7 +2,6 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Check, BarChart2 } from 'lucide-react';
 import { getStocks, getAllStocks } from '../../../api/marketApi';
-import { useSortable } from '../../../hooks/useSortable';
 import SortableTh from '../../../components/common/SortableTh';
 import WatchlistStar from '../../../components/instrument/WatchlistStar';
 import InstrumentLogo from '../../../components/instrument/InstrumentLogo';
@@ -80,20 +79,65 @@ export default function StocksPage() {
 
   const items = pageData?.content ?? [];
 
-  const filtered = useMemo(() => {
-    if (!search.trim()) return items;
-    const q = search.toLowerCase();
-    // Arama varsa tüm hisseler cache'inden filtrele
-    const source = allStocksCache.length > 0 ? allStocksCache : items;
-    return source.filter(s =>
-      s.symbol?.toLowerCase().includes(q) ||
-      s.name?.toLowerCase().includes(q)
-    );
-  }, [items, allStocksCache, search]);
+  // Sıralama state'i — sortKey null ise "doğal" sıra (server pagination).
+  const [sortKey, setSortKey] = useState(null);
+  const [sortDir, setSortDir] = useState('asc');
+  const handleSort = useCallback((key) => {
+    setPage(0); // sıralama değişince ilk sayfaya dön
+    setSortKey(prevKey => {
+      if (prevKey === key) {
+        setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+        return key;
+      }
+      setSortDir('asc');
+      return key;
+    });
+  }, []);
 
-  const { sorted, sortKey, sortDir, handleSort } = useSortable(filtered, 'symbol', 'asc');
-  const totalPages    = pageData?.totalPages ?? 0;
-  const totalElements = pageData?.totalElements ?? 0;
+  // Veri kaynağı: arama VEYA sıralama aktifse TÜM hisseler (cache); değilse sayfa verisi.
+  // Böylece bir sütuna basınca sadece görünen sayfa değil, TÜM liste sıralanır.
+  const useFullList = (!!search.trim() || !!sortKey) && allStocksCache.length > 0;
+
+  const baseRows = useMemo(() => {
+    if (!useFullList) return items;
+    let rows = allStocksCache;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      rows = rows.filter(s => s.symbol?.toLowerCase().includes(q) || s.name?.toLowerCase().includes(q));
+    }
+    // Endeks filtresi aktifse (BIST30/50/100) o filtrenin sembolleriyle sınırla — cache tüm hisseler.
+    // activeIndex varken zaten ayrı endeks listesi geliyor; full-list yolunda endeks filtresi
+    // uygulanamıyorsa (cache'te endeks üyeliği yok) activeIndex'te server verisine düşülür.
+    return rows;
+  }, [useFullList, items, allStocksCache, search]);
+
+  // Sıralama (client-side) — sortKey varsa baseRows'u sırala.
+  const sortedAll = useMemo(() => {
+    if (!sortKey || !baseRows?.length) return baseRows;
+    return [...baseRows].sort((a, b) => {
+      const av = a[sortKey], bv = b[sortKey];
+      const an = parseFloat(String(av ?? '').replace(',', '.').replace('%', ''));
+      const bn = parseFloat(String(bv ?? '').replace(',', '.').replace('%', ''));
+      if (!isNaN(an) && !isNaN(bn)) return sortDir === 'asc' ? an - bn : bn - an;
+      const as = String(av ?? '').toLowerCase(), bs = String(bv ?? '').toLowerCase();
+      if (as < bs) return sortDir === 'asc' ? -1 : 1;
+      if (as > bs) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [baseRows, sortKey, sortDir]);
+
+  // Full-list yolunda client-side sayfalama; aksi halde server verisi olduğu gibi.
+  const clientPaged = useFullList && !search.trim() && sortKey
+    ? sortedAll.slice(page * currentSize, page * currentSize + currentSize)
+    : sortedAll;
+
+  const sorted = clientPaged;
+  // Sayfa sayısı: full-list sıralamada cache uzunluğundan; aksi halde server'dan.
+  const serverTotalPages = pageData?.totalPages ?? 0;
+  const serverTotalElements = pageData?.totalElements ?? 0;
+  const clientSorting = useFullList && !search.trim() && !!sortKey;
+  const totalPages    = clientSorting ? Math.ceil(sortedAll.length / currentSize) : serverTotalPages;
+  const totalElements = clientSorting ? sortedAll.length : serverTotalElements;
 
   const thProps = (key, label, align = 'left') => ({
     label, sortKey: key, currentKey: sortKey, currentDir: sortDir, onSort: handleSort, align
@@ -163,7 +207,13 @@ export default function StocksPage() {
               className="px-3 py-2 border border-gray-200 rounded-xl text-sm hover:bg-gray-50">✕</button>
           )}
           <span className="text-xs text-gray-400 ml-auto">
-            {activeIndex ? `${sorted.length} ${t('hisse')}` : search ? `${sorted.length} ${t('sonuç (tüm hisseler)')}` : `${t('Sayfa')} ${page + 1} / ${totalPages} · ${sorted.length} ${t('sonuç')}`}
+            {activeIndex
+              ? `${sorted.length} ${t('hisse')}`
+              : search
+                ? `${sorted.length} ${t('sonuç (tüm hisseler)')}`
+                : clientSorting
+                  ? `${t('Sayfa')} ${page + 1} / ${totalPages} · ${totalElements} ${t('hisse (tümü sıralandı)')}`
+                  : `${t('Sayfa')} ${page + 1} / ${totalPages} · ${sorted.length} ${t('sonuç')}`}
           </span>
         </div>
 
@@ -232,14 +282,14 @@ export default function StocksPage() {
           </div>
         )}
 
-        {/* Pagination — sadece endeks filtresi ve arama yokken */}
-        {!loading && !activeIndex && !search && (
+        {/* Pagination — endeks filtresi ve arama yokken (sıralamada client-side sayfalama). */}
+        {!loading && !activeIndex && !search && totalPages > 1 && (
           <Pagination
             page={page}
             totalPages={totalPages}
             totalElements={totalElements}
             unitLabel="hisse"
-            onChange={handlePageChange}
+            onChange={clientSorting ? (p) => { setPage(p); window.scrollTo(0, 0); } : handlePageChange}
           />
         )}
       </div>
