@@ -141,9 +141,11 @@ export function useStockCompare() {
       const gr = toGenericRange(rangeObj.range);
       const results = await Promise.all(defs.map(async d => {
         try {
-          // Fonlar: Rasyonet fon-kartından (TEK hızlı çağrı) — TEFAS-aralık yolu pencere-pencere
-          // throttle'lı olduğu için yavaştı. TEFAS Compare ile aynı kaynak. Diğer türler: generic.
-          const res = d.assetType === 'FUND'
+          // Fonlarda KISA aralık (≤1Y) → Rasyonet fon-kartından (TEK hızlı çağrı) — TEFAS-aralık yolu
+          // pencere-pencere throttle'lı olduğu için yavaştı. 5Y/Tüm → generic (TEFAS, tam geçmiş):
+          // Rasyonet kartı ~1 yıl tuttuğundan uzun aralıkta fonun geçmişini kısaltıyordu. Diğer türler: generic.
+          const fundShort = d.assetType === 'FUND' && gr !== '5Y' && gr !== 'ALL';
+          const res = fundShort
             ? await getFundCompareHistory(d.symbol, gr)
             : await getMarketPriceHistory(d.assetType, d.symbol, gr);
           return { key: d.key, timestamps: res?.timestamps ?? [], prices: res?.closePrices ?? [] };
@@ -224,7 +226,12 @@ export function useStockCompare() {
       let label;
       if (rangeObj.range === '1d') label = d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
       else if (rangeObj.range === '5d') label = d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-      else label = d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: rangeObj.range === '5y' ? '2-digit' : undefined });
+      // 1Y/5Y/Tüm gibi çok-yıllı aralıklarda yılı göster (x-ekseni + hover'da "28 Tem 25" —
+      // yoksa çok-yıllı grafikte "28 Tem" hangi yıl belirsiz kalıyordu).
+      else {
+        const longSpan = rangeObj.range === '1y' || rangeObj.range === '5y' || rangeObj.range === 'max';
+        label = d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: longSpan ? '2-digit' : undefined });
+      }
       return { ...row, label };
     });
     // Adil kıyas: farklı geçmişli hisselerde tümünü ortak başlangıçtan %0'a sabitle
