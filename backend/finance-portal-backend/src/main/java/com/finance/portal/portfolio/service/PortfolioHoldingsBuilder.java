@@ -419,8 +419,13 @@ public class PortfolioHoldingsBuilder {
                 }
             } else {
                 if (openQuantity.compareTo(BigDecimal.ZERO) <= 0) {
-                    throw new IllegalStateException(
-                            "SELL with non-positive open quantity for " + symbol + " " + assetType);
+                    // Sağlamlık: açık miktar yokken gelen SELL (yanlış-tarihli/tutarsız işlem) — tüm
+                    // portföyü 500'lemek yerine bu SELL'i ATLA + uyar. Tek bir veri-giriş hatası
+                    // (ör. BUY'dan önce dateli SELL) bütün portföy sayfasını kilitlemesin. Önceden
+                    // IllegalStateException fırlatıp getUserPortfolios'u komple patlatıyordu.
+                    log.warn("SELL atlandı — açık miktar yok/negatif: {} {} (qty={}, txId={})",
+                            symbol, assetType, qty, tx.getId());
+                    return;
                 }
 
                 BigDecimal preSellQty = openQuantity;
