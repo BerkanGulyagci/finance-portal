@@ -224,7 +224,16 @@ export default function TransactionsTable({ transactions = [], onDelete, deletin
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm font-mono">
-                      {isCoupon ? '—' : fmtQty(t.quantity)}
+                      {isCoupon ? '—' : (
+                        <>
+                          {fmtQty(t.quantity)}
+                          {/* DİBS (altın-dışı, parScale=100) miktarı yüz/nominal değerdir → "nominal" etiketi.
+                              Altın senet (parScale=1, gram) ve kupon (—) hariç. */}
+                          {isBondTx && bondParScale !== 1 && (
+                            <span className="text-gray-400"> {tr('nominal')}</span>
+                          )}
+                        </>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm">
                       {isCoupon ? '—' : fmt(t.price)}

@@ -719,7 +719,7 @@ export default function AddTransactionModal({
       return `${num} ${commodityUnit} (${symShort})`;
     }
     if (isBond) {
-      return `${num} ${t('TL nominal')} (${symShort})`;
+      return `${num} ${t('nominal değer')} (${symShort})`;
     }
     return `${num} ${symShort}`;
   }
@@ -846,7 +846,7 @@ export default function AddTransactionModal({
                             : isBond && instrument?.category === 'GOLD_INDEXED_BOND'
                               ? `${t('Adet (gram altın)')} *`
                               : isBond
-                                ? `${t('Nominal Tutar (TL)')} *`
+                                ? `${t('Nominal Değer')} *`
                                 : `${t('Miktar')} *`}
                   </label>
                   <input

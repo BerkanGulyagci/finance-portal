@@ -206,6 +206,7 @@ const en = {
   'Ne Olurdu?': 'What If?',
   'Nominal': 'Face value',
   'Nominal Tutar (TL)': 'Face Value Amount (TL)',
+  'Nominal Değer': 'Nominal Value',
   'Not:': 'Note:',
   'ONS': 'OUNCE',
   'Osilatörler': 'Oscillators',

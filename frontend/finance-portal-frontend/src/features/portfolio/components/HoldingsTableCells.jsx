@@ -185,13 +185,14 @@ export function renderCell(key, h, commoditySpots, valuesHidden, t) {
       const commodityUnit = h.assetType === 'COMMODITY'
         ? getCommodityUnit(h.symbol, null)
         : null;
-      // BOND (non-gold) için: TCMB konvansiyonu miktar = TL nominal — birim etiketini
-      // göster ki "10.000" satırı 10.000 TL nominal (yani 100 adet 100-nominal lot) olduğu
-      // belli olsun. Altın-bond (adet/gram) ve diğer asset tiplerinde suffix verilmez.
+      // BOND (non-gold) için: TCMB konvansiyonunda miktar = TL yüz değeri — satırda "nominal değer"
+      // etiketi gösterilir ki "10.000"in nakit TL değil NOMİNAL (yüz) değer olduğu belli olsun.
+      // (Birim TL ama etiket "değer" — gram/USD nominalli senetlerle karışmasın.) Altın-bond
+      // (adet/gram) ve diğer asset tiplerinde suffix verilmez.
       const isBondRow = h.assetType === 'BOND';
       const isGoldBondRow = isBondRow
         && (h.category === 'GOLD_INDEXED_BOND' || h.category === 'GOLD_INDEXED_LEASE_CERTIFICATE');
-      const bondNominalSuffix = (isBondRow && !isGoldBondRow) ? t('TL nominal') : null;
+      const bondNominalSuffix = (isBondRow && !isGoldBondRow) ? t('nominal değer') : null;
       return (
         <span className="text-sm font-mono">
           {qtyText}
