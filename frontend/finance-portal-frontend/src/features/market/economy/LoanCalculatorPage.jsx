@@ -21,6 +21,21 @@ const LOAN_TYPES = [
 const TERM_OPTIONS = [3, 6, 9, 12, 18, 24, 36, 48, 60];
 const TAX_FACTOR = { personal: 0.30, vehicle: 0.30, housing: 0, commercial: 0.05 };
 
+/**
+ * Kredi türüne göre faize uygulanan vergiler (hangi vergi, neden). Toplam yük TAX_FACTOR ile
+ * aynıdır (hesapla tutarlı). KKDF = Kaynak Kullanımını Destekleme Fonu, BSMV = Banka ve Sigorta
+ * Muameleleri Vergisi — ikisi de NET FAİZ üzerinden alınır.
+ *   • İhtiyaç/Taşıt → KKDF + BSMV uygulanır
+ *   • Konut         → ipotekli konut kredisi her ikisinden MUAF (6802 s. Kanun md. 29)
+ *   • Ticari        → yalnız BSMV (KKDF yok)
+ */
+const TAX_BREAKDOWN = {
+  personal:   { taxes: ['KKDF', 'BSMV'], exempt: false },
+  vehicle:    { taxes: ['KKDF', 'BSMV'], exempt: false },
+  housing:    { taxes: [],               exempt: true  },
+  commercial: { taxes: ['BSMV'],         exempt: false },
+};
+
 const fmtTL = (v) =>
   v == null || !Number.isFinite(v) ? '—'
     : `${v.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL`;
@@ -156,6 +171,32 @@ export default function LoanCalculatorPage() {
             <input type="checkbox" checked={taxIncluded} onChange={e => setTaxIncluded(e.target.checked)} className="sr-only peer" />
             <span className="relative w-10 h-5 bg-[#c4c5d5] rounded-full transition-colors peer-checked:bg-[#093eaa] after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:rounded-full after:shadow after:transition-all peer-checked:after:translate-x-5" />
           </label>
+        </div>
+
+        {/* Seçili kredi türünün vergi durumu — hangi vergi(ler), toplam yük (faiz üzerinden) */}
+        <div className="-mt-2 flex items-center gap-2 flex-wrap text-[11px]">
+          <span className="font-bold uppercase tracking-wider text-[#505f76]">
+            {t(LOAN_TYPES.find(l => l.key === type)?.label)} {t('kredisi vergileri')}:
+          </span>
+          {TAX_BREAKDOWN[type].exempt ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200">
+              {t('Muaf')} — {t('KKDF/BSMV yok')}
+            </span>
+          ) : (
+            <>
+              {TAX_BREAKDOWN[type].taxes.map(tax => (
+                <span key={tax} className="inline-flex items-center px-2 py-0.5 rounded-md bg-[#eef1fb] text-[#093eaa] font-semibold border border-[#093eaa]/20">
+                  {tax}
+                </span>
+              ))}
+              <span className="text-[#747684]">
+                {t('faize')} <strong className="text-gray-800">+{fmtPct((TAX_FACTOR[type] || 0) * 100)}</strong> {t('yük')}
+              </span>
+            </>
+          )}
+          {!taxIncluded && !TAX_BREAKDOWN[type].exempt && (
+            <span className="text-[#b45309]">({t('şu an hesaba dahil DEĞİL — anahtarı açın')})</span>
+          )}
         </div>
 
         {result ? (
