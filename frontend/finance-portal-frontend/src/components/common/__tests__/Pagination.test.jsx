@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import Pagination from './Pagination';
-import { LanguageProvider } from '../../context/LanguageContext';
+import Pagination from '../Pagination';
+import { LanguageProvider } from '../../../context/LanguageContext';
 
 // Pagination, useTranslation() hook'unu kullanır → LanguageProvider ile sarmalanmalı.
 // Varsayılan dil "tr" olduğundan t(key) anahtarın kendisini döndürür.

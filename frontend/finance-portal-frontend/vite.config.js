@@ -20,6 +20,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.js'],
+    // Colocation: testler kaynağın yanındaki __tests__/ klasöründe (React/Vitest standardı).
     include: ['src/**/*.{test,spec}.{js,jsx}'],
     css: false,
     // SonarQube için coverage: v8 sağlayıcı → lcov (sonar.javascript.lcov.reportPaths ile okunur).
@@ -30,6 +31,7 @@ export default defineConfig({
       include: ['src/**/*.{js,jsx}'],
       exclude: [
         'src/**/*.{test,spec}.{js,jsx}',
+        'src/**/__tests__/**',
         'src/test/**',
         'src/main.jsx',
         'src/**/*.config.js',

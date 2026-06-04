@@ -9,7 +9,18 @@ import {
   isBondAssetType,
   isFutureAssetType,
   sanitizeFutureContractQtyInput,
-} from './transactionFormUtils';
+  extractApiErrorMessage,
+  fmtNum,
+  fmtWithCcy,
+  guessCurrency,
+  getShortSymbol,
+  assetConfig,
+  safePositivePrice,
+  initPrice,
+  findAvailableQty,
+  defaultInputMode,
+  isFundAssetType,
+} from '../transactionFormUtils';
 
 describe('mapUiToBackendTransactionType', () => {
   it('FUTURE olmayan varlıkta UI tipini olduğu gibi döner', () => {
@@ -201,5 +212,151 @@ describe('sanitizeFutureContractQtyInput', () => {
   it('sadece ondalık/sayısız girdi → boş', () => {
     expect(sanitizeFutureContractQtyInput('.5')).toBe('');
     expect(sanitizeFutureContractQtyInput('abc')).toBe('');
+  });
+});
+
+describe('extractApiErrorMessage', () => {
+  it('response.data yoksa err.message döner', () => {
+    expect(extractApiErrorMessage({ message: 'ağ hatası' })).toBe('ağ hatası');
+    expect(extractApiErrorMessage(null)).toBe('');
+    expect(extractApiErrorMessage({})).toBe('');
+  });
+
+  it('body.message string ise onu (trim ederek) döner', () => {
+    expect(extractApiErrorMessage({ response: { data: { message: '  yetersiz bakiye  ' } } })).toBe('yetersiz bakiye');
+  });
+
+  it('message yoksa body.data içindeki string değerleri birleştirir', () => {
+    const err = { response: { data: { data: { qty: 'Miktar zorunlu', price: 'Fiyat zorunlu', n: 5 } } } };
+    expect(extractApiErrorMessage(err)).toBe('Miktar zorunlu Fiyat zorunlu');
+  });
+
+  it('hiç kullanılabilir mesaj yoksa boş string', () => {
+    expect(extractApiErrorMessage({ response: { data: { foo: 1 } } })).toBe('');
+  });
+});
+
+describe('fmtNum / fmtWithCcy', () => {
+  it('fmtNum: null/sonsuz → "-", TR format', () => {
+    expect(fmtNum(null)).toBe('-');
+    expect(fmtNum(Infinity)).toBe('-');
+    expect(fmtNum(1234.5)).toBe('1.234,50');
+    expect(fmtNum(7.1, 1)).toBe('7,1');
+  });
+
+  it('fmtWithCcy: para birimi varsa ekler, yoksa eklemez', () => {
+    expect(fmtWithCcy(1234.5, 'TRY')).toBe('1.234,50 TRY');
+    expect(fmtWithCcy(1234.5, '')).toBe('1.234,50');
+    expect(fmtWithCcy(null, 'USD')).toBe('- USD');
+  });
+});
+
+describe('guessCurrency', () => {
+  it('STOCK: .IS → TRY, değilse USD', () => {
+    expect(guessCurrency('STOCK', 'THYAO.IS')).toBe('TRY');
+    expect(guessCurrency('STOCK', 'AAPL')).toBe('USD');
+  });
+
+  it('CRYPTO/FX/FUND/BOND/GOLD/COMMODITY → TRY', () => {
+    for (const t of ['CRYPTO', 'FX', 'FUND', 'BOND', 'GOLD', 'COMMODITY']) {
+      expect(guessCurrency(t, 'X')).toBe('TRY');
+    }
+  });
+
+  it('FUTURE: kısa kod (regex eşleşir) → USD, uzun/boşluklu → TRY', () => {
+    expect(guessCurrency('FUTURE', 'ES=F')).toBe('USD');
+    // 15 karakterden uzun veya geçersiz karakter → TRY
+    expect(guessCurrency('FUTURE', 'ÇOK UZUN KONTRAT ADI')).toBe('TRY');
+  });
+
+  it('bilinmeyen tür → boş', () => {
+    expect(guessCurrency('XXX', 'Y')).toBe('');
+  });
+});
+
+describe('getShortSymbol', () => {
+  it('parantezli açıklamayı atar, büyük harfe çevirir', () => {
+    expect(getShortSymbol('thyao (Türk Hava Yolları)')).toBe('THYAO');
+    expect(getShortSymbol('AAPL')).toBe('AAPL');
+    expect(getShortSymbol('')).toBe('');
+    expect(getShortSymbol(null)).toBe('');
+  });
+});
+
+describe('assetConfig', () => {
+  it('STOCK: tutar destekler + tam adede yuvarlar', () => {
+    expect(assetConfig('STOCK')).toEqual({ supports: true, floor: true });
+  });
+
+  it('CRYPTO/FX/FUND/GOLD/COMMODITY/BOND: tutar destekler, küsurat serbest', () => {
+    for (const t of ['CRYPTO', 'FX', 'FUND', 'GOLD', 'COMMODITY', 'BOND']) {
+      expect(assetConfig(t)).toEqual({ supports: true, floor: false });
+    }
+  });
+
+  it('FUTURE/bilinmeyen: tutar desteklemez', () => {
+    expect(assetConfig('FUTURE')).toEqual({ supports: false, floor: false });
+    expect(assetConfig('XXX')).toEqual({ supports: false, floor: false });
+    expect(assetConfig(null)).toEqual({ supports: false, floor: false });
+  });
+});
+
+describe('safePositivePrice / initPrice', () => {
+  it('safePositivePrice: pozitif sonlu sayı → number, aksi null', () => {
+    expect(safePositivePrice('12.5')).toBe(12.5);
+    expect(safePositivePrice(0)).toBeNull();
+    expect(safePositivePrice(-3)).toBeNull();
+    expect(safePositivePrice('abc')).toBeNull();
+  });
+
+  it('initPrice: geçerli pozitifte ORİJİNAL string korunur, aksi boş', () => {
+    // String(p) döner — '12.50' gibi sondaki sıfır korunsun.
+    expect(initPrice('12.50')).toBe('12.50');
+    expect(initPrice(5)).toBe('5');
+    expect(initPrice('')).toBe('');
+    expect(initPrice(null)).toBe('');
+    expect(initPrice(0)).toBe('');
+    expect(initPrice('-1')).toBe('');
+  });
+});
+
+describe('findAvailableQty', () => {
+  const holdings = [
+    { symbol: 'THYAO', assetType: 'STOCK', totalQuantity: '100' },
+    { symbol: 'XAU', assetType: 'FUTURE', viopDirection: 'LONG', totalQuantity: '5' },
+    { symbol: 'XAU', assetType: 'FUTURE', viopDirection: 'SHORT', totalQuantity: '3' },
+  ];
+
+  it('sembol+tür eşleşen pozisyonun miktarını döner', () => {
+    expect(findAvailableQty(holdings, 'thyao', 'STOCK')).toBe(100);
+  });
+
+  it('eşleşme yoksa / boş girdide null', () => {
+    expect(findAvailableQty(holdings, 'YOK', 'STOCK')).toBeNull();
+    expect(findAvailableQty([], 'THYAO', 'STOCK')).toBeNull();
+    expect(findAvailableQty(holdings, '', 'STOCK')).toBeNull();
+  });
+
+  it('FUTURE: direction LONG/SHORT pozisyonları ayrı sayar', () => {
+    expect(findAvailableQty(holdings, 'XAU', 'FUTURE', 'LONG')).toBe(5);
+    expect(findAvailableQty(holdings, 'XAU', 'FUTURE', 'SHORT')).toBe(3);
+  });
+
+  it('miktar geçersiz/0 ise 0 döner (eşleşme var ama qty yok)', () => {
+    const h = [{ symbol: 'X', assetType: 'STOCK', totalQuantity: '0' }];
+    expect(findAvailableQty(h, 'X', 'STOCK')).toBe(0);
+  });
+});
+
+describe('defaultInputMode / isFundAssetType', () => {
+  it('FUND → amount, diğerleri → quantity', () => {
+    expect(defaultInputMode('FUND')).toBe('amount');
+    expect(defaultInputMode('STOCK')).toBe('quantity');
+    expect(defaultInputMode(null)).toBe('quantity');
+  });
+
+  it('isFundAssetType', () => {
+    expect(isFundAssetType('fund')).toBe(true);
+    expect(isFundAssetType('STOCK')).toBe(false);
   });
 });

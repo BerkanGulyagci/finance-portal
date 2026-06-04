@@ -6,7 +6,7 @@ import {
   computeKlinePricePrecision,
   computeKlineVolumePrecision,
   formatQuantity,
-} from './numberFormat';
+} from '../numberFormat';
 
 describe('parseTrNumber', () => {
   it('null/undefined/boş için null döner', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseJwtPayload, isTokenValid, extractAuthClaims } from './jwtUtils';
+import { parseJwtPayload, isTokenValid, extractAuthClaims } from '../jwtUtils';
 
 // ── Test yardımcısı: payload nesnesini base64url JWT'ye çevirir ────────────────
 // JWT = header.payload.signature; modül yalnız payload'u (index 1) decode eder.

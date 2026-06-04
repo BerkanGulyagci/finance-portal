@@ -4,7 +4,7 @@ import {
   buildTrendItem,
   TREND_SIGNAL,
   TREND_METHOD_LABEL,
-} from './trendUtils';
+} from '../trendUtils';
 
 describe('TREND_SIGNAL / TREND_METHOD_LABEL sabitleri', () => {
   it('beklenen sinyal değerlerini içerir', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseBackendDate } from './dateUtils';
+import { parseBackendDate } from '../dateUtils';
 
 describe('parseBackendDate', () => {
   it('null/boş için null döner', () => {

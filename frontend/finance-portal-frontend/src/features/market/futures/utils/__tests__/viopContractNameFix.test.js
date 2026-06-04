@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fixViopContractName, viopContractNamesMatch } from './viopContractNameFix';
+import { fixViopContractName, viopContractNamesMatch } from '../viopContractNameFix';
 
 describe('fixViopContractName', () => {
   it('null/undefined girdiyi olduğu gibi döndürür', () => {

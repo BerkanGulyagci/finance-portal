@@ -9,7 +9,7 @@ import {
   pickCommoditySpotPriceUsd,
   fmtUsd,
   fmtTry,
-} from './commodityPriceUtils';
+} from '../commodityPriceUtils';
 
 describe('isYahooCommoditySymbol', () => {
   it('bilinen Yahoo emtia sembolünü tanır (case-insensitive)', () => {
