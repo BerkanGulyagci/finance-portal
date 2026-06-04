@@ -69,7 +69,9 @@ class BistIndexServiceTest {
         assertThat(BistIndexService.pickYahooRange(base, base.plusDays(180))).isEqualTo("6mo");
         assertThat(BistIndexService.pickYahooRange(base, base.plusDays(365))).isEqualTo("1y");
         assertThat(BistIndexService.pickYahooRange(base, base.plusDays(750))).isEqualTo("2y");
-        assertThat(BistIndexService.pickYahooRange(base, base.plusDays(2000))).isEqualTo("5y");
+        assertThat(BistIndexService.pickYahooRange(base, base.plusDays(1500))).isEqualTo("5y");
+        // >~5.2 yıl (kıyas "Tüm" ~10 yıl) → Yahoo'dan tüm günlük geçmiş ("max") istenir.
+        assertThat(BistIndexService.pickYahooRange(base, base.plusDays(2000))).isEqualTo("max");
     }
 
     @Test

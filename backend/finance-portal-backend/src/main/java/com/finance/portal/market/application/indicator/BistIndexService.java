@@ -169,6 +169,9 @@ public class BistIndexService {
         if (days <= 200)  return "6mo";
         if (days <= 400)  return "1y";
         if (days <= 800)  return "2y";
-        return "5y";
+        if (days <= 1900) return "5y";
+        // Çok uzun pencere (örn. kıyas "Tüm" → ~10 yıl): Yahoo'nun verdiği TÜM günlük geçmişi iste.
+        // Tek toplu çağrı (FX gibi gün-gün değil) — endekste mümkün olan en uzun seriyi getirir.
+        return "max";
     }
 }
