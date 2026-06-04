@@ -32,6 +32,7 @@ import LoanCalculatorPage from '../features/market/economy/LoanCalculatorPage';
 import DepositCalculatorPage from '../features/market/economy/DepositCalculatorPage';
 import GoldPage from '../features/market/gold/GoldPage';
 import SilverPage from '../features/market/silver/SilverPage';
+import DrawnChartsPage from '../features/market/DrawnChartsPage';
 import PlatinumPage from '../features/market/precious/PlatinumPage';
 import PalladiumPage from '../features/market/precious/PalladiumPage';
 import CommodityComparePage from '../features/market/precious/CommodityComparePage';
@@ -98,6 +99,7 @@ export default function AppRouter() {
           <Route path="/market/commodities/compare" element={<CommodityComparePage />} />
           <Route path="/market/commodities" element={<CommoditiesPage />} />
           <Route path="/market/commodities/:symbol" element={<CommodityDetailPage />} />
+          <Route path="/market/cizimlerim" element={<DrawnChartsPage />} />
           <Route path="/market/fx/compare" element={<ComparePage />} />
           <Route path="/market/compare"    element={<FxCompareRedirect />} />
 

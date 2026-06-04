@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useId } from 'react';
-import { ChevronDown, Menu, X, User, Shield, LogOut, Briefcase, Bell, BellRing, LayoutGrid, LifeBuoy } from 'lucide-react';
+import { ChevronDown, Menu, X, User, Shield, LogOut, Briefcase, Bell, BellRing, LayoutGrid, LifeBuoy, PenLine } from 'lucide-react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../context/LanguageContext';
@@ -165,6 +165,9 @@ function PortfolioNavMenu({ onClose, t }) {
       </Link>
       <Link to="/notifications" onClick={onClose} className={itemClass}>
         <BellRing className="w-4 h-4 shrink-0" /> {t('Bildirimler')}
+      </Link>
+      <Link to="/market/cizimlerim" onClick={onClose} className={itemClass}>
+        <PenLine className="w-4 h-4 shrink-0" /> {t('Çizimlerim')}
       </Link>
     </div>
   );
