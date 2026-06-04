@@ -1,5 +1,16 @@
 import { useEffect, useRef } from 'react';
 
+// Fiyatı tooltip için biçimle: ≥1 TL → 2 ondalık; <1 TL (mikro-cap coin, ör. 0,0000000012 TL) →
+// ~4 anlamlı basamak görünene kadar ondalık aç (sabit 2 ondalıkta "₺0,00" görünüyordu).
+function fmtTooltipPrice(price) {
+  const n = parseFloat(price);
+  if (!Number.isFinite(n)) return '';
+  const abs = Math.abs(n);
+  if (abs === 0) return '0';
+  const maxDec = abs >= 1 ? 2 : Math.min(20, Math.max(2, 3 - Math.floor(Math.log10(abs))));
+  return n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: maxDec });
+}
+
 export default function EChartsCompareChart({ chartData, seriesDefs }) {
   const chartRef = useRef(null);
   const instanceRef = useRef(null);
@@ -91,7 +102,7 @@ export default function EChartsCompareChart({ chartData, seriesDefs }) {
               html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
                 <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${p.color};flex-shrink:0"></span>
                 <span style="font-weight:700;color:#374151;min-width:60px">${p.seriesName}:</span>
-                ${price != null && !noPriceNames.has(p.seriesName) ? `<span style="color:#6b7280;font-family:monospace">₺${parseFloat(price).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>` : ''}
+                ${price != null && !noPriceNames.has(p.seriesName) ? `<span style="color:#6b7280;font-family:monospace">₺${fmtTooltipPrice(price)}</span>` : ''}
                 <span style="font-weight:700;color:${pctColor};margin-left:auto">${isPos ? '+' : ''}${p.value.toFixed(2)}%</span>
               </div>`;
             });

@@ -273,7 +273,12 @@ public class CryptoYahooChartService {
                 continue;
             }
             outTs.add(epoch);
-            outCloses.add(usdClose.multiply(rate).setScale(6, RoundingMode.HALF_UP));
+            // Mikro-cap coin'lerde sabit 6-ondalık yuvarlama 0'a/kaba adımlara düşürüyordu (grafik kare-dalga).
+            // ≥1 TL eskisi gibi 6-ondalık; <1 TL anlamlı-basamak (12) → hassasiyet büyüklükle ölçeklenir.
+            BigDecimal tryClose = usdClose.multiply(rate);
+            outCloses.add(tryClose.compareTo(BigDecimal.ONE) >= 0
+                    ? tryClose.setScale(6, RoundingMode.HALF_UP)
+                    : tryClose.round(new java.math.MathContext(12, RoundingMode.HALF_UP)));
         }
         if (outTs.isEmpty()) {
             return null;

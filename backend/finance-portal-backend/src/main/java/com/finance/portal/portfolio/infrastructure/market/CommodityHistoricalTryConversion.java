@@ -17,6 +17,9 @@ import java.util.TreeMap;
 public final class CommodityHistoricalTryConversion {
 
     private static final int TRY_PRICE_SCALE = 6;
+    // Sub-1 TL (mikro-cap coin ~1e-9) değerlerde sabit 6-ondalık yuvarlama 0'a/kaba adımlara düşürüp
+    // grafiği kare-dalgaya çeviriyordu; bu büyüklükler için anlamlı-basamak (12) yuvarlama kullanılır.
+    private static final java.math.MathContext SMALL_PRICE_MATH = new java.math.MathContext(12, RoundingMode.HALF_UP);
 
     private CommodityHistoricalTryConversion() {
     }
@@ -77,7 +80,12 @@ public final class CommodityHistoricalTryConversion {
             return null;
         }
 
-        return usdClose.multiply(rate).setScale(TRY_PRICE_SCALE, RoundingMode.HALF_UP);
+        BigDecimal tryClose = usdClose.multiply(rate);
+        // ≥1 TL: eskisi gibi 6-ondalık (sıradan emtia/coin değerleri AYNEN korunur — portföy etkilenmez).
+        // <1 TL: anlamlı-basamak yuvarlama (mikro-cap'te hassasiyet korunur, kuantizasyon/0 sorunu biter).
+        return tryClose.compareTo(BigDecimal.ONE) >= 0
+                ? tryClose.setScale(TRY_PRICE_SCALE, RoundingMode.HALF_UP)
+                : tryClose.round(SMALL_PRICE_MATH);
     }
 
     static BigDecimal resolveUsdTryRate(
