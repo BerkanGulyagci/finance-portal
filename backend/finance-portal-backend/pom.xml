@@ -97,6 +97,14 @@
             </exclusions>
         </dependency>
 
+        <!-- springdoc-openapi: OpenAPI 3 spec (/v3/api-docs) + Swagger UI (/swagger-ui.html).
+             2.3.0, Spring Boot 3.2.x ile uyumlu sürüm. -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.3.0</version>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-cache</artifactId>
@@ -335,6 +343,31 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+
+            <!-- Javadoc: kaynak kodundaki /** */ yorumlarından gezilebilir HTML API
+                 dokümantasyonu üretir. Rapor:
+                   target/site/apidocs/index.html  (tarayıcıda aç)
+                 Komut: mvn javadoc:javadoc
+                 NOT: Bilerek bir <execution> phase'e BAĞLANMADI → package/verify/Docker
+                 build'i yavaşlatmaz ve etkilemez; yalnızca elle çağrılınca çalışır.
+                 failOnError=false: eksik @param vb. uyarıları doc üretimini durdurmaz. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.6.3</version>
+                <configuration>
+                    <source>21</source>
+                    <doclint>none</doclint>
+                    <failOnError>false</failOnError>
+                    <failOnWarnings>false</failOnWarnings>
+                    <quiet>true</quiet>
+                    <encoding>UTF-8</encoding>
+                    <docencoding>UTF-8</docencoding>
+                    <charset>UTF-8</charset>
+                    <windowtitle>Finance Portal API</windowtitle>
+                    <doctitle>Finance Portal Backend — API Dokümantasyonu</doctitle>
+                </configuration>
             </plugin>
         </plugins>
     </build>

@@ -80,6 +80,20 @@ spring:
           timeout: 5000
           writetimeout: 5000
 
+# OpenAPI 3 / Swagger UI (springdoc). Spec: /v3/api-docs — UI: /swagger-ui.html
+# Tüm ortamlarda açık (iç değerlendirme için). Endpoint'ler controller'lardan otomatik taranır;
+# genel bilgi + JWT auth şeması OpenApiConfig'tedir.
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    # Uç noktaları HTTP metoduna ve ada göre sırala (okunabilirlik)
+    operations-sorter: method
+    tags-sorter: alpha
+    # "Try it out" denemelerinde gönderilen süreyi göster
+    display-request-duration: true
+
 management:
   endpoints:
     web:
