@@ -73,7 +73,7 @@ export function buildChartData(detailMap, selectedCodes, range) {
     const ph = detailMap[code]?.priceHistory ?? [];
     filterByRange(ph, range).forEach(p => allDates.add(p.date));
   });
-  const sortedDates = [...allDates].sort();
+  const sortedDates = [...allDates].sort((a, b) => new Date(a) - new Date(b));
 
   // Her fon için normalize serisi map'e al
   const seriesMap = {};

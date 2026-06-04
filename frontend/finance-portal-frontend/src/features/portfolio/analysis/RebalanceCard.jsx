@@ -35,9 +35,13 @@ function RiskProfileQuiz({ onClose, onResult }) {
     onResult(profileFromScore(score));
   };
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}
+      role="button" tabIndex={0}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClose(e); } }}>
       <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-5"
-        onClick={e => e.stopPropagation()}>
+        onClick={e => e.stopPropagation()}
+        role="button" tabIndex={0}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); } }}>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-bold text-gray-900 flex items-center gap-2">
             <ClipboardList className="w-5 h-5 text-[#093eaa]" />{t('Risk Profili Testi')}

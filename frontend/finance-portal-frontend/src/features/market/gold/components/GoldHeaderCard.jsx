@@ -5,17 +5,14 @@ import { useTranslation } from '../../../../context/LanguageContext';
 
 export default function GoldHeaderCard({ spot, activeTab, historyPoints }) {
   const { t } = useTranslation();
-  if (!spot || !activeTab) return null;
 
-  const isUsd = activeTab.currency === 'USD';
-  const price = getSpotPrice(spot, activeTab);
-  const sym   = isUsd ? '$' : '₺';
+  const isUsd = activeTab?.currency === 'USD';
 
   // ── Dönem değişimi — history'nin ilk ve son close'undan ──────────────────
   const { changeAmt, changePct } = useMemo(() => {
     if (!historyPoints?.length) {
       // Fallback: ons için spot'tan
-      if (isUsd && spot.onsChangePercent != null) {
+      if (isUsd && spot?.onsChangePercent != null) {
         return {
           changePct: parseFloat(spot.onsChangePercent),
           changeAmt: spot.onsChange != null ? parseFloat(spot.onsChange) : null,
@@ -29,7 +26,7 @@ export default function GoldHeaderCard({ spot, activeTab, historyPoints }) {
       .filter(v => !isNaN(v) && v > 0);
 
     if (closes.length < 2) {
-      if (isUsd && spot.onsChangePercent != null) {
+      if (isUsd && spot?.onsChangePercent != null) {
         return {
           changePct: parseFloat(spot.onsChangePercent),
           changeAmt: spot.onsChange != null ? parseFloat(spot.onsChange) : null,
@@ -45,6 +42,11 @@ export default function GoldHeaderCard({ spot, activeTab, historyPoints }) {
       changePct: ((last - first) / first) * 100,
     };
   }, [historyPoints, isUsd, spot]);
+
+  if (!spot || !activeTab) return null;
+
+  const price = getSpotPrice(spot, activeTab);
+  const sym   = isUsd ? '$' : '₺';
 
   const isDown     = (changePct ?? 0) < 0;
   const priceColor = isDown ? 'text-rose-600' : 'text-emerald-600';

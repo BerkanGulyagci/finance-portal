@@ -23,7 +23,7 @@ export function formatPercent(value, valuesHidden, { signed = false } = {}) {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
-  const prefix = signed && n > 0 ? '+' : signed && n < 0 ? '' : '';
+  const prefix = signed && n > 0 ? '+' : '';
   return `${prefix}${s}%`;
 }
 

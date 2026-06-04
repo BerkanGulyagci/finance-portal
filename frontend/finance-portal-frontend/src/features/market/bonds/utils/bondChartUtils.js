@@ -112,7 +112,7 @@ export function normalizeSeries(points, baseDate = null) {
 export function findCommonStartDate(mainPoints, comparePoints) {
   const mainDates    = new Set(mainPoints.map(p => p.date));
   const compareDates = new Set(comparePoints.map(p => p.date));
-  const common = [...mainDates].filter(d => compareDates.has(d)).sort();
+  const common = [...mainDates].filter(d => compareDates.has(d)).sort((a, b) => a.localeCompare(b));
   return common.length > 0 ? common[0] : null;
 }
 

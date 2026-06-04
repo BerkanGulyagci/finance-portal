@@ -213,7 +213,7 @@ export default function CandlestickChart({ symbol }) {
 
       {indMenuOpen && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setIndMenuOpen(false)} />
+          <div className="fixed inset-0 z-40" role="button" tabIndex={0} onClick={() => setIndMenuOpen(false)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIndMenuOpen(false); } }} />
           <div className="absolute left-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-3 w-64">
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">{t('Hareketli Ortalama')}</p>
             <div className="flex flex-wrap gap-1.5 mb-3">

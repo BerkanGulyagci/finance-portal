@@ -67,6 +67,9 @@ export default function CommodityCard({ meta, spot, loading, onClick }) {
           <div>
             <div
               onClick={handlePriceClick}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handlePriceClick(e); } }}
               title={toggleable ? (showTry ? t('USD göster') : t('TL göster')) : undefined}
               className={`rounded-lg px-1 -mx-1 transition-colors ${
                 toggleable ? 'cursor-pointer hover:bg-gray-50 active:bg-gray-100' : ''

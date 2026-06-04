@@ -15,7 +15,7 @@ export function parseBackendDate(s) {
     const d = new Date(s);
     return isNaN(d.getTime()) ? null : d;
   }
-  const hasTz = /Z|[+-]\d{2}:?\d{2}$/.test(s);
+  const hasTz = /(Z|[+-]\d{2}:?\d{2})$/.test(s);
   const d = new Date(hasTz ? s : s + 'Z');
   return isNaN(d.getTime()) ? null : d;
 }

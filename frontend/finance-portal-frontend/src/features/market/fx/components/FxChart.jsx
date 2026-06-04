@@ -104,7 +104,7 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
           </button>
           {openGroup === group && (
             <>
-              <div className="fixed inset-0 z-40" onClick={() => setOpenGroup(null)} />
+              <div className="fixed inset-0 z-40" role="button" tabIndex={0} onClick={() => setOpenGroup(null)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenGroup(null); } }} />
               <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-[#e2e8f0] rounded-xl shadow-lg p-1 min-w-[180px]">
                 {tools.map(tool => (
                   <button
@@ -299,7 +299,7 @@ export default function FxChart({ symbol, chartPoints, lineColor, mainLabel, ran
       </button>
       {indMenuOpen && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setIndMenuOpen(false)} />
+          <div className="fixed inset-0 z-40" role="button" tabIndex={0} onClick={() => setIndMenuOpen(false)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIndMenuOpen(false); } }} />
           <div className="absolute left-0 top-full mt-1 z-50 bg-white border border-[#e2e8f0] rounded-xl shadow-lg p-3 w-64">
             <p className="text-[10px] font-bold text-[#9aa6b6] uppercase tracking-wider mb-2">{t('Hareketli Ortalama')}</p>
             <div className="flex flex-wrap gap-1.5 mb-3">

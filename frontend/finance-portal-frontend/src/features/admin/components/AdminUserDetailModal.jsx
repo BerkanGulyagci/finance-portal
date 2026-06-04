@@ -84,6 +84,14 @@ export default function AdminUserDetailModal({
       onClick={e => {
         if (e.target === e.currentTarget && !busy) onClose();
       }}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          if (e.target === e.currentTarget && !busy) {
+            e.preventDefault();
+            onClose();
+          }
+        }
+      }}
     >
       <article className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
         <header className="relative px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50/80 to-white shrink-0">

@@ -158,7 +158,10 @@ export function AIChatWidget() {
       <>
         {teaser && (
           <div
+            role="button"
+            tabIndex={0}
             onClick={openChat}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openChat(e); } }}
             className="fixed bottom-24 right-6 z-40 w-[252px] bg-white rounded-2xl shadow-xl shadow-black/10 border border-[#e2e1eb] p-3.5 pr-7 flex items-start gap-2.5 cursor-pointer hover:border-[#093eaa]/30 transition-colors"
           >
             <button

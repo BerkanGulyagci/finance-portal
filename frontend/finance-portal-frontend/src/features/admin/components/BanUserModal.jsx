@@ -110,6 +110,14 @@ export default function BanUserModal({ user, open, busy, onClose, onConfirm }) {
       onClick={e => {
         if (e.target === e.currentTarget && !busy) onClose();
       }}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          if (e.target === e.currentTarget && !busy) {
+            e.preventDefault();
+            onClose();
+          }
+        }
+      }}
     >
       <article className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-lg overflow-hidden">
         <header className="relative px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-rose-50/80 to-white">

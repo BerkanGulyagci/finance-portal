@@ -24,7 +24,7 @@ export async function exportElementToPdf(element, options = {}) {
 
   element.scrollIntoView({ block: 'nearest', behavior: 'auto' });
 
-  if (document.fonts?.ready) {
+  if (document.fonts) {
     await document.fonts.ready.catch(() => {});
   }
 

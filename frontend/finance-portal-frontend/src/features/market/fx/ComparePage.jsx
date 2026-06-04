@@ -239,7 +239,7 @@ export default function ComparePage() {
     instruments.forEach(inst => {
       (seriesData[inst.key] ?? []).forEach(p => allDates.add(p.date));
     });
-    const sortedDates = [...allDates].sort();
+    const sortedDates = [...allDates].sort((a, b) => a.localeCompare(b));
 
     // Her seri için ilk değeri bul (rebasing için)
     const firstValues = {};
@@ -367,7 +367,10 @@ export default function ComparePage() {
           {instruments.length < 7 && (
             <div className="relative">
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 border-dashed border-gray-300 text-sm text-gray-400 cursor-pointer hover:border-[#093eaa] hover:text-[#093eaa] transition-colors"
-                onClick={() => setShowSuggestions(true)}>
+                role="button"
+                tabIndex={0}
+                onClick={() => setShowSuggestions(true)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setShowSuggestions(true); } }}>
                 <Plus className="w-3.5 h-3.5" />
                 {t('Ekle')}
               </div>

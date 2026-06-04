@@ -8,9 +8,8 @@ import { useTranslation } from '../../../../context/LanguageContext';
  */
 export default function GoldPriceStats({ spot, activeTab, historyPoints }) {
   const { t } = useTranslation();
-  if (!spot || !activeTab) return null;
 
-  const isUsd = activeTab.currency === 'USD';
+  const isUsd = activeTab?.currency === 'USD';
   const sym   = isUsd ? '$' : '₺';
 
   // ── Dönem istatistikleri — history noktalarından hesapla ──────────────────
@@ -62,6 +61,8 @@ export default function GoldPriceStats({ spot, activeTab, historyPoints }) {
       firstClose:   closes.length  ? closes[0] : null,
     };
   }, [historyPoints, isUsd]);
+
+  if (!spot || !activeTab) return null;
 
   // Güncel fiyat — spot'tan
   const currentPrice = getSpotPrice(spot, activeTab);

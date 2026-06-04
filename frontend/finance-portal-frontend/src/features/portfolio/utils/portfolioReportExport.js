@@ -291,8 +291,8 @@ export async function downloadPortfolioPdf(portfolio, opts = {}) {
     idoc.close();
 
     // 1) iframe içindeki fontlar yüklensin
-    if (idoc.fonts?.ready) {
-      await idoc.fonts.ready.catch(() => {});
+    if (idoc.fonts) {
+      await idoc.fonts.ready?.catch(() => {});
     }
     // 2) Layout settle
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));

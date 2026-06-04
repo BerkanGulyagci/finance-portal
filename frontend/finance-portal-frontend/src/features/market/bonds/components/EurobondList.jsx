@@ -37,7 +37,7 @@ export default function EurobondList() {
   }, []);
 
   const currencyOptions = useMemo(() => {
-    const set = [...new Set(items.map(b => b.currency).filter(Boolean))].sort();
+    const set = [...new Set(items.map(b => b.currency).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'tr'));
     return [{ label: t('Tüm Dövizler'), value: '' }, ...set.map(c => ({ label: c, value: c }))];
   }, [items, t]);
 

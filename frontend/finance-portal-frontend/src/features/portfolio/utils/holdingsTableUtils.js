@@ -353,8 +353,8 @@ export function renderCellForExport(key, h) {
     case 'trend': {
       const trend = computeTrend(h);
       if (!trend) return '';
-      if (trend === 'UP') return 'Yükseliş';
-      if (trend === 'DOWN') return 'Düşüş';
+      if (trend.signal === 'UP') return 'Yükseliş';
+      if (trend.signal === 'DOWN') return 'Düşüş';
       return 'Yatay';
     }
     case 'viopDirection':

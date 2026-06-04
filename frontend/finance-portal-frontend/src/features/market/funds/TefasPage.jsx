@@ -55,8 +55,8 @@ function FundTable({ funds, accentColor, loading, error, showFounder = false }) 
   const [founderFilter, setFounderFilter] = useState('');
   const [page, setPage]               = useState(0);
 
-  const fundTypes = useMemo(() => [...new Set(funds.map(f => f.fundType).filter(Boolean))].sort(), [funds]);
-  const founders  = useMemo(() => [...new Set(funds.map(f => f.founderName).filter(Boolean))].sort(), [funds]);
+  const fundTypes = useMemo(() => [...new Set(funds.map(f => f.fundType).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'tr')), [funds]);
+  const founders  = useMemo(() => [...new Set(funds.map(f => f.founderName).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'tr')), [funds]);
 
   const filtered = useMemo(() => {
     let r = funds;
@@ -201,8 +201,8 @@ function OsmanliBulletinTable({ funds, loading, error }) {
   const [typeFilter, setTypeFilter]   = useState('');
   const [groupFilter, setGroupFilter] = useState('');
 
-  const types  = useMemo(() => [...new Set(funds.map(f => f.type).filter(Boolean))].sort(), [funds]);
-  const groups = useMemo(() => [...new Set(funds.map(f => f.group).filter(Boolean))].sort(), [funds]);
+  const types  = useMemo(() => [...new Set(funds.map(f => f.type).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'tr')), [funds]);
+  const groups = useMemo(() => [...new Set(funds.map(f => f.group).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'tr')), [funds]);
 
   const filtered = useMemo(() => {
     let r = funds;

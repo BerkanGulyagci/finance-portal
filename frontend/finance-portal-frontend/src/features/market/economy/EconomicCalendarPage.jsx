@@ -75,7 +75,7 @@ export default function EconomicCalendarPage() {
   const availableCurrencies = useMemo(() => {
     const set = new Set();
     events.forEach(e => { if (e.currency) set.add(e.currency); });
-    return [...set].sort();
+    return [...set].sort((a, b) => a.localeCompare(b, 'tr'));
   }, [events]);
 
   const filtered = useMemo(() => events.filter(e => {

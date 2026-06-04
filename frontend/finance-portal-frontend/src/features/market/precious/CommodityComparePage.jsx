@@ -187,7 +187,7 @@ export default function CommodityComparePage() {
     selectedMetals.forEach(key => {
       (normalizedSeries[key] ?? []).forEach(p => dateSet.add(p.date));
     });
-    const dates = Array.from(dateSet).sort();
+    const dates = Array.from(dateSet).sort((a, b) => a.localeCompare(b));
     return dates.map(date => {
       const row = { date };
       selectedMetals.forEach(key => {

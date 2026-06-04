@@ -52,8 +52,8 @@ export default function NewsletterModal({ email, onClose, onSaved }) {
   }
 
   return createPortal((
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 m3-scale-in" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30" onClick={onClose} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClose(e); } }}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 m3-scale-in" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); } }} role="dialog" aria-modal="true" tabIndex={0}>
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-10 h-10 rounded-2xl bg-[#093eaa]/10 text-[#093eaa] flex items-center justify-center shrink-0">

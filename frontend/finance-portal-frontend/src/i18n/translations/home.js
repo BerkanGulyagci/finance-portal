@@ -50,7 +50,6 @@ const en = {
   'Gönder': 'Send',
   'Bugün portföyünde neler olmuş, birlikte inceleyelim? 👀': 'Let\'s see what happened in your portfolio today 👀',
   'Hızlı İşlemler': 'Quick Actions',
-  'Piyasa Özeti': 'Market Summary',
   'Haberler': 'News',
   'Portföyüm': 'My Portfolio',
   'Terimler': 'Terms',
