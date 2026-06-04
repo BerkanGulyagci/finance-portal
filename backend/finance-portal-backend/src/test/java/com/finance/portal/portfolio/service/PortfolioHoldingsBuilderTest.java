@@ -149,16 +149,20 @@ class PortfolioHoldingsBuilderTest {
     // ------------------------------ Aşırı satış (overflow) ------------------------------
 
     @Test
-    @DisplayName("build: açık qty olmadan SELL → IllegalStateException")
-    void build_sellWithoutPosition_throws() {
+    @DisplayName("build: açık qty olmadan SELL → throw ETMEZ, SELL atlanır (warn+skip sağlamlık)")
+    void build_sellWithoutPosition_skips() {
+        // Açık pozisyon yokken gelen SELL (yanlış-tarihli/tutarsız) tüm portföyü 500'lemek yerine
+        // ATLANIR + uyarı loglanır (d453258 sağlamlaştırma). Bu tek hatalı işlem holding üretmez.
         PortfolioTransaction s = tx(SELL("THYAO", AssetType.STOCK,
                 "5", "100", "0", "2026-05-22T10:00:00"));
-        // Tek kısıt: lambda yalnızca builder.build() çağrısını içermeli (Sonar S5778).
         List<PortfolioTransaction> txs = List.of(s);
 
-        assertThatThrownBy(() -> builder.build(txs))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("SELL with non-positive open quantity");
+        List<PortfolioHoldingResponse> holdings = builder.build(txs);
+
+        // Exception fırlamaz; over-sell SELL atlandığı için holding listesi boş.
+        assertThat(holdings).isEmpty();
+        // Holding oluşmadığı için enrichment de çağrılmaz.
+        verifyNoInteractions(enrichmentPort);
     }
 
     // ------------------------------ Birden çok asset type ------------------------------
