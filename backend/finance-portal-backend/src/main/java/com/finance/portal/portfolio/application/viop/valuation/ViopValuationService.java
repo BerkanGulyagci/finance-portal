@@ -47,9 +47,24 @@ public class ViopValuationService {
     /**
      * Başlangıç teminatı — pozisyon açarken hesaba bloke edilen TL (veya kontrat parası).
      * Cüzdandan gerçekten çıkan tutar.
+     *
+     * <p>İki yol:
+     * <ul>
+     *   <li>{@code spec.marginAmount} VAR (İş Yatırım scrape) → {@code qty × marginAmount}.
+     *       Takasbank'ın verdiği KESİN tutar; fiyattan bağımsız, en doğru.</li>
+     *   <li>{@code marginAmount} null (YAML statik spec) → eski oran yolu:
+     *       {@code qty × avgEntryPrice × multiplier × marginRate}.</li>
+     * </ul>
      */
     public BigDecimal marginPosted(BigDecimal qty, BigDecimal avgEntryPrice, ViopContractSpec spec) {
-        if (anyNull(qty, avgEntryPrice, spec)) return BigDecimal.ZERO;
+        if (qty == null || spec == null) return BigDecimal.ZERO;
+        // Scrape'ten gelen gerçek teminat tutarı varsa onu kullan (fiyattan bağımsız).
+        if (spec.marginAmount() != null && spec.marginAmount().signum() > 0) {
+            return qty.multiply(spec.marginAmount())
+                    .setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+        }
+        // Aksi halde (YAML statik) oran-bazlı: qty × giriş × çarpan × oran.
+        if (anyNull(avgEntryPrice, spec.multiplier(), spec.marginRate())) return BigDecimal.ZERO;
         return qty.multiply(avgEntryPrice).multiply(spec.multiplier()).multiply(spec.marginRate())
                 .setScale(MONEY_SCALE, RoundingMode.HALF_UP);
     }

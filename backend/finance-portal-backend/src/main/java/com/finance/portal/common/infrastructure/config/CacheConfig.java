@@ -236,6 +236,13 @@ public class CacheConfig {
                 //  jsonDefault'a düşüp Redis'te HİÇ expire olmuyorlardı.)
                 .withCacheConfiguration("market.viop.contracts", marketFuturesCacheConfig)
                 .withCacheConfiguration("market.viop.detail", marketFuturesCacheConfig)
+                // VİOP sözleşme spec'leri (İş Yatırım VadeliIslemler: büyüklük + teminat). YAML'da
+                // OLMAYAN yeni sözleşmeler için. Teminatlar gün-bazlı güncellenir → 24h TTL.
+                .withCacheConfiguration("market.viop.specs",
+                        RedisCacheConfiguration.defaultCacheConfig()
+                                .entryTtl(Duration.ofHours(24))
+                                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(
+                                        new GenericJackson2JsonRedisSerializer())))
                 .withCacheConfiguration("market.indicators", marketFxTcmbCacheConfig)
                 .withCacheConfiguration("market.gold.spot", marketFxTcmbCacheConfig)
                 .withCacheConfiguration("market.gold.history", marketFundsCacheConfig)

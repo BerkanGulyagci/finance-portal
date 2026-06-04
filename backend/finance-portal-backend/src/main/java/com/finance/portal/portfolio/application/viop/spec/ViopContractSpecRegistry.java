@@ -1,6 +1,7 @@
 package com.finance.portal.portfolio.application.viop.spec;
 
 import com.finance.portal.market.application.viop.ViopIndexCodeMapper;
+import com.finance.portal.market.infrastructure.external.viop.IsYatirimViopSpecProvider;
 import com.finance.portal.portfolio.infrastructure.viop.config.ViopContractSpecProperties;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
@@ -16,9 +17,17 @@ import java.util.Optional;
  * YAML'dan yüklenen {@link ViopContractSpec}'leri {@code code → spec} olarak indeksler ve
  * kontrat sembolleriyle ({@code F_AKBNK0626} gibi) hızlı O(1) erişim sağlar.
  *
- * <p>Sembol parse mantığı {@link ViopContractSpecResolver}'da. Çözülemeyen veya YAML'da
- * olmayan sembol için {@link ViopContractSpec#fallback} döner — uygulama crash etmez,
- * sadece WARN loglanır.
+ * <p>Sembol parse mantığı {@link ViopContractSpecResolver}'da. Çözüm zinciri (öncelik sırası):
+ * <ol>
+ *   <li><b>YAML</b> — mevcut ~50 dayanak (AKBNK, USDTRY…). Statik, hızlı, kanıtlanmış.
+ *       <b>Bu hit hiç değişmez</b> — eski sözleşmeler her zaman YAML kullanır.</li>
+ *   <li><b>İş Yatırım scrape</b> — YAML'da OLMAYAN yeni sözleşme için canlı büyüklük + teminat
+ *       ({@link IsYatirimViopSpecProvider}, günlük cache).</li>
+ *   <li><b>Benzer-tür</b> — scrape de yoksa, sembolden tahmin edilen varlık sınıfının tipik oranı
+ *       ({@link ViopContractSpec#similarTypeFallback}).</li>
+ *   <li><b>Düz fallback</b> — hiçbiri olmazsa mult=1, %15 ({@link ViopContractSpec#fallback}).</li>
+ * </ol>
+ * Her durumda WARN loglanır ve uygulama ASLA çökmez.
  */
 @Component
 public class ViopContractSpecRegistry {
@@ -27,12 +36,15 @@ public class ViopContractSpecRegistry {
 
     private final ViopContractSpecProperties properties;
     private final ViopIndexCodeMapper indexCodeMapper;
+    private final IsYatirimViopSpecProvider scrapeProvider;
     private Map<String, ViopContractSpec> byCode = Collections.emptyMap();
 
     public ViopContractSpecRegistry(ViopContractSpecProperties properties,
-                                    ViopIndexCodeMapper indexCodeMapper) {
+                                    ViopIndexCodeMapper indexCodeMapper,
+                                    IsYatirimViopSpecProvider scrapeProvider) {
         this.properties = properties;
         this.indexCodeMapper = indexCodeMapper;
+        this.scrapeProvider = scrapeProvider;
     }
 
     @PostConstruct
@@ -83,16 +95,38 @@ public class ViopContractSpecRegistry {
     }
 
     /**
-     * Sembol için spec döner; bulunamazsa {@link ViopContractSpec#fallback} (multiplier=1, margin=%15)
-     * + WARN log. Hesabın "yanlış" değil "yaklaşık" olmasını sağlar.
+     * Sembol için spec döner — çözüm zinciri (bkz. sınıf javadoc): YAML → İş Yatırım scrape →
+     * benzer-tür → düz fallback. Her durumda bir spec döner (asla null/exception).
      */
     public ViopContractSpec resolveOrFallback(String contractSymbol) {
-        return resolveBySymbol(contractSymbol).orElseGet(() -> {
-            String code = ViopContractSpecResolver.resolveUnderlier(contractSymbol);
-            log.warn("VIOP spec bulunamadı symbol={} parsedCode={} — fallback (multiplier=1, margin=15%) kullanılıyor",
-                    contractSymbol, code);
-            return ViopContractSpec.fallback(code != null ? code : contractSymbol);
-        });
+        // 1) YAML (statik, mevcut davranış — hiç değişmez)
+        Optional<ViopContractSpec> fromYaml = resolveBySymbol(contractSymbol);
+        if (fromYaml.isPresent()) {
+            return fromYaml.get();
+        }
+
+        // 2) İş Yatırım scrape (YAML'da olmayan yeni sözleşme için canlı büyüklük + teminat)
+        Optional<ViopContractSpec> fromScrape = scrapeProvider.resolve(contractSymbol);
+        if (fromScrape.isPresent()) {
+            ViopContractSpec spec = fromScrape.get();
+            log.info("VIOP spec scrape'ten alındı symbol={} code={} multiplier={} marginAmount={}",
+                    contractSymbol, spec.code(), spec.multiplier(), spec.marginAmount());
+            return spec;
+        }
+
+        // 3) Benzer-tür (sembolden tahmin edilen varlık sınıfının tipik oranı)
+        String code = ViopContractSpecResolver.resolveUnderlier(contractSymbol);
+        ViopContractSpec.AssetClass guessed = ViopAssetClassGuesser.guess(contractSymbol, code);
+        if (guessed != null) {
+            log.warn("VIOP spec bulunamadı symbol={} code={} — benzer-tür fallback ({}, oran=%{}) kullanılıyor",
+                    contractSymbol, code, guessed, ViopContractSpec.typicalMarginRate(guessed));
+            return ViopContractSpec.similarTypeFallback(code != null ? code : contractSymbol, guessed);
+        }
+
+        // 4) Düz fallback (multiplier=1, margin=%15)
+        log.warn("VIOP spec bulunamadı symbol={} code={} — düz fallback (multiplier=1, margin=15%) kullanılıyor",
+                contractSymbol, code);
+        return ViopContractSpec.fallback(code != null ? code : contractSymbol);
     }
 
     /** Doğrudan YAML key ile lookup (test/admin için). */
