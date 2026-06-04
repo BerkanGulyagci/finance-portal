@@ -1,9 +1,11 @@
 package com.finance.portal.common.presentation.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.Getter;
 
 import java.time.LocalDateTime;
 
+@Getter
 public class ApiResponse<T> {
 
     private boolean success;
@@ -55,22 +57,5 @@ public class ApiResponse<T> {
 
     public static <T> ApiResponse<T> failure(String message, T data) {
         return error(message, data);
-    }
-
-    // Getters
-    public boolean isSuccess() {
-        return success;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public T getData() {
-        return data;
-    }
-
-    public LocalDateTime getTimestamp() {
-        return timestamp;
     }
 }

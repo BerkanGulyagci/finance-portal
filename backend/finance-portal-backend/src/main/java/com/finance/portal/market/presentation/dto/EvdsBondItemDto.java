@@ -3,6 +3,8 @@ package com.finance.portal.market.presentation.dto;
 import com.finance.portal.market.application.bond.evds.EvdsBondInstrument;
 import com.finance.portal.market.application.bond.evds.model.BondCategory;
 import com.finance.portal.market.application.bond.evds.model.BondCurrency;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
@@ -11,6 +13,8 @@ import java.time.format.DateTimeFormatter;
  * EVDS DİBS kıymet liste ve detay response DTO'su.
  * Tarih alanları ISO string olarak serialize edilir (yyyy-MM-dd).
  */
+@Getter
+@NoArgsConstructor
 public class EvdsBondItemDto {
 
     private static final DateTimeFormatter ISO = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -30,8 +34,6 @@ public class EvdsBondItemDto {
     private BigDecimal couponRate;
     private String source;
     private String lastUpdated;
-
-    public EvdsBondItemDto() {}
 
     // ── Factory ───────────────────────────────────────────────────────────
 
@@ -57,22 +59,4 @@ public class EvdsBondItemDto {
         dto.lastUpdated         = instrument.getLastUpdated() != null ? instrument.getLastUpdated().format(ISO) : null;
         return dto;
     }
-
-    // ── Getters ───────────────────────────────────────────────────────────
-
-    public String getInstrumentCode()     { return instrumentCode; }
-    public String getType()               { return type; }
-    public BondCategory getCategory()     { return category; }
-    public BondCurrency getCurrency()     { return currency; }
-    public String getCbrtCode()           { return cbrtCode; }
-    public String getIssueDate()          { return issueDate; }
-    public String getMaturityDate()       { return maturityDate; }
-    public Integer getRemainingDays()     { return remainingDays; }
-    public BigDecimal getIndicatorValue() { return indicatorValue; }
-    public BigDecimal getPreviousValue()  { return previousValue; }
-    public BigDecimal getDailyChange()    { return dailyChange; }
-    public BigDecimal getDailyChangePercent() { return dailyChangePercent; }
-    public BigDecimal getCouponRate()     { return couponRate; }
-    public String getSource()             { return source; }
-    public String getLastUpdated()        { return lastUpdated; }
 }

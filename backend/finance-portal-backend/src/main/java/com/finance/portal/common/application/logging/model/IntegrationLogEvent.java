@@ -1,9 +1,13 @@
 package com.finance.portal.common.application.logging.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.util.Map;
 
+@Getter
+@NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class IntegrationLogEvent {
 
@@ -28,8 +32,6 @@ public class IntegrationLogEvent {
     private Boolean degraded;
     private Map<String, Object> metadata;
     private String logger;
-
-    public IntegrationLogEvent() {}
 
     public static Builder builder() {
         return new Builder();
@@ -64,26 +66,4 @@ public class IntegrationLogEvent {
             return event;
         }
     }
-
-    public String getTimestamp()    { return timestamp; }
-    public String getLevel()        { return level; }
-    public String getServiceName()  { return serviceName; }
-    public String getCategory()     { return category; }
-    public String getEventType()    { return eventType; }
-    public String getMessage()      { return message; }
-    public String getTraceId()      { return traceId; }
-    public String getSpanId()       { return spanId; }
-    public String getRequestId()    { return requestId; }
-    public String getUserId()       { return userId; }
-    public String getClientIp()     { return clientIp; }
-    public String getMethod()       { return method; }
-    public String getPath()         { return path; }
-    public String getProvider()     { return provider; }
-    public String getOperation()    { return operation; }
-    public String getHttpStatus()   { return httpStatus; }
-    public Long getDurationMs()     { return durationMs; }
-    public Boolean getFallbackUsed(){ return fallbackUsed; }
-    public Boolean getDegraded()    { return degraded; }
-    public Map<String, Object> getMetadata() { return metadata; }
-    public String getLogger()       { return logger; }
 }

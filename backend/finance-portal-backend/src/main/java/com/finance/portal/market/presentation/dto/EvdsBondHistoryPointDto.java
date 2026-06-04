@@ -1,6 +1,8 @@
 package com.finance.portal.market.presentation.dto;
 
 import com.finance.portal.market.application.bond.evds.EvdsBondHistoryPoint;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
@@ -8,6 +10,8 @@ import java.time.format.DateTimeFormatter;
 /**
  * EVDS DİBS tarihsel veri noktası response DTO'su.
  */
+@Getter
+@NoArgsConstructor
 public class EvdsBondHistoryPointDto {
 
     private static final DateTimeFormatter ISO = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -16,8 +20,6 @@ public class EvdsBondHistoryPointDto {
     private String dateText;
     private String instrumentCode;
     private BigDecimal indicatorValue;
-
-    public EvdsBondHistoryPointDto() {}
 
     // ── Factory ───────────────────────────────────────────────────────────
 
@@ -29,11 +31,4 @@ public class EvdsBondHistoryPointDto {
         dto.indicatorValue = point.getIndicatorValue();
         return dto;
     }
-
-    // ── Getters ───────────────────────────────────────────────────────────
-
-    public String getDate()               { return date; }
-    public String getDateText()           { return dateText; }
-    public String getInstrumentCode()     { return instrumentCode; }
-    public BigDecimal getIndicatorValue() { return indicatorValue; }
 }

@@ -1,9 +1,15 @@
 package com.finance.portal.market.infrastructure.external.fx.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.Map;
 
+@Getter
+@Setter
+@NoArgsConstructor
 public class OpenErApiResponseDto {
 
     private String result;
@@ -16,40 +22,4 @@ public class OpenErApiResponseDto {
 
     @JsonProperty("rates")
     private Map<String, Double> rates;
-
-    public OpenErApiResponseDto() {
-    }
-
-    public String getResult() {
-        return result;
-    }
-
-    public void setResult(String result) {
-        this.result = result;
-    }
-
-    public String getBaseCode() {
-        return baseCode;
-    }
-
-    public void setBaseCode(String baseCode) {
-        this.baseCode = baseCode;
-    }
-
-    public String getTimeLastUpdateUtc() {
-        return timeLastUpdateUtc;
-    }
-
-    public void setTimeLastUpdateUtc(String timeLastUpdateUtc) {
-        this.timeLastUpdateUtc = timeLastUpdateUtc;
-    }
-
-    public Map<String, Double> getRates() {
-        return rates;
-    }
-
-    public void setRates(Map<String, Double> rates) {
-        this.rates = rates;
-    }
 }
-

@@ -1,8 +1,15 @@
 package com.finance.portal.news.infrastructure.external.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.util.List;
 
+@Getter
+@Setter
+@NoArgsConstructor
 public class NewsApiResponse {
 
     @JsonProperty("status")
@@ -14,33 +21,9 @@ public class NewsApiResponse {
     @JsonProperty("articles")
     private List<NewsApiArticle> articles;
 
-    public NewsApiResponse() {
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public Integer getTotalResults() {
-        return totalResults;
-    }
-
-    public void setTotalResults(Integer totalResults) {
-        this.totalResults = totalResults;
-    }
-
-    public List<NewsApiArticle> getArticles() {
-        return articles;
-    }
-
-    public void setArticles(List<NewsApiArticle> articles) {
-        this.articles = articles;
-    }
-
+    @Getter
+    @Setter
+    @NoArgsConstructor
     public static class NewsApiArticle {
 
         @JsonProperty("title")
@@ -66,75 +49,11 @@ public class NewsApiResponse {
 
         @JsonProperty("content")
         private String content;
-
-        public NewsApiArticle() {
-        }
-
-        public String getTitle() {
-            return title;
-        }
-
-        public void setTitle(String title) {
-            this.title = title;
-        }
-
-        public String getDescription() {
-            return description;
-        }
-
-        public void setDescription(String description) {
-            this.description = description;
-        }
-
-        public String getUrl() {
-            return url;
-        }
-
-        public void setUrl(String url) {
-            this.url = url;
-        }
-
-        public String getUrlToImage() {
-            return urlToImage;
-        }
-
-        public void setUrlToImage(String urlToImage) {
-            this.urlToImage = urlToImage;
-        }
-
-        public String getPublishedAt() {
-            return publishedAt;
-        }
-
-        public void setPublishedAt(String publishedAt) {
-            this.publishedAt = publishedAt;
-        }
-
-        public NewsApiSource getSource() {
-            return source;
-        }
-
-        public void setSource(NewsApiSource source) {
-            this.source = source;
-        }
-
-        public String getAuthor() {
-            return author;
-        }
-
-        public void setAuthor(String author) {
-            this.author = author;
-        }
-
-        public String getContent() {
-            return content;
-        }
-
-        public void setContent(String content) {
-            this.content = content;
-        }
     }
 
+    @Getter
+    @Setter
+    @NoArgsConstructor
     public static class NewsApiSource {
 
         @JsonProperty("id")
@@ -142,24 +61,5 @@ public class NewsApiResponse {
 
         @JsonProperty("name")
         private String name;
-
-        public NewsApiSource() {
-        }
-
-        public String getId() {
-            return id;
-        }
-
-        public void setId(String id) {
-            this.id = id;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
     }
 }

@@ -1,8 +1,11 @@
 package com.finance.portal.news.application.model;
 
+import lombok.Getter;
+
 import java.util.List;
 
 /** Sayfalanmış haber listesi (NewsAPI kaynağı). */
+@Getter
 public class NewsPage {
 
     private final List<NewsArticle> items;
@@ -21,25 +24,5 @@ public class NewsPage {
         this.pageSize = pageSize;
         this.totalElements = totalElements;
         this.totalPages = totalPages;
-    }
-
-    public List<NewsArticle> getItems() {
-        return items;
-    }
-
-    public int getPage() {
-        return page;
-    }
-
-    public int getPageSize() {
-        return pageSize;
-    }
-
-    public int getTotalElements() {
-        return totalElements;
-    }
-
-    public int getTotalPages() {
-        return totalPages;
     }
 }

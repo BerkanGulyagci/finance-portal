@@ -1,8 +1,13 @@
 package com.finance.portal.news.application.model;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
 /**
  * Haber kalemi — presentation DTO'larından bağımsız application modeli.
  */
+@Getter
+@AllArgsConstructor
 public class NewsArticle {
 
     private final String title;
@@ -40,61 +45,6 @@ public class NewsArticle {
     public NewsArticle(String title, String description, String url, String imageUrl,
                        String publishedAt, String source, String author, String category, String language) {
         this(title, description, url, imageUrl, publishedAt, source, author, category, language, null);
-    }
-
-    public NewsArticle(String title, String description, String url, String imageUrl,
-                       String publishedAt, String source, String author, String category,
-                       String language, String content) {
-        this.title = title;
-        this.description = description;
-        this.url = url;
-        this.imageUrl = imageUrl;
-        this.publishedAt = publishedAt;
-        this.source = source;
-        this.author = author;
-        this.category = category;
-        this.language = language;
-        this.content = content;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public String getUrl() {
-        return url;
-    }
-
-    public String getImageUrl() {
-        return imageUrl;
-    }
-
-    public String getPublishedAt() {
-        return publishedAt;
-    }
-
-    public String getSource() {
-        return source;
-    }
-
-    public String getAuthor() {
-        return author;
-    }
-
-    public String getCategory() {
-        return category;
-    }
-
-    public String getLanguage() {
-        return language;
-    }
-
-    public String getContent() {
-        return content;
     }
 
     public NewsArticle withImageUrl(String newImageUrl) {

@@ -1,33 +1,18 @@
 package com.finance.portal.market.application.fx.model;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class FxHistoryPoint {
 
     private String date;
     private BigDecimal close;
-
-    public FxHistoryPoint() {
-    }
-
-    public FxHistoryPoint(String date, BigDecimal close) {
-        this.date = date;
-        this.close = close;
-    }
-
-    public String getDate() {
-        return date;
-    }
-
-    public void setDate(String date) {
-        this.date = date;
-    }
-
-    public BigDecimal getClose() {
-        return close;
-    }
-
-    public void setClose(BigDecimal close) {
-        this.close = close;
-    }
 }

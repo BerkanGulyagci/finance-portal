@@ -1,7 +1,11 @@
 package com.finance.portal.common.application.logging.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
+@Getter
+@NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ErrorLogEvent {
 
@@ -22,8 +26,6 @@ public class ErrorLogEvent {
     private String status;
     private String durationMs;
     private String logger;
-
-    public ErrorLogEvent() {}
 
     public static Builder builder() {
         return new Builder();
@@ -54,22 +56,4 @@ public class ErrorLogEvent {
             return event;
         }
     }
-
-    public String getTimestamp()   { return timestamp; }
-    public String getLevel()       { return level; }
-    public String getServiceName() { return serviceName; }
-    public String getCategory()    { return category; }
-    public String getEventType()   { return eventType; }
-    public String getMessage()     { return message; }
-    public String getException()   { return exception; }
-    public String getTraceId()     { return traceId; }
-    public String getSpanId()      { return spanId; }
-    public String getRequestId()   { return requestId; }
-    public String getUserId()      { return userId; }
-    public String getClientIp()    { return clientIp; }
-    public String getMethod()      { return method; }
-    public String getPath()        { return path; }
-    public String getStatus()      { return status; }
-    public String getDurationMs()  { return durationMs; }
-    public String getLogger()      { return logger; }
 }

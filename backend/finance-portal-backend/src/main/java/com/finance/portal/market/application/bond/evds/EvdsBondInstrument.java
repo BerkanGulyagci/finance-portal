@@ -7,6 +7,9 @@ import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateSerializer;
 import com.finance.portal.market.application.bond.evds.model.BondCategory;
 import com.finance.portal.market.application.bond.evds.model.BondCurrency;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -15,6 +18,9 @@ import java.time.LocalDate;
  * EVDS'den normalize edilmiş DİBS kıymet modeli.
  * Liste ve detay sayfası için ortak domain nesnesi.
  */
+@Getter
+@Setter
+@NoArgsConstructor
 public class EvdsBondInstrument {
 
     /** Kıymet kodu — örn. TRD070727K10 */
@@ -78,53 +84,4 @@ public class EvdsBondInstrument {
     @JsonDeserialize(using = LocalDateDeserializer.class)
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate lastUpdated;
-
-    public EvdsBondInstrument() {}
-
-    // ── Getters & Setters ──────────────────────────────────────────────────
-
-    public String getInstrumentCode() { return instrumentCode; }
-    public void setInstrumentCode(String instrumentCode) { this.instrumentCode = instrumentCode; }
-
-    public String getType() { return type; }
-    public void setType(String type) { this.type = type; }
-
-    public BondCategory getCategory() { return category; }
-    public void setCategory(BondCategory category) { this.category = category; }
-
-    public BondCurrency getCurrency() { return currency; }
-    public void setCurrency(BondCurrency currency) { this.currency = currency; }
-
-    public String getCbrtCode() { return cbrtCode; }
-    public void setCbrtCode(String cbrtCode) { this.cbrtCode = cbrtCode; }
-
-    public LocalDate getIssueDate() { return issueDate; }
-    public void setIssueDate(LocalDate issueDate) { this.issueDate = issueDate; }
-
-    public LocalDate getMaturityDate() { return maturityDate; }
-    public void setMaturityDate(LocalDate maturityDate) { this.maturityDate = maturityDate; }
-
-    public int getRemainingDays() { return remainingDays; }
-    public void setRemainingDays(int remainingDays) { this.remainingDays = remainingDays; }
-
-    public BigDecimal getIndicatorValue() { return indicatorValue; }
-    public void setIndicatorValue(BigDecimal indicatorValue) { this.indicatorValue = indicatorValue; }
-
-    public BigDecimal getPreviousValue() { return previousValue; }
-    public void setPreviousValue(BigDecimal previousValue) { this.previousValue = previousValue; }
-
-    public BigDecimal getDailyChange() { return dailyChange; }
-    public void setDailyChange(BigDecimal dailyChange) { this.dailyChange = dailyChange; }
-
-    public BigDecimal getDailyChangePercent() { return dailyChangePercent; }
-    public void setDailyChangePercent(BigDecimal dailyChangePercent) { this.dailyChangePercent = dailyChangePercent; }
-
-    public BigDecimal getCouponRate() { return couponRate; }
-    public void setCouponRate(BigDecimal couponRate) { this.couponRate = couponRate; }
-
-    public String getSource() { return source; }
-    public void setSource(String source) { this.source = source; }
-
-    public LocalDate getLastUpdated() { return lastUpdated; }
-    public void setLastUpdated(LocalDate lastUpdated) { this.lastUpdated = lastUpdated; }
 }

@@ -1,6 +1,9 @@
 package com.finance.portal.market.application.bond.evds.model;
 
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -19,6 +22,8 @@ import java.util.regex.Pattern;
  * START_DATE       → "07-01-2026"
  * END_DATE         → "04-05-2026"
  */
+@Getter
+@AllArgsConstructor
 public class EvdsSeriesInfo {
 
     private final String seriesCode;
@@ -28,31 +33,6 @@ public class EvdsSeriesInfo {
     private final String frequency;
     private final LocalDate startDate;
     private final LocalDate endDate;
-
-    public EvdsSeriesInfo(
-            String seriesCode,
-            String datagroupCode,
-            String seriesName,
-            String seriesNameEng,
-            String frequency,
-            LocalDate startDate,
-            LocalDate endDate) {
-        this.seriesCode = seriesCode;
-        this.datagroupCode = datagroupCode;
-        this.seriesName = seriesName;
-        this.seriesNameEng = seriesNameEng;
-        this.frequency = frequency;
-        this.startDate = startDate;
-        this.endDate = endDate;
-    }
-
-    public String getSeriesCode() { return seriesCode; }
-    public String getDatagroupCode() { return datagroupCode; }
-    public String getSeriesName() { return seriesName; }
-    public String getSeriesNameEng() { return seriesNameEng; }
-    public String getFrequency() { return frequency; }
-    public LocalDate getStartDate() { return startDate; }
-    public LocalDate getEndDate() { return endDate; }
 
     /**
      * Seri kodundan instrument kodunu çıkarır.

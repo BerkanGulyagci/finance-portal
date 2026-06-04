@@ -1,5 +1,9 @@
 package com.finance.portal.market.application.calendar.model;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.io.Serializable;
 
 /**
@@ -15,6 +19,9 @@ import java.io.Serializable;
  *   <li>{@code unit} — değer birimi (örn. "%", "USD", "EUR").</li>
  * </ul>
  */
+@Getter
+@Setter
+@NoArgsConstructor
 public class EconomicCalendarEvent implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -28,33 +35,4 @@ public class EconomicCalendarEvent implements Serializable {
     private Double estimate;
     private Double prev;
     private String unit;
-
-    public EconomicCalendarEvent() { }
-
-    public String getTime() { return time; }
-    public void setTime(String time) { this.time = time; }
-
-    public String getCountry() { return country; }
-    public void setCountry(String country) { this.country = country; }
-
-    public String getCurrency() { return currency; }
-    public void setCurrency(String currency) { this.currency = currency; }
-
-    public String getEvent() { return event; }
-    public void setEvent(String event) { this.event = event; }
-
-    public String getImpact() { return impact; }
-    public void setImpact(String impact) { this.impact = impact; }
-
-    public Double getActual() { return actual; }
-    public void setActual(Double actual) { this.actual = actual; }
-
-    public Double getEstimate() { return estimate; }
-    public void setEstimate(Double estimate) { this.estimate = estimate; }
-
-    public Double getPrev() { return prev; }
-    public void setPrev(Double prev) { this.prev = prev; }
-
-    public String getUnit() { return unit; }
-    public void setUnit(String unit) { this.unit = unit; }
 }

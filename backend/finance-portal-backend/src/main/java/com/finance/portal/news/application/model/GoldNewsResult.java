@@ -1,8 +1,11 @@
 package com.finance.portal.news.application.model;
 
+import lombok.Getter;
+
 import java.util.List;
 
 /** Altın haberleri endpoint'i için filtrelenmiş veya yedek liste sonucu. */
+@Getter
 public class GoldNewsResult {
 
     private final List<NewsArticle> items;
@@ -17,17 +20,5 @@ public class GoldNewsResult {
         this.items = items != null ? List.copyOf(items) : List.of();
         this.filtered = filtered;
         this.label = label;
-    }
-
-    public List<NewsArticle> getItems() {
-        return items;
-    }
-
-    public boolean isFiltered() {
-        return filtered;
-    }
-
-    public String getLabel() {
-        return label;
     }
 }

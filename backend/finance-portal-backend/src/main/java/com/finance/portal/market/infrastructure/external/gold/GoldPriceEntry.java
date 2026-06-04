@@ -1,10 +1,15 @@
 package com.finance.portal.market.infrastructure.external.gold;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
 import java.math.BigDecimal;
 
 /**
  * canlialtinfiyatlari.com'dan parse edilen tek bir altın fiyat satırı.
  */
+@Getter
+@AllArgsConstructor
 public class GoldPriceEntry {
 
     private final String name;
@@ -12,21 +17,6 @@ public class GoldPriceEntry {
     private final BigDecimal sell;
     private final BigDecimal changePercent; // nullable
     private final String time;              // nullable, "HH:mm:ss"
-
-    public GoldPriceEntry(String name, BigDecimal buy, BigDecimal sell,
-                          BigDecimal changePercent, String time) {
-        this.name = name;
-        this.buy = buy;
-        this.sell = sell;
-        this.changePercent = changePercent;
-        this.time = time;
-    }
-
-    public String getName() { return name; }
-    public BigDecimal getBuy() { return buy; }
-    public BigDecimal getSell() { return sell; }
-    public BigDecimal getChangePercent() { return changePercent; }
-    public String getTime() { return time; }
 
     /** Orta fiyat (alış+satış)/2 */
     public BigDecimal getMid() {

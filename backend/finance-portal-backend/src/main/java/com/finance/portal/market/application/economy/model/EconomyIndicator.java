@@ -1,5 +1,9 @@
 package com.finance.portal.market.application.economy.model;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 
 /**
@@ -8,6 +12,9 @@ import java.math.BigDecimal;
  * <p>Redis'e cache'lendiği için no-arg constructor + getter/setter ile
  * Jackson (de)serializasyonuna uygun POJO olarak tasarlanmıştır.
  */
+@Getter
+@Setter
+@NoArgsConstructor
 public class EconomyIndicator {
 
     private String key;
@@ -36,52 +43,4 @@ public class EconomyIndicator {
     private boolean available;
     /** Negatif "akım" verisi mi (cari denge/bütçe)? Frontend % yerine mutlak değişim göstersin. */
     private boolean preferAbsolute;
-
-    public EconomyIndicator() {
-    }
-
-    public String getKey() { return key; }
-    public void setKey(String key) { this.key = key; }
-
-    public String getLabel() { return label; }
-    public void setLabel(String label) { this.label = label; }
-
-    public String getCategory() { return category; }
-    public void setCategory(String category) { this.category = category; }
-
-    public String getCategoryLabel() { return categoryLabel; }
-    public void setCategoryLabel(String categoryLabel) { this.categoryLabel = categoryLabel; }
-
-    public String getUnit() { return unit; }
-    public void setUnit(String unit) { this.unit = unit; }
-
-    public String getFrequency() { return frequency; }
-    public void setFrequency(String frequency) { this.frequency = frequency; }
-
-    public String getSeriesCode() { return seriesCode; }
-    public void setSeriesCode(String seriesCode) { this.seriesCode = seriesCode; }
-
-    public BigDecimal getValue() { return value; }
-    public void setValue(BigDecimal value) { this.value = value; }
-
-    public String getPeriod() { return period; }
-    public void setPeriod(String period) { this.period = period; }
-
-    public BigDecimal getPreviousValue() { return previousValue; }
-    public void setPreviousValue(BigDecimal previousValue) { this.previousValue = previousValue; }
-
-    public BigDecimal getChangePercent() { return changePercent; }
-    public void setChangePercent(BigDecimal changePercent) { this.changePercent = changePercent; }
-
-    public BigDecimal getAbsoluteChange() { return absoluteChange; }
-    public void setAbsoluteChange(BigDecimal absoluteChange) { this.absoluteChange = absoluteChange; }
-
-    public BigDecimal getYoyChangePercent() { return yoyChangePercent; }
-    public void setYoyChangePercent(BigDecimal yoyChangePercent) { this.yoyChangePercent = yoyChangePercent; }
-
-    public boolean isAvailable() { return available; }
-    public void setAvailable(boolean available) { this.available = available; }
-
-    public boolean isPreferAbsolute() { return preferAbsolute; }
-    public void setPreferAbsolute(boolean preferAbsolute) { this.preferAbsolute = preferAbsolute; }
 }
