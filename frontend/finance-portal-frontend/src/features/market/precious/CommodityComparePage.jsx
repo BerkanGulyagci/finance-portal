@@ -134,7 +134,7 @@ function CustomTooltip({ active, payload, label }) {
   );
 }
 
-// ── Veri çekme — tüm metaller için /api/precious-metals/{metal}/history ───────
+// ── Veri çekme — tüm metaller için /api/v1/precious-metals/{metal}/history ───────
 
 async function fetchMetalHistory(metalKey, range, unit) {
   const currency = unit === 'USD' ? 'USD' : 'TRY';

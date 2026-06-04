@@ -20,9 +20,9 @@ import java.util.List;
  * Kıymetli madenler bu controller'da yer almaz.
  *
  * <pre>
- * GET /api/commodities/list
- * GET /api/commodities/spot?symbol=CL%3DF
- * GET /api/commodities/history?symbol=CL%3DF&range=1M&interval=1d
+ * GET /api/v1/commodities/list
+ * GET /api/v1/commodities/spot?symbol=CL%3DF
+ * GET /api/v1/commodities/history?symbol=CL%3DF&range=1M&interval=1d
  * </pre>
  *
  * Not: "=" içeren semboller (CL=F) path variable'da encoding sorununa yol açar.
@@ -30,7 +30,7 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/commodities")
+@RequestMapping("/api/v1/commodities")
 @RequiredArgsConstructor
 public class CommodityController {
 

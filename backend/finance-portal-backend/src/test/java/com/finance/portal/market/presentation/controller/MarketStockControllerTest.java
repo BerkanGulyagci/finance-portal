@@ -76,7 +76,7 @@ class MarketStockControllerTest {
     void getStockPage_default_returns200_withPageShape() throws Exception {
         when(stockQueryService.getPagedStockSummaries(0, 20)).thenReturn(samplePage());
 
-        mockMvc.perform(get("/api/market/stocks").accept("application/json"))
+        mockMvc.perform(get("/api/v1/market/stocks").accept("application/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Stock page retrieved successfully"))
@@ -92,7 +92,7 @@ class MarketStockControllerTest {
         // index=xu030 → controller uppercase'ler ve by-index dalına gider.
         when(stockQueryService.getPagedStockSummariesByIndex(0, 20, "XU030")).thenReturn(samplePage());
 
-        mockMvc.perform(get("/api/market/stocks")
+        mockMvc.perform(get("/api/v1/market/stocks")
                         .param("index", "xu030")
                         .accept("application/json"))
                 .andExpect(status().isOk())
@@ -107,7 +107,7 @@ class MarketStockControllerTest {
         // (nokta içeren sembol standalone MockMvc'de uzantı sanılıp kesilir; bu yüzden noktasız sembol)
         when(stockQueryService.getStockDetail("THYAO")).thenReturn(sampleDetail());
 
-        mockMvc.perform(get("/api/market/stocks/thyao").accept("application/json"))
+        mockMvc.perform(get("/api/v1/market/stocks/thyao").accept("application/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Stock detail retrieved successfully"))

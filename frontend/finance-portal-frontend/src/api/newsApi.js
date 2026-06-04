@@ -7,7 +7,7 @@ export function proxyImageUrl(url) {
   if (!url) return null;
   // Only proxy bloomberght images, others load directly
   if (url.includes('bloomberght.com')) {
-    return `${BASE_URL}/api/proxy/image?url=${encodeURIComponent(url)}`;
+    return `${BASE_URL}/api/v1/proxy/image?url=${encodeURIComponent(url)}`;
   }
   return url;
 }
@@ -26,7 +26,7 @@ export async function getNews(filters = {}) {
   if (filters.region) params.region = filters.region;
   if (filters.lang) params.lang = filters.lang;
 
-  const { data: wrapper } = await axios.get(`${BASE_URL}/api/news`, { params });
+  const { data: wrapper } = await axios.get(`${BASE_URL}/api/v1/news`, { params });
   return wrapper.data ?? {
     items: [], categories: [], sources: [], page: 1, pageSize: 12, totalElements: 0, totalPages: 1,
   };
@@ -36,23 +36,23 @@ export async function getNews(filters = {}) {
 export async function getForMeNews({ lang, limit = 9 } = {}) {
   const params = { limit };
   if (lang) params.lang = lang;
-  const { data: wrapper } = await client.get('/api/news/for-me', { params });
+  const { data: wrapper } = await client.get('/api/v1/news/for-me', { params });
   return wrapper.data ?? { items: [] };
 }
 
 /** Tek haber detayı + ilgili haberler. lang verilirse içerik o dile çevrilir (best-effort). */
 export async function getNewsDetail(id, lang) {
   const params = lang ? { lang } : {};
-  const { data: wrapper } = await axios.get(`${BASE_URL}/api/news/detail/${id}`, { params });
+  const { data: wrapper } = await axios.get(`${BASE_URL}/api/v1/news/detail/${id}`, { params });
   return wrapper.data ?? null;
 }
 
 export async function getBloombergHtNews() {
-  const { data: wrapper } = await axios.get(`${BASE_URL}/api/news/bloomberg-ht`);
+  const { data: wrapper } = await axios.get(`${BASE_URL}/api/v1/news/bloomberg-ht`);
   return wrapper.data ?? [];
 }
 
 export async function getGoldNews() {
-  const { data: wrapper } = await axios.get(`${BASE_URL}/api/news/gold`);
+  const { data: wrapper } = await axios.get(`${BASE_URL}/api/v1/news/gold`);
   return wrapper.data ?? { items: [], isFiltered: false, label: 'Son Haberler' };
 }

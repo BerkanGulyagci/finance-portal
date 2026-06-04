@@ -59,7 +59,7 @@ class EvdsBondControllerTest {
         when(evdsBondService.getEvdsBondsAll())
                 .thenReturn(List.of(sampleBond("TRD070727K10"), sampleBond("TRD120128K11")));
 
-        mockMvc.perform(get("/api/market/bonds/evds")
+        mockMvc.perform(get("/api/v1/market/bonds/evds")
                         .param("page", "0")
                         .param("size", "50")
                         .accept("application/json"))
@@ -77,7 +77,7 @@ class EvdsBondControllerTest {
         when(evdsBondService.getEvdsBondsAll())
                 .thenReturn(List.of(sampleBond("A"), sampleBond("B")));
 
-        mockMvc.perform(get("/api/market/bonds/evds/categories").accept("application/json"))
+        mockMvc.perform(get("/api/v1/market/bonds/evds/categories").accept("application/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.FIXED_COUPON_BOND").value(2));
@@ -89,7 +89,7 @@ class EvdsBondControllerTest {
         when(evdsBondService.getEvdsBondDetail("TRD070727K10"))
                 .thenReturn(sampleBond("TRD070727K10"));
 
-        mockMvc.perform(get("/api/market/bonds/evds/trd070727k10").accept("application/json"))
+        mockMvc.perform(get("/api/v1/market/bonds/evds/trd070727k10").accept("application/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.instrumentCode").value("TRD070727K10"))
@@ -103,7 +103,7 @@ class EvdsBondControllerTest {
         // Türkçe locale'de 'i'→'İ' olur; bu yüzden 'i' içermeyen bir kod seçilir.
         when(evdsBondService.getEvdsBondDetail("TRDXXXX")).thenReturn(null);
 
-        mockMvc.perform(get("/api/market/bonds/evds/trdxxxx").accept("application/json"))
+        mockMvc.perform(get("/api/v1/market/bonds/evds/trdxxxx").accept("application/json"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Kıymet bulunamadı: TRDXXXX"));
@@ -111,7 +111,7 @@ class EvdsBondControllerTest {
 
     @Test
     void getBonds_invalidSortBy_returns400() throws Exception {
-        mockMvc.perform(get("/api/market/bonds/evds")
+        mockMvc.perform(get("/api/v1/market/bonds/evds")
                         .param("sortBy", "bogusField")
                         .accept("application/json"))
                 .andExpect(status().isBadRequest())

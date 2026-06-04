@@ -43,7 +43,7 @@ class SecurityIT extends AbstractIntegrationTest {
         // gerçek external HTTP çağrısı (Yahoo/Midas) yapması CI ortamında 500
         // verebilir — bu güvenlik test'i değil, network test'i. Sadece auth
         // katmanının izin verdiğini (yani 401/403 OLMADIĞINI) doğruluyoruz.
-        int status = mockMvc.perform(get("/api/market/stocks/THYAO.IS").accept(APPLICATION_JSON))
+        int status = mockMvc.perform(get("/api/v1/market/stocks/THYAO.IS").accept(APPLICATION_JSON))
                 .andReturn().getResponse().getStatus();
         org.assertj.core.api.Assertions.assertThat(status)
                 .as("public endpoint security check (any non-auth status is OK)")
@@ -53,7 +53,7 @@ class SecurityIT extends AbstractIntegrationTest {
 
     @Test
     void newsEndpointsShouldBePublic_noAuthRequired() throws Exception {
-        int status = mockMvc.perform(get("/api/news").accept(APPLICATION_JSON))
+        int status = mockMvc.perform(get("/api/v1/news").accept(APPLICATION_JSON))
                 .andReturn().getResponse().getStatus();
         org.assertj.core.api.Assertions.assertThat(status)
                 .isNotEqualTo(401)
@@ -64,21 +64,21 @@ class SecurityIT extends AbstractIntegrationTest {
     void kafkaTestShouldReturn401WithoutToken() throws Exception {
         // /api/kafka/test SecurityConfig'te authenticated() — endpoint silinmiş olsa bile
         // security filter chain'i 401 vermeli (authentication kontrolü erken yapılır).
-        mockMvc.perform(post("/api/kafka/test").accept(APPLICATION_JSON))
+        mockMvc.perform(post("/api/v1/kafka/test").accept(APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void portfoliosEndpointShouldReturn401WithoutToken() throws Exception {
         // Protected endpoint - auth olmadan erişilemez.
-        mockMvc.perform(get("/api/portfolios").accept(APPLICATION_JSON))
+        mockMvc.perform(get("/api/v1/portfolios").accept(APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void adminEndpointShouldReturn401WithoutToken() throws Exception {
         // Admin endpoint - auth olmadan 401 (yetki rolden önce token gerekli).
-        mockMvc.perform(get("/api/admin/users").accept(APPLICATION_JSON))
+        mockMvc.perform(get("/api/v1/admin/users").accept(APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());
     }
 }

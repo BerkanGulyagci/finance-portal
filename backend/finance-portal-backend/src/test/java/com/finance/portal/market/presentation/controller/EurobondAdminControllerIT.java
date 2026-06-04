@@ -61,25 +61,25 @@ class EurobondAdminControllerIT extends AbstractIntegrationTest {
 
     @Test
     void getIsins_withoutToken_returns401() throws Exception {
-        mockMvc.perform(get("/api/admin/eurobonds/isins").accept(APPLICATION_JSON))
+        mockMvc.perform(get("/api/v1/admin/eurobonds/isins").accept(APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void refresh_withoutToken_returns401() throws Exception {
-        mockMvc.perform(post("/api/admin/eurobonds/refresh").param("xlsxUrl", VALID_URL))
+        mockMvc.perform(post("/api/v1/admin/eurobonds/refresh").param("xlsxUrl", VALID_URL))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void getIsins_asUser_returns403() throws Exception {
-        mockMvc.perform(get("/api/admin/eurobonds/isins").with(jwt("USER")).accept(APPLICATION_JSON))
+        mockMvc.perform(get("/api/v1/admin/eurobonds/isins").with(jwt("USER")).accept(APPLICATION_JSON))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void refresh_asUser_returns403() throws Exception {
-        mockMvc.perform(post("/api/admin/eurobonds/refresh")
+        mockMvc.perform(post("/api/v1/admin/eurobonds/refresh")
                         .with(jwt("USER"))
                         .param("xlsxUrl", VALID_URL))
                 .andExpect(status().isForbidden());
@@ -93,7 +93,7 @@ class EurobondAdminControllerIT extends AbstractIntegrationTest {
     void getIsins_asAdmin_returnsCurrentList() throws Exception {
         when(hmbIsinSource.isins()).thenReturn(List.of("US900123AL40", "XS1234567890"));
 
-        mockMvc.perform(get("/api/admin/eurobonds/isins").with(jwt("ADMIN")).accept(APPLICATION_JSON))
+        mockMvc.perform(get("/api/v1/admin/eurobonds/isins").with(jwt("ADMIN")).accept(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.count").value(2))
@@ -108,7 +108,7 @@ class EurobondAdminControllerIT extends AbstractIntegrationTest {
     void refresh_asAdmin_validUrl_returnsCount() throws Exception {
         when(hmbIsinSource.refreshFromXlsx(VALID_URL, false)).thenReturn(42);
 
-        mockMvc.perform(post("/api/admin/eurobonds/refresh")
+        mockMvc.perform(post("/api/v1/admin/eurobonds/refresh")
                         .with(jwt("ADMIN"))
                         .param("xlsxUrl", VALID_URL)
                         .accept(APPLICATION_JSON))
@@ -124,7 +124,7 @@ class EurobondAdminControllerIT extends AbstractIntegrationTest {
         when(hmbIsinSource.refreshFromXlsx(any(String.class), anyBoolean()))
                 .thenThrow(new IllegalArgumentException("Geçerli bir .xlsx URL'i verin."));
 
-        mockMvc.perform(post("/api/admin/eurobonds/refresh")
+        mockMvc.perform(post("/api/v1/admin/eurobonds/refresh")
                         .with(jwt("ADMIN"))
                         .param("xlsxUrl", "not-an-xlsx")
                         .accept(APPLICATION_JSON))
@@ -140,7 +140,7 @@ class EurobondAdminControllerIT extends AbstractIntegrationTest {
                 .thenThrow(new IllegalArgumentException(
                         "Bu URL HMB \"Dış Borç Stoku Tahvil Listesi\" gibi görünmüyor."));
 
-        mockMvc.perform(post("/api/admin/eurobonds/refresh")
+        mockMvc.perform(post("/api/v1/admin/eurobonds/refresh")
                         .with(jwt("ADMIN"))
                         .param("xlsxUrl", wrongUrl))
                 .andExpect(status().isBadRequest())
@@ -154,7 +154,7 @@ class EurobondAdminControllerIT extends AbstractIntegrationTest {
                 "https://ms.hmb.gov.tr/uploads/2027/01/HMB_New_Scheme-x.xlsx";
         when(hmbIsinSource.refreshFromXlsx(nonStandardUrl, true)).thenReturn(25);
 
-        mockMvc.perform(post("/api/admin/eurobonds/refresh")
+        mockMvc.perform(post("/api/v1/admin/eurobonds/refresh")
                         .with(jwt("ADMIN"))
                         .param("xlsxUrl", nonStandardUrl)
                         .param("force", "true")
@@ -169,7 +169,7 @@ class EurobondAdminControllerIT extends AbstractIntegrationTest {
         when(hmbIsinSource.refreshFromXlsx(any(String.class), anyBoolean()))
                 .thenThrow(new IllegalStateException("xlsx indirilemedi"));
 
-        mockMvc.perform(post("/api/admin/eurobonds/refresh")
+        mockMvc.perform(post("/api/v1/admin/eurobonds/refresh")
                         .with(jwt("ADMIN"))
                         .param("xlsxUrl", VALID_URL))
                 .andExpect(status().isBadGateway())

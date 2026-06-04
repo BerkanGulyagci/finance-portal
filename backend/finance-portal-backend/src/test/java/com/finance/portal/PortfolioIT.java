@@ -92,13 +92,13 @@ class PortfolioIT extends AbstractIntegrationTest {
 
     @Test
     void getPortfolios_withoutToken_returns401() throws Exception {
-        mockMvc.perform(get("/api/portfolios").accept(MediaType.APPLICATION_JSON))
+        mockMvc.perform(get("/api/v1/portfolios").accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void createPortfolio_withoutToken_returns401() throws Exception {
-        mockMvc.perform(post("/api/portfolios")
+        mockMvc.perform(post("/api/v1/portfolios")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name": "My Portfolio"}
@@ -108,7 +108,7 @@ class PortfolioIT extends AbstractIntegrationTest {
 
     @Test
     void addTransaction_withoutToken_returns401() throws Exception {
-        mockMvc.perform(post("/api/portfolios/00000000-0000-0000-0000-000000000001/transactions")
+        mockMvc.perform(post("/api/v1/portfolios/00000000-0000-0000-0000-000000000001/transactions")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isUnauthorized());
@@ -120,7 +120,7 @@ class PortfolioIT extends AbstractIntegrationTest {
 
     @Test
     void createPortfolio_withValidJwt_returns201() throws Exception {
-        mockMvc.perform(post("/api/portfolios")
+        mockMvc.perform(post("/api/v1/portfolios")
                         .with(jwt(USER_A))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -135,14 +135,14 @@ class PortfolioIT extends AbstractIntegrationTest {
     @Test
     void getUserPortfolios_withValidJwt_returns200() throws Exception {
         // önce bir portfolio oluştur
-        mockMvc.perform(post("/api/portfolios")
+        mockMvc.perform(post("/api/v1/portfolios")
                 .with(jwt(USER_A))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {"name": "Portfolio For List Test"}
                         """));
 
-        mockMvc.perform(get("/api/portfolios")
+        mockMvc.perform(get("/api/v1/portfolios")
                         .with(jwt(USER_A))
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -153,7 +153,7 @@ class PortfolioIT extends AbstractIntegrationTest {
     @Test
     void addBuyTransaction_withValidJwt_returns200() throws Exception {
         // portfolio oluştur
-        String createResponse = mockMvc.perform(post("/api/portfolios")
+        String createResponse = mockMvc.perform(post("/api/v1/portfolios")
                         .with(jwt(USER_A))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -165,7 +165,7 @@ class PortfolioIT extends AbstractIntegrationTest {
         String portfolioId = objectMapper.readTree(createResponse)
                 .path("data").path("id").asText();
 
-        mockMvc.perform(post("/api/portfolios/" + portfolioId + "/transactions")
+        mockMvc.perform(post("/api/v1/portfolios/" + portfolioId + "/transactions")
                         .with(jwt(USER_A))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -193,13 +193,13 @@ class PortfolioIT extends AbstractIntegrationTest {
                 {"name": "Duplicate Portfolio"}
                 """;
 
-        mockMvc.perform(post("/api/portfolios")
+        mockMvc.perform(post("/api/v1/portfolios")
                 .with(jwt(USER_A))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body));
 
         // aynı isimle ikinci kez
-        mockMvc.perform(post("/api/portfolios")
+        mockMvc.perform(post("/api/v1/portfolios")
                         .with(jwt(USER_A))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
@@ -209,7 +209,7 @@ class PortfolioIT extends AbstractIntegrationTest {
     @Test
     void addTransaction_sellMoreThanAvailable_returnsBadRequest() throws Exception {
         // portfolio oluştur
-        String createResponse = mockMvc.perform(post("/api/portfolios")
+        String createResponse = mockMvc.perform(post("/api/v1/portfolios")
                         .with(jwt(USER_A))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -222,7 +222,7 @@ class PortfolioIT extends AbstractIntegrationTest {
                 .path("data").path("id").asText();
 
         // 5 adet BUY
-        mockMvc.perform(post("/api/portfolios/" + portfolioId + "/transactions")
+        mockMvc.perform(post("/api/v1/portfolios/" + portfolioId + "/transactions")
                 .with(jwt(USER_A))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
@@ -237,7 +237,7 @@ class PortfolioIT extends AbstractIntegrationTest {
                         """));
 
         // 10 adet SELL — yetersiz quantity
-        mockMvc.perform(post("/api/portfolios/" + portfolioId + "/transactions")
+        mockMvc.perform(post("/api/v1/portfolios/" + portfolioId + "/transactions")
                         .with(jwt(USER_A))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -255,7 +255,7 @@ class PortfolioIT extends AbstractIntegrationTest {
 
     @Test
     void addTransaction_invalidBody_blankSymbol_returns400() throws Exception {
-        String createResponse = mockMvc.perform(post("/api/portfolios")
+        String createResponse = mockMvc.perform(post("/api/v1/portfolios")
                         .with(jwt(USER_A))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -267,7 +267,7 @@ class PortfolioIT extends AbstractIntegrationTest {
         String portfolioId = objectMapper.readTree(createResponse)
                 .path("data").path("id").asText();
 
-        mockMvc.perform(post("/api/portfolios/" + portfolioId + "/transactions")
+        mockMvc.perform(post("/api/v1/portfolios/" + portfolioId + "/transactions")
                         .with(jwt(USER_A))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -285,7 +285,7 @@ class PortfolioIT extends AbstractIntegrationTest {
 
     @Test
     void addTransaction_invalidBody_negativeQuantity_returns400() throws Exception {
-        String createResponse = mockMvc.perform(post("/api/portfolios")
+        String createResponse = mockMvc.perform(post("/api/v1/portfolios")
                         .with(jwt(USER_A))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -297,7 +297,7 @@ class PortfolioIT extends AbstractIntegrationTest {
         String portfolioId = objectMapper.readTree(createResponse)
                 .path("data").path("id").asText();
 
-        mockMvc.perform(post("/api/portfolios/" + portfolioId + "/transactions")
+        mockMvc.perform(post("/api/v1/portfolios/" + portfolioId + "/transactions")
                         .with(jwt(USER_A))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -320,7 +320,7 @@ class PortfolioIT extends AbstractIntegrationTest {
     @Test
     void getPortfolioById_otherUsersPortfolio_returns4xx() throws Exception {
         // user A portfolio oluşturur
-        String createResponse = mockMvc.perform(post("/api/portfolios")
+        String createResponse = mockMvc.perform(post("/api/v1/portfolios")
                         .with(jwt(USER_A))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -333,7 +333,7 @@ class PortfolioIT extends AbstractIntegrationTest {
                 .path("data").path("id").asText();
 
         // user B aynı portfolio'ya erişmeye çalışır
-        mockMvc.perform(get("/api/portfolios/" + portfolioId)
+        mockMvc.perform(get("/api/v1/portfolios/" + portfolioId)
                         .with(jwt(USER_B))
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().is4xxClientError());
@@ -342,7 +342,7 @@ class PortfolioIT extends AbstractIntegrationTest {
     @Test
     void addTransaction_toOtherUsersPortfolio_returns4xx() throws Exception {
         // user A portfolio oluşturur
-        String createResponse = mockMvc.perform(post("/api/portfolios")
+        String createResponse = mockMvc.perform(post("/api/v1/portfolios")
                         .with(jwt(USER_A))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -355,7 +355,7 @@ class PortfolioIT extends AbstractIntegrationTest {
                 .path("data").path("id").asText();
 
         // user B transaction eklemeye çalışır
-        mockMvc.perform(post("/api/portfolios/" + portfolioId + "/transactions")
+        mockMvc.perform(post("/api/v1/portfolios/" + portfolioId + "/transactions")
                         .with(jwt(USER_B))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""

@@ -9,7 +9,7 @@ const REFRESH_SKEW_MS = 30_000;
 
 const client = axios.create({
   // Boş baseURL → relative path kullanır.
-  // Docker'da Nginx /api/* isteklerini backend:8080'e proxy'ler.
+  // Docker'da Nginx /api/v1/* isteklerini backend:8080'e proxy'ler.
   // Local dev'de vite.config.js proxy'si devreye girer.
   baseURL: '',
 });

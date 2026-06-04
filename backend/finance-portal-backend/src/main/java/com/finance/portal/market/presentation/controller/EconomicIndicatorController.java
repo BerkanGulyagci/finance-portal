@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/market/indicators")
+@RequestMapping("/api/v1/market/indicators")
 public class EconomicIndicatorController {
 
     private final EconomicIndicatorService service;

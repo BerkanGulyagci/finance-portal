@@ -6,7 +6,7 @@ import client from '../lib/http';
  * `getMyPortfolios()` 6 ayrı yerden çağrılıyor (PortfolioPage, DashboardPage,
  * Header PortfolioNavMenu, InstrumentActionButtons, InstrumentTargetModal,
  * WatchlistContext) — paylaşılan cache olmadığı için her route geçişinde tüm
- * tüketiciler eşzamanlı /api/portfolios çağırıyor → backend liste cache HIT olsa
+ * tüketiciler eşzamanlı /api/v1/portfolios çağırıyor → backend liste cache HIT olsa
  * bile network round-trip + JSON parse tekrarlanır, cache MISS'te ise N paralel
  * cold-start yarar.
  *
@@ -35,7 +35,7 @@ export async function getMyPortfolios({ force = false } = {}) {
   if (_portfoliosInFlight) {
     return _portfoliosInFlight;
   }
-  _portfoliosInFlight = client.get('/api/portfolios')
+  _portfoliosInFlight = client.get('/api/v1/portfolios')
     .then(({ data: wrapper }) => {
       const data = wrapper.data;
       _portfoliosCache = { at: Date.now(), data };
@@ -48,7 +48,7 @@ export async function getMyPortfolios({ force = false } = {}) {
 }
 
 export async function getPortfolioById(portfolioId) {
-  const { data: wrapper } = await client.get(`/api/portfolios/${portfolioId}`);
+  const { data: wrapper } = await client.get(`/api/v1/portfolios/${portfolioId}`);
   return wrapper.data;
 }
 
@@ -57,7 +57,7 @@ export async function getPortfolioById(portfolioId) {
  * Sharpe, drawdown, beta, yoğunlaşma, benchmark, reel getiri) + AI yorum raporu (varsa).
  */
 export async function getPortfolioAiAnalysis(portfolioId) {
-  const { data: wrapper } = await client.get(`/api/portfolios/${portfolioId}/ai-analysis`);
+  const { data: wrapper } = await client.get(`/api/v1/portfolios/${portfolioId}/ai-analysis`);
   return wrapper.data;
 }
 
@@ -71,7 +71,7 @@ export function getPortfolioAiAnalysisShared(portfolioId) {
   if (hit && Date.now() - hit.at < AI_ANALYSIS_TTL_MS) return hit.promise;
   // light=true: yalnız deterministik skorlar/sınıflandırma/Monte Carlo — AI narrator'ı BEKLEMEZ (hızlı).
   const promise = client
-    .get(`/api/portfolios/${portfolioId}/ai-analysis`, { params: { light: true } })
+    .get(`/api/v1/portfolios/${portfolioId}/ai-analysis`, { params: { light: true } })
     .then(({ data: wrapper }) => wrapper.data)
     .catch((e) => {
       _aiAnalysisCache.delete(portfolioId);
@@ -86,7 +86,7 @@ export function getPortfolioAiAnalysisShared(portfolioId) {
  * profile: CONSERVATIVE | BALANCED | AGGRESSIVE.
  */
 export async function getPortfolioRebalance(portfolioId, profile) {
-  const { data: wrapper } = await client.get(`/api/portfolios/${portfolioId}/rebalance`, {
+  const { data: wrapper } = await client.get(`/api/v1/portfolios/${portfolioId}/rebalance`, {
     params: { profile },
   });
   return wrapper.data;
@@ -94,20 +94,20 @@ export async function getPortfolioRebalance(portfolioId, profile) {
 
 export async function createPortfolio(payload) {
   // payload: { name, description, currency, portfolioType }
-  const { data: wrapper } = await client.post('/api/portfolios', payload);
+  const { data: wrapper } = await client.post('/api/v1/portfolios', payload);
   bustMyPortfoliosCache();
   return wrapper.data;
 }
 
 export async function updatePortfolio(portfolioId, payload) {
   // payload: { name, description }
-  const { data: wrapper } = await client.patch(`/api/portfolios/${portfolioId}`, payload);
+  const { data: wrapper } = await client.patch(`/api/v1/portfolios/${portfolioId}`, payload);
   bustMyPortfoliosCache();
   return wrapper.data;
 }
 
 export async function deletePortfolio(portfolioId) {
-  const { data: wrapper } = await client.delete(`/api/portfolios/${portfolioId}`);
+  const { data: wrapper } = await client.delete(`/api/v1/portfolios/${portfolioId}`);
   bustMyPortfoliosCache();
   return wrapper.data;
 }
@@ -116,7 +116,7 @@ export async function deletePortfolio(portfolioId) {
 
 export async function addTransaction(portfolioId, payload) {
   const { data: wrapper } = await client.post(
-    `/api/portfolios/${portfolioId}/transactions`,
+    `/api/v1/portfolios/${portfolioId}/transactions`,
     payload
   );
   bustMyPortfoliosCache();
@@ -128,7 +128,7 @@ export async function addTransaction(portfolioId, payload) {
  * doldurma için. { price, date, found } döner; veri yoksa found=false.
  */
 export async function getPriceAtDate(assetType, symbol, date) {
-  const { data } = await client.get('/api/portfolios/price-at', {
+  const { data } = await client.get('/api/v1/portfolios/price-at', {
     params: { assetType, symbol, date },
   });
   return data.data ?? { price: null, date: null, found: false };
@@ -136,7 +136,7 @@ export async function getPriceAtDate(assetType, symbol, date) {
 
 export async function deleteTransaction(portfolioId, transactionId) {
   const { data: wrapper } = await client.delete(
-    `/api/portfolios/${portfolioId}/transactions/${transactionId}`
+    `/api/v1/portfolios/${portfolioId}/transactions/${transactionId}`
   );
   bustMyPortfoliosCache();
   return wrapper.data;
@@ -149,7 +149,7 @@ export async function deleteTransaction(portfolioId, transactionId) {
  */
 export async function addCouponIncome(portfolioId, payload) {
   const { data: wrapper } = await client.post(
-    `/api/portfolios/${portfolioId}/coupon-income`,
+    `/api/v1/portfolios/${portfolioId}/coupon-income`,
     payload
   );
   bustMyPortfoliosCache();
@@ -160,14 +160,14 @@ export async function addCouponIncome(portfolioId, payload) {
 
 export async function getPortfolioPerformance(portfolioId, range, metric) {
   const { data: wrapper } = await client.get(
-    `/api/portfolios/${portfolioId}/performance`,
+    `/api/v1/portfolios/${portfolioId}/performance`,
     { params: { range, metric } },
   );
   return wrapper.data;
 }
 
 export async function getPortfolioWhatIf(portfolioId) {
-  const { data: wrapper } = await client.get(`/api/portfolios/${portfolioId}/what-if`);
+  const { data: wrapper } = await client.get(`/api/v1/portfolios/${portfolioId}/what-if`);
   return wrapper.data;
 }
 
@@ -184,7 +184,7 @@ export async function getPortfolioWhatIfSeries(portfolioId, assetType, symbol, b
   }
   if (benchmarks.length) params.benchmark = benchmarks;
   const { data: wrapper } = await client.get(
-    `/api/portfolios/${portfolioId}/what-if-series`,
+    `/api/v1/portfolios/${portfolioId}/what-if-series`,
     { params, paramsSerializer: { indexes: null } }, // benchmark=a&benchmark=b (Spring List)
   );
   return wrapper.data;
@@ -194,7 +194,7 @@ export async function getPortfolioWhatIfSeries(portfolioId, assetType, symbol, b
 
 export async function getWatchlistItems(portfolioId) {
   const { data: wrapper } = await client.get(
-    `/api/portfolios/${portfolioId}/watchlist`
+    `/api/v1/portfolios/${portfolioId}/watchlist`
   );
   return wrapper.data ?? [];
 }
@@ -202,7 +202,7 @@ export async function getWatchlistItems(portfolioId) {
 export async function addWatchlistItem(portfolioId, payload) {
   // payload: { symbol, assetType, notes }
   const { data: wrapper } = await client.post(
-    `/api/portfolios/${portfolioId}/watchlist`,
+    `/api/v1/portfolios/${portfolioId}/watchlist`,
     payload
   );
   bustMyPortfoliosCache();
@@ -211,7 +211,7 @@ export async function addWatchlistItem(portfolioId, payload) {
 
 export async function deleteWatchlistItem(portfolioId, itemId) {
   const { data: wrapper } = await client.delete(
-    `/api/portfolios/${portfolioId}/watchlist/${itemId}`
+    `/api/v1/portfolios/${portfolioId}/watchlist/${itemId}`
   );
   bustMyPortfoliosCache();
   return wrapper.data;

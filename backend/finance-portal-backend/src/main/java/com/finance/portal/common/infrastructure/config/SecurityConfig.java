@@ -39,11 +39,11 @@ public class SecurityConfig {
             CentralErrorLogService centralErrorLogService
     ) throws Exception {
         log.info("Custom SecurityFilterChain initialized");
-        log.info("/api/market/** is public");
-        log.info("/api/portfolios/** requires authentication + verified email");
-        log.info("/api/admin/** requires ROLE_ADMIN");
-        log.info("/api/me requires authentication (email verification gate exempt for status check)");
-        log.info("/api/kafka/test requires authentication");
+        log.info("/api/v1/market/** is public");
+        log.info("/api/v1/portfolios/** requires authentication + verified email");
+        log.info("/api/v1/admin/** requires ROLE_ADMIN");
+        log.info("/api/v1/me requires authentication (email verification gate exempt for status check)");
+        log.info("/api/v1/kafka/test requires authentication");
         http
                 .cors(cors -> {})
                 .csrf(csrf -> csrf.disable())
@@ -51,26 +51,28 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                        // OpenAPI/Swagger UI — herkese açık (API dokümantasyonu)
+                        .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/actuator/mappings").permitAll()
                         .requestMatchers("/actuator/metrics", "/actuator/prometheus").permitAll()
-                        .requestMatchers("/api/kafka/test").authenticated()
-                        .requestMatchers("/api/me", "/api/me/**").authenticated()
-                        .requestMatchers("/api/support", "/api/support/**").authenticated()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/portfolios", "/api/portfolios/**").authenticated()
-                        .requestMatchers("/api/alarms", "/api/alarms/**").authenticated()
-                        .requestMatchers("/api/notifications", "/api/notifications/**").authenticated()
-                        .requestMatchers("/api/newsletter/unsubscribe").permitAll()
-                        .requestMatchers("/api/newsletter", "/api/newsletter/**").authenticated()
-                        .requestMatchers("/api/news", "/api/news/**").permitAll()
-                        .requestMatchers("/api/assistant", "/api/assistant/**").permitAll()
-                        .requestMatchers("/api/auth", "/api/auth/**").permitAll()
-                        .requestMatchers("/api/proxy/**").permitAll()
-                        .requestMatchers("/api/market/**").permitAll()
-                        .requestMatchers("/api/gold/**").permitAll()
-                        .requestMatchers("/api/market/assets/**").permitAll()
-                        .requestMatchers("/api/proxy/**").permitAll()
-                        .requestMatchers("/api/health").permitAll()
+                        .requestMatchers("/api/v1/kafka/test").authenticated()
+                        .requestMatchers("/api/v1/me", "/api/v1/me/**").authenticated()
+                        .requestMatchers("/api/v1/support", "/api/v1/support/**").authenticated()
+                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/portfolios", "/api/v1/portfolios/**").authenticated()
+                        .requestMatchers("/api/v1/alarms", "/api/v1/alarms/**").authenticated()
+                        .requestMatchers("/api/v1/notifications", "/api/v1/notifications/**").authenticated()
+                        .requestMatchers("/api/v1/newsletter/unsubscribe").permitAll()
+                        .requestMatchers("/api/v1/newsletter", "/api/v1/newsletter/**").authenticated()
+                        .requestMatchers("/api/v1/news", "/api/v1/news/**").permitAll()
+                        .requestMatchers("/api/v1/assistant", "/api/v1/assistant/**").permitAll()
+                        .requestMatchers("/api/v1/auth", "/api/v1/auth/**").permitAll()
+                        .requestMatchers("/api/v1/proxy/**").permitAll()
+                        .requestMatchers("/api/v1/market/**").permitAll()
+                        .requestMatchers("/api/v1/gold/**").permitAll()
+                        .requestMatchers("/api/v1/market/assets/**").permitAll()
+                        .requestMatchers("/api/v1/proxy/**").permitAll()
+                        .requestMatchers("/api/v1/health").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .anyRequest().permitAll()
                 )

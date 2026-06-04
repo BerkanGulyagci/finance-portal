@@ -22,7 +22,7 @@ import java.util.Map;
 
 @Validated
 @RestController
-@RequestMapping("/api/market/crypto")
+@RequestMapping("/api/v1/market/crypto")
 public class CryptoController {
 
     private final CryptoMarketService cryptoMarketService;

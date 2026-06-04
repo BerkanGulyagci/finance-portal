@@ -36,7 +36,7 @@ describe('getNotifications', () => {
     const result = await getNotifications();
 
     expect(client.get).toHaveBeenCalledTimes(1);
-    expect(client.get).toHaveBeenCalledWith('/api/notifications');
+    expect(client.get).toHaveBeenCalledWith('/api/v1/notifications');
     expect(result).toEqual(list);
   });
 
@@ -69,7 +69,7 @@ describe('getUnreadCount', () => {
     const result = await getUnreadCount();
 
     expect(client.get).toHaveBeenCalledTimes(1);
-    expect(client.get).toHaveBeenCalledWith('/api/notifications/unread-count');
+    expect(client.get).toHaveBeenCalledWith('/api/v1/notifications/unread-count');
     expect(result).toBe(7);
   });
 
@@ -107,7 +107,7 @@ describe('markNotificationRead', () => {
     const result = await markNotificationRead(42);
 
     expect(client.post).toHaveBeenCalledTimes(1);
-    expect(client.post).toHaveBeenCalledWith('/api/notifications/42/read');
+    expect(client.post).toHaveBeenCalledWith('/api/v1/notifications/42/read');
     expect(result).toEqual({ id: 42, read: true });
   });
 
@@ -133,7 +133,7 @@ describe('markAllNotificationsRead', () => {
     const result = await markAllNotificationsRead();
 
     expect(client.post).toHaveBeenCalledTimes(1);
-    expect(client.post).toHaveBeenCalledWith('/api/notifications/read-all');
+    expect(client.post).toHaveBeenCalledWith('/api/v1/notifications/read-all');
     expect(result).toEqual({ updated: 3 });
   });
 
@@ -153,7 +153,7 @@ describe('deleteNotification', () => {
     const result = await deleteNotification(13);
 
     expect(client.delete).toHaveBeenCalledTimes(1);
-    expect(client.delete).toHaveBeenCalledWith('/api/notifications/13');
+    expect(client.delete).toHaveBeenCalledWith('/api/v1/notifications/13');
     expect(result).toEqual({ id: 13, deleted: true });
   });
 

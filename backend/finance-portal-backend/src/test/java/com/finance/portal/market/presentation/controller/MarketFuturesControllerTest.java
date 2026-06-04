@@ -79,7 +79,7 @@ class MarketFuturesControllerTest {
     void getFuturesPage_default_returns200_withPageShape() throws Exception {
         when(futuresQueryService.getPagedFutures(0, 20)).thenReturn(samplePage());
 
-        mockMvc.perform(get("/api/market/futures").accept("application/json"))
+        mockMvc.perform(get("/api/v1/market/futures").accept("application/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Futures page retrieved successfully"))
@@ -94,7 +94,7 @@ class MarketFuturesControllerTest {
     void getViopContracts_returns200_withContractArray() throws Exception {
         when(viopService.getAllContracts()).thenReturn(List.of(sampleContract()));
 
-        mockMvc.perform(get("/api/market/futures/viop/contracts").accept("application/json"))
+        mockMvc.perform(get("/api/v1/market/futures/viop/contracts").accept("application/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("VIOP contracts retrieved successfully"))
@@ -109,7 +109,7 @@ class MarketFuturesControllerTest {
         when(viopChartService.getChart("THYAO Vadeli", ViopChartPeriod.ONE_MONTH))
                 .thenReturn(List.of(pt));
 
-        mockMvc.perform(get("/api/market/futures/viop/chart")
+        mockMvc.perform(get("/api/v1/market/futures/viop/chart")
                         .param("name", "THYAO Vadeli")
                         .param("period", "ONE_MONTH")
                         .accept("application/json"))
@@ -127,7 +127,7 @@ class MarketFuturesControllerTest {
         // period verilmediğinde default ONE_WEEK; boş liste → "bulunamadı" mesajı.
         when(viopChartService.getChart("BOGUS", ViopChartPeriod.ONE_WEEK)).thenReturn(List.of());
 
-        mockMvc.perform(get("/api/market/futures/viop/chart")
+        mockMvc.perform(get("/api/v1/market/futures/viop/chart")
                         .param("name", "BOGUS")
                         .accept("application/json"))
                 .andExpect(status().isOk())

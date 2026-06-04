@@ -77,7 +77,7 @@ class MarketFxControllerTest {
     void getTcmbLatestRates_returns200_withRatesShape() throws Exception {
         when(marketFxService.getTcmbLatestRates(null)).thenReturn(tcmbRates());
 
-        mockMvc.perform(get("/api/market/fx/tcmb/latest").accept("application/json"))
+        mockMvc.perform(get("/api/v1/market/fx/tcmb/latest").accept("application/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("TCMB FX rates retrieved successfully"))
@@ -94,7 +94,7 @@ class MarketFxControllerTest {
     void getTcmbLatestRates_passesSymbolsThrough() throws Exception {
         when(marketFxService.getTcmbLatestRates("USD,EUR")).thenReturn(tcmbRates());
 
-        mockMvc.perform(get("/api/market/fx/tcmb/latest").param("symbols", "USD,EUR").accept("application/json"))
+        mockMvc.perform(get("/api/v1/market/fx/tcmb/latest").param("symbols", "USD,EUR").accept("application/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.provider").value("tcmb"));
 
@@ -105,7 +105,7 @@ class MarketFxControllerTest {
     void getOpenFxLatest_noParams_passesNulls() throws Exception {
         when(marketFxService.getOpenFxLatest(null, null)).thenReturn(openRates("USD"));
 
-        mockMvc.perform(get("/api/market/fx/open/latest").accept("application/json"))
+        mockMvc.perform(get("/api/v1/market/fx/open/latest").accept("application/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Open FX rates retrieved successfully"))
@@ -121,7 +121,7 @@ class MarketFxControllerTest {
         // base "usd" -> "USD"; symbols "eur, gbp" -> "EUR,GBP"
         when(marketFxService.getOpenFxLatest("USD", "EUR,GBP")).thenReturn(openRates("USD"));
 
-        mockMvc.perform(get("/api/market/fx/open/latest")
+        mockMvc.perform(get("/api/v1/market/fx/open/latest")
                         .param("base", "usd")
                         .param("symbols", "eur, gbp")
                         .accept("application/json"))
@@ -133,7 +133,7 @@ class MarketFxControllerTest {
 
     @Test
     void getOpenFxLatest_invalidBase_returns400() throws Exception {
-        mockMvc.perform(get("/api/market/fx/open/latest").param("base", "DOLLAR").accept("application/json"))
+        mockMvc.perform(get("/api/v1/market/fx/open/latest").param("base", "DOLLAR").accept("application/json"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Base currency must be a 3-letter uppercase code, e.g. USD"));
@@ -144,7 +144,7 @@ class MarketFxControllerTest {
 
     @Test
     void getOpenFxLatest_invalidSymbol_returns400() throws Exception {
-        mockMvc.perform(get("/api/market/fx/open/latest").param("symbols", "USD,EURO").accept("application/json"))
+        mockMvc.perform(get("/api/v1/market/fx/open/latest").param("symbols", "USD,EURO").accept("application/json"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message")
@@ -155,7 +155,7 @@ class MarketFxControllerTest {
     void getFxHistory_default_returns200() throws Exception {
         when(marketFxService.getFxHistory("USD", "1M")).thenReturn(history("USD", "1M"));
 
-        mockMvc.perform(get("/api/market/fx/history").param("symbol", "USD").accept("application/json"))
+        mockMvc.perform(get("/api/v1/market/fx/history").param("symbol", "USD").accept("application/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("FX history retrieved"))
@@ -172,7 +172,7 @@ class MarketFxControllerTest {
     void getFxHistory_passesRangeThrough() throws Exception {
         when(marketFxService.getFxHistory("EUR", "1Y")).thenReturn(history("EUR", "1Y"));
 
-        mockMvc.perform(get("/api/market/fx/history")
+        mockMvc.perform(get("/api/v1/market/fx/history")
                         .param("symbol", "EUR")
                         .param("range", "1Y")
                         .accept("application/json"))

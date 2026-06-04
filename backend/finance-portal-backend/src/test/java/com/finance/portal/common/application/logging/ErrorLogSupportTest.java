@@ -35,7 +35,7 @@ class ErrorLogSupportTest {
     void formatResourceNotFoundMessage() {
         assertEquals(
                 "Resource not found: /api/does-not-exist-endpoint-xyz",
-                ErrorLogSupport.formatResourceNotFoundMessage("/api/does-not-exist-endpoint-xyz"));
+                ErrorLogSupport.formatResourceNotFoundMessage("/api/v1/does-not-exist-endpoint-xyz"));
     }
 
     @Test

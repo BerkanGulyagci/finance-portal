@@ -281,7 +281,7 @@ describe('useInstrumentSearch — handleSelect', () => {
       await result.current.handleSelect({ symbol: 'THYAO.IS', name: 'Türk Hava' });
     });
 
-    expect(client.get).toHaveBeenCalledWith('/api/market/stocks/THYAO.IS');
+    expect(client.get).toHaveBeenCalledWith('/api/v1/market/stocks/THYAO.IS');
     expect(onSelect).toHaveBeenCalledTimes(1);
     const arg = onSelect.mock.calls[0][0];
     expect(arg).toMatchObject({
@@ -366,7 +366,7 @@ describe('useInstrumentSearch — handleSelect', () => {
       await result.current.handleSelect({ symbol: 'GRAM', name: 'Gram Altın' });
     });
     const arg = onSelect.mock.calls[0][0];
-    expect(client.get).toHaveBeenCalledWith('/api/gold/spot');
+    expect(client.get).toHaveBeenCalledWith('/api/v1/gold/spot');
     expect(arg.price).toBe(2500);
     expect(arg.currency).toBe('TRY');
   });
@@ -395,7 +395,7 @@ describe('useInstrumentSearch — handleSelect', () => {
     await act(async () => {
       await result.current.handleSelect({ symbol: 'TRD9999', name: 'Tahvil 2' });
     });
-    expect(client.get).toHaveBeenCalledWith('/api/market/bonds/evds/TRD9999');
+    expect(client.get).toHaveBeenCalledWith('/api/v1/market/bonds/evds/TRD9999');
     expect(onSelect.mock.calls[0][0].price).toBe(101.25);
   });
 
@@ -426,7 +426,7 @@ describe('useInstrumentSearch — handleSelect', () => {
       await result.current.handleSelect({ symbol: 'CL=F', name: 'WTI Ham Petrol' });
     });
     const arg = onSelect.mock.calls[0][0];
-    expect(client.get).toHaveBeenCalledWith('/api/commodities/spot', { params: { symbol: 'CL=F' } });
+    expect(client.get).toHaveBeenCalledWith('/api/v1/commodities/spot', { params: { symbol: 'CL=F' } });
     // pickCommoditySpotPriceTry → displayPrice (TRY).
     expect(arg.price).toBeCloseTo(1850.5, 5);
     expect(arg.currency).toBe('TRY');
@@ -441,7 +441,7 @@ describe('useInstrumentSearch — handleSelect', () => {
     await act(async () => {
       await result.current.handleSelect({ symbol: 'PLATINUM:KG_TRY', name: 'Kg Platin' });
     });
-    expect(client.get).toHaveBeenCalledWith('/api/precious-metals/platinum/spot');
+    expect(client.get).toHaveBeenCalledWith('/api/v1/precious-metals/platinum/spot');
     expect(onSelect.mock.calls[0][0].price).toBe(90000);
   });
 
@@ -454,7 +454,7 @@ describe('useInstrumentSearch — handleSelect', () => {
       await result.current.handleSelect({ symbol: 'CL=F', name: 'Ham Petrol Vadeli' });
     });
     const arg = onSelect.mock.calls[0][0];
-    expect(client.get).toHaveBeenCalledWith('/api/commodities/spot', { params: { symbol: 'CL=F' } });
+    expect(client.get).toHaveBeenCalledWith('/api/v1/commodities/spot', { params: { symbol: 'CL=F' } });
     expect(arg.price).toBeCloseTo(80, 5);
     expect(arg.currency).toBe('USD');
   });
@@ -482,7 +482,7 @@ describe('useInstrumentSearch — handleSelect', () => {
       await result.current.handleSelect({ symbol: 'AAA', name: 'Fon A', category: 'BES' });
     });
     // category BES → sourceCode TPF.
-    expect(client.get).toHaveBeenCalledWith('/api/market/funds/tefas/AAA', { params: { sourceCode: 'TPF' } });
+    expect(client.get).toHaveBeenCalledWith('/api/v1/market/funds/tefas/AAA', { params: { sourceCode: 'TPF' } });
     const arg = onSelect.mock.calls[0][0];
     expect(arg.price).toBe(12.34);
     expect(arg.category).toBe('BES');

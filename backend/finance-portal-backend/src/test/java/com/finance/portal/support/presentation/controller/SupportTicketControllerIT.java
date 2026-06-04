@@ -72,13 +72,13 @@ class SupportTicketControllerIT extends AbstractIntegrationTest {
 
     @Test
     void list_withoutToken_returns401() throws Exception {
-        mockMvc.perform(get("/api/support/tickets"))
+        mockMvc.perform(get("/api/v1/support/tickets"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void create_withoutToken_returns401() throws Exception {
-        mockMvc.perform(post("/api/support/tickets")
+        mockMvc.perform(post("/api/v1/support/tickets")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"subject\":\"t\",\"message\":\"m\"}"))
                 .andExpect(status().isUnauthorized());
@@ -86,7 +86,7 @@ class SupportTicketControllerIT extends AbstractIntegrationTest {
 
     @Test
     void adminListUserTickets_asUser_returns403() throws Exception {
-        mockMvc.perform(get("/api/admin/users/" + USER_A + "/tickets").with(jwt(USER_B, "USER")))
+        mockMvc.perform(get("/api/v1/admin/users/" + USER_A + "/tickets").with(jwt(USER_B, "USER")))
                 .andExpect(status().isForbidden());
     }
 
@@ -96,7 +96,7 @@ class SupportTicketControllerIT extends AbstractIntegrationTest {
 
     @Test
     void create_validRequest_returnsTicket() throws Exception {
-        mockMvc.perform(post("/api/support/tickets").with(jwt(USER_A, "USER"))
+        mockMvc.perform(post("/api/v1/support/tickets").with(jwt(USER_A, "USER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"subject\":\"Login problemi\",\"message\":\"Giriş yapamıyorum.\"}"))
                 .andExpect(status().isOk())
@@ -109,7 +109,7 @@ class SupportTicketControllerIT extends AbstractIntegrationTest {
 
     @Test
     void create_blankSubject_returns400() throws Exception {
-        mockMvc.perform(post("/api/support/tickets").with(jwt(USER_A, "USER"))
+        mockMvc.perform(post("/api/v1/support/tickets").with(jwt(USER_A, "USER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"subject\":\"\",\"message\":\"non-empty\"}"))
                 .andExpect(status().isBadRequest());
@@ -123,7 +123,7 @@ class SupportTicketControllerIT extends AbstractIntegrationTest {
                     "Subj " + i, "Msg " + i);
         }
         // 4. denemede 400.
-        mockMvc.perform(post("/api/support/tickets").with(jwt(USER_A, "USER"))
+        mockMvc.perform(post("/api/v1/support/tickets").with(jwt(USER_A, "USER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"subject\":\"another\",\"message\":\"m\"}"))
                 .andExpect(status().isBadRequest());
@@ -139,11 +139,11 @@ class SupportTicketControllerIT extends AbstractIntegrationTest {
         supportTicketService.create(USER_A, "a@example.com", "user-a", "A-2", "m");
         supportTicketService.create(USER_B, "b@example.com", "user-b", "B-1", "m");
 
-        mockMvc.perform(get("/api/support/tickets").with(jwt(USER_A, "USER")))
+        mockMvc.perform(get("/api/v1/support/tickets").with(jwt(USER_A, "USER")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(2));
 
-        mockMvc.perform(get("/api/support/tickets").with(jwt(USER_B, "USER")))
+        mockMvc.perform(get("/api/v1/support/tickets").with(jwt(USER_B, "USER")))
                 .andExpect(jsonPath("$.data.length()").value(1));
     }
 
@@ -155,7 +155,7 @@ class SupportTicketControllerIT extends AbstractIntegrationTest {
     void update_ownOpenTicket_succeeds() throws Exception {
         SupportTicket t = supportTicketService.create(USER_A, "a@example.com", "user-a", "old", "old-msg");
 
-        mockMvc.perform(put("/api/support/tickets/" + t.getId()).with(jwt(USER_A, "USER"))
+        mockMvc.perform(put("/api/v1/support/tickets/" + t.getId()).with(jwt(USER_A, "USER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"subject\":\"yeni konu\",\"message\":\"yeni mesaj\"}"))
                 .andExpect(status().isOk())
@@ -167,7 +167,7 @@ class SupportTicketControllerIT extends AbstractIntegrationTest {
     void update_otherUsersTicket_returns404() throws Exception {
         SupportTicket t = supportTicketService.create(USER_A, "a@example.com", "user-a", "A", "m");
 
-        mockMvc.perform(put("/api/support/tickets/" + t.getId()).with(jwt(USER_B, "USER"))
+        mockMvc.perform(put("/api/v1/support/tickets/" + t.getId()).with(jwt(USER_B, "USER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"subject\":\"hack\",\"message\":\"m\"}"))
                 .andExpect(status().isNotFound());
@@ -178,7 +178,7 @@ class SupportTicketControllerIT extends AbstractIntegrationTest {
         SupportTicket t = supportTicketService.create(USER_A, "a@example.com", "user-a", "A", "m");
         supportTicketService.updateStatus(t.getId(), SupportTicketStatus.IN_PROGRESS, null);
 
-        mockMvc.perform(put("/api/support/tickets/" + t.getId()).with(jwt(USER_A, "USER"))
+        mockMvc.perform(put("/api/v1/support/tickets/" + t.getId()).with(jwt(USER_A, "USER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"subject\":\"new\",\"message\":\"new\"}"))
                 .andExpect(status().isBadRequest());
@@ -192,7 +192,7 @@ class SupportTicketControllerIT extends AbstractIntegrationTest {
     void delete_ownOpenTicket_succeeds() throws Exception {
         SupportTicket t = supportTicketService.create(USER_A, "a@example.com", "user-a", "to-delete", "m");
 
-        mockMvc.perform(delete("/api/support/tickets/" + t.getId()).with(jwt(USER_A, "USER")))
+        mockMvc.perform(delete("/api/v1/support/tickets/" + t.getId()).with(jwt(USER_A, "USER")))
                 .andExpect(status().isOk());
 
         assertThat(repository.findById(t.getId())).isEmpty();
@@ -202,7 +202,7 @@ class SupportTicketControllerIT extends AbstractIntegrationTest {
     void delete_otherUsersTicket_returns404() throws Exception {
         SupportTicket t = supportTicketService.create(USER_A, "a@example.com", "user-a", "A", "m");
 
-        mockMvc.perform(delete("/api/support/tickets/" + t.getId()).with(jwt(USER_B, "USER")))
+        mockMvc.perform(delete("/api/v1/support/tickets/" + t.getId()).with(jwt(USER_B, "USER")))
                 .andExpect(status().isNotFound());
 
         assertThat(repository.findById(t.getId())).isPresent();
@@ -213,7 +213,7 @@ class SupportTicketControllerIT extends AbstractIntegrationTest {
         SupportTicket t = supportTicketService.create(USER_A, "a@example.com", "user-a", "A", "m");
         supportTicketService.updateStatus(t.getId(), SupportTicketStatus.IN_PROGRESS, null);
 
-        mockMvc.perform(delete("/api/support/tickets/" + t.getId()).with(jwt(USER_A, "USER")))
+        mockMvc.perform(delete("/api/v1/support/tickets/" + t.getId()).with(jwt(USER_A, "USER")))
                 .andExpect(status().isBadRequest());
     }
 
@@ -226,7 +226,7 @@ class SupportTicketControllerIT extends AbstractIntegrationTest {
         supportTicketService.create(USER_A, "a@example.com", "user-a", "A-1", "m");
         supportTicketService.create(USER_A, "a@example.com", "user-a", "A-2", "m");
 
-        mockMvc.perform(get("/api/admin/users/" + USER_A + "/tickets").with(jwt("admin-1", "ADMIN")))
+        mockMvc.perform(get("/api/v1/admin/users/" + USER_A + "/tickets").with(jwt("admin-1", "ADMIN")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(2));
     }
@@ -235,7 +235,7 @@ class SupportTicketControllerIT extends AbstractIntegrationTest {
     void adminUpdateStatus_asAdmin_changesStatusAndNotifiesUser() throws Exception {
         SupportTicket t = supportTicketService.create(USER_A, "a@example.com", "user-a", "S", "m");
 
-        mockMvc.perform(patch("/api/admin/support/tickets/" + t.getId() + "/status")
+        mockMvc.perform(patch("/api/v1/admin/support/tickets/" + t.getId() + "/status")
                         .with(jwt("admin-1", "ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"IN_PROGRESS\",\"adminNote\":\"ekibe atadık\"}"))
@@ -251,7 +251,7 @@ class SupportTicketControllerIT extends AbstractIntegrationTest {
     void adminUpdateStatus_asUser_returns403() throws Exception {
         SupportTicket t = supportTicketService.create(USER_A, "a@example.com", "user-a", "S", "m");
 
-        mockMvc.perform(patch("/api/admin/support/tickets/" + t.getId() + "/status")
+        mockMvc.perform(patch("/api/v1/admin/support/tickets/" + t.getId() + "/status")
                         .with(jwt(USER_B, "USER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"RESOLVED\",\"adminNote\":\"\"}"))
@@ -262,7 +262,7 @@ class SupportTicketControllerIT extends AbstractIntegrationTest {
     void adminUpdateStatus_invalidStatus_returns400() throws Exception {
         SupportTicket t = supportTicketService.create(USER_A, "a@example.com", "user-a", "S", "m");
 
-        mockMvc.perform(patch("/api/admin/support/tickets/" + t.getId() + "/status")
+        mockMvc.perform(patch("/api/v1/admin/support/tickets/" + t.getId() + "/status")
                         .with(jwt("admin-1", "ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"BOGUS\",\"adminNote\":\"\"}"))
@@ -272,7 +272,7 @@ class SupportTicketControllerIT extends AbstractIntegrationTest {
     @Test
     void adminUpdateStatus_unknownTicket_returns404() throws Exception {
         UUID unknown = UUID.randomUUID();
-        mockMvc.perform(patch("/api/admin/support/tickets/" + unknown + "/status")
+        mockMvc.perform(patch("/api/v1/admin/support/tickets/" + unknown + "/status")
                         .with(jwt("admin-1", "ADMIN"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"RESOLVED\",\"adminNote\":\"\"}"))

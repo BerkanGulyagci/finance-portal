@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/proxy")
+@RequestMapping("/api/v1/proxy")
 public class ImageProxyController {
 
     private final ImageProxyService imageProxyService;

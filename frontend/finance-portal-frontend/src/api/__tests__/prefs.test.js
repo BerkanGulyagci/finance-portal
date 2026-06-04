@@ -110,7 +110,7 @@ describe('prefSet', () => {
     vi.advanceTimersByTime(DEBOUNCE_MS);
     expect(client.put).toHaveBeenCalledTimes(1);
     expect(client.put).toHaveBeenCalledWith(
-      '/api/me/preferences/lang',
+      '/api/v1/me/preferences/lang',
       JSON.stringify('en'),
       JSON_HEADERS,
     );
@@ -123,7 +123,7 @@ describe('prefSet', () => {
     prefSet('grid layout/v2', { a: 1 });
     vi.advanceTimersByTime(DEBOUNCE_MS);
     expect(client.put).toHaveBeenCalledWith(
-      '/api/me/preferences/grid%20layout%2Fv2',
+      '/api/v1/me/preferences/grid%20layout%2Fv2',
       JSON.stringify({ a: 1 }),
       JSON_HEADERS,
     );
@@ -141,7 +141,7 @@ describe('prefSet', () => {
     vi.advanceTimersByTime(DEBOUNCE_MS);
     expect(client.put).toHaveBeenCalledTimes(1);
     expect(client.put).toHaveBeenCalledWith(
-      '/api/me/preferences/lang',
+      '/api/v1/me/preferences/lang',
       JSON.stringify('c'),
       JSON_HEADERS,
     );
@@ -186,7 +186,7 @@ describe('prefSetSync', () => {
     const ret = prefSetSync('lang', 'en');
     expect(client.put).toHaveBeenCalledTimes(1);
     expect(client.put).toHaveBeenCalledWith(
-      '/api/me/preferences/lang',
+      '/api/v1/me/preferences/lang',
       JSON.stringify('en'),
       JSON_HEADERS,
     );
@@ -212,7 +212,7 @@ describe('prefSetSync', () => {
     vi.advanceTimersByTime(DEBOUNCE_MS * 2); // iptal edilen timer ateşlememeli
     expect(client.put).toHaveBeenCalledTimes(1);
     expect(client.put).toHaveBeenLastCalledWith(
-      '/api/me/preferences/lang',
+      '/api/v1/me/preferences/lang',
       JSON.stringify('yeni'),
       JSON_HEADERS,
     );
@@ -228,12 +228,12 @@ describe('hydratePrefs', () => {
     expect(client.get).not.toHaveBeenCalled();
   });
 
-  it('authed kullanıcıda /api/me/preferences GET eder', async () => {
+  it('authed kullanıcıda /api/v1/me/preferences GET eder', async () => {
     signIn();
     client.get.mockResolvedValue({ data: { data: {} } });
     await hydratePrefs();
     expect(client.get).toHaveBeenCalledTimes(1);
-    expect(client.get).toHaveBeenCalledWith('/api/me/preferences');
+    expect(client.get).toHaveBeenCalledWith('/api/v1/me/preferences');
   });
 
   it('wrapper.data içindeki her tercihi JSON olarak localStorage\'a yazar', async () => {

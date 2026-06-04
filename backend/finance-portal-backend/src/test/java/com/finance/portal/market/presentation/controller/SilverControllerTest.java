@@ -63,7 +63,7 @@ class SilverControllerTest {
     void spot_returns200_withSpotShape() throws Exception {
         when(silverMarketService.getSpotSilver()).thenReturn(sampleSpot());
 
-        mockMvc.perform(get("/api/silver/spot").accept("application/json"))
+        mockMvc.perform(get("/api/v1/silver/spot").accept("application/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Silver spot data retrieved"))
@@ -83,7 +83,7 @@ class SilverControllerTest {
         when(silverMarketService.getSilverHistory("1M", "TRY"))
                 .thenReturn(historyWith("1M", "TRY", List.of(p)));
 
-        mockMvc.perform(get("/api/silver/history").accept("application/json"))
+        mockMvc.perform(get("/api/v1/silver/history").accept("application/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Silver history retrieved"))
@@ -100,7 +100,7 @@ class SilverControllerTest {
         when(silverMarketService.getSilverHistory("1W", "USD"))
                 .thenReturn(historyWith("1W", "USD", List.of()));
 
-        mockMvc.perform(get("/api/silver/history")
+        mockMvc.perform(get("/api/v1/silver/history")
                         .param("range", "1W")
                         .param("currency", "USD")
                         .accept("application/json"))

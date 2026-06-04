@@ -21,7 +21,7 @@ import java.util.List;
 
 @Validated
 @RestController
-@RequestMapping("/api/market/stocks")
+@RequestMapping("/api/v1/market/stocks")
 public class MarketStockController {
 
     /** BIST (.IS) ve Yahoo kripto (BTC-USD) sembolleri */

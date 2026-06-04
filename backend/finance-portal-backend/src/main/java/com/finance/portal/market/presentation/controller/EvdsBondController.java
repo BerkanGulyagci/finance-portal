@@ -29,13 +29,13 @@ import java.util.stream.Collectors;
  *
  * <p>Endpoints:
  * <ul>
- *   <li>GET /api/market/bonds/evds                          — sayfalı kıymet listesi
- *   <li>GET /api/market/bonds/evds/{instrumentCode}         — kıymet detayı
- *   <li>GET /api/market/bonds/evds/{instrumentCode}/history — tarihsel veri
+ *   <li>GET /api/v1/market/bonds/evds                          — sayfalı kıymet listesi
+ *   <li>GET /api/v1/market/bonds/evds/{instrumentCode}         — kıymet detayı
+ *   <li>GET /api/v1/market/bonds/evds/{instrumentCode}/history — tarihsel veri
  * </ul>
  */
 @RestController
-@RequestMapping("/api/market/bonds/evds")
+@RequestMapping("/api/v1/market/bonds/evds")
 public class EvdsBondController {
 
     private static final Logger log = LoggerFactory.getLogger(EvdsBondController.class);
@@ -55,7 +55,7 @@ public class EvdsBondController {
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // GET /api/market/bonds/evds
+    // GET /api/v1/market/bonds/evds
     // ─────────────────────────────────────────────────────────────────────
 
     /**
@@ -120,7 +120,7 @@ public class EvdsBondController {
 
         EvdsBondPageResponse response = EvdsBondPageResponse.of(pageItems, page, size, totalItems);
 
-        log.debug("[EvdsBondController] GET /api/market/bonds/evds page={} size={} total={} filtered={}",
+        log.debug("[EvdsBondController] GET /api/v1/market/bonds/evds page={} size={} total={} filtered={}",
                 page, size, all.size(), totalItems);
 
         return ResponseEntity.ok(ApiResponse.success(response,
@@ -128,7 +128,7 @@ public class EvdsBondController {
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // GET /api/market/bonds/evds/categories — Kategori → sayım dağılımı
+    // GET /api/v1/market/bonds/evds/categories — Kategori → sayım dağılımı
     // ─────────────────────────────────────────────────────────────────────
 
     @GetMapping("/categories")
@@ -144,7 +144,7 @@ public class EvdsBondController {
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // GET /api/market/bonds/evds/{instrumentCode}
+    // GET /api/v1/market/bonds/evds/{instrumentCode}
     // ─────────────────────────────────────────────────────────────────────
 
     @GetMapping("/{instrumentCode}")
@@ -170,7 +170,7 @@ public class EvdsBondController {
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // GET /api/market/bonds/evds/{instrumentCode}/history
+    // GET /api/v1/market/bonds/evds/{instrumentCode}/history
     // ─────────────────────────────────────────────────────────────────────
 
     @GetMapping("/{instrumentCode}/history")

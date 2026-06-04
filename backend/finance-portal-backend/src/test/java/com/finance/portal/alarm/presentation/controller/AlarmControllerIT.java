@@ -69,13 +69,13 @@ class AlarmControllerIT extends AbstractIntegrationTest {
 
     @Test
     void listAlarms_withoutToken_returns401() throws Exception {
-        mockMvc.perform(get("/api/alarms"))
+        mockMvc.perform(get("/api/v1/alarms"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void createAlarm_withoutToken_returns401() throws Exception {
-        mockMvc.perform(post("/api/alarms")
+        mockMvc.perform(post("/api/v1/alarms")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isUnauthorized());
@@ -87,7 +87,7 @@ class AlarmControllerIT extends AbstractIntegrationTest {
 
     @Test
     void createAlarm_happyPath_returns201() throws Exception {
-        mockMvc.perform(post("/api/alarms")
+        mockMvc.perform(post("/api/v1/alarms")
                         .with(jwt(USER_A))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -112,7 +112,7 @@ class AlarmControllerIT extends AbstractIntegrationTest {
 
     @Test
     void createAlarm_blankSymbol_returns400() throws Exception {
-        mockMvc.perform(post("/api/alarms")
+        mockMvc.perform(post("/api/v1/alarms")
                         .with(jwt(USER_A))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -129,7 +129,7 @@ class AlarmControllerIT extends AbstractIntegrationTest {
 
     @Test
     void createAlarm_invalidAssetType_returns400() throws Exception {
-        mockMvc.perform(post("/api/alarms")
+        mockMvc.perform(post("/api/v1/alarms")
                         .with(jwt(USER_A))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -151,7 +151,7 @@ class AlarmControllerIT extends AbstractIntegrationTest {
     @Test
     void listAlarms_returnsOnlyOwn() throws Exception {
         // A bir alarm oluştursun
-        mockMvc.perform(post("/api/alarms")
+        mockMvc.perform(post("/api/v1/alarms")
                 .with(jwt(USER_A))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
@@ -160,13 +160,13 @@ class AlarmControllerIT extends AbstractIntegrationTest {
                 .andExpect(status().isCreated());
 
         // B'nin kendi listesi boş olmalı
-        mockMvc.perform(get("/api/alarms").with(jwt(USER_B)))
+        mockMvc.perform(get("/api/v1/alarms").with(jwt(USER_B)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").isArray())
                 .andExpect(jsonPath("$.data.length()").value(0));
 
         // A'nın listesinde 1 alarm görünmeli
-        mockMvc.perform(get("/api/alarms").with(jwt(USER_A)))
+        mockMvc.perform(get("/api/v1/alarms").with(jwt(USER_A)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(1))
                 .andExpect(jsonPath("$.data[0].symbol").value("THYAO"));
@@ -179,7 +179,7 @@ class AlarmControllerIT extends AbstractIntegrationTest {
     @Test
     void getAlarm_otherUsersAlarm_returns404() throws Exception {
         // A oluşturur
-        String json = mockMvc.perform(post("/api/alarms")
+        String json = mockMvc.perform(post("/api/v1/alarms")
                 .with(jwt(USER_A))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
@@ -189,11 +189,11 @@ class AlarmControllerIT extends AbstractIntegrationTest {
         String alarmId = objectMapper.readTree(json).path("data").path("id").asText();
 
         // B okumaya çalışır → 404 (kullanıcıya göre kapsanır)
-        mockMvc.perform(get("/api/alarms/" + alarmId).with(jwt(USER_B)))
+        mockMvc.perform(get("/api/v1/alarms/" + alarmId).with(jwt(USER_B)))
                 .andExpect(status().isNotFound());
 
         // A okuyabilir
-        mockMvc.perform(get("/api/alarms/" + alarmId).with(jwt(USER_A)))
+        mockMvc.perform(get("/api/v1/alarms/" + alarmId).with(jwt(USER_A)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.symbol").value("BTC"));
     }
@@ -204,7 +204,7 @@ class AlarmControllerIT extends AbstractIntegrationTest {
 
     @Test
     void updateAlarm_changeThreshold_persists() throws Exception {
-        String json = mockMvc.perform(post("/api/alarms")
+        String json = mockMvc.perform(post("/api/v1/alarms")
                 .with(jwt(USER_A))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
@@ -213,7 +213,7 @@ class AlarmControllerIT extends AbstractIntegrationTest {
                 .andReturn().getResponse().getContentAsString();
         String alarmId = objectMapper.readTree(json).path("data").path("id").asText();
 
-        mockMvc.perform(patch("/api/alarms/" + alarmId)
+        mockMvc.perform(patch("/api/v1/alarms/" + alarmId)
                         .with(jwt(USER_A))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -223,13 +223,13 @@ class AlarmControllerIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.data.threshold").value(350.0));
 
         // Verify persisted
-        mockMvc.perform(get("/api/alarms/" + alarmId).with(jwt(USER_A)))
+        mockMvc.perform(get("/api/v1/alarms/" + alarmId).with(jwt(USER_A)))
                 .andExpect(jsonPath("$.data.threshold").value(350.0));
     }
 
     @Test
     void updateAlarm_otherUsers_returns404() throws Exception {
-        String json = mockMvc.perform(post("/api/alarms")
+        String json = mockMvc.perform(post("/api/v1/alarms")
                 .with(jwt(USER_A))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
@@ -238,7 +238,7 @@ class AlarmControllerIT extends AbstractIntegrationTest {
                 .andReturn().getResponse().getContentAsString();
         String alarmId = objectMapper.readTree(json).path("data").path("id").asText();
 
-        mockMvc.perform(patch("/api/alarms/" + alarmId)
+        mockMvc.perform(patch("/api/v1/alarms/" + alarmId)
                         .with(jwt(USER_B))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -253,7 +253,7 @@ class AlarmControllerIT extends AbstractIntegrationTest {
 
     @Test
     void deleteAlarm_happyPath_returns2xx() throws Exception {
-        String json = mockMvc.perform(post("/api/alarms")
+        String json = mockMvc.perform(post("/api/v1/alarms")
                 .with(jwt(USER_A))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
@@ -262,17 +262,17 @@ class AlarmControllerIT extends AbstractIntegrationTest {
                 .andReturn().getResponse().getContentAsString();
         String alarmId = objectMapper.readTree(json).path("data").path("id").asText();
 
-        mockMvc.perform(delete("/api/alarms/" + alarmId).with(jwt(USER_A)))
+        mockMvc.perform(delete("/api/v1/alarms/" + alarmId).with(jwt(USER_A)))
                 .andExpect(status().is2xxSuccessful());
 
         // List artık 0 olmalı
-        mockMvc.perform(get("/api/alarms").with(jwt(USER_A)))
+        mockMvc.perform(get("/api/v1/alarms").with(jwt(USER_A)))
                 .andExpect(jsonPath("$.data.length()").value(0));
     }
 
     @Test
     void deleteAlarm_otherUsers_returns404() throws Exception {
-        String json = mockMvc.perform(post("/api/alarms")
+        String json = mockMvc.perform(post("/api/v1/alarms")
                 .with(jwt(USER_A))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
@@ -281,11 +281,11 @@ class AlarmControllerIT extends AbstractIntegrationTest {
                 .andReturn().getResponse().getContentAsString();
         String alarmId = objectMapper.readTree(json).path("data").path("id").asText();
 
-        mockMvc.perform(delete("/api/alarms/" + alarmId).with(jwt(USER_B)))
+        mockMvc.perform(delete("/api/v1/alarms/" + alarmId).with(jwt(USER_B)))
                 .andExpect(status().isNotFound());
 
         // A'nın listesinde hala duruyor
-        mockMvc.perform(get("/api/alarms").with(jwt(USER_A)))
+        mockMvc.perform(get("/api/v1/alarms").with(jwt(USER_A)))
                 .andExpect(jsonPath("$.data.length()").value(1));
     }
 

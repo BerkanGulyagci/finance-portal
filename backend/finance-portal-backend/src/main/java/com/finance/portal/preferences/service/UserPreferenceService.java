@@ -28,7 +28,7 @@ public class UserPreferenceService {
 
     private static final Logger log = LoggerFactory.getLogger(UserPreferenceService.class);
 
-    /** /api/me/preferences cevabında ve PUT yolunda kullanılan birleştirilmiş anahtar. */
+    /** /api/v1/me/preferences cevabında ve PUT yolunda kullanılan birleştirilmiş anahtar. */
     public static final String KEY_MARGIN_ALERT_THRESHOLD_PCT = "margin_alert_threshold_pct";
 
     private final UserPreferenceRepository repository;

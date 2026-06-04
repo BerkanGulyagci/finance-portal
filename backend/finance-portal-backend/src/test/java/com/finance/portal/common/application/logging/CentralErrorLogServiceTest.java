@@ -34,7 +34,7 @@ class CentralErrorLogServiceTest {
 
     @Test
     void publishValidationError_populatesStandardFields() {
-        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/auth/register");
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/auth/register");
         request.setAttribute(RequestLogSupport.ATTR_REQUEST_ID, "req-123");
         request.setAttribute(RequestLogSupport.ATTR_CLIENT_IP, "10.0.0.5");
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
@@ -57,7 +57,7 @@ class CentralErrorLogServiceTest {
         assertEquals("req-123", event.getRequestId());
         assertEquals("10.0.0.5", event.getClientIp());
         assertEquals("POST", event.getMethod());
-        assertEquals("/api/auth/register", event.getPath());
+        assertEquals("/api/v1/auth/register", event.getPath());
         assertEquals("java.lang.IllegalArgumentException: bad input", event.getException());
         assertNotNull(event.getTimestamp());
         assertNull(event.getDurationMs());
@@ -65,7 +65,7 @@ class CentralErrorLogServiceTest {
 
     @Test
     void publishGlobalException_usesErrorLevel() {
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/unknown");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/unknown");
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
         service.logHandledError(

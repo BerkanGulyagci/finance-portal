@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
  * Sağlayıcı anahtarı backend'de kalır (frontend'e sızmaz).
  */
 @RestController
-@RequestMapping("/api/assistant")
+@RequestMapping("/api/v1/assistant")
 public class AssistantController {
 
     private final AssistantService assistantService;

@@ -36,7 +36,7 @@ function currencyOf(root) {
 /**
  * Liste satırları için küçük enstrüman logosu (hisse + VİOP):
  *  - Para birimi dayanağı (USD, USDTRY, EURTRY…) → yuvarlak bayrak (flag-icons, ağ isteği yok)
- *  - Aksi halde Midas şirket logosu (lazy + önbellekli, `/api/proxy/image` üzerinden) — yoksa harf rozeti
+ *  - Aksi halde Midas şirket logosu (lazy + önbellekli, `/api/v1/proxy/image` üzerinden) — yoksa harf rozeti
  *
  * Logo isteği lazy + önbellekli + eşzamanlı-tekilleştirmeli olduğundan listeyi yavaşlatmaz; aynı
  * dayanağa sahip birden çok VİOP sözleşmesi tek istek paylaşır.
@@ -54,7 +54,7 @@ export default function InstrumentLogo({ symbol, name, size = 24, className = ''
     if (!p) {
       p = getStockMidasDetail(root)
         .then(d => {
-          const u = d?.logoUrl ? `/api/proxy/image?url=${encodeURIComponent(d.logoUrl)}` : null;
+          const u = d?.logoUrl ? `/api/v1/proxy/image?url=${encodeURIComponent(d.logoUrl)}` : null;
           cache.set(root, u); inflight.delete(root); return u;
         })
         .catch(() => { cache.set(root, null); inflight.delete(root); return null; });

@@ -8,7 +8,7 @@ import java.io.Serializable;
 import java.util.List;
 
 /**
- * GET /api/precious-metals/{metal}/history response.
+ * GET /api/v1/precious-metals/{metal}/history response.
  */
 @Data
 @NoArgsConstructor

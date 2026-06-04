@@ -5,7 +5,7 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * /api/commodities/history endpoint'i için wrapper response.
+ * /api/v1/commodities/history endpoint'i için wrapper response.
  */
 @Data
 public class CommodityHistoryResponse {

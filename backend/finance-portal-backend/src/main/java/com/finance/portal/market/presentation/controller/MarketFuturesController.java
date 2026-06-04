@@ -28,7 +28,7 @@ import java.util.List;
 
 @Validated
 @RestController
-@RequestMapping("/api/market/futures")
+@RequestMapping("/api/v1/market/futures")
 public class MarketFuturesController {
 
     private static final String FUTURES_SYMBOL_REGEX = "^[A-Z0-9.=]{1,15}$";
@@ -151,7 +151,7 @@ public class MarketFuturesController {
      * VİOP sözleşmesi grafik verisi (İş Yatırım'dan).
      * Sadece hisse senedi dayanaklı sözleşmeler desteklenir.
      * <p>
-     * Örnek: GET /api/market/futures/viop/chart?name=THYAO%20(30%20Haz%2026)%20Vadeli%20FIZ.&period=ONE_WEEK
+     * Örnek: GET /api/v1/market/futures/viop/chart?name=THYAO%20(30%20Haz%2026)%20Vadeli%20FIZ.&period=ONE_WEEK
      */
     @GetMapping(value = "/viop/chart", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ApiResponse<List<ViopChartPointDto>>> getViopChart(

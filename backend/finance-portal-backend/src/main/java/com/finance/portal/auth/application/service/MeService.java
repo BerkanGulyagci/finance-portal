@@ -44,7 +44,7 @@ public class MeService {
         if (keycloakRealmRoleService.hasExactRealmRole(userId, KeycloakRealmRoleService.DEFAULT_USER_REALM_ROLE)) {
             return user;
         }
-        log.info("User {} missing realm role USER; attempting assignment via /api/me", userId);
+        log.info("User {} missing realm role USER; attempting assignment via /api/v1/me", userId);
         keycloakRealmRoleService.ensureRealmRoleAssigned(userId, KeycloakRealmRoleService.DEFAULT_USER_REALM_ROLE);
         return keycloakUserAdminPort.getUser(userId);
     }

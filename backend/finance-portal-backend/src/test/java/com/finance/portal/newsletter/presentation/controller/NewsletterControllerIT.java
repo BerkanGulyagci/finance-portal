@@ -62,7 +62,7 @@ class NewsletterControllerIT extends AbstractIntegrationTest {
 
     @Test
     void getMine_withoutToken_returns401() throws Exception {
-        mockMvc.perform(get("/api/newsletter/me"))
+        mockMvc.perform(get("/api/v1/newsletter/me"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -71,7 +71,7 @@ class NewsletterControllerIT extends AbstractIntegrationTest {
         UpdateNewsletterRequest req = new UpdateNewsletterRequest();
         req.setFrequency(NewsletterFrequency.DAILY);
 
-        mockMvc.perform(put("/api/newsletter/me")
+        mockMvc.perform(put("/api/v1/newsletter/me")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isUnauthorized());
@@ -83,7 +83,7 @@ class NewsletterControllerIT extends AbstractIntegrationTest {
 
     @Test
     void getMine_noExistingSubscription_returnsDefaults() throws Exception {
-        mockMvc.perform(get("/api/newsletter/me").with(jwt(USER_A, "a@example.com")))
+        mockMvc.perform(get("/api/v1/newsletter/me").with(jwt(USER_A, "a@example.com")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.subscribed").value(false))
@@ -97,14 +97,14 @@ class NewsletterControllerIT extends AbstractIntegrationTest {
         UpdateNewsletterRequest req = new UpdateNewsletterRequest();
         req.setFrequency(NewsletterFrequency.MONTHLY);
         req.setEnabled(true);
-        mockMvc.perform(put("/api/newsletter/me")
+        mockMvc.perform(put("/api/v1/newsletter/me")
                         .with(jwt(USER_A, "a@example.com"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk());
 
         // Sonra oku.
-        mockMvc.perform(get("/api/newsletter/me").with(jwt(USER_A, "a@example.com")))
+        mockMvc.perform(get("/api/v1/newsletter/me").with(jwt(USER_A, "a@example.com")))
                 .andExpect(jsonPath("$.data.subscribed").value(true))
                 .andExpect(jsonPath("$.data.frequency").value("MONTHLY"))
                 .andExpect(jsonPath("$.data.email").value("a@example.com"));
@@ -120,7 +120,7 @@ class NewsletterControllerIT extends AbstractIntegrationTest {
         req.setFrequency(NewsletterFrequency.DAILY);
         req.setEnabled(true);
 
-        mockMvc.perform(put("/api/newsletter/me")
+        mockMvc.perform(put("/api/v1/newsletter/me")
                         .with(jwt(USER_A, "a@example.com"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
@@ -141,7 +141,7 @@ class NewsletterControllerIT extends AbstractIntegrationTest {
         UpdateNewsletterRequest first = new UpdateNewsletterRequest();
         first.setFrequency(NewsletterFrequency.DAILY);
         first.setEnabled(true);
-        mockMvc.perform(put("/api/newsletter/me")
+        mockMvc.perform(put("/api/v1/newsletter/me")
                         .with(jwt(USER_A, "a@example.com"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(first)))
@@ -151,7 +151,7 @@ class NewsletterControllerIT extends AbstractIntegrationTest {
         UpdateNewsletterRequest second = new UpdateNewsletterRequest();
         second.setFrequency(NewsletterFrequency.WEEKLY);
         second.setEnabled(true);
-        mockMvc.perform(put("/api/newsletter/me")
+        mockMvc.perform(put("/api/v1/newsletter/me")
                         .with(jwt(USER_A, "a@example.com"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(second)))
@@ -168,7 +168,7 @@ class NewsletterControllerIT extends AbstractIntegrationTest {
         UpdateNewsletterRequest enable = new UpdateNewsletterRequest();
         enable.setFrequency(NewsletterFrequency.WEEKLY);
         enable.setEnabled(true);
-        mockMvc.perform(put("/api/newsletter/me")
+        mockMvc.perform(put("/api/v1/newsletter/me")
                         .with(jwt(USER_A, "a@example.com"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(enable)))
@@ -178,7 +178,7 @@ class NewsletterControllerIT extends AbstractIntegrationTest {
         UpdateNewsletterRequest disable = new UpdateNewsletterRequest();
         disable.setFrequency(NewsletterFrequency.WEEKLY);
         disable.setEnabled(false);
-        mockMvc.perform(put("/api/newsletter/me")
+        mockMvc.perform(put("/api/v1/newsletter/me")
                         .with(jwt(USER_A, "a@example.com"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(disable)))
@@ -188,7 +188,7 @@ class NewsletterControllerIT extends AbstractIntegrationTest {
     @Test
     void update_missingFrequency_returns400() throws Exception {
         // @NotNull frequency yok — Bean Validation 400 vermeli.
-        mockMvc.perform(put("/api/newsletter/me")
+        mockMvc.perform(put("/api/v1/newsletter/me")
                         .with(jwt(USER_A, "a@example.com"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"enabled\":true}"))
@@ -200,7 +200,7 @@ class NewsletterControllerIT extends AbstractIntegrationTest {
         UpdateNewsletterRequest aReq = new UpdateNewsletterRequest();
         aReq.setFrequency(NewsletterFrequency.DAILY);
         aReq.setEnabled(true);
-        mockMvc.perform(put("/api/newsletter/me")
+        mockMvc.perform(put("/api/v1/newsletter/me")
                         .with(jwt(USER_A, "a@example.com"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(aReq)))
@@ -209,16 +209,16 @@ class NewsletterControllerIT extends AbstractIntegrationTest {
         UpdateNewsletterRequest bReq = new UpdateNewsletterRequest();
         bReq.setFrequency(NewsletterFrequency.MONTHLY);
         bReq.setEnabled(true);
-        mockMvc.perform(put("/api/newsletter/me")
+        mockMvc.perform(put("/api/v1/newsletter/me")
                         .with(jwt(USER_B, "b@example.com"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(bReq)))
                 .andExpect(status().isOk());
 
         // A hâlâ DAILY, B MONTHLY.
-        mockMvc.perform(get("/api/newsletter/me").with(jwt(USER_A, "a@example.com")))
+        mockMvc.perform(get("/api/v1/newsletter/me").with(jwt(USER_A, "a@example.com")))
                 .andExpect(jsonPath("$.data.frequency").value("DAILY"));
-        mockMvc.perform(get("/api/newsletter/me").with(jwt(USER_B, "b@example.com")))
+        mockMvc.perform(get("/api/v1/newsletter/me").with(jwt(USER_B, "b@example.com")))
                 .andExpect(jsonPath("$.data.frequency").value("MONTHLY"));
     }
 
@@ -232,7 +232,7 @@ class NewsletterControllerIT extends AbstractIntegrationTest {
         UpdateNewsletterRequest req = new UpdateNewsletterRequest();
         req.setFrequency(NewsletterFrequency.WEEKLY);
         req.setEnabled(true);
-        mockMvc.perform(put("/api/newsletter/me")
+        mockMvc.perform(put("/api/v1/newsletter/me")
                         .with(jwt(USER_A, "a@example.com"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
@@ -240,7 +240,7 @@ class NewsletterControllerIT extends AbstractIntegrationTest {
 
         String token = repository.findByUserId(USER_A).orElseThrow().getUnsubscribeToken();
 
-        mockMvc.perform(get("/api/newsletter/unsubscribe").param("token", token))
+        mockMvc.perform(get("/api/v1/newsletter/unsubscribe").param("token", token))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("iptal edildi")));
@@ -251,7 +251,7 @@ class NewsletterControllerIT extends AbstractIntegrationTest {
 
     @Test
     void unsubscribe_withInvalidToken_returnsHtmlWithFailureMessage() throws Exception {
-        mockMvc.perform(get("/api/newsletter/unsubscribe").param("token", "nonexistent-token-xyz"))
+        mockMvc.perform(get("/api/v1/newsletter/unsubscribe").param("token", "nonexistent-token-xyz"))
                 .andExpect(status().isOk())  // Public endpoint — sessiz 200, ama HTML hata mesajı içerir.
                 .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("geçersiz")));
@@ -260,7 +260,7 @@ class NewsletterControllerIT extends AbstractIntegrationTest {
     @Test
     void unsubscribe_isPublic_noAuthRequired() throws Exception {
         // Auth filter chain'in 401/403 vermediğini doğrula (token geçersiz olsa bile 200).
-        int statusCode = mockMvc.perform(get("/api/newsletter/unsubscribe").param("token", "x"))
+        int statusCode = mockMvc.perform(get("/api/v1/newsletter/unsubscribe").param("token", "x"))
                 .andReturn().getResponse().getStatus();
         org.assertj.core.api.Assertions.assertThat(statusCode)
                 .isNotEqualTo(401)

@@ -38,7 +38,7 @@ class CentralIntegrationLogServiceTest {
 
     @Test
     void publish_populatesStandardIntegrationFieldsAndSanitizesMetadata() {
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/market/stocks");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/market/stocks");
         request.setAttribute(RequestLogSupport.ATTR_REQUEST_ID, "req-int-1");
         request.setAttribute(RequestLogSupport.ATTR_TRACE_ID, "trace-int");
         request.setAttribute(RequestLogSupport.ATTR_SPAN_ID, "span-int");
@@ -83,7 +83,7 @@ class CentralIntegrationLogServiceTest {
         assertEquals("span-int", event.getSpanId());
         assertEquals("10.0.0.8", event.getClientIp());
         assertEquals("GET", event.getMethod());
-        assertEquals("/api/market/stocks", event.getPath());
+        assertEquals("/api/v1/market/stocks", event.getPath());
         assertNotNull(event.getTimestamp());
         assertNotNull(event.getMetadata());
         assertEquals("THYAO", event.getMetadata().get("symbol"));

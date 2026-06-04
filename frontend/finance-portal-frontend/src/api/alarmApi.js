@@ -5,28 +5,28 @@ import client from '../lib/http';
 // Koşul sağlanınca uygulama-içi bildirim + onaylı e-postaya mail gönderilir.
 
 export async function getAlarms() {
-  const { data: wrapper } = await client.get('/api/alarms');
+  const { data: wrapper } = await client.get('/api/v1/alarms');
   return wrapper.data ?? [];
 }
 
 export async function getAlarm(alarmId) {
-  const { data: wrapper } = await client.get(`/api/alarms/${alarmId}`);
+  const { data: wrapper } = await client.get(`/api/v1/alarms/${alarmId}`);
   return wrapper.data;
 }
 
 export async function createAlarm(payload) {
   // payload: { assetType, symbol, instrumentName, metric, direction, threshold, frequency, note }
-  const { data: wrapper } = await client.post('/api/alarms', payload);
+  const { data: wrapper } = await client.post('/api/v1/alarms', payload);
   return wrapper.data;
 }
 
 export async function updateAlarm(alarmId, payload) {
   // payload: { metric?, direction?, threshold?, frequency?, status?, note? }
-  const { data: wrapper } = await client.patch(`/api/alarms/${alarmId}`, payload);
+  const { data: wrapper } = await client.patch(`/api/v1/alarms/${alarmId}`, payload);
   return wrapper.data;
 }
 
 export async function deleteAlarm(alarmId) {
-  const { data: wrapper } = await client.delete(`/api/alarms/${alarmId}`);
+  const { data: wrapper } = await client.delete(`/api/v1/alarms/${alarmId}`);
   return wrapper.data;
 }

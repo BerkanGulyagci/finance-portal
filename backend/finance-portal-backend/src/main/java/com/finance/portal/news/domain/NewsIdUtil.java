@@ -6,7 +6,7 @@ import java.util.Base64;
 
 /**
  * Haber URL'sinden kararlı (deterministik) ve URL-güvenli kısa kimlik üretir.
- * Detay sayfası /api/news/{id} bu kimlikle cache'teki haberi bulur.
+ * Detay sayfası /api/v1/news/{id} bu kimlikle cache'teki haberi bulur.
  */
 public final class NewsIdUtil {
 

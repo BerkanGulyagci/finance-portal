@@ -3,7 +3,7 @@ package com.finance.portal.market.application.commodity;
 import lombok.Data;
 
 /**
- * /api/commodities/list endpoint'i için özet DTO.
+ * /api/v1/commodities/list endpoint'i için özet DTO.
  */
 @Data
 public class CommodityDto {

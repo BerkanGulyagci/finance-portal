@@ -41,7 +41,7 @@ public class CoinGeckoClient {
         factory.setReadTimeout(Duration.ofSeconds(45));
 
         this.restClient = RestClient.builder()
-                .baseUrl(baseUrl != null && !baseUrl.isBlank() ? baseUrl.trim() : "https://api.coingecko.com/api/v3")
+                .baseUrl(baseUrl != null && !baseUrl.isBlank() ? baseUrl.trim() : "https://api.coingecko.com/api/v1/v3")
                 .defaultHeader(HEADER_API_KEY, apiKey != null ? apiKey : "")
                 .requestFactory(factory)
                 .build();

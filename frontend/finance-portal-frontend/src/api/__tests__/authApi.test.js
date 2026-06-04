@@ -356,7 +356,7 @@ describe('registerRequest', () => {
     const result = await registerRequest(payload);
 
     expect(axios.post).toHaveBeenCalledTimes(1);
-    expect(axios.post).toHaveBeenCalledWith('http://localhost:8080/api/auth/register', {
+    expect(axios.post).toHaveBeenCalledWith('http://localhost:8080/api/v1/auth/register', {
       username: 'berkan',
       email: 'b@x.com',
       password: 'secret',

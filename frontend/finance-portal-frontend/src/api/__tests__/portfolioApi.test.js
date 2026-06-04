@@ -45,13 +45,13 @@ beforeEach(() => {
 });
 
 describe('getMyPortfolios', () => {
-  it("/api/portfolios GET atar ve wrapper.data'yı döndürür", async () => {
+  it("/api/v1/portfolios GET atar ve wrapper.data'yı döndürür", async () => {
     const items = [{ id: 1 }, { id: 2 }];
     client.get.mockResolvedValue(wrap(items));
 
     const out = await getMyPortfolios();
 
-    expect(client.get).toHaveBeenCalledWith('/api/portfolios');
+    expect(client.get).toHaveBeenCalledWith('/api/v1/portfolios');
     expect(out).toEqual(items);
   });
 
@@ -119,7 +119,7 @@ describe('getPortfolioById', () => {
   it('doğru URL ile GET atar ve wrapper.data döndürür', async () => {
     client.get.mockResolvedValue(wrap({ id: 7, name: 'Ana' }));
     const out = await getPortfolioById(7);
-    expect(client.get).toHaveBeenCalledWith('/api/portfolios/7');
+    expect(client.get).toHaveBeenCalledWith('/api/v1/portfolios/7');
     expect(out).toEqual({ id: 7, name: 'Ana' });
   });
 });
@@ -128,7 +128,7 @@ describe('getPortfolioAiAnalysis', () => {
   it('/ai-analysis GET atar ve wrapper.data döndürür', async () => {
     client.get.mockResolvedValue(wrap({ riskScore: 42 }));
     const out = await getPortfolioAiAnalysis(3);
-    expect(client.get).toHaveBeenCalledWith('/api/portfolios/3/ai-analysis');
+    expect(client.get).toHaveBeenCalledWith('/api/v1/portfolios/3/ai-analysis');
     expect(out).toEqual({ riskScore: 42 });
   });
 });
@@ -137,7 +137,7 @@ describe('getPortfolioAiAnalysisShared', () => {
   it('light=true paramıyla GET atar ve wrapper.data döndürür', async () => {
     client.get.mockResolvedValue(wrap({ healthScore: 80 }));
     const out = await getPortfolioAiAnalysisShared(9);
-    expect(client.get).toHaveBeenCalledWith('/api/portfolios/9/ai-analysis', {
+    expect(client.get).toHaveBeenCalledWith('/api/v1/portfolios/9/ai-analysis', {
       params: { light: true },
     });
     expect(out).toEqual({ healthScore: 80 });
@@ -174,7 +174,7 @@ describe('getPortfolioRebalance', () => {
   it('profile paramıyla /rebalance GET atar ve wrapper.data döndürür', async () => {
     client.get.mockResolvedValue(wrap({ target: [] }));
     const out = await getPortfolioRebalance(4, 'BALANCED');
-    expect(client.get).toHaveBeenCalledWith('/api/portfolios/4/rebalance', {
+    expect(client.get).toHaveBeenCalledWith('/api/v1/portfolios/4/rebalance', {
       params: { profile: 'BALANCED' },
     });
     expect(out).toEqual({ target: [] });
@@ -191,7 +191,7 @@ describe('createPortfolio', () => {
 
     const out = await createPortfolio(payload);
 
-    expect(client.post).toHaveBeenCalledWith('/api/portfolios', payload);
+    expect(client.post).toHaveBeenCalledWith('/api/v1/portfolios', payload);
     expect(out).toEqual({ id: 100 });
 
     // bust sonrası getMyPortfolios tekrar backend'e gitmeli.
@@ -209,7 +209,7 @@ describe('updatePortfolio', () => {
 
     const out = await updatePortfolio(6, payload);
 
-    expect(client.patch).toHaveBeenCalledWith('/api/portfolios/6', payload);
+    expect(client.patch).toHaveBeenCalledWith('/api/v1/portfolios/6', payload);
     expect(out).toEqual({ id: 6 });
     await getMyPortfolios();
     expect(client.get).toHaveBeenCalledTimes(2);
@@ -224,7 +224,7 @@ describe('deletePortfolio', () => {
 
     const out = await deletePortfolio(8);
 
-    expect(client.delete).toHaveBeenCalledWith('/api/portfolios/8');
+    expect(client.delete).toHaveBeenCalledWith('/api/v1/portfolios/8');
     expect(out).toEqual({ deleted: true });
     await getMyPortfolios();
     expect(client.get).toHaveBeenCalledTimes(2);
@@ -240,7 +240,7 @@ describe('addTransaction', () => {
 
     const out = await addTransaction(2, payload);
 
-    expect(client.post).toHaveBeenCalledWith('/api/portfolios/2/transactions', payload);
+    expect(client.post).toHaveBeenCalledWith('/api/v1/portfolios/2/transactions', payload);
     expect(out).toEqual({ txId: 1 });
     await getMyPortfolios();
     expect(client.get).toHaveBeenCalledTimes(2);
@@ -251,7 +251,7 @@ describe('getPriceAtDate', () => {
   it('price-at GET atar (assetType/symbol/date params) ve data.data döndürür', async () => {
     client.get.mockResolvedValue({ data: { data: { price: 12.5, date: '2024-01-01', found: true } } });
     const out = await getPriceAtDate('STOCK', 'AAPL', '2024-01-01');
-    expect(client.get).toHaveBeenCalledWith('/api/portfolios/price-at', {
+    expect(client.get).toHaveBeenCalledWith('/api/v1/portfolios/price-at', {
       params: { assetType: 'STOCK', symbol: 'AAPL', date: '2024-01-01' },
     });
     expect(out).toEqual({ price: 12.5, date: '2024-01-01', found: true });
@@ -278,7 +278,7 @@ describe('deleteTransaction', () => {
 
     const out = await deleteTransaction(3, 77);
 
-    expect(client.delete).toHaveBeenCalledWith('/api/portfolios/3/transactions/77');
+    expect(client.delete).toHaveBeenCalledWith('/api/v1/portfolios/3/transactions/77');
     expect(out).toEqual({ ok: 1 });
     await getMyPortfolios();
     expect(client.get).toHaveBeenCalledTimes(2);
@@ -294,7 +294,7 @@ describe('addCouponIncome', () => {
 
     const out = await addCouponIncome(12, payload);
 
-    expect(client.post).toHaveBeenCalledWith('/api/portfolios/12/coupon-income', payload);
+    expect(client.post).toHaveBeenCalledWith('/api/v1/portfolios/12/coupon-income', payload);
     expect(out).toEqual({ income: 100 });
     await getMyPortfolios();
     expect(client.get).toHaveBeenCalledTimes(2);
@@ -305,7 +305,7 @@ describe('getPortfolioPerformance', () => {
   it('range+metric paramlarıyla /performance GET atar ve wrapper.data döndürür', async () => {
     client.get.mockResolvedValue(wrap([{ t: 1, v: 2 }]));
     const out = await getPortfolioPerformance(5, '1M', 'VALUE');
-    expect(client.get).toHaveBeenCalledWith('/api/portfolios/5/performance', {
+    expect(client.get).toHaveBeenCalledWith('/api/v1/portfolios/5/performance', {
       params: { range: '1M', metric: 'VALUE' },
     });
     expect(out).toEqual([{ t: 1, v: 2 }]);
@@ -316,7 +316,7 @@ describe('getPortfolioWhatIf', () => {
   it('/what-if GET atar ve wrapper.data döndürür', async () => {
     client.get.mockResolvedValue(wrap({ gold: 10 }));
     const out = await getPortfolioWhatIf(6);
-    expect(client.get).toHaveBeenCalledWith('/api/portfolios/6/what-if');
+    expect(client.get).toHaveBeenCalledWith('/api/v1/portfolios/6/what-if');
     expect(out).toEqual({ gold: 10 });
   });
 });
@@ -327,7 +327,7 @@ describe('getPortfolioWhatIfSeries', () => {
     const sim = { assetType: 'STOCK', symbol: 'AAPL', amount: 1000, date: '2024-01-01' };
     const out = await getPortfolioWhatIfSeries(7, 'IGNORED', 'IGNORED', [], sim);
 
-    expect(client.get).toHaveBeenCalledWith('/api/portfolios/7/what-if-series', {
+    expect(client.get).toHaveBeenCalledWith('/api/v1/portfolios/7/what-if-series', {
       params: {
         simAssetType: 'STOCK',
         simSymbol: 'AAPL',
@@ -342,7 +342,7 @@ describe('getPortfolioWhatIfSeries', () => {
   it('sim yokken assetType+symbol verilirse onlar param olur', async () => {
     client.get.mockResolvedValue(wrap([]));
     await getPortfolioWhatIfSeries(8, 'GOLD', 'XAU');
-    expect(client.get).toHaveBeenCalledWith('/api/portfolios/8/what-if-series', {
+    expect(client.get).toHaveBeenCalledWith('/api/v1/portfolios/8/what-if-series', {
       params: { assetType: 'GOLD', symbol: 'XAU' },
       paramsSerializer: { indexes: null },
     });
@@ -351,7 +351,7 @@ describe('getPortfolioWhatIfSeries', () => {
   it('benchmarks dolu ise benchmark dizisi param\'a eklenir', async () => {
     client.get.mockResolvedValue(wrap([]));
     await getPortfolioWhatIfSeries(9, 'STOCK', 'AAPL', ['XU100', 'GOLD']);
-    expect(client.get).toHaveBeenCalledWith('/api/portfolios/9/what-if-series', {
+    expect(client.get).toHaveBeenCalledWith('/api/v1/portfolios/9/what-if-series', {
       params: { assetType: 'STOCK', symbol: 'AAPL', benchmark: ['XU100', 'GOLD'] },
       paramsSerializer: { indexes: null },
     });
@@ -360,7 +360,7 @@ describe('getPortfolioWhatIfSeries', () => {
   it('ne sim ne assetType/symbol verilmezse params boş olur (varsayılan argümanlar)', async () => {
     client.get.mockResolvedValue(wrap([]));
     await getPortfolioWhatIfSeries(10);
-    expect(client.get).toHaveBeenCalledWith('/api/portfolios/10/what-if-series', {
+    expect(client.get).toHaveBeenCalledWith('/api/v1/portfolios/10/what-if-series', {
       params: {},
       paramsSerializer: { indexes: null },
     });
@@ -370,7 +370,7 @@ describe('getPortfolioWhatIfSeries', () => {
     client.get.mockResolvedValue(wrap([]));
     const sim = { assetType: 'STOCK', symbol: 'AAPL' }; // amount & date eksik
     await getPortfolioWhatIfSeries(11, 'GOLD', 'XAU', [], sim);
-    expect(client.get).toHaveBeenCalledWith('/api/portfolios/11/what-if-series', {
+    expect(client.get).toHaveBeenCalledWith('/api/v1/portfolios/11/what-if-series', {
       params: { assetType: 'GOLD', symbol: 'XAU' },
       paramsSerializer: { indexes: null },
     });
@@ -381,7 +381,7 @@ describe('getWatchlistItems', () => {
   it('/watchlist GET atar ve wrapper.data döndürür', async () => {
     client.get.mockResolvedValue(wrap([{ id: 1 }]));
     const out = await getWatchlistItems(3);
-    expect(client.get).toHaveBeenCalledWith('/api/portfolios/3/watchlist');
+    expect(client.get).toHaveBeenCalledWith('/api/v1/portfolios/3/watchlist');
     expect(out).toEqual([{ id: 1 }]);
   });
 
@@ -401,7 +401,7 @@ describe('addWatchlistItem', () => {
 
     const out = await addWatchlistItem(2, payload);
 
-    expect(client.post).toHaveBeenCalledWith('/api/portfolios/2/watchlist', payload);
+    expect(client.post).toHaveBeenCalledWith('/api/v1/portfolios/2/watchlist', payload);
     expect(out).toEqual({ id: 55 });
     await getMyPortfolios();
     expect(client.get).toHaveBeenCalledTimes(2);
@@ -416,7 +416,7 @@ describe('deleteWatchlistItem', () => {
 
     const out = await deleteWatchlistItem(3, 99);
 
-    expect(client.delete).toHaveBeenCalledWith('/api/portfolios/3/watchlist/99');
+    expect(client.delete).toHaveBeenCalledWith('/api/v1/portfolios/3/watchlist/99');
     expect(out).toEqual({ ok: true });
     await getMyPortfolios();
     expect(client.get).toHaveBeenCalledTimes(2);

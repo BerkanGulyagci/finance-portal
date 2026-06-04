@@ -131,16 +131,16 @@ export function useInstrumentSearch({ initialType, onSelect }) {
       let fxSell = null;  // TCMB satış kuru (kullanıcı alırken ödeyeceği birim fiyat)
       try {
         if (activeType === 'STOCK') {
-          const { data } = await client.get(`/api/market/stocks/${encodeURIComponent(item.symbol)}`);
+          const { data } = await client.get(`/api/v1/market/stocks/${encodeURIComponent(item.symbol)}`);
           price = data.data?.summary?.price ?? null;
         } else if (activeType === 'CRYPTO') {
-          const { data } = await client.get('/api/market/crypto/all');
+          const { data } = await client.get('/api/v1/market/crypto/all');
           const list = data.data ?? [];
           const coin = (item.id && list.find(c => c.id === item.id))
             || list.find(c => c.symbol?.toLowerCase() === item.symbol.toLowerCase());
           price = coin?.currentPrice ?? null;
         } else if (activeType === 'FX') {
-          const { data } = await client.get('/api/market/fx/tcmb/latest');
+          const { data } = await client.get('/api/v1/market/fx/tcmb/latest');
           const rate = (data.data?.rates ?? []).find(r => r.symbol === item.symbol.toUpperCase());
           if (rate) {
             const unit = rate.unit && rate.unit > 1 ? rate.unit : 1;
@@ -160,7 +160,7 @@ export function useInstrumentSearch({ initialType, onSelect }) {
           const yahooStyle = /^[A-Z0-9.=]{1,15}$/i.test(sym);
           try {
             if (yahooStyle) {
-              const { data } = await client.get('/api/commodities/spot', { params: { symbol: sym } });
+              const { data } = await client.get('/api/v1/commodities/spot', { params: { symbol: sym } });
               commoditySpot = data.data ?? null;
               price = pickCommoditySpotPriceUsd(commoditySpot);
             } else if (sym) {
@@ -170,7 +170,7 @@ export function useInstrumentSearch({ initialType, onSelect }) {
               if (fromList != null) {
                 price = fromList;
               } else {
-                const { data } = await client.get('/api/market/futures/viop', {
+                const { data } = await client.get('/api/v1/market/futures/viop', {
                   params: { name: sym },
                 });
                 const d = data.data;
@@ -184,7 +184,7 @@ export function useInstrumentSearch({ initialType, onSelect }) {
           } catch { /* fiyat bulunamazsa null */ }
         } else if (activeType === 'GOLD') {
           try {
-            const { data } = await client.get('/api/gold/spot');
+            const { data } = await client.get('/api/v1/gold/spot');
             price = pickGoldSpotPrice(item.symbol, data.data);
           } catch { /* fiyat bulunamazsa null */ }
         } else if (activeType === 'COMMODITY') {
@@ -195,9 +195,9 @@ export function useInstrumentSearch({ initialType, onSelect }) {
               let spotData = null;
               if (metalKey === 'silver') {
                 const [spotRes, histRes] = await Promise.all([
-                  client.get('/api/silver/spot'),
+                  client.get('/api/v1/silver/spot'),
                   cat === 'GRAM_TRY'
-                    ? client.get('/api/silver/history', { params: { range: '1W', currency: 'TRY' } })
+                    ? client.get('/api/v1/silver/history', { params: { range: '1W', currency: 'TRY' } })
                     : Promise.resolve({ data: { data: null } }),
                 ]);
                 spotData = spotRes.data?.data;
@@ -205,7 +205,7 @@ export function useInstrumentSearch({ initialType, onSelect }) {
                   price = pickSilverGramCloseTry(spotData, histRes.data?.data?.points);
                 }
               } else {
-                const { data } = await client.get(`/api/precious-metals/${metalKey}/spot`);
+                const { data } = await client.get(`/api/v1/precious-metals/${metalKey}/spot`);
                 spotData = data.data;
               }
               if (spotData && price == null) {
@@ -216,7 +216,7 @@ export function useInstrumentSearch({ initialType, onSelect }) {
                 }
               }
             } else {
-              const { data } = await client.get('/api/commodities/spot', { params: { symbol: item.symbol } });
+              const { data } = await client.get('/api/v1/commodities/spot', { params: { symbol: item.symbol } });
               commoditySpot = data.data ?? null;
               price = pickCommoditySpotPriceTry(commoditySpot);
             }
@@ -224,7 +224,7 @@ export function useInstrumentSearch({ initialType, onSelect }) {
         } else if (activeType === 'FUND') {
           try {
             const sourceCode = item.category === 'BES' ? 'TPF' : item.category === 'OKS' ? 'TAF' : 'TMF';
-            const { data } = await client.get(`/api/market/funds/tefas/${encodeURIComponent(item.symbol)}`, {
+            const { data } = await client.get(`/api/v1/market/funds/tefas/${encodeURIComponent(item.symbol)}`, {
               params: { sourceCode },
             });
             price = data.data?.price ?? null;
@@ -240,7 +240,7 @@ export function useInstrumentSearch({ initialType, onSelect }) {
               if (Number.isFinite(n) && n > 0) price = n;
             }
             if ((price == null || !Number.isFinite(price)) && item.symbol) {
-              const { data } = await client.get(`/api/market/bonds/evds/${encodeURIComponent(item.symbol)}`);
+              const { data } = await client.get(`/api/v1/market/bonds/evds/${encodeURIComponent(item.symbol)}`);
               const d = data?.data;
               if (d?.indicatorValue != null) {
                 const n = Number(d.indicatorValue);

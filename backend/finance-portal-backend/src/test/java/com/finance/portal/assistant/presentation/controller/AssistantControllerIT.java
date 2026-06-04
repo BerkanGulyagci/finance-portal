@@ -65,7 +65,7 @@ class AssistantControllerIT extends AbstractIntegrationTest {
         when(assistantService.chat(any(), any(), any(), any(), any()))
                 .thenReturn(AssistantReply.ok("Merhaba!"));
 
-        mockMvc.perform(post("/api/assistant/chat")
+        mockMvc.perform(post("/api/v1/assistant/chat")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(CHAT_PAYLOAD))
                 .andExpect(status().isOk())
@@ -79,7 +79,7 @@ class AssistantControllerIT extends AbstractIntegrationTest {
         when(assistantService.chat(any(), any(), any(), any(), any()))
                 .thenReturn(AssistantReply.ok("Selam Berkan"));
 
-        mockMvc.perform(post("/api/assistant/chat").with(jwt("user-42", "Berkan", "berkan@example.com"))
+        mockMvc.perform(post("/api/v1/assistant/chat").with(jwt("user-42", "Berkan", "berkan@example.com"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(CHAT_PAYLOAD))
                 .andExpect(status().isOk());
@@ -101,7 +101,7 @@ class AssistantControllerIT extends AbstractIntegrationTest {
         when(assistantService.chat(any(), any(), any(), any(), any()))
                 .thenReturn(AssistantReply.ok("anon yanıt"));
 
-        mockMvc.perform(post("/api/assistant/chat")
+        mockMvc.perform(post("/api/v1/assistant/chat")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(CHAT_PAYLOAD))
                 .andExpect(status().isOk());
@@ -123,7 +123,7 @@ class AssistantControllerIT extends AbstractIntegrationTest {
         when(assistantService.chat(any(), any(), any(), any(), any()))
                 .thenReturn(AssistantReply.ok("ok"));
 
-        mockMvc.perform(post("/api/assistant/chat")
+        mockMvc.perform(post("/api/v1/assistant/chat")
                         .header("X-Forwarded-For", "203.0.113.42, 10.0.0.1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(CHAT_PAYLOAD))
@@ -145,7 +145,7 @@ class AssistantControllerIT extends AbstractIntegrationTest {
         // EmailVerifiedFilter doğrulanmamış e-postalı JWT'yi 403 ile bloke eder;
         // service'e hiç ulaşmaz. (Anon istek serbest kalırken, JWT taşıyıp
         // doğrulanmamış e-posta olan kullanıcı kasıtlı şekilde reddedilir.)
-        mockMvc.perform(post("/api/assistant/chat").with(jwtUnverifiedEmail("user-99"))
+        mockMvc.perform(post("/api/v1/assistant/chat").with(jwtUnverifiedEmail("user-99"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(CHAT_PAYLOAD))
                 .andExpect(status().isForbidden());
@@ -160,7 +160,7 @@ class AssistantControllerIT extends AbstractIntegrationTest {
         when(assistantService.chat(any(), any(), any(), any(), any()))
                 .thenReturn(AssistantReply.of(Status.LOGIN_REQUIRED));
 
-        mockMvc.perform(post("/api/assistant/chat")
+        mockMvc.perform(post("/api/v1/assistant/chat")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(CHAT_PAYLOAD))
                 .andExpect(status().isOk())
@@ -173,7 +173,7 @@ class AssistantControllerIT extends AbstractIntegrationTest {
         when(assistantService.chat(any(), any(), any(), any(), any()))
                 .thenReturn(AssistantReply.of(Status.RATE_LIMITED));
 
-        mockMvc.perform(post("/api/assistant/chat")
+        mockMvc.perform(post("/api/v1/assistant/chat")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(CHAT_PAYLOAD))
                 .andExpect(jsonPath("$.data.status").value("RATE_LIMITED"));
@@ -184,7 +184,7 @@ class AssistantControllerIT extends AbstractIntegrationTest {
         when(assistantService.chat(any(), any(), any(), any(), any()))
                 .thenReturn(AssistantReply.of(Status.INVALID));
 
-        mockMvc.perform(post("/api/assistant/chat")
+        mockMvc.perform(post("/api/v1/assistant/chat")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"messages\":[]}"))
                 .andExpect(jsonPath("$.data.status").value("INVALID"));
@@ -195,7 +195,7 @@ class AssistantControllerIT extends AbstractIntegrationTest {
         when(assistantService.chat(any(), any(), any(), any(), any()))
                 .thenReturn(AssistantReply.of(Status.UNAVAILABLE));
 
-        mockMvc.perform(post("/api/assistant/chat")
+        mockMvc.perform(post("/api/v1/assistant/chat")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(CHAT_PAYLOAD))
                 .andExpect(jsonPath("$.data.status").value("UNAVAILABLE"));

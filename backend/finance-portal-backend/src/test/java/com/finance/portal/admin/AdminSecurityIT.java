@@ -96,13 +96,13 @@ class AdminSecurityIT extends AbstractIntegrationTest {
 
     @Test
     void adminEndpointsShouldReturn401WithoutToken() throws Exception {
-        mockMvc.perform(get("/api/admin/users").accept(APPLICATION_JSON))
+        mockMvc.perform(get("/api/v1/admin/users").accept(APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void adminEndpointsShouldReturn403ForNonAdminRole() throws Exception {
-        mockMvc.perform(get("/api/admin/users").with(jwtWithRoles("USER")).accept(APPLICATION_JSON))
+        mockMvc.perform(get("/api/v1/admin/users").with(jwtWithRoles("USER")).accept(APPLICATION_JSON))
                 .andExpect(status().isForbidden());
     }
 
@@ -117,7 +117,7 @@ class AdminSecurityIT extends AbstractIntegrationTest {
                 ));
         when(userBanStatePort.findByUserIds(any())).thenReturn(Map.of());
 
-        mockMvc.perform(get("/api/admin/users").with(jwtWithRoles("ADMIN")).accept(APPLICATION_JSON))
+        mockMvc.perform(get("/api/v1/admin/users").with(jwtWithRoles("ADMIN")).accept(APPLICATION_JSON))
                 .andExpect(status().isOk());
     }
 
@@ -130,7 +130,7 @@ class AdminSecurityIT extends AbstractIntegrationTest {
                 )
         );
 
-        mockMvc.perform(post("/api/admin/users/target/ban")
+        mockMvc.perform(post("/api/v1/admin/users/target/ban")
                         .with(jwtWithRoles("ADMIN"))
                         .contentType(APPLICATION_JSON)
                         .content("{\"banType\":\"PERMANENT\"}")

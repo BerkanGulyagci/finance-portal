@@ -214,7 +214,7 @@ class PortfolioTransactionFlowIT extends AbstractIntegrationTest {
         assertThat(txnIdToDelete).as("20-qty transaction id").isNotNull();
 
         String deleteResponse = mockMvc.perform(delete(
-                        "/api/portfolios/" + portfolioId + "/transactions/" + txnIdToDelete)
+                        "/api/v1/portfolios/" + portfolioId + "/transactions/" + txnIdToDelete)
                         .with(jwt(USER))
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -238,7 +238,7 @@ class PortfolioTransactionFlowIT extends AbstractIntegrationTest {
     // =========================================================================
 
     private String createPortfolio(String name) throws Exception {
-        String response = mockMvc.perform(post("/api/portfolios")
+        String response = mockMvc.perform(post("/api/v1/portfolios")
                         .with(jwt(USER))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\": \"" + name + "\"}"))
@@ -262,7 +262,7 @@ class PortfolioTransactionFlowIT extends AbstractIntegrationTest {
                 }
                 """, symbol, assetType, txnType, quantity, price, commission, txnDate);
 
-        String response = mockMvc.perform(post("/api/portfolios/" + portfolioId + "/transactions")
+        String response = mockMvc.perform(post("/api/v1/portfolios/" + portfolioId + "/transactions")
                         .with(jwt(USER))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
@@ -281,7 +281,7 @@ class PortfolioTransactionFlowIT extends AbstractIntegrationTest {
                 }
                 """, symbol, amount, paymentDate);
 
-        String response = mockMvc.perform(post("/api/portfolios/" + portfolioId + "/coupon-income")
+        String response = mockMvc.perform(post("/api/v1/portfolios/" + portfolioId + "/coupon-income")
                         .with(jwt(USER))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
@@ -291,7 +291,7 @@ class PortfolioTransactionFlowIT extends AbstractIntegrationTest {
     }
 
     private JsonNode getPortfolio(String portfolioId) throws Exception {
-        String response = mockMvc.perform(get("/api/portfolios/" + portfolioId)
+        String response = mockMvc.perform(get("/api/v1/portfolios/" + portfolioId)
                         .with(jwt(USER))
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())

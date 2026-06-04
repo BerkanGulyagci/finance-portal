@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/gold")
+@RequestMapping("/api/v1/gold")
 public class GoldController {
 
     private final GoldMarketService goldMarketService;
@@ -21,7 +21,7 @@ public class GoldController {
     }
 
     /**
-     * GET /api/gold/spot
+     * GET /api/v1/gold/spot
      * Güncel altın fiyatı (ONS/USD + TRY türevleri)
      */
     @GetMapping("/spot")
@@ -31,7 +31,7 @@ public class GoldController {
     }
 
     /**
-     * GET /api/gold/history?range=1D|1W|1M|3M|1Y|ALL&currency=USD|TRY
+     * GET /api/v1/gold/history?range=1D|1W|1M|3M|1Y|ALL&currency=USD|TRY
      * Tarihsel altın fiyatları
      */
     @GetMapping("/history")

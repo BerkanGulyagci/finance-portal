@@ -103,7 +103,7 @@ public class GoldMarketService {
     // ── Spot ─────────────────────────────────────────────────────────────────
 
     /**
-     * GET /api/gold/spot
+     * GET /api/v1/gold/spot
      *
      * BIST'ten son işlem günü verisi alınır, teorik türev fiyatlar hesaplanır.
      * BIST erişilemezse Yahoo GC=F fallback devreye girer.
@@ -141,7 +141,7 @@ public class GoldMarketService {
     // ── History ───────────────────────────────────────────────────────────────
 
     /**
-     * GET /api/gold/history?range=&currency=
+     * GET /api/v1/gold/history?range=&currency=
      *
      * currency=TRY → BIST f_tipit=L/K (gram TL), Yahoo fallback
      * currency=USD → BIST f_tipit=$/O (ons USD), Yahoo fallback

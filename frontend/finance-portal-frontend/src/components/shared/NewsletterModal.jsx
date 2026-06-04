@@ -13,7 +13,7 @@ const FREQS = [
 
 /**
  * Bülten aboneliği modalı — kullanıcı dashboard özetini hangi sıklıkta e-posta ile
- * almak istediğini seçer. Tercih backend'e (/api/newsletter/me) kaydedilir; seçilen
+ * almak istediğini seçer. Tercih backend'e (/api/v1/newsletter/me) kaydedilir; seçilen
  * sıklıkta zamanlanmış iş (NewsletterDigestService) özet e-postasını gönderir.
  */
 export default function NewsletterModal({ email, onClose, onSaved }) {

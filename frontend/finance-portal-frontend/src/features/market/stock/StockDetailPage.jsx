@@ -186,7 +186,7 @@ export default function StockDetailPage() {
         <div className="flex items-center gap-3">
           {midas?.logoUrl && (
             <img
-              src={`/api/proxy/image?url=${encodeURIComponent(midas.logoUrl)}`}
+              src={`/api/v1/proxy/image?url=${encodeURIComponent(midas.logoUrl)}`}
               alt={midas.name}
               className="w-10 h-10 rounded-xl object-contain border border-gray-100 p-0.5 bg-white shadow-sm"
               onError={e => { e.target.style.display = 'none'; }}
@@ -357,7 +357,7 @@ export default function StockDetailPage() {
               <div className="flex items-center gap-4 mb-6">
                 {midas.logoUrl && (
                   <img
-                    src={`/api/proxy/image?url=${encodeURIComponent(midas.logoUrl)}`}
+                    src={`/api/v1/proxy/image?url=${encodeURIComponent(midas.logoUrl)}`}
                     alt={midas.name}
                     className="w-16 h-16 rounded-xl object-contain border border-gray-100 p-1 bg-white"
                     onError={e => { e.target.style.display = 'none'; }}

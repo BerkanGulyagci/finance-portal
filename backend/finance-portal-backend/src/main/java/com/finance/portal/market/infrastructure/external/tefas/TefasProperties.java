@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "market.funds.tefas")
 public class TefasProperties {
 
-    private String historyUrl  = "https://www.tefas.gov.tr/api/funds/fonGnlBlgSiraliGetir";
+    private String historyUrl  = "https://www.tefas.gov.tr/api/v1/funds/fonGnlBlgSiraliGetir";
     private String bearerToken = "ST-tefaswebwse3irfmSBj4iRAzGPbAlS94Se";
     private int    timeoutSeconds = 20;
     private int    chunkDays   = 28;   // TEFAS tek istekte ~30 günle sınırlı (31g boş döner)

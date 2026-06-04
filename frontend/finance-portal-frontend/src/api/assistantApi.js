@@ -6,6 +6,6 @@ import client from '../lib/http';
  * @returns {Promise<{status:string, reply:string|null}>}
  */
 export async function sendAssistantChat(messages) {
-  const { data: wrapper } = await client.post('/api/assistant/chat', { messages });
+  const { data: wrapper } = await client.post('/api/v1/assistant/chat', { messages });
   return wrapper.data;
 }

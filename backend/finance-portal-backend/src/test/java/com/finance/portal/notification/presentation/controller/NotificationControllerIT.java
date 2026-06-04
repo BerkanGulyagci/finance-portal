@@ -65,7 +65,7 @@ class NotificationControllerIT extends AbstractIntegrationTest {
 
     @Test
     void list_withoutToken_returns401() throws Exception {
-        mockMvc.perform(get("/api/notifications"))
+        mockMvc.perform(get("/api/v1/notifications"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -80,12 +80,12 @@ class NotificationControllerIT extends AbstractIntegrationTest {
         notificationService.createAndSend(USER_A, NotificationType.ALARM, "A2", "body", null, null, null);
         notificationService.createAndSend(USER_B, NotificationType.ALARM, "B1", "body", null, null, null);
 
-        mockMvc.perform(get("/api/notifications").with(jwt(USER_A)))
+        mockMvc.perform(get("/api/v1/notifications").with(jwt(USER_A)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.length()").value(2));
 
-        mockMvc.perform(get("/api/notifications").with(jwt(USER_B)))
+        mockMvc.perform(get("/api/v1/notifications").with(jwt(USER_B)))
                 .andExpect(jsonPath("$.data.length()").value(1));
     }
 
@@ -99,14 +99,14 @@ class NotificationControllerIT extends AbstractIntegrationTest {
         notificationService.createAndSend(USER_A, NotificationType.ALARM, "T2", "b", null, null, null);
         notificationService.createAndSend(USER_A, NotificationType.ALARM, "T3", "b", null, null, null);
 
-        mockMvc.perform(get("/api/notifications/unread-count").with(jwt(USER_A)))
+        mockMvc.perform(get("/api/v1/notifications/unread-count").with(jwt(USER_A)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").value(3));
     }
 
     @Test
     void unreadCount_initiallyZero() throws Exception {
-        mockMvc.perform(get("/api/notifications/unread-count").with(jwt(USER_A)))
+        mockMvc.perform(get("/api/v1/notifications/unread-count").with(jwt(USER_A)))
                 .andExpect(jsonPath("$.data").value(0));
     }
 
@@ -119,12 +119,12 @@ class NotificationControllerIT extends AbstractIntegrationTest {
         Notification n = notificationService.createAndSend(
                 USER_A, NotificationType.ALARM, "T", "b", null, null, null);
 
-        mockMvc.perform(post("/api/notifications/" + n.getId() + "/read").with(jwt(USER_A)))
+        mockMvc.perform(post("/api/v1/notifications/" + n.getId() + "/read").with(jwt(USER_A)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.read").value(true));
 
         // Unread count düştü
-        mockMvc.perform(get("/api/notifications/unread-count").with(jwt(USER_A)))
+        mockMvc.perform(get("/api/v1/notifications/unread-count").with(jwt(USER_A)))
                 .andExpect(jsonPath("$.data").value(0));
     }
 
@@ -133,14 +133,14 @@ class NotificationControllerIT extends AbstractIntegrationTest {
         Notification n = notificationService.createAndSend(
                 USER_A, NotificationType.ALARM, "T", "b", null, null, null);
 
-        mockMvc.perform(post("/api/notifications/" + n.getId() + "/read").with(jwt(USER_B)))
+        mockMvc.perform(post("/api/v1/notifications/" + n.getId() + "/read").with(jwt(USER_B)))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void markRead_unknownId_returns404() throws Exception {
         UUID unknown = UUID.randomUUID();
-        mockMvc.perform(post("/api/notifications/" + unknown + "/read").with(jwt(USER_A)))
+        mockMvc.perform(post("/api/v1/notifications/" + unknown + "/read").with(jwt(USER_A)))
                 .andExpect(status().isNotFound());
     }
 
@@ -154,12 +154,12 @@ class NotificationControllerIT extends AbstractIntegrationTest {
         notificationService.createAndSend(USER_A, NotificationType.ALARM, "A2", "b", null, null, null);
         notificationService.createAndSend(USER_B, NotificationType.ALARM, "B1", "b", null, null, null);
 
-        mockMvc.perform(post("/api/notifications/read-all").with(jwt(USER_A)))
+        mockMvc.perform(post("/api/v1/notifications/read-all").with(jwt(USER_A)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").value(2));   // affected rows = 2
 
         // B'nin bildirimi okunmamış kaldı
-        mockMvc.perform(get("/api/notifications/unread-count").with(jwt(USER_B)))
+        mockMvc.perform(get("/api/v1/notifications/unread-count").with(jwt(USER_B)))
                 .andExpect(jsonPath("$.data").value(1));
     }
 
@@ -172,10 +172,10 @@ class NotificationControllerIT extends AbstractIntegrationTest {
         Notification n = notificationService.createAndSend(
                 USER_A, NotificationType.ALARM, "T", "b", null, null, null);
 
-        mockMvc.perform(delete("/api/notifications/" + n.getId()).with(jwt(USER_A)))
+        mockMvc.perform(delete("/api/v1/notifications/" + n.getId()).with(jwt(USER_A)))
                 .andExpect(status().is2xxSuccessful());
 
-        mockMvc.perform(get("/api/notifications").with(jwt(USER_A)))
+        mockMvc.perform(get("/api/v1/notifications").with(jwt(USER_A)))
                 .andExpect(jsonPath("$.data.length()").value(0));
     }
 
@@ -184,7 +184,7 @@ class NotificationControllerIT extends AbstractIntegrationTest {
         Notification n = notificationService.createAndSend(
                 USER_A, NotificationType.ALARM, "T", "b", null, null, null);
 
-        mockMvc.perform(delete("/api/notifications/" + n.getId()).with(jwt(USER_B)))
+        mockMvc.perform(delete("/api/v1/notifications/" + n.getId()).with(jwt(USER_B)))
                 .andExpect(status().isNotFound());
     }
 

@@ -25,12 +25,12 @@ import java.util.Map;
 /**
  * Türkiye ekonomisi özet göstergeleri.
  *
- * <p>{@code GET /api/market/economy} — TÜFE/ÜFE enflasyon, faizler, GSYİH büyüme,
+ * <p>{@code GET /api/v1/market/economy} — TÜFE/ÜFE enflasyon, faizler, GSYİH büyüme,
  * cari denge, rezerv, kur, işsizlik, bütçe vb. tek yanıtta, kategoriye göre gruplanmış.
  * Kaynak: TCMB EVDS.
  */
 @RestController
-@RequestMapping("/api/market/economy")
+@RequestMapping("/api/v1/market/economy")
 public class EconomyController {
 
     private final EconomyService economyService;
@@ -57,7 +57,7 @@ public class EconomyController {
 
     /**
      * Tek bir göstergenin grafik (zaman serisi) verisi.
-     * {@code GET /api/market/economy/series?key=tufe}
+     * {@code GET /api/v1/market/economy/series?key=tufe}
      */
     @GetMapping("/series")
     public ResponseEntity<ApiResponse<EconomyChartSeries>> getSeries(
@@ -71,7 +71,7 @@ public class EconomyController {
 
     /**
      * Tüm göstergelerin grafik serileri (rapor sayfası — tek çağrı).
-     * {@code GET /api/market/economy/charts}
+     * {@code GET /api/v1/market/economy/charts}
      */
     @GetMapping("/charts")
     public ResponseEntity<ApiResponse<List<EconomyChartSeries>>> getAllSeries() {
@@ -81,7 +81,7 @@ public class EconomyController {
 
     /**
      * Güncel kredi faiz oranları (ihtiyaç/taşıt/konut/ticari) — kredi taksit hesaplayıcısı için.
-     * {@code GET /api/market/economy/loan-rates}
+     * {@code GET /api/v1/market/economy/loan-rates}
      */
     @GetMapping("/loan-rates")
     public ResponseEntity<ApiResponse<LoanRates>> getLoanRates() {
@@ -90,7 +90,7 @@ public class EconomyController {
 
     /**
      * Güncel TL mevduat faiz oranları (vadeye göre) + yıllık enflasyon — mevduat getiri hesaplayıcısı için.
-     * {@code GET /api/market/economy/deposit-rates}
+     * {@code GET /api/v1/market/economy/deposit-rates}
      */
     @GetMapping("/deposit-rates")
     public ResponseEntity<ApiResponse<DepositRates>> getDepositRates() {

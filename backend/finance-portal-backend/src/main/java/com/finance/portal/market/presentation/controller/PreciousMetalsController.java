@@ -17,14 +17,14 @@ import org.springframework.web.bind.annotation.RestController;
  * Kıymetli Madenler — Platin ve Paladyum.
  *
  * <pre>
- * GET /api/precious-metals/platinum/spot
- * GET /api/precious-metals/platinum/history?range=1M&currency=TRY
- * GET /api/precious-metals/palladium/spot
- * GET /api/precious-metals/palladium/history?range=1M&currency=USD
+ * GET /api/v1/precious-metals/platinum/spot
+ * GET /api/v1/precious-metals/platinum/history?range=1M&currency=TRY
+ * GET /api/v1/precious-metals/palladium/spot
+ * GET /api/v1/precious-metals/palladium/history?range=1M&currency=USD
  * </pre>
  */
 @RestController
-@RequestMapping("/api/precious-metals")
+@RequestMapping("/api/v1/precious-metals")
 @RequiredArgsConstructor
 public class PreciousMetalsController {
 

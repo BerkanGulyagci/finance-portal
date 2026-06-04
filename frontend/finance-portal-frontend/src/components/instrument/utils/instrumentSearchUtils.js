@@ -186,7 +186,7 @@ export async function fetchAll(type, onPartial) {
       // Tüm hisseleri çek — büyük sayfa boyutu (backend max'ı kabul eder) + TÜM sayfalar (kapama yok)
       try {
         const mapStock = s => ({ symbol: s.symbol, name: s.name ?? s.symbol });
-        const firstRes = await client.get('/api/market/stocks', { params: { page: 0, size: 200 } });
+        const firstRes = await client.get('/api/v1/market/stocks', { params: { page: 0, size: 200 } });
         const data0 = firstRes.data?.data;
         const size = data0?.size || 200;
         const totalPages = data0?.totalPages ?? 1;
@@ -197,7 +197,7 @@ export async function fetchAll(type, onPartial) {
         if (totalPages > 1) {
           const rest = await Promise.all(
             Array.from({ length: totalPages - 1 }, (_, i) =>
-              client.get('/api/market/stocks', { params: { page: i + 1, size } })
+              client.get('/api/v1/market/stocks', { params: { page: i + 1, size } })
             )
           );
           rest.forEach(r => results.push(...(r.data?.data?.content ?? []).map(mapStock).filter(s => s.symbol)));
@@ -210,7 +210,7 @@ export async function fetchAll(type, onPartial) {
 
     if (type === 'CRYPTO') {
       // Top ~1000 coin (cache'li) — top-250 dışındaki coinler de aranabilsin
-      const { data } = await client.get('/api/market/crypto/all');
+      const { data } = await client.get('/api/v1/market/crypto/all');
       return (data.data ?? []).map(c => ({
         symbol: c.symbol?.toUpperCase() ?? '',
         name: c.name ?? c.symbol ?? '',
@@ -220,7 +220,7 @@ export async function fetchAll(type, onPartial) {
     }
 
     if (type === 'FX') {
-      const { data } = await client.get('/api/market/fx/tcmb/latest');
+      const { data } = await client.get('/api/v1/market/fx/tcmb/latest');
       return (data.data?.rates ?? []).map(r => ({
         symbol: r.symbol,
         name: r.name ?? FX_NAMES[r.symbol] ?? r.symbol,
@@ -230,10 +230,10 @@ export async function fetchAll(type, onPartial) {
     if (type === 'FUND') {
       // 4 fon kaynağını paralel çek: TEFAS, BES, OKS, Osmanlı
       const [tefasRes, besRes, oksRes, osmanlıRes] = await Promise.allSettled([
-        client.get('/api/market/funds/tefas/all'),
-        client.get('/api/market/funds/bes/all'),
-        client.get('/api/market/funds/oks/all'),
-        client.get('/api/market/funds/osmanli/bulletin'),
+        client.get('/api/v1/market/funds/tefas/all'),
+        client.get('/api/v1/market/funds/bes/all'),
+        client.get('/api/v1/market/funds/oks/all'),
+        client.get('/api/v1/market/funds/osmanli/bulletin'),
       ]);
 
       const tefas = tefasRes.status === 'fulfilled'
@@ -281,7 +281,7 @@ export async function fetchAll(type, onPartial) {
     if (type === 'FUTURE') {
       // VİOP sözleşmeleri
       try {
-        const { data } = await client.get('/api/market/futures/viop/contracts');
+        const { data } = await client.get('/api/v1/market/futures/viop/contracts');
         const contracts = data.data ?? [];
         if (contracts.length > 0) {
           return contracts.map((c) => {
@@ -344,7 +344,7 @@ export async function fetchAll(type, onPartial) {
       let evds = [];
       try {
         const bondParams = (p, s) => ({ page: p, size: s, sortBy: 'maturityDate', sortDir: 'asc' });
-        const firstRes = await client.get('/api/market/bonds/evds', { params: bondParams(0, 100) });
+        const firstRes = await client.get('/api/v1/market/bonds/evds', { params: bondParams(0, 100) });
         const d0 = firstRes.data?.data;
         const size = d0?.size || 100;
         const totalPages = d0?.totalPages ?? 1;
@@ -355,7 +355,7 @@ export async function fetchAll(type, onPartial) {
         if (totalPages > 1) {
           const rest = await Promise.all(
             Array.from({ length: totalPages - 1 }, (_, i) =>
-              client.get('/api/market/bonds/evds', { params: bondParams(i + 1, size) }),
+              client.get('/api/v1/market/bonds/evds', { params: bondParams(i + 1, size) }),
             ),
           );
           rest.forEach(r => evds.push(...(r.data?.data?.items ?? []).map(mapBond).filter(b => b.symbol)));
@@ -366,7 +366,7 @@ export async function fetchAll(type, onPartial) {
       try {
         // tradeable=true → BI verisi olmayan eurobondlar listeden hariç tutulur
         // (fiyat yok → alış/satış K/Z hesaplanamaz, kullanıcıyı yanıltmasın).
-        const r = await client.get('/api/market/bonds/global?tradeable=true');
+        const r = await client.get('/api/v1/market/bonds/global?tradeable=true');
         euro = (r.data?.data ?? []).map(b => ({
           symbol: b.isin ?? '',
           name: b.name || b.issuer || b.isin || '',
@@ -383,7 +383,7 @@ export async function fetchAll(type, onPartial) {
     if (type === 'INDICATOR') {
       // BIST endeksleri — sembol = kod (XBANK). Karşılaştırmada assetType='INDICATOR' ile çizilir
       // (backend price-history endeks kodlarını hisse grafik yoluna yönlendirir). Alım-satıma EKLENMEZ.
-      const { data } = await client.get('/api/market/indices');
+      const { data } = await client.get('/api/v1/market/indices');
       return (data.data ?? []).map(idx => ({ symbol: idx.code, name: idx.name, category: idx.category }));
     }
   } catch {

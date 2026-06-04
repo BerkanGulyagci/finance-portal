@@ -81,7 +81,7 @@ class EconomyControllerTest {
         EconomyIndicator rate = indicator("policy", "Politika Faizi", "RATES", "Faizler");
         when(economyService.getSummary()).thenReturn(List.of(infl, rate));
 
-        mockMvc.perform(get("/api/market/economy").accept("application/json"))
+        mockMvc.perform(get("/api/v1/market/economy").accept("application/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Türkiye ekonomi göstergeleri"))
@@ -101,7 +101,7 @@ class EconomyControllerTest {
     void getEconomySummary_emptyIndicators_returns200_withNoGroups() throws Exception {
         when(economyService.getSummary()).thenReturn(List.of());
 
-        mockMvc.perform(get("/api/market/economy").accept("application/json"))
+        mockMvc.perform(get("/api/v1/market/economy").accept("application/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.groups.length()").value(0));
@@ -111,7 +111,7 @@ class EconomyControllerTest {
     void getSeries_default_usesChartSeries() throws Exception {
         when(economyChartService.getChartSeries("tufe")).thenReturn(series("tufe", "TÜFE"));
 
-        mockMvc.perform(get("/api/market/economy/series").param("key", "tufe").accept("application/json"))
+        mockMvc.perform(get("/api/v1/market/economy/series").param("key", "tufe").accept("application/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Gösterge zaman serisi"))
@@ -127,7 +127,7 @@ class EconomyControllerTest {
     void getSeries_full_usesFullChartSeries() throws Exception {
         when(economyChartService.getFullChartSeries("ufe")).thenReturn(series("ufe", "ÜFE"));
 
-        mockMvc.perform(get("/api/market/economy/series")
+        mockMvc.perform(get("/api/v1/market/economy/series")
                         .param("key", "ufe")
                         .param("full", "true")
                         .accept("application/json"))
@@ -142,7 +142,7 @@ class EconomyControllerTest {
         when(economyChartService.getAllChartSeries())
                 .thenReturn(List.of(series("tufe", "TÜFE"), series("ufe", "ÜFE")));
 
-        mockMvc.perform(get("/api/market/economy/charts").accept("application/json"))
+        mockMvc.perform(get("/api/v1/market/economy/charts").accept("application/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Tüm gösterge zaman serileri"))
@@ -162,7 +162,7 @@ class EconomyControllerTest {
         lr.setSource("TCMB EVDS");
         when(loanRateService.getLoanRates()).thenReturn(lr);
 
-        mockMvc.perform(get("/api/market/economy/loan-rates").accept("application/json"))
+        mockMvc.perform(get("/api/v1/market/economy/loan-rates").accept("application/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Güncel kredi faiz oranları"))
@@ -187,7 +187,7 @@ class EconomyControllerTest {
         dr.setSource("TCMB EVDS");
         when(depositRateService.getDepositRates()).thenReturn(dr);
 
-        mockMvc.perform(get("/api/market/economy/deposit-rates").accept("application/json"))
+        mockMvc.perform(get("/api/v1/market/economy/deposit-rates").accept("application/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Güncel mevduat faiz oranları"))

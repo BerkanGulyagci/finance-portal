@@ -35,7 +35,7 @@ export function prefSet(key, value) {
   if (timers.has(key)) clearTimeout(timers.get(key));
   timers.set(key, setTimeout(() => {
     timers.delete(key);
-    client.put(`/api/me/preferences/${encodeURIComponent(key)}`, JSON.stringify(value), JSON_PUT_CONFIG)
+    client.put(`/api/v1/me/preferences/${encodeURIComponent(key)}`, JSON.stringify(value), JSON_PUT_CONFIG)
       .catch(() => { /* best-effort */ });
   }, DEBOUNCE_MS));
 }
@@ -53,14 +53,14 @@ export function prefSetSync(key, value) {
     clearTimeout(timers.get(key));
     timers.delete(key);
   }
-  return client.put(`/api/me/preferences/${encodeURIComponent(key)}`, JSON.stringify(value), JSON_PUT_CONFIG);
+  return client.put(`/api/v1/me/preferences/${encodeURIComponent(key)}`, JSON.stringify(value), JSON_PUT_CONFIG);
 }
 
 /** Sunucudaki tüm tercihleri çekip localStorage'a yazar (giriş sonrası bir kez). */
 export async function hydratePrefs() {
   if (!isAuthed()) return;
   try {
-    const { data: wrapper } = await client.get('/api/me/preferences');
+    const { data: wrapper } = await client.get('/api/v1/me/preferences');
     const prefs = wrapper?.data ?? {};
     Object.entries(prefs).forEach(([k, v]) => {
       try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* yoksay */ }

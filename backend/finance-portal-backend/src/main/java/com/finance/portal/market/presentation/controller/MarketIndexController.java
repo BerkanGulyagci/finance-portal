@@ -15,10 +15,10 @@ import java.util.List;
 /**
  * BIST endeksleri — liste, tekil endeks ve endeksle ilgili hisseler.
  * Fiyat/grafik verisi Yahoo'dan gelir (endeks sembolü {@code {KOD}.IS}); grafik için mevcut
- * {@code /api/market/stocks/{symbol}/chart} ve {@code /ohlc} uçları doğrudan kullanılabilir.
+ * {@code /api/v1/market/stocks/{symbol}/chart} ve {@code /ohlc} uçları doğrudan kullanılabilir.
  */
 @RestController
-@RequestMapping("/api/market/indices")
+@RequestMapping("/api/v1/market/indices")
 public class MarketIndexController {
 
     private final IndexQueryService indexQueryService;

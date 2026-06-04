@@ -16,10 +16,10 @@ import java.util.List;
 /**
  * Ekonomik takvim — Finnhub destekli, küresel makro veri açıklamaları.
  *
- * <p>{@code GET /api/market/economy/calendar?from=YYYY-MM-DD&to=YYYY-MM-DD}
+ * <p>{@code GET /api/v1/market/economy/calendar?from=YYYY-MM-DD&to=YYYY-MM-DD}
  */
 @RestController
-@RequestMapping("/api/market/economy/calendar")
+@RequestMapping("/api/v1/market/economy/calendar")
 public class EconomicCalendarController {
 
     private final EconomicCalendarService service;

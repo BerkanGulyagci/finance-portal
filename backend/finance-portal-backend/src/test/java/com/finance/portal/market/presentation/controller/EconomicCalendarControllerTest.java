@@ -56,7 +56,7 @@ class EconomicCalendarControllerTest {
         when(service.getEvents(LocalDate.of(2026, 5, 1), LocalDate.of(2026, 5, 31)))
                 .thenReturn(List.of(sampleEvent()));
 
-        mockMvc.perform(get("/api/market/economy/calendar")
+        mockMvc.perform(get("/api/v1/market/economy/calendar")
                         .param("from", "2026-05-01")
                         .param("to", "2026-05-31")
                         .accept("application/json"))
@@ -77,7 +77,7 @@ class EconomicCalendarControllerTest {
     void getCalendar_emptyRange_returns200_withEmptyArray() throws Exception {
         when(service.getEvents(any(), any())).thenReturn(List.of());
 
-        mockMvc.perform(get("/api/market/economy/calendar")
+        mockMvc.perform(get("/api/v1/market/economy/calendar")
                         .param("from", "2026-06-01")
                         .param("to", "2026-06-02")
                         .accept("application/json"))
@@ -89,7 +89,7 @@ class EconomicCalendarControllerTest {
     @Test
     void getCalendar_missingRequiredFromParam_returns400() throws Exception {
         // 'from' zorunlu — eksik olunca MissingServletRequestParameterException → 400.
-        mockMvc.perform(get("/api/market/economy/calendar")
+        mockMvc.perform(get("/api/v1/market/economy/calendar")
                         .param("to", "2026-05-31")
                         .accept("application/json"))
                 .andExpect(status().isBadRequest());

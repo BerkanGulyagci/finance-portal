@@ -17,7 +17,7 @@ import java.util.Arrays;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/market/fx")
+@RequestMapping("/api/v1/market/fx")
 public class MarketFxController {
 
     private final MarketFxService marketFxService;

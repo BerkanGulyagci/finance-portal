@@ -23,7 +23,7 @@ describe('getIpos', () => {
     await getIpos();
 
     expect(axios.get).toHaveBeenCalledTimes(1);
-    expect(axios.get).toHaveBeenCalledWith(`${BASE_URL}/api/market/ipo`);
+    expect(axios.get).toHaveBeenCalledWith(`${BASE_URL}/api/v1/market/ipo`);
     // Bu fonksiyon ikinci bir options/params argümanı GEÇİRMEZ.
     expect(axios.get.mock.calls[0]).toHaveLength(1);
   });

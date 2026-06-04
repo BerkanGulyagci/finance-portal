@@ -43,7 +43,7 @@ class EconomicIndicatorControllerTest {
         indicators.put("depositRate", "45");
         when(service.getIndicators()).thenReturn(indicators);
 
-        mockMvc.perform(get("/api/market/indicators").accept("application/json"))
+        mockMvc.perform(get("/api/v1/market/indicators").accept("application/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Indicators retrieved"))
@@ -57,7 +57,7 @@ class EconomicIndicatorControllerTest {
     void getIndicators_emptyMap_stillReturns200() throws Exception {
         when(service.getIndicators()).thenReturn(Map.of());
 
-        mockMvc.perform(get("/api/market/indicators").accept("application/json"))
+        mockMvc.perform(get("/api/v1/market/indicators").accept("application/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
     }

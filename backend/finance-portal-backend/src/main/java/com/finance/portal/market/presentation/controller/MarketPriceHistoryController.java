@@ -40,7 +40,7 @@ import java.util.TreeMap;
  * Hisse karşılaştırma sayfasında "herhangi bir şeyle kıyas" için kullanılır.
  */
 @RestController
-@RequestMapping("/api/market")
+@RequestMapping("/api/v1/market")
 public class MarketPriceHistoryController {
 
     private static final ZoneId TR_ZONE = ZoneId.of("Europe/Istanbul");

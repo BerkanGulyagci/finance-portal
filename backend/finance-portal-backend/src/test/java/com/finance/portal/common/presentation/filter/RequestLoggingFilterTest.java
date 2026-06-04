@@ -59,7 +59,7 @@ class RequestLoggingFilterTest {
     @Test
     void shouldNotFilter_returnsFalseForApplicationPath() throws ServletException {
         RequestLoggingFilter filter = new RequestLoggingFilter(null);
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/portfolios");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/portfolios");
         assertFalse(filter.shouldNotFilter(request));
     }
 
@@ -70,7 +70,7 @@ class RequestLoggingFilterTest {
     @Test
     void doFilter_infoLevel_nullPublisher_doesNotPublishAndChainInvoked() throws Exception {
         RequestLoggingFilter filter = new RequestLoggingFilter(null);
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/data");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/data");
         MockHttpServletResponse response = new MockHttpServletResponse();
         response.setStatus(200);
         MockFilterChain chain = new MockFilterChain();
@@ -92,7 +92,7 @@ class RequestLoggingFilterTest {
     void doFilter_warnLevel_4xx_publishesWarnEvent() throws Exception {
         RequestLogPublisherPort publisher = mock(RequestLogPublisherPort.class);
         RequestLoggingFilter filter = new RequestLoggingFilter(publisher);
-        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/login");
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/login");
         MockHttpServletResponse response = new MockHttpServletResponse();
         response.setStatus(404);
         MockFilterChain chain = new MockFilterChain();
@@ -105,7 +105,7 @@ class RequestLoggingFilterTest {
         assertThat(event.getLevel()).isEqualTo("WARN");
         assertThat(event.getStatus()).isEqualTo("404");
         assertThat(event.getMethod()).isEqualTo("POST");
-        assertThat(event.getPath()).isEqualTo("/api/login");
+        assertThat(event.getPath()).isEqualTo("/api/v1/login");
         assertThat(event.getException()).isNull();
     }
 
@@ -117,7 +117,7 @@ class RequestLoggingFilterTest {
     void doFilter_errorLevel_5xxStatus_publishesErrorEvent() throws Exception {
         RequestLogPublisherPort publisher = mock(RequestLogPublisherPort.class);
         RequestLoggingFilter filter = new RequestLoggingFilter(publisher);
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/boom");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/boom");
         MockHttpServletResponse response = new MockHttpServletResponse();
         response.setStatus(503);
         MockFilterChain chain = new MockFilterChain();
@@ -140,7 +140,7 @@ class RequestLoggingFilterTest {
     void doFilter_chainThrows_rethrowsAndPublishesErrorWith500() throws Exception {
         RequestLogPublisherPort publisher = mock(RequestLogPublisherPort.class);
         RequestLoggingFilter filter = new RequestLoggingFilter(publisher);
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/explode");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/explode");
         MockHttpServletResponse response = new MockHttpServletResponse();
         response.setStatus(200); // would be INFO, but exception forces 500/ERROR
 
@@ -167,7 +167,7 @@ class RequestLoggingFilterTest {
         RequestLogPublisherPort publisher = mock(RequestLogPublisherPort.class);
         doThrow(new RuntimeException("kafka down")).when(publisher).publish(any());
         RequestLoggingFilter filter = new RequestLoggingFilter(publisher);
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/ok");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/ok");
         MockHttpServletResponse response = new MockHttpServletResponse();
         response.setStatus(200);
         MockFilterChain chain = new MockFilterChain();
@@ -188,7 +188,7 @@ class RequestLoggingFilterTest {
         SecurityContextHolder.clearContext(); // auth == null
         RequestLogPublisherPort publisher = mock(RequestLogPublisherPort.class);
         RequestLoggingFilter filter = new RequestLoggingFilter(publisher);
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/x");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/x");
         MockHttpServletResponse response = new MockHttpServletResponse();
         response.setStatus(200);
 
@@ -208,7 +208,7 @@ class RequestLoggingFilterTest {
 
         RequestLogPublisherPort publisher = mock(RequestLogPublisherPort.class);
         RequestLoggingFilter filter = new RequestLoggingFilter(publisher);
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/x");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/x");
         MockHttpServletResponse response = new MockHttpServletResponse();
         response.setStatus(200);
 
@@ -228,7 +228,7 @@ class RequestLoggingFilterTest {
 
         RequestLogPublisherPort publisher = mock(RequestLogPublisherPort.class);
         RequestLoggingFilter filter = new RequestLoggingFilter(publisher);
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/me");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/me");
         MockHttpServletResponse response = new MockHttpServletResponse();
         response.setStatus(200);
 
@@ -248,7 +248,7 @@ class RequestLoggingFilterTest {
 
         RequestLogPublisherPort publisher = mock(RequestLogPublisherPort.class);
         RequestLoggingFilter filter = new RequestLoggingFilter(publisher);
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/me");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/me");
         MockHttpServletResponse response = new MockHttpServletResponse();
         response.setStatus(200);
 
@@ -269,7 +269,7 @@ class RequestLoggingFilterTest {
 
         RequestLogPublisherPort publisher = mock(RequestLogPublisherPort.class);
         RequestLoggingFilter filter = new RequestLoggingFilter(publisher);
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/me");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/me");
         MockHttpServletResponse response = new MockHttpServletResponse();
         response.setStatus(200);
 
@@ -292,7 +292,7 @@ class RequestLoggingFilterTest {
 
         RequestLogPublisherPort publisher = mock(RequestLogPublisherPort.class);
         RequestLoggingFilter filter = new RequestLoggingFilter(publisher);
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/me");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/me");
         MockHttpServletResponse response = new MockHttpServletResponse();
         response.setStatus(200);
 
@@ -312,7 +312,7 @@ class RequestLoggingFilterTest {
 
         RequestLogPublisherPort publisher = mock(RequestLogPublisherPort.class);
         RequestLoggingFilter filter = new RequestLoggingFilter(publisher);
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/me");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/me");
         MockHttpServletResponse response = new MockHttpServletResponse();
         response.setStatus(200);
 
@@ -332,7 +332,7 @@ class RequestLoggingFilterTest {
     void doFilter_usesForwardedForClientIp() throws Exception {
         RequestLogPublisherPort publisher = mock(RequestLogPublisherPort.class);
         RequestLoggingFilter filter = new RequestLoggingFilter(publisher);
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/x");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/x");
         request.addHeader("X-Forwarded-For", "203.0.113.7, 10.0.0.1");
         MockHttpServletResponse response = new MockHttpServletResponse();
         response.setStatus(200);

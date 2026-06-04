@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/market/viop")
+@RequestMapping("/api/v1/market/viop")
 public class ViopController {
 
     private static final Logger log = LoggerFactory.getLogger(ViopController.class);

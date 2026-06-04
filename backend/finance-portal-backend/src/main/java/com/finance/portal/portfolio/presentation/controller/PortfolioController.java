@@ -43,7 +43,7 @@ import java.util.UUID;
 
 @Validated
 @RestController
-@RequestMapping("/api/portfolios")
+@RequestMapping("/api/v1/portfolios")
 public class PortfolioController {
 
     private final PortfolioService portfolioService;
@@ -274,7 +274,7 @@ public class PortfolioController {
     // ── WATCHLIST endpointleri ────────────────────────────────────────────────
 
     /**
-     * GET /api/portfolios/{portfolioId}/watchlist
+     * GET /api/v1/portfolios/{portfolioId}/watchlist
      * İzleme listesindeki tüm sembolleri döner.
      * Şu an sadece DB alanları (id, symbol, assetType, notes, addedAt).
      * Canlı fiyat bilgisi ileride eklenecek.
@@ -290,7 +290,7 @@ public class PortfolioController {
     }
 
     /**
-     * POST /api/portfolios/{portfolioId}/watchlist
+     * POST /api/v1/portfolios/{portfolioId}/watchlist
      * İzleme listesine sembol ekler.
      */
     @PostMapping("/{portfolioId}/watchlist")
@@ -307,7 +307,7 @@ public class PortfolioController {
     }
 
     /**
-     * DELETE /api/portfolios/{portfolioId}/watchlist/{itemId}
+     * DELETE /api/v1/portfolios/{portfolioId}/watchlist/{itemId}
      * İzleme listesinden sembol siler.
      */
     @DeleteMapping("/{portfolioId}/watchlist/{itemId}")

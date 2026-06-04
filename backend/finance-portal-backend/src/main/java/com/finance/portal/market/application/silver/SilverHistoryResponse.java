@@ -7,7 +7,7 @@ import java.io.Serializable;
 import java.util.List;
 
 /**
- * GET /api/silver/history response.
+ * GET /api/v1/silver/history response.
  */
 @Data
 @NoArgsConstructor

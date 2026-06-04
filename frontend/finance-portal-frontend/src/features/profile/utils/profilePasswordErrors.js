@@ -5,7 +5,7 @@ const PASSWORD_OTP_MESSAGE =
   'Şifre değiştirilemedi. Keycloak Hesap Ayarları üzerinden deneyebilirsiniz.';
 
 /**
- * PATCH /api/me/password hata yanıtlarını kullanıcı dostu metne çevirir.
+ * PATCH /api/v1/me/password hata yanıtlarını kullanıcı dostu metne çevirir.
  */
 export function mapPasswordChangeError(err) {
   const status = err.response?.status;

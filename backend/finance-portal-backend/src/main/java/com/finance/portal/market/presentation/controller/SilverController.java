@@ -12,14 +12,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/silver")
+@RequestMapping("/api/v1/silver")
 @RequiredArgsConstructor
 public class SilverController {
 
     private final SilverMarketService silverMarketService;
 
     /**
-     * GET /api/silver/spot
+     * GET /api/v1/silver/spot
      * Güncel gümüş fiyatı (TL/Kg, TL/Gram, USD/Ons)
      */
     @GetMapping("/spot")
@@ -29,7 +29,7 @@ public class SilverController {
     }
 
     /**
-     * GET /api/silver/history?range=1M&currency=TRY|USD
+     * GET /api/v1/silver/history?range=1M&currency=TRY|USD
      * Tarihsel gümüş fiyatları
      */
     @GetMapping("/history")

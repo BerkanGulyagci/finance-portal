@@ -8,7 +8,7 @@ import java.util.Map;
  * BIST endeks kataloğu — kod, görünen ad (TR), kategori ve (sektör endeksleri için) bileşen hisseler.
  *
  * <p>Veri kaynağı: her endeks Yahoo Finance'te {@code {KOD}.IS} sembolüyle yayımlanır (instrumentType=INDEX,
- * TRY). Fiyat/değişim/grafik mevcut hisse uçlarından ({@code /api/market/stocks/{symbol}}) gelir — endeks
+ * TRY). Fiyat/değişim/grafik mevcut hisse uçlarından ({@code /api/v1/market/stocks/{symbol}}) gelir — endeks
  * sembolü Yahoo açısından sıradan bir semboldür. Bu katalog yalnız hangi endekslerin listeleneceğini,
  * Türkçe adlarını ve ilgili hisselerini tanımlar.</p>
  *

@@ -7,7 +7,7 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 
 /**
- * GET /api/gold/spot response.
+ * GET /api/v1/gold/spot response.
  *
  * Ana kaynak : Borsa İstanbul Kıymetli Madenler (BIST).
  * Fallback   : Yahoo Finance GC=F (ONS/USD).

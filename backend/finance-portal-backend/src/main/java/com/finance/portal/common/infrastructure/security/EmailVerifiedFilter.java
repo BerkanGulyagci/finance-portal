@@ -26,14 +26,14 @@ public class EmailVerifiedFilter extends OncePerRequestFilter {
             "EMAIL_NOT_VERIFIED: Email adresinizi doğrulamanız gerekiyor.";
 
     private static final List<String> EXCLUDED_PREFIXES = List.of(
-            "/api/auth",
-            "/api/me",
+            "/api/v1/auth",
+            "/api/v1/me",
             "/actuator",
-            "/api/market",
-            "/api/news",
-            "/api/gold",
-            "/api/proxy",
-            "/api/health"
+            "/api/v1/market",
+            "/api/v1/news",
+            "/api/v1/gold",
+            "/api/v1/proxy",
+            "/api/v1/health"
     );
 
     private final ObjectMapper objectMapper;

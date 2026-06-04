@@ -13,16 +13,16 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * EVDS DİBS yönetim endpoint'leri (yalnız ADMIN — /api/admin/** ROLE_ADMIN korumalı).
+ * EVDS DİBS yönetim endpoint'leri (yalnız ADMIN — /api/v1/admin/** ROLE_ADMIN korumalı).
  *
  * <p>Maturity parser fix gibi tek seferlik deploy-sonrası temizlikler için:
  * <pre>
  *   curl -X POST -H "Authorization: Bearer &lt;admin-token&gt;" \
- *        http://localhost:8080/api/admin/bonds/evds/cache-evict
+ *        http://localhost:8080/api/v1/admin/bonds/evds/cache-evict
  * </pre>
  */
 @RestController
-@RequestMapping("/api/admin/bonds/evds")
+@RequestMapping("/api/v1/admin/bonds/evds")
 public class EvdsBondAdminController {
 
     private static final Logger log = LoggerFactory.getLogger(EvdsBondAdminController.class);

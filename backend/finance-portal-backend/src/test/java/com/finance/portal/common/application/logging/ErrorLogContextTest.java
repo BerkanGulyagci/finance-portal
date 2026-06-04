@@ -17,7 +17,7 @@ class ErrorLogContextTest {
 
     @Test
     void fromCurrentRequest_readsRequestAttributes() {
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/admin/users");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/admin/users");
         request.setAttribute(RequestLogSupport.ATTR_REQUEST_ID, "abc123");
         request.setAttribute(RequestLogSupport.ATTR_TRACE_ID, "trace-1");
         request.setAttribute(RequestLogSupport.ATTR_SPAN_ID, "span-1");
@@ -31,6 +31,6 @@ class ErrorLogContextTest {
         assertEquals("span-1", ctx.spanId());
         assertEquals("203.0.113.1", ctx.clientIp());
         assertEquals("GET", ctx.method());
-        assertEquals("/api/admin/users", ctx.path());
+        assertEquals("/api/v1/admin/users", ctx.path());
     }
 }

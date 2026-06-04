@@ -26,7 +26,7 @@ import java.util.UUID;
 
 @Validated
 @RestController
-@RequestMapping("/api/alarms")
+@RequestMapping("/api/v1/alarms")
 public class AlarmController {
 
     private final AlarmService alarmService;

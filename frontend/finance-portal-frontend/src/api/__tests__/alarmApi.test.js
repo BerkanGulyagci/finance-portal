@@ -36,7 +36,7 @@ describe('getAlarms', () => {
     const result = await getAlarms();
 
     expect(client.get).toHaveBeenCalledTimes(1);
-    expect(client.get).toHaveBeenCalledWith('/api/alarms');
+    expect(client.get).toHaveBeenCalledWith('/api/v1/alarms');
     expect(result).toEqual(alarms);
   });
 
@@ -73,7 +73,7 @@ describe('getAlarm', () => {
     const result = await getAlarm(42);
 
     expect(client.get).toHaveBeenCalledTimes(1);
-    expect(client.get).toHaveBeenCalledWith('/api/alarms/42');
+    expect(client.get).toHaveBeenCalledWith('/api/v1/alarms/42');
     expect(result).toEqual(alarm);
   });
 
@@ -82,7 +82,7 @@ describe('getAlarm', () => {
 
     const result = await getAlarm('abc');
 
-    expect(client.get).toHaveBeenCalledWith('/api/alarms/abc');
+    expect(client.get).toHaveBeenCalledWith('/api/v1/alarms/abc');
     expect(result).toBeNull();
   });
 
@@ -113,7 +113,7 @@ describe('createAlarm', () => {
     const result = await createAlarm(payload);
 
     expect(client.post).toHaveBeenCalledTimes(1);
-    expect(client.post).toHaveBeenCalledWith('/api/alarms', payload);
+    expect(client.post).toHaveBeenCalledWith('/api/v1/alarms', payload);
     expect(result).toEqual(created);
   });
 
@@ -135,7 +135,7 @@ describe('updateAlarm', () => {
     const result = await updateAlarm(5, payload);
 
     expect(client.patch).toHaveBeenCalledTimes(1);
-    expect(client.patch).toHaveBeenCalledWith('/api/alarms/5', payload);
+    expect(client.patch).toHaveBeenCalledWith('/api/v1/alarms/5', payload);
     expect(result).toEqual(updated);
   });
 
@@ -155,7 +155,7 @@ describe('deleteAlarm', () => {
     const result = await deleteAlarm(13);
 
     expect(client.delete).toHaveBeenCalledTimes(1);
-    expect(client.delete).toHaveBeenCalledWith('/api/alarms/13');
+    expect(client.delete).toHaveBeenCalledWith('/api/v1/alarms/13');
     expect(result).toEqual({ deleted: true });
   });
 
@@ -164,7 +164,7 @@ describe('deleteAlarm', () => {
 
     const result = await deleteAlarm(2);
 
-    expect(client.delete).toHaveBeenCalledWith('/api/alarms/2');
+    expect(client.delete).toHaveBeenCalledWith('/api/v1/alarms/2');
     expect(result).toBeNull();
   });
 

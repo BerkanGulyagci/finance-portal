@@ -34,7 +34,7 @@ describe('getUsers', () => {
     const result = await getUsers();
 
     expect(client.get).toHaveBeenCalledTimes(1);
-    expect(client.get).toHaveBeenCalledWith('/api/admin/users', {
+    expect(client.get).toHaveBeenCalledWith('/api/v1/admin/users', {
       params: { first: 0, max: 20, status: 'ALL' },
     });
     // search/withTickets eklenmemeli
@@ -48,7 +48,7 @@ describe('getUsers', () => {
 
     await getUsers({ first: 40, max: 10, status: 'BANNED' });
 
-    expect(client.get).toHaveBeenCalledWith('/api/admin/users', {
+    expect(client.get).toHaveBeenCalledWith('/api/v1/admin/users', {
       params: { first: 40, max: 10, status: 'BANNED' },
     });
   });
@@ -58,7 +58,7 @@ describe('getUsers', () => {
 
     await getUsers({ search: '  ahmet  ' });
 
-    expect(client.get).toHaveBeenCalledWith('/api/admin/users', {
+    expect(client.get).toHaveBeenCalledWith('/api/v1/admin/users', {
       params: { first: 0, max: 20, status: 'ALL', search: 'ahmet' },
     });
   });
@@ -100,7 +100,7 @@ describe('getUsers', () => {
 
     await getUsers({ search: 'x', withTickets: true, first: 5, max: 3, status: 'ACTIVE' });
 
-    expect(client.get).toHaveBeenCalledWith('/api/admin/users', {
+    expect(client.get).toHaveBeenCalledWith('/api/v1/admin/users', {
       params: { first: 5, max: 3, status: 'ACTIVE', search: 'x', withTickets: true },
     });
   });
@@ -121,7 +121,7 @@ describe('getUser', () => {
 
     const result = await getUser(7);
 
-    expect(client.get).toHaveBeenCalledWith('/api/admin/users/7');
+    expect(client.get).toHaveBeenCalledWith('/api/v1/admin/users/7');
     expect(result).toBe(user);
   });
 
@@ -130,7 +130,7 @@ describe('getUser', () => {
 
     await getUser('abc-123');
 
-    expect(client.get).toHaveBeenCalledWith('/api/admin/users/abc-123');
+    expect(client.get).toHaveBeenCalledWith('/api/v1/admin/users/abc-123');
   });
 
   it('hata yolunda promise reddedilir', async () => {
@@ -149,7 +149,7 @@ describe('banUser', () => {
 
     const result = await banUser(3, body);
 
-    expect(client.post).toHaveBeenCalledWith('/api/admin/users/3/ban', body);
+    expect(client.post).toHaveBeenCalledWith('/api/v1/admin/users/3/ban', body);
     expect(result).toBe(wrapper);
   });
 
@@ -168,7 +168,7 @@ describe('unbanUser', () => {
 
     const result = await unbanUser(9);
 
-    expect(client.post).toHaveBeenCalledWith('/api/admin/users/9/unban');
+    expect(client.post).toHaveBeenCalledWith('/api/v1/admin/users/9/unban');
     // ikinci argüman (body) verilmemeli
     expect(client.post.mock.calls[0]).toHaveLength(1);
     expect(result).toBe(wrapper);
@@ -189,7 +189,7 @@ describe('getEurobondIsins', () => {
 
     const result = await getEurobondIsins();
 
-    expect(client.get).toHaveBeenCalledWith('/api/admin/eurobonds/isins');
+    expect(client.get).toHaveBeenCalledWith('/api/v1/admin/eurobonds/isins');
     expect(result).toBe(isins);
   });
 
@@ -210,7 +210,7 @@ describe('refreshEurobondIsins', () => {
     const result = await refreshEurobondIsins(url);
 
     expect(client.post).toHaveBeenCalledWith(
-      '/api/admin/eurobonds/refresh',
+      '/api/v1/admin/eurobonds/refresh',
       null,
       { params: { xlsxUrl: url } },
     );
@@ -223,7 +223,7 @@ describe('refreshEurobondIsins', () => {
     await refreshEurobondIsins(undefined);
 
     expect(client.post).toHaveBeenCalledWith(
-      '/api/admin/eurobonds/refresh',
+      '/api/v1/admin/eurobonds/refresh',
       null,
       { params: { xlsxUrl: undefined } },
     );

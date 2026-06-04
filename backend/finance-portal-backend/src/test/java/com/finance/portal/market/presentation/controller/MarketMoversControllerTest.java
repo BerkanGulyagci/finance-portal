@@ -56,7 +56,7 @@ class MarketMoversControllerTest {
     void getMovers_returns200_withCategoryShape() throws Exception {
         when(marketMoversService.getMovers(5)).thenReturn(List.of(sampleCategory()));
 
-        mockMvc.perform(get("/api/market/movers").accept("application/json"))
+        mockMvc.perform(get("/api/v1/market/movers").accept("application/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.length()").value(1))
@@ -72,7 +72,7 @@ class MarketMoversControllerTest {
         // limit=100 -> safeLimit=20 (controller clamp). Servis tam 20 ile çağrılmalı.
         when(marketMoversService.getMovers(20)).thenReturn(List.of(sampleCategory()));
 
-        mockMvc.perform(get("/api/market/movers").param("limit", "100").accept("application/json"))
+        mockMvc.perform(get("/api/v1/market/movers").param("limit", "100").accept("application/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].key").value("crypto"));
 
@@ -84,7 +84,7 @@ class MarketMoversControllerTest {
         // limit=0 -> safeLimit=1 (controller clamp).
         when(marketMoversService.getMovers(1)).thenReturn(List.of());
 
-        mockMvc.perform(get("/api/market/movers").param("limit", "0").accept("application/json"))
+        mockMvc.perform(get("/api/v1/market/movers").param("limit", "0").accept("application/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(0));
 

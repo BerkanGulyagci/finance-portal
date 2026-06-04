@@ -149,7 +149,7 @@ class NewsletterDigestServiceTest {
         assertThat(html).contains("Son İşlemler");
         assertThat(html).contains("Piyasa");
         // unsubscribe link uses baseUrl + token
-        assertThat(html).contains("http://test.local/api/newsletter/unsubscribe?token=tok-u1");
+        assertThat(html).contains("http://test.local/api/v1/newsletter/unsubscribe?token=tok-u1");
         assertThat(html).contains("http://test.local/dashboard");
 
         assertThat(s.getLastSentAt()).isNotNull();

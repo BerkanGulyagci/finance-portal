@@ -64,7 +64,7 @@ class CommodityControllerTest {
     void list_returns200_withCommodityArray() throws Exception {
         when(commodityService.listEnabledCommodities()).thenReturn(List.of(sampleListItem()));
 
-        mockMvc.perform(get("/api/commodities/list").accept("application/json"))
+        mockMvc.perform(get("/api/v1/commodities/list").accept("application/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Commodity list retrieved"))
@@ -78,7 +78,7 @@ class CommodityControllerTest {
     void spot_returns200_withSpotShape() throws Exception {
         when(commodityService.getSpot("CL=F")).thenReturn(sampleSpot());
 
-        mockMvc.perform(get("/api/commodities/spot").param("symbol", "CL=F").accept("application/json"))
+        mockMvc.perform(get("/api/v1/commodities/spot").param("symbol", "CL=F").accept("application/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.symbol").value("CL=F"))
@@ -92,7 +92,7 @@ class CommodityControllerTest {
         when(commodityService.getSpot(anyString()))
                 .thenThrow(new IllegalArgumentException("Unknown commodity symbol"));
 
-        mockMvc.perform(get("/api/commodities/spot").param("symbol", "BOGUS").accept("application/json"))
+        mockMvc.perform(get("/api/v1/commodities/spot").param("symbol", "BOGUS").accept("application/json"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Unknown commodity symbol"));

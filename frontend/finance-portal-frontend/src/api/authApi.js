@@ -195,7 +195,7 @@ export function logoutRedirect(idToken) {
  */
 export async function registerRequest({ username, email, password, firstName, lastName }) {
   try {
-    const { data } = await axios.post('http://localhost:8080/api/auth/register', {
+    const { data } = await axios.post('http://localhost:8080/api/v1/auth/register', {
       username, email, password, firstName, lastName,
     });
     return data;

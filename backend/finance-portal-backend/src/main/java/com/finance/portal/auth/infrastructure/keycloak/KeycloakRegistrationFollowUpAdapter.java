@@ -74,7 +74,7 @@ public class KeycloakRegistrationFollowUpAdapter implements KeycloakRegistration
         if (user.isEmpty()) {
             log.warn(
                     "Keycloak user '{}' not found after LDAP register ({} attempts); "
-                            + "USER role and VERIFY_EMAIL will be retried on first /api/me or first login.",
+                            + "USER role and VERIFY_EMAIL will be retried on first /api/v1/me or first login.",
                     normalizedUsername,
                     MAX_LOOKUP_ATTEMPTS
             );
@@ -90,7 +90,7 @@ public class KeycloakRegistrationFollowUpAdapter implements KeycloakRegistration
         );
         if (!userRoleAssigned) {
             log.warn(
-                    "USER role assignment did not complete for user '{}' (id={}); will retry on /api/me",
+                    "USER role assignment did not complete for user '{}' (id={}); will retry on /api/v1/me",
                     normalizedUsername,
                     userId
             );

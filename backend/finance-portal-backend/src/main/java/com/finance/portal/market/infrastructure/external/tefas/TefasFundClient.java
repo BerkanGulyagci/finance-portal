@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * TEFAS resmi fon API client — fon birim pay fiyatı tarihsel serisi.
  *
- * POST https://www.tefas.gov.tr/api/funds/fonGnlBlgSiraliGetir
+ * POST https://www.tefas.gov.tr/api/v1/funds/fonGnlBlgSiraliGetir
  * Body (JSON): {"fonTipi":"YAT","fonKodu":"AFA","basTarih":"YYYYMMDD","bitTarih":"YYYYMMDD",...}
  * Yanıt: {"resultList":[{"fonKodu","fonUnvan","tarih","fiyat","portfoyBuyukluk",...}]}
  *

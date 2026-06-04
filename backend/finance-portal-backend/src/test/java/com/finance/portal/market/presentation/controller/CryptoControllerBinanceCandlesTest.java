@@ -52,7 +52,7 @@ class CryptoControllerBinanceCandlesTest {
                                 BigDecimal.ONE, BigDecimal.valueOf(5), BigDecimal.ZERO, 1_700_086_399_999L)
                 ));
 
-        mockMvc.perform(get("/api/market/crypto/btc/candles")
+        mockMvc.perform(get("/api/v1/market/crypto/btc/candles")
                         .param("range", "5y")
                         .param("currency", "try"))
                 .andExpect(status().isOk())

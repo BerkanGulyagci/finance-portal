@@ -24,14 +24,14 @@ beforeEach(() => {
 // getNewsletter — GET /api/newsletter/me
 // ─────────────────────────────────────────────────────────────────────────────
 describe('getNewsletter', () => {
-  it('GET /api/newsletter/me çağırır ve gövdedeki data.data alanını döndürür (sarmalayıcıyı soyar)', async () => {
+  it('GET /api/v1/newsletter/me çağırır ve gövdedeki data.data alanını döndürür (sarmalayıcıyı soyar)', async () => {
     const subscription = { subscribed: true, frequency: 'WEEKLY', email: 'b@example.com' };
     client.get.mockResolvedValue({ data: { data: subscription } });
 
     const result = await getNewsletter();
 
     expect(client.get).toHaveBeenCalledTimes(1);
-    expect(client.get).toHaveBeenCalledWith('/api/newsletter/me');
+    expect(client.get).toHaveBeenCalledWith('/api/v1/newsletter/me');
     expect(result).toBe(subscription);
     expect(result).toEqual({ subscribed: true, frequency: 'WEEKLY', email: 'b@example.com' });
   });
@@ -41,7 +41,7 @@ describe('getNewsletter', () => {
 
     const result = await getNewsletter();
 
-    expect(client.get).toHaveBeenCalledWith('/api/newsletter/me');
+    expect(client.get).toHaveBeenCalledWith('/api/v1/newsletter/me');
     expect(result).toBeNull();
   });
 
@@ -50,7 +50,7 @@ describe('getNewsletter', () => {
 
     const result = await getNewsletter();
 
-    expect(client.get).toHaveBeenCalledWith('/api/newsletter/me');
+    expect(client.get).toHaveBeenCalledWith('/api/v1/newsletter/me');
     expect(result).toBeUndefined();
   });
 
@@ -58,7 +58,7 @@ describe('getNewsletter', () => {
     client.get.mockRejectedValue(new Error('ağ hatası'));
 
     await expect(getNewsletter()).rejects.toThrow('ağ hatası');
-    expect(client.get).toHaveBeenCalledWith('/api/newsletter/me');
+    expect(client.get).toHaveBeenCalledWith('/api/v1/newsletter/me');
   });
 });
 
@@ -66,14 +66,14 @@ describe('getNewsletter', () => {
 // updateNewsletter — PUT /api/newsletter/me   body: { frequency, enabled }
 // ─────────────────────────────────────────────────────────────────────────────
 describe('updateNewsletter', () => {
-  it('PUT /api/newsletter/me çağırır, frequency+enabled gövdesini geçirir ve data.data döndürür', async () => {
+  it('PUT /api/v1/newsletter/me çağırır, frequency+enabled gövdesini geçirir ve data.data döndürür', async () => {
     const updated = { subscribed: true, frequency: 'DAILY', email: 'b@example.com' };
     client.put.mockResolvedValue({ data: { data: updated } });
 
     const result = await updateNewsletter('DAILY', true);
 
     expect(client.put).toHaveBeenCalledTimes(1);
-    expect(client.put).toHaveBeenCalledWith('/api/newsletter/me', {
+    expect(client.put).toHaveBeenCalledWith('/api/v1/newsletter/me', {
       frequency: 'DAILY',
       enabled: true,
     });
@@ -87,7 +87,7 @@ describe('updateNewsletter', () => {
 
     const result = await updateNewsletter('MONTHLY', false);
 
-    expect(client.put).toHaveBeenCalledWith('/api/newsletter/me', {
+    expect(client.put).toHaveBeenCalledWith('/api/v1/newsletter/me', {
       frequency: 'MONTHLY',
       enabled: false,
     });
@@ -99,7 +99,7 @@ describe('updateNewsletter', () => {
 
     const result = await updateNewsletter(undefined, undefined);
 
-    expect(client.put).toHaveBeenCalledWith('/api/newsletter/me', {
+    expect(client.put).toHaveBeenCalledWith('/api/v1/newsletter/me', {
       frequency: undefined,
       enabled: undefined,
     });
@@ -110,7 +110,7 @@ describe('updateNewsletter', () => {
     client.put.mockResolvedValue({ data: {} });
 
     expect(await updateNewsletter('WEEKLY', true)).toBeUndefined();
-    expect(client.put).toHaveBeenCalledWith('/api/newsletter/me', {
+    expect(client.put).toHaveBeenCalledWith('/api/v1/newsletter/me', {
       frequency: 'WEEKLY',
       enabled: true,
     });
@@ -120,7 +120,7 @@ describe('updateNewsletter', () => {
     client.put.mockRejectedValue(new Error('400 geçersiz'));
 
     await expect(updateNewsletter('HOURLY', true)).rejects.toThrow('400 geçersiz');
-    expect(client.put).toHaveBeenCalledWith('/api/newsletter/me', {
+    expect(client.put).toHaveBeenCalledWith('/api/v1/newsletter/me', {
       frequency: 'HOURLY',
       enabled: true,
     });

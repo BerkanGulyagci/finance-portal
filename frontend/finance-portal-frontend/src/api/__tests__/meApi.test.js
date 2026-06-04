@@ -25,14 +25,14 @@ beforeEach(() => {
 });
 
 describe('getMe', () => {
-  it('GET /api/me çağırır ve gövdedeki data.data alanını döndürür (sarmalayıcıyı soyar)', async () => {
+  it('GET /api/v1/me çağırır ve gövdedeki data.data alanını döndürür (sarmalayıcıyı soyar)', async () => {
     const profile = { id: 7, username: 'berkan', email: 'b@example.com' };
     client.get.mockResolvedValue({ data: { data: profile } });
 
     const result = await getMe();
 
     expect(client.get).toHaveBeenCalledTimes(1);
-    expect(client.get).toHaveBeenCalledWith('/api/me');
+    expect(client.get).toHaveBeenCalledWith('/api/v1/me');
     expect(result).toBe(profile);
     expect(result).toEqual({ id: 7, username: 'berkan', email: 'b@example.com' });
   });
@@ -42,7 +42,7 @@ describe('getMe', () => {
 
     const result = await getMe();
 
-    expect(client.get).toHaveBeenCalledWith('/api/me');
+    expect(client.get).toHaveBeenCalledWith('/api/v1/me');
     expect(result).toBeNull();
   });
 
@@ -51,12 +51,12 @@ describe('getMe', () => {
     client.get.mockRejectedValue(err);
 
     await expect(getMe()).rejects.toThrow('ağ hatası');
-    expect(client.get).toHaveBeenCalledWith('/api/me');
+    expect(client.get).toHaveBeenCalledWith('/api/v1/me');
   });
 });
 
 describe('updateMeProfile', () => {
-  it('PATCH /api/me/profile çağırır, payload gövdeyi geçirir ve tüm data nesnesini döndürür', async () => {
+  it('PATCH /api/v1/me/profile çağırır, payload gövdeyi geçirir ve tüm data nesnesini döndürür', async () => {
     const payload = { firstName: 'Berkan', lastName: 'Gulyagci' };
     const body = { ok: true, message: 'güncellendi' };
     client.patch.mockResolvedValue({ data: body });
@@ -64,7 +64,7 @@ describe('updateMeProfile', () => {
     const result = await updateMeProfile(payload);
 
     expect(client.patch).toHaveBeenCalledTimes(1);
-    expect(client.patch).toHaveBeenCalledWith('/api/me/profile', payload);
+    expect(client.patch).toHaveBeenCalledWith('/api/v1/me/profile', payload);
     expect(result).toBe(body);
   });
 
@@ -73,7 +73,7 @@ describe('updateMeProfile', () => {
 
     const result = await updateMeProfile(undefined);
 
-    expect(client.patch).toHaveBeenCalledWith('/api/me/profile', undefined);
+    expect(client.patch).toHaveBeenCalledWith('/api/v1/me/profile', undefined);
     expect(result).toEqual({ ok: true });
   });
 
@@ -81,12 +81,12 @@ describe('updateMeProfile', () => {
     client.patch.mockRejectedValue(new Error('400 geçersiz'));
 
     await expect(updateMeProfile({ firstName: '' })).rejects.toThrow('400 geçersiz');
-    expect(client.patch).toHaveBeenCalledWith('/api/me/profile', { firstName: '' });
+    expect(client.patch).toHaveBeenCalledWith('/api/v1/me/profile', { firstName: '' });
   });
 });
 
 describe('updateMeEmail', () => {
-  it('PATCH /api/me/email çağırır, payload geçirir ve data nesnesini döndürür', async () => {
+  it('PATCH /api/v1/me/email çağırır, payload geçirir ve data nesnesini döndürür', async () => {
     const payload = { email: 'yeni@example.com' };
     const body = { ok: true, verificationSent: true };
     client.patch.mockResolvedValue({ data: body });
@@ -94,7 +94,7 @@ describe('updateMeEmail', () => {
     const result = await updateMeEmail(payload);
 
     expect(client.patch).toHaveBeenCalledTimes(1);
-    expect(client.patch).toHaveBeenCalledWith('/api/me/email', payload);
+    expect(client.patch).toHaveBeenCalledWith('/api/v1/me/email', payload);
     expect(result).toBe(body);
   });
 
@@ -104,12 +104,12 @@ describe('updateMeEmail', () => {
     await expect(updateMeEmail({ email: 'dolu@example.com' })).rejects.toThrow(
       'email zaten kullanımda',
     );
-    expect(client.patch).toHaveBeenCalledWith('/api/me/email', { email: 'dolu@example.com' });
+    expect(client.patch).toHaveBeenCalledWith('/api/v1/me/email', { email: 'dolu@example.com' });
   });
 });
 
 describe('changeMePassword', () => {
-  it('PATCH /api/me/password çağırır, payload geçirir ve data nesnesini döndürür', async () => {
+  it('PATCH /api/v1/me/password çağırır, payload geçirir ve data nesnesini döndürür', async () => {
     const payload = { currentPassword: 'eski', newPassword: 'yeni12345' };
     const body = { ok: true };
     client.patch.mockResolvedValue({ data: body });
@@ -117,7 +117,7 @@ describe('changeMePassword', () => {
     const result = await changeMePassword(payload);
 
     expect(client.patch).toHaveBeenCalledTimes(1);
-    expect(client.patch).toHaveBeenCalledWith('/api/me/password', payload);
+    expect(client.patch).toHaveBeenCalledWith('/api/v1/me/password', payload);
     expect(result).toBe(body);
   });
 
@@ -127,7 +127,7 @@ describe('changeMePassword', () => {
     await expect(
       changeMePassword({ currentPassword: 'x', newPassword: 'y' }),
     ).rejects.toThrow('mevcut şifre hatalı');
-    expect(client.patch).toHaveBeenCalledWith('/api/me/password', {
+    expect(client.patch).toHaveBeenCalledWith('/api/v1/me/password', {
       currentPassword: 'x',
       newPassword: 'y',
     });

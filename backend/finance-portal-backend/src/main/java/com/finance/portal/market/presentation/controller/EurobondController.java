@@ -19,7 +19,7 @@ import java.util.List;
  * Liste/detay/grafik EurobondService'te cache'lenir.
  */
 @RestController
-@RequestMapping("/api/market/bonds/global")
+@RequestMapping("/api/v1/market/bonds/global")
 public class EurobondController {
 
     private final EurobondService eurobondService;

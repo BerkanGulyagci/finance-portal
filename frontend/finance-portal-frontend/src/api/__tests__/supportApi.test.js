@@ -37,7 +37,7 @@ describe('getMyTickets', () => {
     const result = await getMyTickets();
 
     expect(client.get).toHaveBeenCalledTimes(1);
-    expect(client.get).toHaveBeenCalledWith('/api/support/tickets');
+    expect(client.get).toHaveBeenCalledWith('/api/v1/support/tickets');
     expect(result).toEqual(tickets);
   });
 
@@ -66,7 +66,7 @@ describe('createTicket', () => {
     const result = await createTicket({ subject: 'Konu', message: 'Mesaj' });
 
     expect(client.post).toHaveBeenCalledTimes(1);
-    expect(client.post).toHaveBeenCalledWith('/api/support/tickets', {
+    expect(client.post).toHaveBeenCalledWith('/api/v1/support/tickets', {
       subject: 'Konu',
       message: 'Mesaj',
     });
@@ -95,7 +95,7 @@ describe('updateTicket', () => {
     const result = await updateTicket(42, { subject: 'Yeni', message: 'Güncel' });
 
     expect(client.put).toHaveBeenCalledTimes(1);
-    expect(client.put).toHaveBeenCalledWith('/api/support/tickets/42', {
+    expect(client.put).toHaveBeenCalledWith('/api/v1/support/tickets/42', {
       subject: 'Yeni',
       message: 'Güncel',
     });
@@ -123,7 +123,7 @@ describe('deleteTicket', () => {
     const result = await deleteTicket(9);
 
     expect(client.delete).toHaveBeenCalledTimes(1);
-    expect(client.delete).toHaveBeenCalledWith('/api/support/tickets/9');
+    expect(client.delete).toHaveBeenCalledWith('/api/v1/support/tickets/9');
     expect(result).toBeUndefined();
   });
 
@@ -144,7 +144,7 @@ describe('getUserTickets', () => {
     const result = await getUserTickets(123);
 
     expect(client.get).toHaveBeenCalledTimes(1);
-    expect(client.get).toHaveBeenCalledWith('/api/admin/users/123/tickets');
+    expect(client.get).toHaveBeenCalledWith('/api/v1/admin/users/123/tickets');
     expect(result).toEqual(tickets);
   });
 
@@ -173,7 +173,7 @@ describe('updateTicketStatus', () => {
     const result = await updateTicketStatus(3, 'RESOLVED', 'çözüldü');
 
     expect(client.patch).toHaveBeenCalledTimes(1);
-    expect(client.patch).toHaveBeenCalledWith('/api/admin/support/tickets/3/status', {
+    expect(client.patch).toHaveBeenCalledWith('/api/v1/admin/support/tickets/3/status', {
       status: 'RESOLVED',
       adminNote: 'çözüldü',
     });
@@ -185,7 +185,7 @@ describe('updateTicketStatus', () => {
 
     await updateTicketStatus(4, 'IN_PROGRESS');
 
-    expect(client.patch).toHaveBeenCalledWith('/api/admin/support/tickets/4/status', {
+    expect(client.patch).toHaveBeenCalledWith('/api/v1/admin/support/tickets/4/status', {
       status: 'IN_PROGRESS',
       adminNote: undefined,
     });

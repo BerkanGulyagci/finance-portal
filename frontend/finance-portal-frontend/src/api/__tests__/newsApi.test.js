@@ -39,7 +39,7 @@ describe('proxyImageUrl', () => {
   it('bloomberght.com görselini proxy URL’ine sarar (encode ederek)', () => {
     const src = 'https://www.bloomberght.com/img/foo bar.jpg?x=1';
     const out = proxyImageUrl(src);
-    expect(out).toBe(`${BASE_URL}/api/proxy/image?url=${encodeURIComponent(src)}`);
+    expect(out).toBe(`${BASE_URL}/api/v1/proxy/image?url=${encodeURIComponent(src)}`);
     // boşluk ve & encode edilmeli (ham URL gömülmemeli)
     expect(out).toContain('%20');
     expect(out).not.toContain('foo bar');
@@ -58,7 +58,7 @@ describe('getNews', () => {
     const res = await getNews();
 
     expect(axios.get).toHaveBeenCalledTimes(1);
-    expect(axios.get).toHaveBeenCalledWith(`${BASE_URL}/api/news`, {
+    expect(axios.get).toHaveBeenCalledWith(`${BASE_URL}/api/v1/news`, {
       params: { page: 1, pageSize: 12 },
     });
     expect(res).toEqual({ items: [1], totalPages: 3 });
@@ -78,7 +78,7 @@ describe('getNews', () => {
       pageSize: 24,
     });
 
-    expect(axios.get).toHaveBeenCalledWith(`${BASE_URL}/api/news`, {
+    expect(axios.get).toHaveBeenCalledWith(`${BASE_URL}/api/v1/news`, {
       params: {
         page: 2,
         pageSize: 24,
@@ -98,7 +98,7 @@ describe('getNews', () => {
     // category='' falsy → eklenmemeli; page=0 falsy → ?? sadece null/undefined’a baktığı için 0 KORUNUR.
     await getNews({ category: '', source: undefined, q: null, page: 0, pageSize: 0 });
 
-    expect(axios.get).toHaveBeenCalledWith(`${BASE_URL}/api/news`, {
+    expect(axios.get).toHaveBeenCalledWith(`${BASE_URL}/api/v1/news`, {
       params: { page: 0, pageSize: 0 },
     });
     const sentParams = axios.get.mock.calls[0][1].params;
@@ -124,13 +124,13 @@ describe('getNews', () => {
 });
 
 describe('getForMeNews', () => {
-  it('lib/http client ile /api/news/for-me adresine varsayılan limit=9 gönderir', async () => {
+  it('lib/http client ile /api/v1/news/for-me adresine varsayılan limit=9 gönderir', async () => {
     client.get.mockResolvedValue({ data: { data: { items: [{ id: 1 }] } } });
 
     const res = await getForMeNews();
 
     expect(client.get).toHaveBeenCalledTimes(1);
-    expect(client.get).toHaveBeenCalledWith('/api/news/for-me', { params: { limit: 9 } });
+    expect(client.get).toHaveBeenCalledWith('/api/v1/news/for-me', { params: { limit: 9 } });
     expect(res).toEqual({ items: [{ id: 1 }] });
     // axios DEĞİL, korumalı client kullanılmalı (token gerektirir)
     expect(axios.get).not.toHaveBeenCalled();
@@ -141,7 +141,7 @@ describe('getForMeNews', () => {
 
     await getForMeNews({ lang: 'tr', limit: 5 });
 
-    expect(client.get).toHaveBeenCalledWith('/api/news/for-me', {
+    expect(client.get).toHaveBeenCalledWith('/api/v1/news/for-me', {
       params: { limit: 5, lang: 'tr' },
     });
   });
@@ -172,7 +172,7 @@ describe('getNewsDetail', () => {
 
     const res = await getNewsDetail(42, 'en');
 
-    expect(axios.get).toHaveBeenCalledWith(`${BASE_URL}/api/news/detail/42`, {
+    expect(axios.get).toHaveBeenCalledWith(`${BASE_URL}/api/v1/news/detail/42`, {
       params: { lang: 'en' },
     });
     expect(res).toEqual({ id: 42, title: 'X' });
@@ -183,7 +183,7 @@ describe('getNewsDetail', () => {
 
     await getNewsDetail(7);
 
-    expect(axios.get).toHaveBeenCalledWith(`${BASE_URL}/api/news/detail/7`, { params: {} });
+    expect(axios.get).toHaveBeenCalledWith(`${BASE_URL}/api/v1/news/detail/7`, { params: {} });
   });
 
   it('wrapper.data yoksa null döndürür', async () => {
@@ -204,7 +204,7 @@ describe('getBloombergHtNews', () => {
 
     const res = await getBloombergHtNews();
 
-    expect(axios.get).toHaveBeenCalledWith(`${BASE_URL}/api/news/bloomberg-ht`);
+    expect(axios.get).toHaveBeenCalledWith(`${BASE_URL}/api/v1/news/bloomberg-ht`);
     expect(res).toEqual([{ t: 'a' }]);
   });
 
@@ -227,7 +227,7 @@ describe('getGoldNews', () => {
 
     const res = await getGoldNews();
 
-    expect(axios.get).toHaveBeenCalledWith(`${BASE_URL}/api/news/gold`);
+    expect(axios.get).toHaveBeenCalledWith(`${BASE_URL}/api/v1/news/gold`);
     expect(res).toEqual(payload);
   });
 

@@ -64,7 +64,7 @@ class GoldControllerTest {
     void spot_returns200_withSpotShape() throws Exception {
         when(goldMarketService.getSpotGold()).thenReturn(sampleSpot());
 
-        mockMvc.perform(get("/api/gold/spot").accept("application/json"))
+        mockMvc.perform(get("/api/v1/gold/spot").accept("application/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Gold spot data retrieved"))
@@ -80,7 +80,7 @@ class GoldControllerTest {
         // controller defaults: range=1M, currency=USD
         when(goldMarketService.getGoldHistory("1M", "USD")).thenReturn(sampleHistory("1M", "USD"));
 
-        mockMvc.perform(get("/api/gold/history").accept("application/json"))
+        mockMvc.perform(get("/api/v1/gold/history").accept("application/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Gold history retrieved"))
@@ -96,7 +96,7 @@ class GoldControllerTest {
     void history_passesQueryParamsThrough() throws Exception {
         when(goldMarketService.getGoldHistory("1Y", "TRY")).thenReturn(sampleHistory("1Y", "TRY"));
 
-        mockMvc.perform(get("/api/gold/history")
+        mockMvc.perform(get("/api/v1/gold/history")
                         .param("range", "1Y")
                         .param("currency", "TRY")
                         .accept("application/json"))

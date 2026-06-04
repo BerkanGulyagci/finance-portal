@@ -66,7 +66,7 @@ public class BinanceKlineClient {
         try {
             byte[] body = restClient.get()
                     .uri(uriBuilder -> uriBuilder
-                            .path("/api/v3/klines")
+                            .path("/api/v1/v3/klines")
                             .queryParam("symbol", symbol)
                             .queryParam("interval", interval)
                             .queryParam("limit", limit)

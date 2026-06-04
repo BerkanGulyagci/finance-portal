@@ -127,7 +127,7 @@ public class NewsletterDigestService {
 
     // ── HTML render (dashboard görünümlü) ─────────────────────────────────────────
     private String render(DigestData d, NewsletterSubscription sub, LocalDate today) {
-        String unsubscribe = baseUrl + "/api/newsletter/unsubscribe?token=" + sub.getUnsubscribeToken();
+        String unsubscribe = baseUrl + "/api/v1/newsletter/unsubscribe?token=" + sub.getUnsubscribeToken();
         String pnlColor = sign(d.totalProfitLoss());
         String dailyColor = sign(d.dailyChangePercent());
 

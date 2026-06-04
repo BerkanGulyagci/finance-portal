@@ -24,15 +24,15 @@ import java.util.List;
  * Tüm veri kaynağı: Rasyonet / YatırımDirekt
  *
  * Endpoints:
- *   GET /api/market/funds/tefas/all          → TMF (TEFAS yatırım fonları)
- *   GET /api/market/funds/bes/all            → TPF (BES fonları)
- *   GET /api/market/funds/oks/all            → TAF (OKS fonları)
- *   GET /api/market/funds/osmanli/bulletin   → Osmanlı Portföy fon bülteni
- *   GET /api/market/funds/tefas/{code}       → Fon detayı (Rasyonet card)
+ *   GET /api/v1/market/funds/tefas/all          → TMF (TEFAS yatırım fonları)
+ *   GET /api/v1/market/funds/bes/all            → TPF (BES fonları)
+ *   GET /api/v1/market/funds/oks/all            → TAF (OKS fonları)
+ *   GET /api/v1/market/funds/osmanli/bulletin   → Osmanlı Portföy fon bülteni
+ *   GET /api/v1/market/funds/tefas/{code}       → Fon detayı (Rasyonet card)
  */
 @Validated
 @RestController
-@RequestMapping("/api/market/funds")
+@RequestMapping("/api/v1/market/funds")
 public class MarketFundController {
 
     private final RasyonetFundService rasyonetFundService;
@@ -44,7 +44,7 @@ public class MarketFundController {
         this.tefasFundService = tefasFundService;
     }
 
-    /** GET /api/market/funds/tefas/all — TMF yatırım fonları */
+    /** GET /api/v1/market/funds/tefas/all — TMF yatırım fonları */
     @GetMapping("/tefas/all")
     public ResponseEntity<ApiResponse<List<RasyonetFundDto>>> getAllTefasFunds() {
         List<RasyonetFundDto> funds = rasyonetFundService.getAllFunds();
@@ -52,7 +52,7 @@ public class MarketFundController {
                 "TEFAS funds retrieved via Rasyonet (" + funds.size() + " funds)"));
     }
 
-    /** GET /api/market/funds/bes/all — TPF BES fonları */
+    /** GET /api/v1/market/funds/bes/all — TPF BES fonları */
     @GetMapping("/bes/all")
     public ResponseEntity<ApiResponse<List<RasyonetFundDto>>> getAllBesFunds() {
         List<RasyonetFundDto> funds = rasyonetFundService.getAllBesFunds();
@@ -60,7 +60,7 @@ public class MarketFundController {
                 "BES funds retrieved via Rasyonet (" + funds.size() + " funds)"));
     }
 
-    /** GET /api/market/funds/oks/all — TAF OKS fonları */
+    /** GET /api/v1/market/funds/oks/all — TAF OKS fonları */
     @GetMapping("/oks/all")
     public ResponseEntity<ApiResponse<List<RasyonetFundDto>>> getAllOksFunds() {
         List<RasyonetFundDto> funds = rasyonetFundService.getAllOksFunds();
@@ -68,7 +68,7 @@ public class MarketFundController {
                 "OKS funds retrieved via Rasyonet (" + funds.size() + " funds)"));
     }
 
-    /** GET /api/market/funds/osmanli/bulletin — Osmanlı Portföy fon bülteni */
+    /** GET /api/v1/market/funds/osmanli/bulletin — Osmanlı Portföy fon bülteni */
     @GetMapping("/osmanli/bulletin")
     public ResponseEntity<ApiResponse<List<RasyonetOsmanliFundBulletinDto>>> getOsmanliFundBulletin() {
         List<RasyonetOsmanliFundBulletinDto> funds = rasyonetFundService.getOsmanliFundBulletin();
@@ -77,7 +77,7 @@ public class MarketFundController {
     }
 
     /**
-     * GET /api/market/funds/tefas/{code}?sourceCode=TMF — Fon detayı (Rasyonet card endpoint)
+     * GET /api/v1/market/funds/tefas/{code}?sourceCode=TMF — Fon detayı (Rasyonet card endpoint)
      * sourceCode: TMF (TEFAS/default) | TPF (BES) | TAF (OKS)
      * Fon kodu regex: büyük harf + rakam, 2-6 karakter. "all" bu pattern'e uymaz.
      */
@@ -93,7 +93,7 @@ public class MarketFundController {
     }
 
     /**
-     * GET /api/market/funds/{code}/price-history?range=1Y&type=YAT
+     * GET /api/v1/market/funds/{code}/price-history?range=1Y&type=YAT
      * Fon birim pay fiyatı tarihsel serisi — TEFAS resmi API'den (grafik için, 5 yıla kadar).
      * type: YAT (TEFAS yatırım fonu, default) | EMK (emeklilik). Veri yoksa points boş döner
      * (frontend Rasyonet'e fallback eder).

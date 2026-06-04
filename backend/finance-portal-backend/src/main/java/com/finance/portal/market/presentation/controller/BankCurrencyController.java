@@ -18,16 +18,16 @@ import java.util.Map;
  * Banka döviz kurları REST controller.
  *
  * Endpoints:
- *   GET /api/market/currency/banks                  → Tüm banka kurları
- *   GET /api/market/currency/banks?currency=USD     → Döviz koduna göre filtre
- *   GET /api/market/currency/banks/{bankName}       → Banka adına göre filtre
+ *   GET /api/v1/market/currency/banks                  → Tüm banka kurları
+ *   GET /api/v1/market/currency/banks?currency=USD     → Döviz koduna göre filtre
+ *   GET /api/v1/market/currency/banks/{bankName}       → Banka adına göre filtre
  */
 // Sonar S6863: bu controller hata durumunda da HTTP 200 + body {"success":false} dönüyor.
 // Mevcut frontend bu sözleşmeye dayalı; tüm controller'ları ControllerAdvice tabanlı
 // 4xx/5xx error response'a geçirmek ayrı bir refactor görevi (#API-error-uniformity).
 @SuppressWarnings({"java:S6863", "java:S1135"})
 @RestController
-@RequestMapping("/api/market/currency")
+@RequestMapping("/api/v1/market/currency")
 public class BankCurrencyController {
 
     private static final Logger log = LoggerFactory.getLogger(BankCurrencyController.class);
@@ -42,8 +42,8 @@ public class BankCurrencyController {
      * Tüm banka kurlarını döndürür.
      * currency parametresi verilirse o dövize göre filtreler.
      *
-     * GET /api/market/currency/banks
-     * GET /api/market/currency/banks?currency=USD
+     * GET /api/v1/market/currency/banks
+     * GET /api/v1/market/currency/banks?currency=USD
      */
     @GetMapping("/banks")
     public ResponseEntity<Map<String, Object>> getBankRates(
@@ -73,8 +73,8 @@ public class BankCurrencyController {
     /**
      * Belirli bir bankanın kurlarını döndürür (kısmi isim eşleşmesi).
      *
-     * GET /api/market/currency/banks/{bankName}
-     * Örn: /api/market/currency/banks/Garanti
+     * GET /api/v1/market/currency/banks/{bankName}
+     * Örn: /api/v1/market/currency/banks/Garanti
      */
     @GetMapping("/banks/{bankName}")
     public ResponseEntity<Map<String, Object>> getBankRatesByBankName(

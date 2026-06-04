@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Validated
 @RestController
-@RequestMapping("/api/newsletter")
+@RequestMapping("/api/v1/newsletter")
 public class NewsletterController {
 
     private final NewsletterService newsletterService;

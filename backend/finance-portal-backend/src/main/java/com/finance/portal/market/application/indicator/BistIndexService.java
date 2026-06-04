@@ -23,7 +23,7 @@ import java.util.Optional;
  * <p>Backend'in başka hiçbir yerinde BIST endeks fiyatı yayımlanmaz:
  * {@code MidasStockClient} bu sembolleri (XU*) dışlar, {@code AssetType} enum'unda
  * bunlara karşılık gelen bir değer yoktur, {@code ViopService} ise yalnız etiketleme
- * için kullanır. Bu servis MarketTicker (ve genel {@code /api/market/price-history}
+ * için kullanır. Bu servis MarketTicker (ve genel {@code /api/v1/market/price-history}
  * INDICATOR pseudo-türü) için en minimal eklemeyi yapar: Yahoo Finance'in
  * {@code XU100.IS / XU030.IS / XU050.IS} (Istanbul exchange suffix) sembollerinden
  * günlük kapanış serisi çeker.</p>

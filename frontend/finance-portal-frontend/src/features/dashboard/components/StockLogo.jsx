@@ -26,7 +26,7 @@ export default function StockLogo({ symbol, name, size = 28 }) {
     if (!p) {
       p = getStockMidasDetail(symbol)
         .then(d => {
-          const u = d?.logoUrl ? `/api/proxy/image?url=${encodeURIComponent(d.logoUrl)}` : null;
+          const u = d?.logoUrl ? `/api/v1/proxy/image?url=${encodeURIComponent(d.logoUrl)}` : null;
           cache.set(symbol, u); inflight.delete(symbol); return u;
         })
         .catch(() => { cache.set(symbol, null); inflight.delete(symbol); return null; });

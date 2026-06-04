@@ -38,7 +38,7 @@ describe('sendAssistantChat', () => {
     const result = await sendAssistantChat(messages);
 
     expect(client.post).toHaveBeenCalledTimes(1);
-    expect(client.post).toHaveBeenCalledWith('/api/assistant/chat', { messages });
+    expect(client.post).toHaveBeenCalledWith('/api/v1/assistant/chat', { messages });
     // Dönen değer içteki .data nesnesinin TA KENDİSİ olmalı (soyma doğru).
     expect(result).toBe(inner);
     expect(result).toEqual({ status: 'OK', reply: 'Portföyün gayet iyi.' });
@@ -49,7 +49,7 @@ describe('sendAssistantChat', () => {
 
     const result = await sendAssistantChat([{ role: 'user', content: 'x' }]);
 
-    expect(client.post).toHaveBeenCalledWith('/api/assistant/chat', {
+    expect(client.post).toHaveBeenCalledWith('/api/v1/assistant/chat', {
       messages: [{ role: 'user', content: 'x' }],
     });
     expect(result).toBeNull();
@@ -69,7 +69,7 @@ describe('sendAssistantChat', () => {
 
     const result = await sendAssistantChat([]);
 
-    expect(client.post).toHaveBeenCalledWith('/api/assistant/chat', { messages: [] });
+    expect(client.post).toHaveBeenCalledWith('/api/v1/assistant/chat', { messages: [] });
     expect(result).toBe(inner);
   });
 
@@ -78,7 +78,7 @@ describe('sendAssistantChat', () => {
 
     await sendAssistantChat(undefined);
 
-    expect(client.post).toHaveBeenCalledWith('/api/assistant/chat', { messages: undefined });
+    expect(client.post).toHaveBeenCalledWith('/api/v1/assistant/chat', { messages: undefined });
   });
 
   it('client.post reddedilirse hata yukarı fırlatılır (yutulmaz)', async () => {
@@ -87,7 +87,7 @@ describe('sendAssistantChat', () => {
     await expect(
       sendAssistantChat([{ role: 'user', content: 'x' }]),
     ).rejects.toThrow('ağ hatası');
-    expect(client.post).toHaveBeenCalledWith('/api/assistant/chat', {
+    expect(client.post).toHaveBeenCalledWith('/api/v1/assistant/chat', {
       messages: [{ role: 'user', content: 'x' }],
     });
   });

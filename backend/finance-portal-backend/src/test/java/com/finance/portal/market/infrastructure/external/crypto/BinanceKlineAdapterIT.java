@@ -52,7 +52,7 @@ class BinanceKlineAdapterIT {
                 ]
                 """;
 
-        wireMock.stubFor(WireMock.get(WireMock.urlPathEqualTo("/api/v3/klines"))
+        wireMock.stubFor(WireMock.get(WireMock.urlPathEqualTo("/api/v1/v3/klines"))
                 .willReturn(WireMock.okJson(stubbedKlinesJson)));
 
         BinanceKlinePort port = new BinanceKlineAdapter(

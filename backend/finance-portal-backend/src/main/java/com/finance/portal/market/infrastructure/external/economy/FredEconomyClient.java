@@ -29,7 +29,7 @@ import java.util.List;
  * &observation_start=yyyy-MM-dd&observation_end=yyyy-MM-dd}
  *
  * <p>API anahtarı yoksa (yapılandırılmamışsa) boş liste döner — panel/grafik tek bir
- * küresel seri yüzünden çökmez. Anahtar ücretsizdir: https://fred.stlouisfed.org/docs/api/api_key.html
+ * küresel seri yüzünden çökmez. Anahtar ücretsizdir: https://fred.stlouisfed.org/docs/api/v1/api_key.html
  */
 @Component
 public class FredEconomyClient {

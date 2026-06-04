@@ -21,10 +21,10 @@ import java.util.UUID;
 
 /**
  * Admin: kullanıcı detayında destek taleplerini görüntüleme ve durum/not güncelleme.
- * Güvenlik: /api/admin/** ROLE_ADMIN gerektirir (SecurityConfig). Durum değişince kullanıcıya bildirim gider.
+ * Güvenlik: /api/v1/admin/** ROLE_ADMIN gerektirir (SecurityConfig). Durum değişince kullanıcıya bildirim gider.
  */
 @RestController
-@RequestMapping(value = "/api/admin", produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(value = "/api/v1/admin", produces = MediaType.APPLICATION_JSON_VALUE)
 public class AdminSupportController {
 
     private final SupportTicketService service;

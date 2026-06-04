@@ -13,11 +13,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Eurobond ISIN listesi yönetimi (yalnız ADMIN — /api/admin/** ROLE_ADMIN korumalı).
+ * Eurobond ISIN listesi yönetimi (yalnız ADMIN — /api/v1/admin/** ROLE_ADMIN korumalı).
  * Aylık HMB xlsx linkini buradan verince ISIN listesi indirilir/parse edilir ve cache boşaltılır.
  */
 @RestController
-@RequestMapping("/api/admin/eurobonds")
+@RequestMapping("/api/v1/admin/eurobonds")
 public class EurobondAdminController {
 
     private final EurobondService eurobondService;

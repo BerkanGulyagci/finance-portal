@@ -8,7 +8,7 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 
 /**
- * GET /api/precious-metals/{metal}/spot response.
+ * GET /api/v1/precious-metals/{metal}/spot response.
  * Platin ve Paladyum için.
  */
 @Data

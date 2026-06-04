@@ -23,7 +23,7 @@ import java.util.Map;
  * Kullanıcı arayüz tercihleri — cihazlar arası senkron. Token yoksa (anonim) boş/no-op.
  */
 @RestController
-@RequestMapping(value = "/api/me/preferences", produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(value = "/api/v1/me/preferences", produces = MediaType.APPLICATION_JSON_VALUE)
 public class UserPreferenceController {
 
     private static final Logger log = LoggerFactory.getLogger(UserPreferenceController.class);

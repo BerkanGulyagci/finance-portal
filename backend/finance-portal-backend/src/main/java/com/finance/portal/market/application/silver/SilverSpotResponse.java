@@ -7,7 +7,7 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 
 /**
- * GET /api/silver/spot response.
+ * GET /api/v1/silver/spot response.
  * Kaynak: Borsa İstanbul Kıymetli Madenler (pazart=SG).
  */
 @Data

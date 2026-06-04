@@ -72,7 +72,7 @@ class RequestLoggingFilterMoreTest {
     void doFilter_validSpan_noUser_capturesAndPropagatesTraceIds() throws Exception {
         RequestLogPublisherPort publisher = mock(RequestLogPublisherPort.class);
         RequestLoggingFilter filter = new RequestLoggingFilter(publisher);
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/traced");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/traced");
         MockHttpServletResponse response = new MockHttpServletResponse();
         response.setStatus(200);
 
@@ -103,7 +103,7 @@ class RequestLoggingFilterMoreTest {
 
         RequestLogPublisherPort publisher = mock(RequestLogPublisherPort.class);
         RequestLoggingFilter filter = new RequestLoggingFilter(publisher);
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/me/traced");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/me/traced");
         MockHttpServletResponse response = new MockHttpServletResponse();
         response.setStatus(200);
 
@@ -127,7 +127,7 @@ class RequestLoggingFilterMoreTest {
     void doFilter_validSpan_chainThrows_recordsOnSpanAndRethrows() throws Exception {
         RequestLogPublisherPort publisher = mock(RequestLogPublisherPort.class);
         RequestLoggingFilter filter = new RequestLoggingFilter(publisher);
-        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/traced/boom");
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/traced/boom");
         MockHttpServletResponse response = new MockHttpServletResponse();
         response.setStatus(200); // exception forces 500/ERROR
 
@@ -162,7 +162,7 @@ class RequestLoggingFilterMoreTest {
 
         RequestLogPublisherPort publisher = mock(RequestLogPublisherPort.class);
         RequestLoggingFilter filter = new RequestLoggingFilter(publisher);
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/mdc");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/mdc");
         MockHttpServletResponse response = new MockHttpServletResponse();
         response.setStatus(200);
 
@@ -193,7 +193,7 @@ class RequestLoggingFilterMoreTest {
 
         RequestLogPublisherPort publisher = mock(RequestLogPublisherPort.class);
         RequestLoggingFilter filter = new RequestLoggingFilter(publisher);
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/mdc-blank");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/mdc-blank");
         MockHttpServletResponse response = new MockHttpServletResponse();
         response.setStatus(200);
 
@@ -222,7 +222,7 @@ class RequestLoggingFilterMoreTest {
 
         RequestLogPublisherPort publisher = mock(RequestLogPublisherPort.class);
         RequestLoggingFilter filter = new RequestLoggingFilter(publisher);
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/boom-principal");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/boom-principal");
         MockHttpServletResponse response = new MockHttpServletResponse();
         response.setStatus(200);
 
@@ -241,7 +241,7 @@ class RequestLoggingFilterMoreTest {
     @Test
     void doFilter_5xx_nullPublisher_errorLevelNoException() throws Exception {
         RequestLoggingFilter filter = new RequestLoggingFilter(null);
-        MockHttpServletRequest request = new MockHttpServletRequest("DELETE", "/api/server-error");
+        MockHttpServletRequest request = new MockHttpServletRequest("DELETE", "/api/v1/server-error");
         MockHttpServletResponse response = new MockHttpServletResponse();
         response.setStatus(500);
         MockFilterChain chain = new MockFilterChain();

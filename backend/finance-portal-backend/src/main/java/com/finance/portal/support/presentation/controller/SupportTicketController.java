@@ -28,7 +28,7 @@ import java.util.UUID;
  * Düzenleme/silme yalnızca talep "Açık" durumdayken mümkündür (servis denetler).
  */
 @RestController
-@RequestMapping(value = "/api/support/tickets", produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(value = "/api/v1/support/tickets", produces = MediaType.APPLICATION_JSON_VALUE)
 public class SupportTicketController {
 
     private final SupportTicketService service;

@@ -37,7 +37,7 @@ class CentralBusinessLogServiceTest {
 
     @Test
     void publish_populatesStandardFieldsAndSanitizesMetadata() {
-        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/portfolios");
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/portfolios");
         request.setAttribute(RequestLogSupport.ATTR_REQUEST_ID, "req-456");
         request.setAttribute(RequestLogSupport.ATTR_TRACE_ID, "trace-1");
         request.setAttribute(RequestLogSupport.ATTR_SPAN_ID, "span-2");
@@ -76,7 +76,7 @@ class CentralBusinessLogServiceTest {
         assertEquals("span-2", event.getSpanId());
         assertEquals("192.168.1.10", event.getClientIp());
         assertEquals("POST", event.getMethod());
-        assertEquals("/api/portfolios", event.getPath());
+        assertEquals("/api/v1/portfolios", event.getPath());
         assertEquals("user-1", event.getUserId());
         assertEquals("USER", event.getEntityType());
         assertEquals("user-1", event.getEntityId());

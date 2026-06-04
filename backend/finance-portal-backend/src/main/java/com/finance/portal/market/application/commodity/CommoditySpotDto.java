@@ -5,7 +5,7 @@ import lombok.Data;
 import java.math.BigDecimal;
 
 /**
- * /api/commodities/spot endpoint'i için spot fiyat DTO.
+ * /api/v1/commodities/spot endpoint'i için spot fiyat DTO.
  *
  * Ham (raw) değerler Yahoo'dan gelen orijinal değerlerdir.
  * Display değerler USX → USD dönüşümü uygulanmış son değerlerdir.

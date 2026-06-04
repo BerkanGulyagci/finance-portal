@@ -59,7 +59,7 @@ class CryptoControllerStandaloneTest {
         // controller defaults: page=0, size=100, currency=try
         when(cryptoMarketService.getCryptos(0, 100, "try")).thenReturn(List.of(sampleItem()));
 
-        mockMvc.perform(get("/api/market/crypto").accept("application/json"))
+        mockMvc.perform(get("/api/v1/market/crypto").accept("application/json"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Crypto market list retrieved successfully"))
@@ -76,7 +76,7 @@ class CryptoControllerStandaloneTest {
     void getAllCoins_passesCurrencyParam() throws Exception {
         when(cryptoMarketService.getAllCoins("usd")).thenReturn(List.of(sampleItem()));
 
-        mockMvc.perform(get("/api/market/crypto/all")
+        mockMvc.perform(get("/api/v1/market/crypto/all")
                         .param("currency", "usd")
                         .accept("application/json"))
                 .andExpect(status().isOk())
@@ -93,7 +93,7 @@ class CryptoControllerStandaloneTest {
                         1_700_000_000L, BigDecimal.ONE, BigDecimal.TEN,
                         BigDecimal.ONE, new BigDecimal("5"), BigDecimal.ZERO, 1_700_086_399_999L)));
 
-        mockMvc.perform(get("/api/market/crypto/btc/candles")
+        mockMvc.perform(get("/api/v1/market/crypto/btc/candles")
                         .param("range", "5y")
                         .param("currency", "try")
                         .accept("application/json"))
@@ -108,7 +108,7 @@ class CryptoControllerStandaloneTest {
     void getChartCandles_emptyList_returns200_withFallbackMessage() throws Exception {
         when(cryptoBinanceChartService.getChartCandles("btc", "1y", "try")).thenReturn(List.of());
 
-        mockMvc.perform(get("/api/market/crypto/btc/candles")
+        mockMvc.perform(get("/api/v1/market/crypto/btc/candles")
                         .param("range", "1y")
                         .accept("application/json"))
                 .andExpect(status().isOk())
