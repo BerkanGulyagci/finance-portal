@@ -4,6 +4,7 @@ import { getPortfolioPerformance } from '../../../api/portfolioApi';
 import { formatChartValue, MASK_MONEY } from '../utils/portfolioFormatUtils';
 import { computeKlinePricePrecision } from '../../../utils/numberFormat';
 import { useTranslation } from '../../../context/LanguageContext';
+import { useTheme } from '../../../context/ThemeContext';
 
 const INFLATION_LINE_COLOR = '#9333ea';
 
@@ -143,6 +144,7 @@ function PortfolioPerformanceKlineChart({
   showInflation = false,
 }) {
   const { t } = useTranslation();
+  const { isDark } = useTheme();
   const chartId = useRef(`kline_portfolio_perf_${Date.now()}`);
   const chartRef = useRef(null);
   const containerRef = useRef(null);
@@ -362,16 +364,18 @@ function PortfolioPerformanceKlineChart({
     <div ref={containerRef} className="relative w-full" style={{ height: 300 }}>
       {hoverInfo && (
         <div
-          className="absolute z-30 pointer-events-none rounded-xl border border-gray-200 bg-white px-3 py-2 shadow-lg"
+          className={`absolute z-30 pointer-events-none rounded-xl border px-3 py-2 shadow-lg backdrop-blur-md ${
+            isDark ? 'border-white/10 bg-slate-900/90' : 'border-gray-200 bg-white/95'
+          }`}
           style={{ left: hoverInfo.left, top: hoverInfo.top, maxWidth: 220 }}
         >
-          <p className="text-[11px] text-gray-500 leading-snug">{hoverInfo.date}</p>
-          <p className="mt-1 text-xs text-gray-600">{hoverInfo.valueLabel}</p>
-          <p className="text-sm font-semibold text-gray-900">{hoverInfo.valueText}</p>
+          <p className={`text-[11px] leading-snug ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>{hoverInfo.date}</p>
+          <p className={`mt-1 text-xs ${isDark ? 'text-slate-300' : 'text-gray-600'}`}>{hoverInfo.valueLabel}</p>
+          <p className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{hoverInfo.valueText}</p>
           {hoverInfo.marketValueText && (
-            <p className="mt-1 text-[11px] text-gray-500">
+            <p className={`mt-1 text-[11px] ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>
               {t('Portföy:')}{' '}
-              <span className="font-medium text-gray-700">{hoverInfo.marketValueText}</span>
+              <span className={`font-medium ${isDark ? 'text-slate-200' : 'text-gray-700'}`}>{hoverInfo.marketValueText}</span>
             </p>
           )}
         </div>

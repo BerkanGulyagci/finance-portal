@@ -7,6 +7,7 @@ import { FUND_CHART_RANGES, buildFundChartSeries } from '../utils/fundChartSerie
 import { buildTrendItem } from '../../../../utils/trendUtils';
 import TrendBadge from '../../../../components/common/TrendBadge';
 import { useTranslation } from '../../../../context/LanguageContext';
+import { useTheme } from '../../../../context/ThemeContext';
 import IndicatorMenu from '../../../../components/common/IndicatorMenu';
 import { useYAxisWheelZoom } from '../../../../hooks/useYAxisWheelZoom';
 
@@ -103,6 +104,7 @@ const FUND_MA_DEFS = [
 
 export default function TefasPriceChart({ code, fonTipi, priceHistory, monthlyReturns }) {
   const { t } = useTranslation();
+  const { isDark } = useTheme();
   const [range, setRange]           = useState('1Y');
   const [activeMAs, setActiveMAs]   = useState([]);
   const [showTrend, setShowTrend]   = useState(false);
@@ -450,13 +452,15 @@ export default function TefasPriceChart({ code, fonTipi, priceHistory, monthlyRe
         onMouseLeave={() => setHoverInfo(null)}>
         {/* Custom tooltip */}
         {hoverInfo && (
-          <div className="absolute z-30 pointer-events-none bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg whitespace-nowrap"
+          <div className={`absolute z-30 pointer-events-none text-xs rounded-lg px-3 py-2 shadow-lg ring-1 backdrop-blur-md whitespace-nowrap ${
+            isDark ? 'bg-slate-900/90 text-white ring-white/10' : 'bg-white/95 text-gray-900 ring-black/10'
+          }`}
             style={{
               left: Math.min(hoverInfo.x + 12, 999),
               top: Math.max(hoverInfo.y - 40, 4),
               transform: 'translateX(0)',
             }}>
-            <div className="text-gray-400 mb-0.5">{hoverInfo.date}</div>
+            <div className={`mb-0.5 ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>{hoverInfo.date}</div>
             <div className="font-bold text-sm">{hoverInfo.price}</div>
           </div>
         )}

@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { ChevronDown, Trash2, X, SlidersHorizontal } from 'lucide-react';
 import { init as klineInit, dispose as klineDispose, registerOverlay } from 'klinecharts';
 import { useTranslation } from '../../../../context/LanguageContext';
+import { useTheme } from '../../../../context/ThemeContext';
 import { useChartDrawings } from '../../../../hooks/useChartDrawings';
 import { useYAxisWheelZoom } from '../../../../hooks/useYAxisWheelZoom';
 
@@ -156,6 +157,7 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
 // ── FX grafiği — kompakt MA + indikatör + çizim araçlı ────────────────────────
 export default function FxChart({ symbol, chartPoints, lineColor, mainLabel, range, onRangeChange, loadingChart }) {
   const { t } = useTranslation();
+  const { isDark } = useTheme();
   const chartId = useRef(`kline_fx_${Date.now()}`);
   const chartRef = useRef(null);
   const indicatorPaneIds = useRef({});
@@ -238,12 +240,18 @@ export default function FxChart({ symbol, chartPoints, lineColor, mainLabel, ran
         tooltip: {
           showRule: 'follow_cross', showType: 'rect',
           text: { size: 12, marginTop: 4, marginBottom: 4, marginLeft: 8, marginRight: 8 },
-          rect: { offsetLeft: 8, offsetTop: 8, offsetRight: 8, paddingLeft: 10, paddingRight: 10, paddingTop: 8, paddingBottom: 8, borderRadius: 8, borderSize: 1, borderColor: '#e5e7eb', color: 'rgba(255,255,255,0.94)' },
+          // Tema uyumlu: açık→beyaz kart/gri yazı, koyu→koyu kart/açık yazı.
+          rect: {
+            offsetLeft: 8, offsetTop: 8, offsetRight: 8, paddingLeft: 10, paddingRight: 10, paddingTop: 8, paddingBottom: 8,
+            borderRadius: 8, borderSize: 1,
+            borderColor: isDark ? 'rgba(255,255,255,0.12)' : '#e5e7eb',
+            color: isDark ? 'rgba(15,23,42,0.92)' : 'rgba(255,255,255,0.94)',
+          },
           custom: (data) => {
             const d = data?.current ?? {};
             const date = d.timestamp ? new Date(d.timestamp).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
             return [
-              { title: '', value: { text: date, color: '#6b7280' } },
+              { title: '', value: { text: date, color: isDark ? '#94a3b8' : '#6b7280' } },
               { title: mainLabel ? { text: `${mainLabel}:`, color: lineColor } : '', value: { text: fmt(d.close, 4), color: lineColor } },
             ];
           },
@@ -280,7 +288,7 @@ export default function FxChart({ symbol, chartPoints, lineColor, mainLabel, ran
 
     return () => { klineDispose(id); chartRef.current = null; indicatorPaneIds.current = {}; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chartPoints, lineColor, mainLabel]);
+  }, [chartPoints, lineColor, mainLabel, isDark]);
 
   const indicatorDropdown = (
     <div className="relative">

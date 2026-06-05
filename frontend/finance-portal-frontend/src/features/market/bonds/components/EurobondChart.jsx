@@ -3,6 +3,7 @@ import { Trash2, X, ChevronDown } from 'lucide-react';
 import { init as klineInit, dispose as klineDispose, registerOverlay } from 'klinecharts';
 import { getGlobalBondChart } from '../../../../api/marketApi';
 import { useTranslation } from '../../../../context/LanguageContext';
+import { useTheme } from '../../../../context/ThemeContext';
 import { useYAxisWheelZoom } from '../../../../hooks/useYAxisWheelZoom';
 
 // Custom overlay'leri bir kez kaydet (hisse sayfasıyla aynı; yeniden kayıt zararsız).
@@ -115,6 +116,7 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
 /** Eurobond fiyat grafiği — klinecharts mum/çizgi, hisse detay sayfasıyla aynı tasarım (BI günlük OHLC). */
 export default function EurobondChart({ isin }) {
   const { t } = useTranslation();
+  const { isDark } = useTheme();
   const chartId = useRef(`kline_eb_${Date.now()}`);
   const chartRef = useRef(null);
   const paneIds = useRef({});
@@ -172,27 +174,30 @@ export default function EurobondChart({ isin }) {
           rect: {
             offsetLeft: 8, offsetTop: 8, offsetRight: 8,
             paddingLeft: 10, paddingRight: 10, paddingTop: 8, paddingBottom: 8,
-            borderRadius: 8, borderSize: 1, borderColor: '#e5e7eb',
-            color: 'rgba(255,255,255,0.94)',
+            borderRadius: 8, borderSize: 1,
+            borderColor: isDark ? 'rgba(255,255,255,0.12)' : '#e5e7eb',
+            color: isDark ? 'rgba(15,23,42,0.92)' : 'rgba(255,255,255,0.94)',
           },
           custom: (data) => {
             const d = data?.current ?? {};
             const dateStr = d.timestamp
               ? new Date(d.timestamp).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' })
               : '';
+            const labelColor = isDark ? '#94a3b8' : '#6b7280';
+            const neutralColor = isDark ? '#e2e8f0' : '#111';
             const fmt = (v) => v == null ? '—' : Number(v).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
             if (modeRef.current === 'line') {
               return [
-                { title: '', value: { text: dateStr, color: '#6b7280' } },
+                { title: '', value: { text: dateStr, color: labelColor } },
                 { title: { text: 'Fiyat:', color: '#1677ff' }, value: { text: fmt(d.close), color: '#1677ff' } },
               ];
             }
             return [
-              { title: '', value: { text: dateStr, color: '#6b7280' } },
-              { title: { text: 'Açılış:', color: '#6b7280' }, value: { text: fmt(d.open), color: '#111' } },
-              { title: { text: 'Yüksek:', color: '#6b7280' }, value: { text: fmt(d.high), color: '#16a34a' } },
-              { title: { text: 'Düşük:', color: '#6b7280' }, value: { text: fmt(d.low), color: '#dc2626' } },
-              { title: { text: 'Kapanış:', color: '#6b7280' }, value: { text: fmt(d.close), color: '#111' } },
+              { title: '', value: { text: dateStr, color: labelColor } },
+              { title: { text: 'Açılış:', color: labelColor }, value: { text: fmt(d.open), color: neutralColor } },
+              { title: { text: 'Yüksek:', color: labelColor }, value: { text: fmt(d.high), color: '#16a34a' } },
+              { title: { text: 'Düşük:', color: labelColor }, value: { text: fmt(d.low), color: '#dc2626' } },
+              { title: { text: 'Kapanış:', color: labelColor }, value: { text: fmt(d.close), color: neutralColor } },
             ];
           },
         },
@@ -222,7 +227,7 @@ export default function EurobondChart({ isin }) {
       .catch(() => { setError(true); setLoading(false); });
     return () => { klineDispose(id); chartRef.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isin, rangeIdx]);
+  }, [isin, rangeIdx, isDark]);
 
   // mum/çizgi değişimi (yeniden veri çekmeden stil değiştir)
   useEffect(() => { chartRef.current?.setStyles({ candle: { type: mode === 'line' ? 'area' : 'candle_solid' } }); }, [mode]);

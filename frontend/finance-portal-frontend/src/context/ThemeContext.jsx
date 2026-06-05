@@ -68,8 +68,12 @@ export function ThemeProvider({ children }) {
   );
 }
 
+// Güvenli fallback: ThemeProvider dışında çağrılırsa (ör. izole testler, sürükle-bırak
+// portal'ları) throw etmek yerine açık tema varsayar. Bu sayede grafik tooltip bileşenleri
+// provider'sız ortamda da render olur; setTheme/toggleTheme no-op olur.
+const THEME_FALLBACK = { theme: 'light', isDark: false, setTheme: () => {}, toggleTheme: () => {} };
+
 export function useTheme() {
   const ctx = useContext(ThemeContext);
-  if (!ctx) throw new Error('useTheme must be used within ThemeProvider');
-  return ctx;
+  return ctx ?? THEME_FALLBACK;
 }

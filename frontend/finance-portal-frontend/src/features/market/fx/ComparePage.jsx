@@ -4,6 +4,7 @@ import { X, Plus, TrendingUp, TrendingDown, BarChart2 } from 'lucide-react';
 import { getFxHistory } from '../../../api/marketApi';
 import { FX_META, FlagImg } from './utils/fxMeta';
 import { useTranslation } from '../../../context/LanguageContext';
+import { useTheme } from '../../../context/ThemeContext';
 
 // ── Sabit renkler ─────────────────────────────────────────────────────────────
 const COLORS = ['#093eaa', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316'];
@@ -32,6 +33,7 @@ const RANGE_LABELS = { '1W': '1H', '1M': '1A', '3M': '3A', '6M': '6A', '1Y': '1Y
 function EChartsCompareChart({ chartData, instruments, formatDate }) {
   const chartRef = useRef(null);
   const instanceRef = useRef(null);
+  const { isDark } = useTheme();
 
   useEffect(() => {
     if (!chartRef.current || !chartData.length) return;
@@ -85,20 +87,24 @@ function EChartsCompareChart({ chartData, instruments, formatDate }) {
         tooltip: {
           trigger: 'axis',
           axisPointer: { type: 'cross', lineStyle: { color: '#9ca3af', type: 'dashed' } },
-          backgroundColor: '#ffffff',
-          borderColor: '#e5e7eb',
+          backgroundColor: isDark ? 'rgba(15,23,42,0.92)' : 'rgba(255,255,255,0.96)',
+          borderColor: isDark ? 'rgba(255,255,255,0.12)' : '#e5e7eb',
           borderRadius: 12,
           padding: [10, 14],
+          textStyle: { color: isDark ? '#e2e8f0' : '#1a1c1e' },
           formatter: params => {
             if (!params?.length) return '';
-            let html = `<div style="font-size:11px;color:#6b7280;font-weight:600;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #f0f0f0">${params[0].axisValue}</div>`;
+            const labelColor = isDark ? '#94a3b8' : '#6b7280';
+            const mainColor = isDark ? '#e2e8f0' : '#374151';
+            const borderCol = isDark ? 'rgba(255,255,255,0.12)' : '#f0f0f0';
+            let html = `<div style="font-size:11px;color:${labelColor};font-weight:600;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid ${borderCol}">${params[0].axisValue}</div>`;
             params.forEach(p => {
               if (p.value == null) return;
               const isPos = p.value >= 0;
               const pctColor = isPos ? '#10b981' : '#ef4444';
               html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
                 <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${p.color};flex-shrink:0"></span>
-                <span style="font-size:11px;color:#374151;font-weight:600;min-width:70px">${p.seriesName}:</span>
+                <span style="font-size:11px;color:${mainColor};font-weight:600;min-width:70px">${p.seriesName}:</span>
                 <span style="font-weight:700;font-size:11px;color:${pctColor};margin-left:auto">${isPos ? '+' : ''}${p.value.toFixed(2)}%</span>
               </div>`;
             });
@@ -144,7 +150,7 @@ function EChartsCompareChart({ chartData, instruments, formatDate }) {
         instanceRef.current = null;
       }
     };
-  }, [chartData, instruments, formatDate]);
+  }, [chartData, instruments, formatDate, isDark]);
 
   return <div ref={chartRef} style={{ width: '100%', height: '320px' }} />;
 }
@@ -229,6 +235,19 @@ export default function ComparePage() {
     setLoading(false);
     setLoaded(true);
   }, [instruments, range]);
+
+  // Bir kez karşılaştırma yapıldıysa, aralık (range) değişince otomatik yeniden yükle —
+  // kullanıcının tekrar "Karşılaştır"a basmasına gerek kalmaz. (İlk yükleme yine butonla.)
+  const comparedOnceRef = useRef(false);
+  useEffect(() => {
+    if (loaded) comparedOnceRef.current = true;
+  }, [loaded]);
+  useEffect(() => {
+    if (comparedOnceRef.current && instruments.length > 0) {
+      loadData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range]);
 
   // Rebased chart data — tüm serileri ortak tarihlerde birleştir
   function buildChartData() {
@@ -413,7 +432,7 @@ export default function ComparePage() {
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex gap-1">
             {RANGES.map(r => (
-              <button key={r} onClick={() => { setRange(r); setLoaded(false); }}
+              <button key={r} onClick={() => setRange(r)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   range === r ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}>

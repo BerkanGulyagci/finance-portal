@@ -3,12 +3,14 @@ import { init as klineInit, dispose as klineDispose } from 'klinecharts';
 import { computeKlinePricePrecision, computeKlineVolumePrecision } from '../../../../utils/numberFormat';
 import { COMPARE_COLORS, MA_OPTIONS } from '../utils/cryptoChartConfig';
 import { useTranslation } from '../../../../context/LanguageContext';
+import { useTheme } from '../../../../context/ThemeContext';
 import { useChartDrawings } from '../../../../hooks/useChartDrawings';
 import { useYAxisWheelZoom } from '../../../../hooks/useYAxisWheelZoom';
 import DrawingToolbar from '../../stock/components/DrawingToolbar';
 
 export default function CryptoLineChart({ chartData, currency, compareCoins, compareData, coinId, mainCoinSymbol, activeMAs }) {
   const { t } = useTranslation();
+  const { isDark } = useTheme();
   const chartId = useRef(`kline_crypto_${Date.now()}`);
   const chartRef = useRef(null);
   const isComparing = compareCoins && compareCoins.length > 0;
@@ -285,14 +287,16 @@ export default function CryptoLineChart({ chartData, currency, compareCoins, com
 
       {/* Hover tooltip — sadece karşılaştırma modunda */}
       {isComparing && hoverData && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gray-900/95 text-white rounded-xl px-4 py-3 shadow-xl text-xs min-w-[180px] pointer-events-none z-10">
-          <p className="text-gray-400 mb-2 font-medium">{hoverData.date}</p>
+        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-xl px-4 py-3 shadow-xl ring-1 text-xs min-w-[180px] pointer-events-none z-10 backdrop-blur-md ${
+          isDark ? 'bg-slate-900/90 ring-white/10' : 'bg-white/95 ring-black/10'
+        }`}>
+          <p className={`mb-2 font-medium ${isDark ? 'text-slate-300' : 'text-gray-500'}`}>{hoverData.date}</p>
           {hoverData.entries.map(entry => (
             <div key={entry.symbol} className="flex justify-between gap-4 mb-1">
               <span style={{ color: entry.color }} className="font-semibold">{entry.symbol}</span>
               <span className={`font-bold ${
-                entry.value == null ? 'text-gray-400' :
-                entry.value >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                entry.value == null ? (isDark ? 'text-slate-400' : 'text-gray-400') :
+                entry.value >= 0 ? 'text-emerald-500' : 'text-rose-500'
               }`}>
                 {entry.value == null ? '-' : `${entry.value >= 0 ? '+' : ''}${entry.value.toFixed(2)}%`}
               </span>

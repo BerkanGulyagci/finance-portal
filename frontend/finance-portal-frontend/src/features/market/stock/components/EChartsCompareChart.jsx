@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useTheme } from '../../../../context/ThemeContext';
 
 // Fiyatı tooltip için biçimle: ≥1 TL → 2 ondalık; <1 TL (mikro-cap coin, ör. 0,0000000012 TL) →
 // ~4 anlamlı basamak görünene kadar ondalık aç (sabit 2 ondalıkta "₺0,00" görünüyordu).
@@ -14,6 +15,7 @@ function fmtTooltipPrice(price) {
 export default function EChartsCompareChart({ chartData, seriesDefs }) {
   const chartRef = useRef(null);
   const instanceRef = useRef(null);
+  const { isDark } = useTheme();
 
   useEffect(() => {
     if (!chartRef.current || !chartData.length) return;
@@ -85,15 +87,18 @@ export default function EChartsCompareChart({ chartData, seriesDefs }) {
             crossStyle: { color: '#9ca3af', width: 1 },
             lineStyle: { color: '#9ca3af', width: 1, type: 'dashed' },
           },
-          backgroundColor: '#ffffff',
-          borderColor: '#e5e7eb',
+          backgroundColor: isDark ? 'rgba(15,23,42,0.92)' : 'rgba(255,255,255,0.96)',
+          borderColor: isDark ? 'rgba(255,255,255,0.12)' : '#e5e7eb',
           borderWidth: 1,
           borderRadius: 12,
           padding: [10, 14],
-          textStyle: { color: '#374151', fontSize: 12 },
+          textStyle: { color: isDark ? '#e2e8f0' : '#374151', fontSize: 12 },
           formatter: params => {
             if (!params?.length) return '';
-            let html = `<div style="font-size:11px;color:#6b7280;font-weight:600;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #f0f0f0">${params[0].axisValue}</div>`;
+            const labelColor = isDark ? '#94a3b8' : '#6b7280';
+            const mainColor = isDark ? '#e2e8f0' : '#374151';
+            const borderCol = isDark ? 'rgba(255,255,255,0.12)' : '#f0f0f0';
+            let html = `<div style="font-size:11px;color:${labelColor};font-weight:600;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid ${borderCol}">${params[0].axisValue}</div>`;
             params.forEach(p => {
               if (p.value == null) return;
               const price = p.data?.price;
@@ -101,8 +106,8 @@ export default function EChartsCompareChart({ chartData, seriesDefs }) {
               const pctColor = isPos ? '#10b981' : '#ef4444';
               html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
                 <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${p.color};flex-shrink:0"></span>
-                <span style="font-weight:700;color:#374151;min-width:60px">${p.seriesName}:</span>
-                ${price != null && !noPriceNames.has(p.seriesName) ? `<span style="color:#6b7280;font-family:monospace">₺${fmtTooltipPrice(price)}</span>` : ''}
+                <span style="font-weight:700;color:${mainColor};min-width:60px">${p.seriesName}:</span>
+                ${price != null && !noPriceNames.has(p.seriesName) ? `<span style="color:${labelColor};font-family:monospace">₺${fmtTooltipPrice(price)}</span>` : ''}
                 <span style="font-weight:700;color:${pctColor};margin-left:auto">${isPos ? '+' : ''}${p.value.toFixed(2)}%</span>
               </div>`;
             });
@@ -157,7 +162,7 @@ export default function EChartsCompareChart({ chartData, seriesDefs }) {
         instanceRef.current = null;
       }
     };
-  }, [chartData, seriesDefs]);
+  }, [chartData, seriesDefs, isDark]);
 
   return <div ref={chartRef} style={{ width: '100%', height: '420px' }} />;
 }

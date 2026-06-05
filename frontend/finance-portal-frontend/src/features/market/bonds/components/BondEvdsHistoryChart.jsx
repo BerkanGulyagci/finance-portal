@@ -18,6 +18,7 @@ import {
   fmtNum, fmtPct,
 } from '../utils/bondChartUtils';
 import { useTranslation } from '../../../../context/LanguageContext';
+import { useTheme } from '../../../../context/ThemeContext';
 
 const PERIODS = BOND_CHART_PERIODS;
 
@@ -47,7 +48,7 @@ function ensureIndicatorRegistered(code) {
 }
 
 // KLineCharts stil ayarları — OHLC tooltip'ini tamamen gizler
-function buildChartStyles(lineColor, mainLabel) {
+function buildChartStyles(lineColor, mainLabel, isDark) {
   return {
     candle: {
       type: 'area',
@@ -70,8 +71,9 @@ function buildChartStyles(lineColor, mainLabel) {
         rect: {
           offsetLeft: 8, offsetTop: 8, offsetRight: 8,
           paddingLeft: 10, paddingRight: 10, paddingTop: 8, paddingBottom: 8,
-          borderRadius: 8, borderSize: 1, borderColor: '#e5e7eb',
-          color: 'rgba(255,255,255,0.94)',
+          borderRadius: 8, borderSize: 1,
+          borderColor: isDark ? 'rgba(255,255,255,0.12)' : '#e5e7eb',
+          color: isDark ? 'rgba(15,23,42,0.92)' : 'rgba(255,255,255,0.94)',
         },
         custom: (data) => {
           const d = data?.current ?? {};
@@ -79,7 +81,7 @@ function buildChartStyles(lineColor, mainLabel) {
             ? new Date(d.timestamp).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' })
             : '';
           return [
-            { title: '', value: { text: date, color: '#6b7280' } },
+            { title: '', value: { text: date, color: isDark ? '#94a3b8' : '#6b7280' } },
             {
               title: mainLabel ? { text: `${mainLabel}:`, color: lineColor } : '',
               value: { text: fmtNum(d.close, 2), color: lineColor },
@@ -119,6 +121,7 @@ function BondKlineChart({
   showMA200,
 }) {
   const { t } = useTranslation();
+  const { isDark } = useTheme();
   const chartId  = useRef(`kline_bond_${Date.now()}`);
   const chartRef = useRef(null);
   const isComparing = !!compareCode && comparePoints.length > 0;
@@ -154,7 +157,7 @@ function BondKlineChart({
 
       if (klineData.length === 0) { klineDispose(id); return; }
 
-      chart.setStyles(buildChartStyles(MAIN_COLOR, mainCode));
+      chart.setStyles(buildChartStyles(MAIN_COLOR, mainCode, isDark));
       chart.applyNewData(klineData);
 
       // Karşılaştırma serisi — validMerged ile index eşleşmesi garantili
@@ -186,7 +189,7 @@ function BondKlineChart({
       const isUp  = klineData[klineData.length - 1].close >= klineData[0].close;
       const color = isUp ? '#10b981' : '#ef4444';
 
-      chart.setStyles(buildChartStyles(color, mainCode));
+      chart.setStyles(buildChartStyles(color, mainCode, isDark));
       chart.applyNewData(klineData);
 
       // MA'ları başlangıçta ekle — yeterli veri olanları; çizgi rengi buton rengiyle aynı
@@ -234,7 +237,7 @@ function BondKlineChart({
     return () => { klineDispose(id); };
     // MA toggle'lar bu effect'e dahil değil — ayrı effect ile yönetilir
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mainPoints, comparePoints, mainCode, compareCode, chartMode, isComparing]);
+  }, [mainPoints, comparePoints, mainCode, compareCode, chartMode, isComparing, isDark]);
 
   // ── MA toggle değişince indicator güncelle (chart dispose etme) ──────────
   useEffect(() => {

@@ -3,6 +3,7 @@ import { RefreshCw, TrendingUp, TrendingDown, BarChart2, Plus, X, ChevronDown, T
 import { init as klineInit, dispose as klineDispose, registerIndicator, registerOverlay } from 'klinecharts';
 import { getViopChart, getViopContracts } from '../../../../api/marketApi';
 import { useTranslation } from '../../../../context/LanguageContext';
+import { useTheme } from '../../../../context/ThemeContext';
 import UniversalCompareButton from '../../../../components/common/UniversalCompareButton';
 import TrendBadge from '../../../../components/common/TrendBadge';
 import IndicatorMenu from '../../../../components/common/IndicatorMenu';
@@ -238,7 +239,7 @@ function ensureIndicator(name) {
 
 // ── KLineCharts stil ──────────────────────────────────────────────────────────
 
-function buildStyles(lineColor, mainLabel) {
+function buildStyles(lineColor, mainLabel, isDark) {
   return {
     candle: {
       type: 'area',
@@ -258,8 +259,9 @@ function buildStyles(lineColor, mainLabel) {
         rect: {
           offsetLeft: 8, offsetTop: 8, offsetRight: 8,
           paddingLeft: 10, paddingRight: 10, paddingTop: 8, paddingBottom: 8,
-          borderRadius: 8, borderSize: 1, borderColor: '#e5e7eb',
-          color: 'rgba(255,255,255,0.94)',
+          borderRadius: 8, borderSize: 1,
+          borderColor: isDark ? 'rgba(255,255,255,0.12)' : '#e5e7eb',
+          color: isDark ? 'rgba(15,23,42,0.92)' : 'rgba(255,255,255,0.94)',
         },
         custom: (data) => {
           const d = data?.current ?? {};
@@ -267,7 +269,7 @@ function buildStyles(lineColor, mainLabel) {
             ? new Date(d.timestamp).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' })
             : '';
           return [
-            { title: '', value: { text: date, color: '#6b7280' } },
+            { title: '', value: { text: date, color: isDark ? '#94a3b8' : '#6b7280' } },
             {
               title: mainLabel ? { text: `${mainLabel}:`, color: lineColor } : '',
               value: { text: fmt(d.close), color: lineColor },
@@ -292,6 +294,7 @@ function buildStyles(lineColor, mainLabel) {
 
 function ViopKlineChart({ mainPoints, comparePoints, compareName, compareLabel, mainLabel, isComparing, showMA5, showMA10, showMA20, showRSI, rsiPaneRef, chartRef: externalRef }) {
   const { t } = useTranslation();
+  const { isDark } = useTheme();
   const chartId  = useRef(`viop_kline_${Math.random().toString(36).slice(2)}`);
   const chartRef = useRef(null);
 
@@ -331,7 +334,7 @@ function ViopKlineChart({ mainPoints, comparePoints, compareName, compareLabel, 
 
       if (!klineData.length) { klineDispose(id); return; }
 
-      chart.setStyles(buildStyles(MAIN_COLOR, mainLabel));
+      chart.setStyles(buildStyles(MAIN_COLOR, mainLabel, isDark));
       chart.applyNewData(klineData);
       fitChartToWidth(chart, id, klineData.length);
 
@@ -360,7 +363,7 @@ function ViopKlineChart({ mainPoints, comparePoints, compareName, compareLabel, 
 
       const isUp  = klineData[klineData.length - 1].close >= klineData[0].close;
       const color = isUp ? '#10b981' : '#ef4444';
-      chart.setStyles(buildStyles(color, mainLabel));
+      chart.setStyles(buildStyles(color, mainLabel, isDark));
       chart.applyNewData(klineData);
       fitChartToWidth(chart, id, klineData.length);
 
@@ -385,7 +388,7 @@ function ViopKlineChart({ mainPoints, comparePoints, compareName, compareLabel, 
 
     return () => { klineDispose(id); chartRef.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mainPoints, comparePoints, compareName, isComparing]);
+  }, [mainPoints, comparePoints, compareName, isComparing, isDark]);
 
   // MA toggle — chart dispose etmeden güncelle
   useEffect(() => {
@@ -667,11 +670,14 @@ export default function ViopPriceChart({ contractName }) {
             <h2 className="font-bold text-gray-900">{t('VİOP Sözleşme Grafiği')}</h2>
             {!isComparing && trendItem && <TrendBadge item={trendItem} size="xs" />}
           </div>
-          {/* Tek seri: periyot değişimi */}
+          {/* Tek seri: SEÇİLİ GRAFİK DÖNEMİNİN değişimi (grafiğin ilk→son noktası).
+              Başlıktaki % ise RESMİ GÜNLÜK değişimdir (önceki uzlaşmaya göre) — ikisi farklı
+              referans olduğu için yanına "grafik dönemi" yazılır, karışmasın. */}
           {!isComparing && mainPct != null && status === 'ok' && (
             <span className={`text-sm font-semibold flex items-center gap-1 mt-0.5 ${mainPct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
               {mainPct >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
               {t(currentPeriod.label)} {t('değişim:')} {fmtPct(mainPct, 2)}
+              <span className="text-[11px] font-normal text-gray-400">({t('grafik dönemi')})</span>
             </span>
           )}
           {/* Karşılaştırma: her iki seri */}
