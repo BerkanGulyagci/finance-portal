@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState, useRef, useId, useMemo } from 'react';
+import { useEffect, useLayoutEffect, useState, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronDown, ChevronUp, LineChart } from 'lucide-react';
 import {
@@ -12,183 +12,23 @@ import {
   getFxTcmb,
   getCryptos,
   getGoldSpot,
-  getBankCurrencyRatesByCurrency,
   getFxHistory,
   getGoldHistory,
   getCryptoChart,
   getMarketPriceHistory,
+  getIndex,
   getEconomicIndicators,
 } from '../../api/marketApi';
 import { useTranslation } from '../../context/LanguageContext';
+import Sparkline from './Sparkline';
+import {
+  COLOR_UP, COLOR_DOWN, COLOR_NEUTRAL,
+  tickerHref, trendSparkline, dirFromChangePct, dailyChangeFromSeries,
+  sparkFromFxHistory, downsample, scaleSparkToEnd,
+  sparkFromGeckoChart, sparkFromGoldHist,
+} from './tickerUtils';
 
 const TICKER_OPEN_STORAGE_KEY = 'finance-portal-market-ticker-open';
-
-const COLOR_UP = '#10b981';
-const COLOR_DOWN = '#ef4444';
-const COLOR_NEUTRAL = '#64748b';
-
-// Custom ticker varlık tipi → detay route segmenti
-const CUSTOM_ROUTE_SEG = {
-  STOCK: 'stocks', CRYPTO: 'crypto', FX: 'fx', FUTURE: 'futures',
-  COMMODITY: 'commodities', FUND: 'tefas', BOND: 'bonds',
-};
-
-/**
- * Ticker öğesinin tıklanınca gideceği detay route'unu çözer.
- * Karşılığı olmayan (ekonomi göstergesi gibi) öğelerde null döner → tıklanamaz.
- */
-function tickerHref(item) {
-  const key = item.key || '';
-  const [kind, rest] = key.split(':');
-
-  switch (kind) {
-    case 'fx':
-    case 'bank':
-      return rest ? `/market/fx/${encodeURIComponent(rest.toUpperCase())}` : null;
-    case 'crypto':
-      // Detay route coinId ister (ör. "bitcoin"); yoksa link verme.
-      return item.coinId ? `/market/crypto/${encodeURIComponent(item.coinId)}` : null;
-    case 'bist':
-      return rest ? `/market/indices/${encodeURIComponent(rest.toUpperCase())}` : null;
-    case 'gold':
-      return '/market/gold';
-    case 'eco':
-      // Ekonomi göstergeleri (TÜFE/faiz/ÜFE/mevduat) → Türkiye ekonomisi sayfası
-      return '/market/economy';
-    case 'custom': {
-      // key = custom:ASSETTYPE:SYMBOL
-      const parts = key.split(':');
-      const assetType = parts[1];
-      const symbol = parts.slice(2).join(':');
-      if (assetType === 'GOLD') return '/market/gold';
-      const seg = CUSTOM_ROUTE_SEG[assetType];
-      return seg && symbol ? `/market/${seg}/${encodeURIComponent(symbol)}` : null;
-    }
-    default:
-      return null;
-  }
-}
-
-function Sparkline({ data, color }) {
-  const gradId = useId().replace(/:/g, '');
-  if (!data || data.length < 2) return null;
-  const w = 64, h = 28;
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const range = max - min || 1;
-  const pts = data.map((v, i) => {
-    const x = (i / (data.length - 1)) * w;
-    const y = h - ((v - min) / range) * (h - 4) - 2;
-    return `${x},${y}`;
-  }).join(' ');
-  const fillPts = `0,${h} ${pts} ${w},${h}`;
-  const fillUrl = `url(#spark-grad-${gradId})`;
-  return (
-    <svg width={w} height={h} className="shrink-0">
-      <defs>
-        <linearGradient id={`spark-grad-${gradId}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <polygon points={fillPts} fill={fillUrl} />
-      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-/** Son değer ve yüzde değişime göre monoton eğri (rastgele değil). */
-function trendSparkline(endValue, changePercent, points = 14) {
-  if (endValue == null || Number.isNaN(endValue) || endValue <= 0) return [];
-  if (changePercent == null || Number.isNaN(changePercent) || Math.abs(changePercent) < 1e-6) {
-    return Array.from({ length: Math.max(2, points) }, () => endValue);
-  }
-  const startValue = endValue / (1 + changePercent / 100);
-  const n = Math.max(2, points);
-  return Array.from({ length: n }, (_, i) => {
-    const t = i / (n - 1);
-    return startValue + (endValue - startValue) * t;
-  });
-}
-
-function dirFromChangePct(pct) {
-  if (pct == null || Number.isNaN(pct)) return null;
-  if (pct > 0.0001) return 'up';
-  if (pct < -0.0001) return 'down';
-  return null;
-}
-
-/** TCMB günlük kapanışlardan gerçek mini-seri ve pencere içi % değişim. */
-function sparkFromFxHistory(hist, maxPoints = 16) {
-  const raw = hist?.points;
-  if (!Array.isArray(raw) || raw.length < 2) return { spark: [], changePct: null, dir: null };
-  const closes = raw.map(p => parseFloat(p.close)).filter(v => !Number.isNaN(v) && v > 0);
-  if (closes.length < 2) return { spark: [], changePct: null, dir: null };
-  const spark = closes.slice(-maxPoints);
-  const first = spark[0];
-  const last = spark[spark.length - 1];
-  const changePct = first !== 0 ? ((last - first) / first) * 100 : 0;
-  return { spark, changePct, dir: dirFromChangePct(changePct) };
-}
-
-function downsample(series, maxPoints) {
-  if (!series?.length) return [];
-  if (series.length <= maxPoints) return [...series];
-  const out = [];
-  const last = series.length - 1;
-  for (let i = 0; i < maxPoints; i++) {
-    const idx = Math.round((i / (maxPoints - 1)) * last);
-    out.push(series[idx]);
-  }
-  return out;
-}
-
-/** Seriyi ölçekle: son nokta endValue olsun (şekil korunur, % değişim aynı kalır). */
-function scaleSparkToEnd(spark, endValue) {
-  if (!spark?.length || endValue == null || endValue <= 0) return spark ?? [];
-  const last = spark[spark.length - 1];
-  if (!last || last <= 0) return spark;
-  const k = endValue / last;
-  return spark.map(v => v * k);
-}
-
-function closesFromFxHist(hist) {
-  const raw = hist?.points;
-  if (!Array.isArray(raw)) return [];
-  return raw.map(p => parseFloat(p.close)).filter(v => !Number.isNaN(v) && v > 0);
-}
-
-function changeDirFromSeries(spark) {
-  if (!spark?.length || spark.length < 2) return { changePct: null, dir: null };
-  const first = spark[0];
-  const last = spark[spark.length - 1];
-  if (first == null || first <= 0) return { changePct: null, dir: null };
-  const changePct = ((last - first) / first) * 100;
-  return { changePct, dir: dirFromChangePct(changePct) };
-}
-
-/** CoinGecko market_chart.prices → mini seri (grafik sayfalarıyla aynı kaynak). */
-function sparkFromGeckoChart(chart, maxPoints = 36) {
-  const raw = chart?.prices;
-  if (!Array.isArray(raw) || raw.length < 2) return { spark: [], changePct: null, dir: null };
-  const vals = raw.map(p => parseFloat(p[1])).filter(v => !Number.isNaN(v) && v > 0);
-  if (vals.length < 2) return { spark: [], changePct: null, dir: null };
-  const spark = downsample(vals, maxPoints);
-  const { changePct, dir } = changeDirFromSeries(spark);
-  return { spark, changePct, dir };
-}
-
-/** Altın tarihsel (ONS USD) — detay grafikleriyle aynı endpoint. */
-function sparkFromGoldHist(hist, maxPoints = 36) {
-  const raw = hist?.points;
-  if (!Array.isArray(raw) || raw.length < 2) return { spark: [], changePct: null, dir: null };
-  const vals = raw.map(p => parseFloat(p.close)).filter(v => !Number.isNaN(v) && v > 0);
-  if (vals.length < 2) return { spark: [], changePct: null, dir: null };
-  const spark = downsample(vals, maxPoints);
-  const { changePct, dir } = changeDirFromSeries(spark);
-  return { spark, changePct, dir };
-}
-
 export function MarketTicker() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -236,14 +76,11 @@ export function MarketTicker() {
   useEffect(() => {
     async function load() {
       try {
-        const [fx, cryptos, goldSpot, bankUsd, bankEur, bankGbp, histUsd, histEur, histGbp, goldHist] =
+        const [fx, cryptos, goldSpot, histUsd, histEur, histGbp, goldHist] =
           await Promise.all([
             getFxTcmb().catch(() => null),
             getCryptos(0, 50).catch(() => []),
             getGoldSpot().catch(() => null),
-            getBankCurrencyRatesByCurrency('USD').catch(() => []),
-            getBankCurrencyRatesByCurrency('EUR').catch(() => []),
-            getBankCurrencyRatesByCurrency('GBP').catch(() => []),
             getFxHistory('USD', '1M').catch(() => null),
             getFxHistory('EUR', '1M').catch(() => null),
             getFxHistory('GBP', '1M').catch(() => null),
@@ -283,43 +120,10 @@ export function MarketTicker() {
         pushTcmbPair('EUR', histEur, rates.find(x => x.symbol === 'EUR'));
         pushTcmbPair('GBP', histGbp, rates.find(x => x.symbol === 'GBP'));
 
-        // Banka kurları — ortalama satış; mini grafik: aynı para TCMB günlük şekli, son nokta banka ortalamasına ölçekli
-        const addBankRate = (bankRates, sym, tcmbHist) => {
-          if (!bankRates || bankRates.length === 0) return;
-          const sells = bankRates.map(r => r.sellRate).filter(v => v != null && v > 0);
-          if (sells.length === 0) return;
-          const avg = sells.reduce((a, b) => a + b, 0) / sells.length;
-          const changes = bankRates.map(r => r.dailyChangePercent).filter(v => v != null);
-          const avgChg = changes.length > 0 ? changes.reduce((a, b) => a + b, 0) / changes.length : 0;
-          const closes = closesFromFxHist(tcmbHist);
-          let spark = [];
-          let change = avgChg !== 0 ? avgChg : null;
-          let dir = dirFromChangePct(avgChg);
-          if (closes.length >= 2) {
-            const slice = closes.slice(-28);
-            spark = scaleSparkToEnd(downsample(slice, 24), avg);
-            const { changePct, dir: dHist } = changeDirFromSeries(spark);
-            if (changePct != null && Number.isFinite(changePct)) {
-              change = Math.abs(changePct) > 1e-6 ? changePct : null;
-              dir = dHist;
-            }
-          } else {
-            spark = trendSparkline(avg, avgChg);
-          }
-          result.push({
-            key: `bank:${sym}`,
-            label: `${sym}/TRY ${t('Banka')}`,
-            value: avg.toLocaleString('tr-TR', { minimumFractionDigits: 4, maximumFractionDigits: 4 }),
-            change,
-            dir,
-            spark: spark.length >= 2 ? spark : trendSparkline(avg, avgChg),
-          });
-        };
-        addBankRate(bankUsd, 'USD', histUsd);
-        addBankRate(bankEur, 'EUR', histEur);
-        addBankRate(bankGbp, 'GBP', histGbp);
+        // Banka kurları ("USD/TRY Banka" vb.) ticker'dan kaldırıldı — TCMB fx:USD/EUR/GBP yeterli.
 
-        // Altın/ONS — spot + /api/v1/gold/history (USD ONS) ile büyük grafikle aynı seri
+        // Altın/ONS — spot + /api/v1/gold/history (USD ONS) ile büyük grafikle aynı seri.
+        // YÜZDE = goldSpot.changePercent (GÜNLÜK, API'den) — grafik aylık seri ama yüzde günlük.
         if (goldSpot?.price) {
           const val = parseFloat(goldSpot.price);
           const spotChg = parseFloat(goldSpot.changePercent ?? 0);
@@ -327,15 +131,13 @@ export function MarketTicker() {
           let spark = g.spark;
           if (spark.length >= 2) spark = scaleSparkToEnd(spark, val);
           else spark = trendSparkline(val, spotChg);
-          const { changePct, dir } = spark.length >= 2 ? changeDirFromSeries(spark) : { changePct: spotChg, dir: dirFromChangePct(spotChg) };
-          const ch = changePct != null && Number.isFinite(changePct) && Math.abs(changePct) > 1e-6 ? changePct : spotChg !== 0 ? spotChg : null;
-          const d = dir ?? dirFromChangePct(spotChg);
+          const ch = Number.isFinite(spotChg) && Math.abs(spotChg) > 1e-6 ? spotChg : null;
           result.push({
             key: 'gold:ons',
             label: t('ALTIN/ONS'),
             value: val.toLocaleString('tr-TR', { minimumFractionDigits: 2 }),
             change: ch,
-            dir: d,
+            dir: dirFromChangePct(spotChg),
             spark,
           });
         }
@@ -345,15 +147,14 @@ export function MarketTicker() {
           const c = cryptos.find(x => x.symbol?.toLowerCase() === sym);
           if (!c) return;
           const val = parseFloat(c.currentPrice ?? 0);
+          // YÜZDE = priceChangePercentage24h (CoinGecko GÜNLÜK 24s değişim). Grafik aylık seri
+          // (görsel trend) ama yüzde günlük — önceden aylık ilk→son fark gösteriyordu (yanıltıcı).
           const chgApi = parseFloat(c.priceChangePercentage24h ?? 0);
           const chart = cryptoCharts[sym];
           const g = sparkFromGeckoChart(chart);
           const spark = g.spark.length >= 2 ? g.spark : trendSparkline(val, chgApi);
-          const { changePct, dir } = g.spark.length >= 2
-            ? { changePct: g.changePct, dir: g.dir }
-            : { changePct: chgApi, dir: dirFromChangePct(chgApi) };
-          const ch = changePct != null && Number.isFinite(changePct) && Math.abs(changePct) > 1e-6 ? changePct : chgApi !== 0 ? chgApi : null;
-          const d = dir ?? dirFromChangePct(chgApi);
+          const ch = Number.isFinite(chgApi) && Math.abs(chgApi) > 1e-6 ? chgApi : null;
+          const d = dirFromChangePct(chgApi);
           result.push({
             key: `crypto:${sym}`,
             coinId: c.id,            // CoinGecko id (ör. "bitcoin") — detay route'u için
@@ -371,15 +172,20 @@ export function MarketTicker() {
         await Promise.all(
           ['XU100', 'XU030', 'XU050'].map(async (sym) => {
             try {
-              const data = await getMarketPriceHistory('INDICATOR', sym, '1M');
+              // Spark için seri + GÜNLÜK % için getIndex (detay sayfasıyla AYNI resmi değer).
+              // Endeks serisi SAATLİK (168 nokta/ay) → "son 2 nokta" son 2 SAAT olur, günlük değil;
+              // o yüzden % resmi changePercent'ten alınır (BIST50 ticker vs detay tutarsızlığı fix).
+              const [data, idx] = await Promise.all([
+                getMarketPriceHistory('INDICATOR', sym, '1M'),
+                getIndex(sym).catch(() => null),
+              ]);
               const closes = (data?.closePrices ?? []).map(Number).filter(v => Number.isFinite(v) && v > 0);
               if (closes.length < 1) {
                 console.warn(`[MarketTicker] BIST index ${sym} returned empty closePrices`, data);
                 return;
               }
               const last = closes[closes.length - 1];
-              const first = closes[0];
-              const pct = first ? ((last - first) / first) * 100 : null;
+              const pct = idx?.changePercent != null ? Number(idx.changePercent) : null;  // resmi GÜNLÜK
               const spark = closes.length >= 2 ? downsample(closes, 28) : trendSparkline(last, pct ?? 0);
               const label = sym === 'XU100' ? 'BIST 100' : sym === 'XU030' ? 'BIST 30' : 'BIST 50';
               result.push({
@@ -440,17 +246,23 @@ export function MarketTicker() {
     Promise.all(customDefs.map(async d => {
       try {
         const data = await getMarketPriceHistory(d.assetType, d.symbol, '3M');
-        const closes = (data?.closePrices ?? []).map(Number).filter(v => Number.isFinite(v) && v > 0);
+        const rawCloses = (data?.closePrices ?? []).map(Number);
+        const ts = data?.timestamps ?? [];
+        // GÜNLÜK % — timestamp ile (hisse serisi saatlik olabilir; "son 2 saat" tuzağına düşme).
+        const pct = dailyChangeFromSeries(rawCloses, ts);
+        const closes = rawCloses.filter(v => Number.isFinite(v) && v > 0);
         if (closes.length < 1) return null;
         const last = closes[closes.length - 1];
-        const first = closes[0];
-        const pct = first ? ((last - first) / first) * 100 : null;
         const spark = closes.length >= 2 ? downsample(closes, 28) : trendSparkline(last, pct ?? 0);
+        // VİOP (FUTURE) custom kalemi gerçek döviz/varlıkla karışmasın diye "VİOP" etiketlenir
+        // (ör. "USDTRY" VİOP vadeli ≠ "USD/TRY" döviz kuru).
+        const baseLabel = d.name || d.symbol;
+        const label = d.assetType === 'FUTURE' ? `${baseLabel} · VİOP` : baseLabel;
         return {
           key: `custom:${d.assetType}:${d.symbol}`,
           tok: `${d.assetType}:${d.symbol}`.toLowerCase(),
           custom: true,
-          label: d.name || d.symbol,
+          label,
           value: last.toLocaleString('tr-TR', { maximumFractionDigits: 4 }),
           change: pct != null && Math.abs(pct) > 1e-6 ? pct : null,
           dir: dirFromChangePct(pct),
@@ -537,16 +349,13 @@ export function MarketTicker() {
     const sparkColor = isUp ? COLOR_UP : isDown ? COLOR_DOWN : COLOR_NEUTRAL;
     const href = tickerHref(item);
 
+    // Ticker'da yüzde GÖSTERİLMEZ — sadece isim + fiyat + mini grafik (yön renkten belli).
+    // Yüzde detay sayfalarında var; ticker'da sade ve tutarsızlık riski sıfır.
     const inner = (
       <>
         <div className="flex-1 min-w-0">
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5 truncate" title={item.label}>{item.label}</p>
           <p className="text-sm font-bold leading-tight" style={{ color: valueColor }}>{item.value}</p>
-          {item.change != null && (
-            <p className={`text-[10px] font-semibold mt-0.5 ${isUp ? 'text-emerald-600' : isDown ? 'text-rose-600' : 'text-slate-500'}`}>
-              {isUp ? '▲ ' : isDown ? '▼ ' : ''}{Math.abs(item.change).toFixed(2)}%
-            </p>
-          )}
         </div>
         <Sparkline data={item.spark} color={sparkColor} />
       </>

@@ -62,7 +62,6 @@ describe('TICKER_CATALOG — katalog yapısı', () => {
   it('beklenen grup başlıklarını sırasıyla içerir', () => {
     expect(TICKER_CATALOG.map((g) => g.group)).toEqual([
       'TCMB Döviz',
-      'Banka Kurları',
       'Endeksler (BIST)',
       'Altın',
       'Kripto',

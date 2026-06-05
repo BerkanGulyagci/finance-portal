@@ -3,7 +3,6 @@ import {
   Plus,
   X,
   DollarSign,
-  Landmark,
   TrendingUp,
   Coins,
   Bitcoin,
@@ -31,12 +30,6 @@ const CATEGORY_META = {
     iconWrap: 'bg-blue-50 text-[#093eaa]',
     chipOn: 'bg-[#093eaa] text-white border border-[#093eaa] shadow-sm',
     chipOff: 'bg-white text-[#093eaa] border border-blue-200 hover:bg-blue-50',
-  },
-  'Banka Kurları': {
-    icon: Landmark,
-    iconWrap: 'bg-indigo-50 text-indigo-700',
-    chipOn: 'bg-indigo-600 text-white border border-indigo-600 shadow-sm',
-    chipOff: 'bg-white text-indigo-700 border border-indigo-200 hover:bg-indigo-50',
   },
   'Endeksler (BIST)': {
     icon: TrendingUp,

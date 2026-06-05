@@ -24,14 +24,6 @@ export const TICKER_CATALOG = [
     ],
   },
   {
-    group: 'Banka Kurları',
-    items: [
-      { key: 'bank:USD', label: 'USD/TRY (Banka)' },
-      { key: 'bank:EUR', label: 'EUR/TRY (Banka)' },
-      { key: 'bank:GBP', label: 'GBP/TRY (Banka)' },
-    ],
-  },
-  {
     group: 'Endeksler (BIST)',
     items: [
       { key: 'bist:XU100', label: 'BIST 100' },
