@@ -21,6 +21,14 @@ import java.math.RoundingMode;
  *
  * <p>Portföy toplamına {@code marginPosted + pnl} katılır (notional değil — kaldıraçlı
  * pozisyon küçük portföyü 8-10x şişirir, yanlış yönlendirici).
+ *
+ * <p><b>Para birimi (FX) çevirimi:</b> Portföy TL-bazlıdır. USD-kote kontratlarda
+ * (örn. EURUSD, XAUUSD — {@code spec.currency() == "USD"}) ham fiyat USD'dir; her formül
+ * fiyatı önce TL'ye çevirir: {@code price_TL = price_USD × fxRate}. {@code fxRate} = 1 USD → TL
+ * (TCMB satış kuru), çağıran enricher tarafından geçilir. TRY kontratlarda {@code fxRate = 1}
+ * (değişmez davranış). {@code fxRate} parametresiz eski imzalar {@code fxRate = 1} ile yeni
+ * imzalara delege eder — geriye tam uyumlu (TRY kontratlar + mevcut çağrılar aynen çalışır).
+ * Not: {@code marginAmount} (scrape) zaten TL tutar → FX UYGULANMAZ.
  */
 @Service
 public class ViopValuationService {
@@ -35,12 +43,33 @@ public class ViopValuationService {
     }
 
     /**
+     * Kontratın para birimine göre fiyatı TL'ye çeviren çarpan.
+     * USD-kote spec'te {@code fxRate} (1 USD→TL), aksi halde 1 (TRY: değişmez).
+     * {@code fxRate} null/≤0 ise güvenli fallback 1 (ham fiyat — çökmez; enricher zaten warn'lar).
+     */
+    private static BigDecimal effectiveFx(ViopContractSpec spec, BigDecimal fxRate) {
+        if (spec == null || !"USD".equalsIgnoreCase(spec.currency())) {
+            return BigDecimal.ONE; // TRY (veya bilinmeyen) → çevrim yok
+        }
+        return (fxRate != null && fxRate.signum() > 0) ? fxRate : BigDecimal.ONE;
+    }
+
+    /**
      * Nominal pozisyon büyüklüğü (piyasada kontrol edilen tutar).
      * Risk göstergesi — portföy toplamına eklenmez.
      */
     public BigDecimal notional(BigDecimal qty, BigDecimal currentPrice, ViopContractSpec spec) {
+        return notional(qty, currentPrice, spec, BigDecimal.ONE);
+    }
+
+    /**
+     * Nominal pozisyon büyüklüğü — USD-kote kontratta fiyat {@code fxRate} ile TL'ye çevrilir.
+     * {@code notional = qty × (price × fx) × multiplier}. TRY kontratta fx etkisizdir.
+     */
+    public BigDecimal notional(BigDecimal qty, BigDecimal currentPrice, ViopContractSpec spec, BigDecimal fxRate) {
         if (anyNull(qty, currentPrice, spec)) return BigDecimal.ZERO;
-        return qty.multiply(currentPrice).multiply(spec.multiplier())
+        BigDecimal priceTl = currentPrice.multiply(effectiveFx(spec, fxRate));
+        return qty.multiply(priceTl).multiply(spec.multiplier())
                 .setScale(MONEY_SCALE, RoundingMode.HALF_UP);
     }
 
@@ -57,15 +86,27 @@ public class ViopValuationService {
      * </ul>
      */
     public BigDecimal marginPosted(BigDecimal qty, BigDecimal avgEntryPrice, ViopContractSpec spec) {
+        return marginPosted(qty, avgEntryPrice, spec, BigDecimal.ONE);
+    }
+
+    /**
+     * Başlangıç teminatı — USD-kote kontratta oran-bazlı yolda giriş fiyatı {@code fxRate} ile
+     * TL'ye çevrilir: {@code qty × (avgEntry × fx) × multiplier × marginRate}.
+     *
+     * <p><b>DİKKAT:</b> {@code spec.marginAmount} (İş Yatırım scrape) ZATEN TL tutardır →
+     * FX UYGULANMAZ (çifte-FX olurdu). FX yalnızca fiyattan türetilen oran-bazlı yola uygulanır.
+     */
+    public BigDecimal marginPosted(BigDecimal qty, BigDecimal avgEntryPrice, ViopContractSpec spec, BigDecimal fxRate) {
         if (qty == null || spec == null) return BigDecimal.ZERO;
-        // Scrape'ten gelen gerçek teminat tutarı varsa onu kullan (fiyattan bağımsız).
+        // Scrape'ten gelen gerçek teminat tutarı varsa onu kullan (fiyattan bağımsız, ZATEN TL → FX YOK).
         if (spec.marginAmount() != null && spec.marginAmount().signum() > 0) {
             return qty.multiply(spec.marginAmount())
                     .setScale(MONEY_SCALE, RoundingMode.HALF_UP);
         }
-        // Aksi halde (YAML statik) oran-bazlı: qty × giriş × çarpan × oran.
+        // Aksi halde (YAML statik) oran-bazlı: qty × (giriş × fx) × çarpan × oran.
         if (anyNull(avgEntryPrice, spec.multiplier(), spec.marginRate())) return BigDecimal.ZERO;
-        return qty.multiply(avgEntryPrice).multiply(spec.multiplier()).multiply(spec.marginRate())
+        BigDecimal entryTl = avgEntryPrice.multiply(effectiveFx(spec, fxRate));
+        return qty.multiply(entryTl).multiply(spec.multiplier()).multiply(spec.marginRate())
                 .setScale(MONEY_SCALE, RoundingMode.HALF_UP);
     }
 
@@ -75,8 +116,22 @@ public class ViopValuationService {
      */
     public BigDecimal pnl(BigDecimal qty, BigDecimal avgEntryPrice, BigDecimal currentPrice,
                           ViopContractSpec spec, String direction) {
+        return pnl(qty, avgEntryPrice, currentPrice, spec, direction, BigDecimal.ONE);
+    }
+
+    /**
+     * Kâr/zarar — USD-kote kontratta fiyat farkı {@code fxRate} ile TL'ye çevrilir:
+     * {@code qty × ((current − avgEntry) × fx) × multiplier × yön}. TRY kontratta fx etkisizdir.
+     *
+     * <p>Not (basitleştirme): hem giriş hem güncel fiyat AYNI (anlık) {@code fxRate} ile çevrilir,
+     * bu yüzden farka tek çarpan uygulamak yeterli. Per-date FX (girişte o günün kuru) ileride
+     * eklenebilir — eurobond Model 1 de canlı kur kullanır.
+     */
+    public BigDecimal pnl(BigDecimal qty, BigDecimal avgEntryPrice, BigDecimal currentPrice,
+                          ViopContractSpec spec, String direction, BigDecimal fxRate) {
         if (anyNull(qty, avgEntryPrice, currentPrice, spec)) return BigDecimal.ZERO;
         return currentPrice.subtract(avgEntryPrice)
+                .multiply(effectiveFx(spec, fxRate))
                 .multiply(qty)
                 .multiply(spec.multiplier())
                 .multiply(directionSign(direction))
@@ -89,8 +144,18 @@ public class ViopValuationService {
      */
     public BigDecimal dailyPnl(BigDecimal qty, BigDecimal currentSettlement, BigDecimal prevSettlement,
                                ViopContractSpec spec, String direction) {
+        return dailyPnl(qty, currentSettlement, prevSettlement, spec, direction, BigDecimal.ONE);
+    }
+
+    /**
+     * Günlük (mark-to-market) kâr/zarar — USD-kote kontratta uzlaşma farkı {@code fxRate} ile
+     * TL'ye çevrilir: {@code qty × ((settle − prevSettle) × fx) × multiplier × yön}.
+     */
+    public BigDecimal dailyPnl(BigDecimal qty, BigDecimal currentSettlement, BigDecimal prevSettlement,
+                               ViopContractSpec spec, String direction, BigDecimal fxRate) {
         if (anyNull(qty, currentSettlement, prevSettlement, spec)) return BigDecimal.ZERO;
         return currentSettlement.subtract(prevSettlement)
+                .multiply(effectiveFx(spec, fxRate))
                 .multiply(qty)
                 .multiply(spec.multiplier())
                 .multiply(directionSign(direction))

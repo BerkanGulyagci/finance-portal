@@ -41,6 +41,8 @@ class FutureHoldingEnricherTest {
     @Mock ViopService viopService;
     @Mock ViopChartService viopChartService;
     @Mock com.finance.portal.portfolio.application.viop.spec.ViopContractSpecRegistry specRegistry;
+    // USD-kote kontrat FX çevirimi için (TRY fallback spec'te çağrılmaz → bu testlerde stub'sız mock yeter).
+    @Mock com.finance.portal.market.application.service.MarketFxService marketFxService;
 
     // Gerçek valuation service — saf math, mocklamak yerine canlı çalıştır (mv = qty × price × multiplier).
     private final ViopValuationService valuationService = new ViopValuationService();
@@ -52,7 +54,7 @@ class FutureHoldingEnricherTest {
         // Tüm sembollere multiplier=1, marginRate=0.15 fallback spec'i verir → eski assertion'lar geçerli kalır.
         when(specRegistry.resolveOrFallback(org.mockito.ArgumentMatchers.anyString()))
                 .thenAnswer(inv -> ViopContractSpec.fallback(inv.getArgument(0)));
-        enricher = new FutureHoldingEnricher(viopService, viopChartService, specRegistry, valuationService);
+        enricher = new FutureHoldingEnricher(viopService, viopChartService, specRegistry, valuationService, marketFxService);
     }
 
     private static PortfolioHoldingResponse holding(String symbol, BigDecimal qty, BigDecimal cost) {

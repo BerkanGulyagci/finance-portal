@@ -3,6 +3,7 @@ import { parseTrNumber, formatPrice } from '../../../../utils/numberFormat';
 import { useTranslation } from '../../../../context/LanguageContext';
 import InstrumentActionButtons from '../../../../components/instrument/InstrumentActionButtons';
 import InstrumentLogo from '../../../../components/instrument/InstrumentLogo';
+import { viopCurrencySymbol } from '../utils/viopCurrency';
 
 export default function ViopContractHeader({ contract }) {
   const { t } = useTranslation();
@@ -13,8 +14,10 @@ export default function ViopContractHeader({ contract }) {
   const changePercent = parseTrNumber(changePercentStr) || 0;
   const isPositive = changePercent >= 0;
 
-  // Son fiyatı parse et
-  const lastPrice = parseTrNumber(contract.lastPrice);
+  // Son fiyatı parse et. Son işlem 0/yoksa (gün içi hiç işlem görmedi) uzlaşma fiyatına düş —
+  // yoksa "İşlem Ekle" modaline 0 gider ve "fiyat bulunamadı" çıkar (ör. ELCBAS06).
+  const lastRaw = parseTrNumber(contract.lastPrice);
+  const lastPrice = (lastRaw != null && lastRaw > 0) ? lastRaw : parseTrNumber(contract.settlementPrice);
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm px-5 py-3">
@@ -29,7 +32,7 @@ export default function ViopContractHeader({ contract }) {
 
           <div className="flex items-baseline gap-2 pl-3 sm:pl-4 ml-1 border-l border-gray-100">
             <span className={`text-2xl font-black ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
-              {lastPrice !== null ? formatPrice(lastPrice) : '-'}
+              {lastPrice !== null ? `${formatPrice(lastPrice)} ${viopCurrencySymbol(contract.name)}` : '-'}
             </span>
             {changePercent !== 0 && (
               <span className={`flex items-center gap-0.5 text-sm font-bold ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>

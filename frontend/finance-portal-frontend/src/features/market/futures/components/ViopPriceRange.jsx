@@ -1,10 +1,13 @@
 import { parseTrNumber, formatPrice } from '../../../../utils/numberFormat';
 import { useTranslation } from '../../../../context/LanguageContext';
+import { viopCurrencySymbol } from '../utils/viopCurrency';
 
 export default function ViopPriceRange({ contract }) {
   const { t } = useTranslation();
   if (!contract) return null;
 
+  // USD-kote VİOP (EURUSD, XAUUSD…) → '$', diğerleri → '₺'.
+  const curSym = viopCurrencySymbol(contract.name);
   const low = parseTrNumber(contract.low);
   const high = parseTrNumber(contract.high);
   const last = parseTrNumber(contract.lastPrice);
@@ -28,15 +31,15 @@ export default function ViopPriceRange({ contract }) {
       <div className="flex justify-between items-center mb-3">
         <div className="text-left">
           <p className="text-xs text-gray-500 mb-1">{t('Düşük')}</p>
-          <p className="text-sm font-bold text-gray-900">{formatPrice(low)}</p>
+          <p className="text-sm font-bold text-gray-900">{formatPrice(low)} {curSym}</p>
         </div>
         <div className="text-center">
           <p className="text-xs text-blue-600 font-semibold mb-1">{t('Son')}</p>
-          <p className="text-base font-black text-blue-900">{formatPrice(last)}</p>
+          <p className="text-base font-black text-blue-900">{formatPrice(last)} {curSym}</p>
         </div>
         <div className="text-right">
           <p className="text-xs text-gray-500 mb-1">{t('Yüksek')}</p>
-          <p className="text-sm font-bold text-gray-900">{formatPrice(high)}</p>
+          <p className="text-sm font-bold text-gray-900">{formatPrice(high)} {curSym}</p>
         </div>
       </div>
 

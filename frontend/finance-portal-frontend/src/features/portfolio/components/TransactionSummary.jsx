@@ -7,10 +7,18 @@ import { fmtWithCcy, fmtNum } from '../utils/transactionFormUtils';
  */
 export default function TransactionSummary({
   isAmountMode, amountCalc, summaryHasError, isBuy, isGold, goldMeta, isBond, isFuture,
-  commission, currency, useQtyFloor, availableQty, price, form,
+  commission, currency, viopFxRate = null, useQtyFloor, availableQty, price, form,
   quantityModeTotal, quantitySellExceedsFund, quantitySellExceedsGold,
   quantitySellExceedsBond, goldPieceQtyInvalid, formatSummaryQty, t,
 }) {
+  // USD-kote VİOP: değerler USD cinsinden → "$X" + (kur varsa) "≈ Y ₺" TL karşılığı.
+  // Diğer her şey eskisi gibi fmtWithCcy (para kodu yan yana: "1.234,56 TRY").
+  const isUsdViopMoney = isFuture && currency === 'USD';
+  const fmtMoney = (v) => {
+    if (!isUsdViopMoney) return fmtWithCcy(v, currency);
+    const usd = '$' + fmtNum(v, 2);
+    return viopFxRate ? `${usd} ≈ ${fmtNum((Number(v) || 0) * viopFxRate, 2)} ₺` : usd;
+  };
   // ── Tutar ile modu ──────────────────────────────────────────────────────────
   if (isAmountMode && amountCalc) {
     return (
@@ -146,7 +154,7 @@ export default function TransactionSummary({
                         ? t(goldMeta.priceLabel.replace(' *', ''))
                         : t('Fiyat')
                   }
-                  value={fmtWithCcy(price, currency)}
+                  value={fmtMoney(price)}
                 />
                 {(commission > 0 || isBond) && (
                   <SummaryRow
@@ -156,7 +164,7 @@ export default function TransactionSummary({
                 )}
                 <SummaryRow
                   label={isFuture ? t('Teminat (cebinden çıkacak)') : t('Toplam ödeme')}
-                  value={fmtWithCcy(quantityModeTotal.total, currency)}
+                  value={fmtMoney(quantityModeTotal.total)}
                   highlight
                 />
               </>
@@ -174,7 +182,7 @@ export default function TransactionSummary({
                         ? t(goldMeta.priceLabel.replace(' *', ''))
                         : t('Fiyat')
                   }
-                  value={fmtWithCcy(price, currency)}
+                  value={fmtMoney(price)}
                 />
                 {(commission > 0 || isBond) && (
                   <SummaryRow
@@ -188,7 +196,7 @@ export default function TransactionSummary({
                     : isBond
                       ? t('Net Tahsilat')
                       : t('Tahmini net gelir')}
-                  value={fmtWithCcy(quantityModeTotal.netIncome, currency)}
+                  value={fmtMoney(quantityModeTotal.netIncome)}
                   highlight
                 />
               </>

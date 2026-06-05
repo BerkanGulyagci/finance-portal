@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { useTranslation } from '../../../../context/LanguageContext';
 import { notional, marginPosted, pnl as pnlMath, leverage as leverageMath } from '../../utils/viopMath';
+import { isUsdViop } from '../../../market/futures/utils/viopCurrency';
 
 /**
  * AddTransactionModal'da VİOP işlemleri için canlı önizleme kartı.
@@ -35,6 +36,16 @@ export default function ViopPreviewCard({
     return { multiplier: Number(m), marginRate: Number(mr) };
   }, [instrument]);
 
+  // USD-kote VİOP mu? (EURUSD, XAUUSD… → fiyat USD parite/ons doları, '₺' değil).
+  // instrument.symbol ya da .name'den tespit edilir.
+  const isUsd = isUsdViop(instrument?.symbol || instrument?.name);
+  const curSym = isUsd ? '$' : '₺';
+  // USD kontratta TL karşılığı için USD/TRY kuru. Yoksa sadece '$' gösterilir
+  // (backend ajanı kuru instrument.fxRate olarak ekleyecek).
+  const fxRate = isUsd
+    ? Number(instrument?.fxRate ?? instrument?.viopSpec?.fxRate) || null
+    : null;
+
   const qtyNum = Number(qty) || 0;
   const priceNum = Number(price) || 0;
   const isShort = (direction || 'LONG').toUpperCase() === 'SHORT';
@@ -53,6 +64,20 @@ export default function ViopPreviewCard({
   const lev        = leverageMath(nominalVal, marginVal);
   const commissionNum = Number(commission) || 0;
   const totalLocked = marginVal + commissionNum;
+
+  // Para gösterimi: TL kontrat → "1.234,56 ₺".
+  // USD kontrat → "$1.234,56" (+ kur varsa "≈ … ₺" TL karşılığı).
+  // notional/margin USD-kote kontratta zaten USD cinsindendir (fiyat USD), ×kur = TL.
+  const fmtMoney = (v) => {
+    if (!isUsd) return fmtTRY(v);
+    const usd = '$' + fmtNum(v);
+    return fxRate ? (
+      <>
+        {usd}
+        <span className="text-[#8a8f9c] font-normal"> {'≈ ' + fmtNum((Number(v) || 0) * fxRate) + ' ₺'}</span>
+      </>
+    ) : usd;
+  };
 
   return (
     <div className="rounded-xl border border-[#c4c5d5] bg-[#f3f3fc] p-3 space-y-2">
@@ -90,16 +115,16 @@ export default function ViopPreviewCard({
           {isShort ? t('SHORT') : t('LONG')}
         </span>
         <span className="text-[#5a6472]">
-          {qtyNum || '–'} {t('kontrat')} × {fmtPrice(priceNum)} ₺
+          {qtyNum || '–'} {t('kontrat')} × {fmtPrice(priceNum)} {curSym}
         </span>
       </div>
 
       <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12px]">
         <span className="text-[#5a6472]">{t('Nominal')}:</span>
-        <span className="text-right font-bold text-[#1a1b22] tabular-nums">{fmtTRY(nominalVal)}</span>
+        <span className="text-right font-bold text-[#1a1b22] tabular-nums">{fmtMoney(nominalVal)}</span>
 
         <span className="text-[#5a6472]">{t('Teminat')}:</span>
-        <span className="text-right font-bold text-[#1a1b22] tabular-nums">{fmtTRY(marginVal)}</span>
+        <span className="text-right font-bold text-[#1a1b22] tabular-nums">{fmtMoney(marginVal)}</span>
 
         <span className="text-[#5a6472]">{t('Kaldıraç')}:</span>
         <span className="text-right font-bold text-amber-700 tabular-nums">{lev > 0 ? lev.toFixed(2) + 'x' : '–'}</span>
@@ -107,25 +132,34 @@ export default function ViopPreviewCard({
         {commissionNum > 0 && (
           <>
             <span className="text-[#5a6472]">{t('Komisyon')}:</span>
-            <span className="text-right text-[#1a1b22] tabular-nums">{fmtTRY(commissionNum)}</span>
+            <span className="text-right text-[#1a1b22] tabular-nums">{fmtMoney(commissionNum)}</span>
           </>
         )}
       </div>
 
       <div className="border-t border-[#c4c5d5] pt-1.5 flex items-center justify-between text-[12px]">
         <span className="font-bold text-[#434653]">{t('Cebinden Çıkacak')}:</span>
-        <span className="font-black text-[#093eaa] tabular-nums">{fmtTRY(totalLocked)}</span>
+        <span className="font-black text-[#093eaa] tabular-nums">{fmtMoney(totalLocked)}</span>
       </div>
 
-      <p className="text-[10.5px] text-[#747684] leading-snug">
-        {t('Çarpan')}: <span className="font-semibold">{spec.multiplier}</span> · {t('Marjin')}: <span className="font-semibold">%{(spec.marginRate * 100).toFixed(1)}</span>
-      </p>
+      <div className="flex items-center gap-2 pt-0.5">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-[#c4c5d5] text-[12px] text-[#434653]">
+          {t('Çarpan')}: <span className="font-bold text-[#1a1b22]">{spec.multiplier}</span>
+        </span>
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-[#c4c5d5] text-[12px] text-[#434653]">
+          {t('Marjin')}: <span className="font-bold text-[#1a1b22]">%{(spec.marginRate * 100).toFixed(1)}</span>
+        </span>
+      </div>
     </div>
   );
 }
 
+function fmtNum(v) {
+  return (Number(v) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function fmtTRY(v) {
-  return (Number(v) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
+  return fmtNum(v) + ' ₺';
 }
 
 function fmtPrice(v) {

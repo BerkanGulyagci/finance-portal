@@ -44,13 +44,30 @@ public class PortfolioPerformanceCalculator {
     private final EvdsBondService evdsBondService;
     private final ViopContractSpecRegistry viopSpecRegistry;
     private final ViopValuationService viopValuation;
+    private final com.finance.portal.market.application.fx.port.TcmbFxHistoryPort fxHistoryPort;
 
     public PortfolioPerformanceCalculator(EvdsBondService evdsBondService,
                                           ViopContractSpecRegistry viopSpecRegistry,
-                                          ViopValuationService viopValuation) {
+                                          ViopValuationService viopValuation,
+                                          com.finance.portal.market.application.fx.port.TcmbFxHistoryPort fxHistoryPort) {
         this.evdsBondService = evdsBondService;
         this.viopSpecRegistry = viopSpecRegistry;
         this.viopValuation = viopValuation;
+        this.fxHistoryPort = fxHistoryPort;
+    }
+
+    /** İşlemler arasında USD-kote VİOP kontratı var mı? (varsa per-date FX serisi yüklenir.) */
+    private boolean hasUsdViop(List<PortfolioTransaction> txs) {
+        if (txs == null || viopSpecRegistry == null) return false;
+        for (PortfolioTransaction tx : txs) {
+            if (tx.getAssetType() == AssetType.FUTURE && tx.getSymbol() != null) {
+                ViopContractSpec spec = viopSpecRegistry.resolveOrFallback(tx.getSymbol());
+                if (spec != null && "USD".equalsIgnoreCase(spec.currency())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /** Altın bond? Birim "adet/gram" — /100 uygulanmaz. */
@@ -81,6 +98,15 @@ public class PortfolioPerformanceCalculator {
         // PortfolioPerformanceServiceTest bu mutation'ı bekliyor. null güvenliği için fallback.
         Set<String> excludedKeys = excludedPositionKeys != null
                 ? excludedPositionKeys : new HashSet<>();
+
+        // USD-kote VİOP varsa, grafik günlerini O GÜNÜN USD/TRY kuruyla TL'ye çevirmek için
+        // tarih bazlı kur serisini bir kez yükle (per-date FX; CommodityHistoricalTryConversion deseni).
+        // Yoksa boş kalır, çevirim gerekmez (TRY kontratlar etkilenmez).
+        final NavigableMap<LocalDate, BigDecimal> usdTryByDay =
+                hasUsdViop(sorted)
+                        ? com.finance.portal.portfolio.infrastructure.market.CommodityHistoricalTryConversion
+                              .loadUsdTryHistory(fxHistoryPort, startDate, endDate)
+                        : new java.util.TreeMap<>();
 
         Map<String, HoldingAccumulator> openPositions = new LinkedHashMap<>();
         List<PortfolioPerformancePoint> points = new ArrayList<>();
@@ -151,8 +177,15 @@ public class PortfolioPerformanceCalculator {
                 if (acc.assetType == AssetType.FUTURE && acc.viopSpec != null) {
                     // VİOP: marginPosted + pnl (notional değil) — portföy katkısı kaldıraçsız tutarlıdır.
                     BigDecimal avgEntry = acc.openCostBasis.divide(acc.openQuantity, 12, RoundingMode.HALF_UP);
-                    BigDecimal marginPosted = viopValuation.marginPosted(acc.openQuantity, avgEntry, acc.viopSpec);
-                    BigDecimal pnl = viopValuation.pnl(acc.openQuantity, avgEntry, unitPrice, acc.viopSpec, acc.direction);
+                    // USD-kote kontratta O GÜNÜN USD/TRY kuruyla TL'ye çevir (per-date FX) — yoksa
+                    // grafik ham USD değerinde düz gider, bugün enricher TL verince fırlardı. TRY → 1.
+                    BigDecimal fxRate = "USD".equalsIgnoreCase(acc.viopSpec.currency())
+                            ? com.finance.portal.portfolio.infrastructure.market.CommodityHistoricalTryConversion
+                                  .resolveUsdTryRate(day, usdTryByDay, null)
+                            : BigDecimal.ONE;
+                    if (fxRate == null || fxRate.signum() <= 0) fxRate = BigDecimal.ONE;
+                    BigDecimal marginPosted = viopValuation.marginPosted(acc.openQuantity, avgEntry, acc.viopSpec, fxRate);
+                    BigDecimal pnl = viopValuation.pnl(acc.openQuantity, avgEntry, unitPrice, acc.viopSpec, acc.direction, fxRate);
                     mv = viopValuation.portfolioContribution(marginPosted, pnl)
                             .setScale(MONEY_SCALE, RoundingMode.HALF_UP);
                     costContribution = marginPosted.setScale(MONEY_SCALE, RoundingMode.HALF_UP);

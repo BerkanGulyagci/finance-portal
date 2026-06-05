@@ -52,7 +52,8 @@ class PortfolioPerformanceCalculatorMoreTest {
                 .when(specRegistry.resolveOrFallback(ArgumentMatchers.anyString()))
                 .thenReturn(ViopContractSpec.fallback("TEST"));
         calculator = new PortfolioPerformanceCalculator(
-                evdsBondService, specRegistry, new ViopValuationService());
+                evdsBondService, specRegistry, new ViopValuationService(),
+                Mockito.mock(com.finance.portal.market.application.fx.port.TcmbFxHistoryPort.class));
     }
 
     // ── isGoldBondSymbol ────────────────────────────────────────────────────

@@ -1,13 +1,16 @@
 import { parseTrNumber, formatPrice } from '../../../../utils/numberFormat';
 import { useTranslation } from '../../../../context/LanguageContext';
+import { viopCurrencySymbol } from '../utils/viopCurrency';
 
 export default function ViopContractStats({ contract }) {
   const { t } = useTranslation();
   if (!contract) return null;
 
+  // USD-kote VİOP (EURUSD, XAUUSD…) → '$', diğerleri → '₺'.
+  const curSym = viopCurrencySymbol(contract.name);
   const fmt = (val) => {
     const num = parseTrNumber(val);
-    return num !== null ? formatPrice(num) : '-';
+    return num !== null ? `${formatPrice(num)} ${curSym}` : '-';
   };
 
   const changeNum = parseTrNumber(contract.changePercent);

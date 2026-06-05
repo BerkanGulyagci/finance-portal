@@ -7,6 +7,7 @@ import Pagination from '../../../components/common/Pagination';
 import WatchlistStar from '../../../components/instrument/WatchlistStar';
 import InstrumentLogo from '../../../components/instrument/InstrumentLogo';
 import { useTranslation } from '../../../context/LanguageContext';
+import { viopCurrencySymbol } from './utils/viopCurrency';
 
 const PAGE_SIZE = 20;
 
@@ -24,6 +25,23 @@ function pctViop(v) {
   const n = parseFloat(clean);
   if (isNaN(n)) return <span className="text-gray-600 text-xs">{v}</span>;
   return <span className={n >= 0 ? 'text-emerald-600 font-semibold' : 'text-rose-600 font-semibold'}>{v}</span>;
+}
+// VİOP fiyat hücresi: değerin yanına doğru para birimi (USD-kote → '$', diğer → '₺').
+// Değer Akbank'tan önceden biçimli string gelir; sadece sembol eklenir.
+function priceCell(v, name) {
+  if (v == null || v === '') return '-';
+  return <>{v} <span className="text-gray-400 text-xs">{viopCurrencySymbol(name)}</span></>;
+}
+
+/** İşlem fiyatı: son işlem 0/boş ise (gün içi hiç işlem görmedi) uzlaşma fiyatına düş.
+ *  Akbank string fiyat ("2.400,0000") → JS sayıya çevrilebilir hale getirilip kontrol edilir. */
+function viopTradePrice(r) {
+  const toNum = (s) => {
+    if (s == null) return 0;
+    const n = parseFloat(String(s).replace(/\./g, '').replace(',', '.'));
+    return Number.isFinite(n) ? n : 0;
+  };
+  return toNum(r.lastPrice) > 0 ? r.lastPrice : r.settlementPrice;
 }
 
 export default function FuturesPage() {
@@ -164,16 +182,16 @@ export default function FuturesPage() {
                                   </div>
                                 </td>
                                 <td className="px-3 py-2.5 text-sm text-right">{pctViop(r.changePercent)}</td>
-                                <td className="px-3 py-2.5 text-sm font-semibold text-gray-900 text-right">{r.lastPrice ?? '-'}</td>
-                                <td className="px-3 py-2.5 text-sm text-gray-600 text-right">{r.high ?? '-'}</td>
-                                <td className="px-3 py-2.5 text-sm text-gray-600 text-right">{r.low ?? '-'}</td>
+                                <td className="px-3 py-2.5 text-sm font-semibold text-gray-900 text-right">{priceCell(r.lastPrice, r.name)}</td>
+                                <td className="px-3 py-2.5 text-sm text-gray-600 text-right">{priceCell(r.high, r.name)}</td>
+                                <td className="px-3 py-2.5 text-sm text-gray-600 text-right">{priceCell(r.low, r.name)}</td>
                                 <td className="px-3 py-2.5 text-sm text-gray-600 text-right">{r.openPositionCount ?? '-'}</td>
                                 <td className="px-3 py-2.5 text-sm text-gray-600 text-right">{r.openPositionChange ?? '-'}</td>
-                                <td className="px-3 py-2.5 text-sm text-gray-600 text-right">{r.settlementPrice ?? '-'}</td>
-                                <td className="px-3 py-2.5 text-sm text-gray-600 text-right">{r.prevSettlementPrice ?? '-'}</td>
+                                <td className="px-3 py-2.5 text-sm text-gray-600 text-right">{priceCell(r.settlementPrice, r.name)}</td>
+                                <td className="px-3 py-2.5 text-sm text-gray-600 text-right">{priceCell(r.prevSettlementPrice, r.name)}</td>
                                 <td className="px-3 py-2.5 text-xs text-gray-400">{r.time ?? '-'}</td>
                                 <td className="px-2 py-2.5 text-center" onClick={e => e.stopPropagation()}>
-                                  <WatchlistStar assetType="FUTURE" symbol={r.name} name={r.name} price={r.lastPrice} />
+                                  <WatchlistStar assetType="FUTURE" symbol={r.name} name={r.name} price={viopTradePrice(r)} />
                                 </td>
                               </tr>
                             ))

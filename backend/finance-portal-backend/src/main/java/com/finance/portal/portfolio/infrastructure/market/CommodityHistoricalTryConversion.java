@@ -88,7 +88,9 @@ public final class CommodityHistoricalTryConversion {
                 : tryClose.round(SMALL_PRICE_MATH);
     }
 
-    static BigDecimal resolveUsdTryRate(
+    /** O gün için USD/TRY kuru (forward-fill: o güne kadar son bilinen). Yoksa fallback. Public:
+     *  VİOP per-date FX (PortfolioPerformanceCalculator) bu yardımcıyı yeniden kullanır. */
+    public static BigDecimal resolveUsdTryRate(
             LocalDate day,
             NavigableMap<LocalDate, BigDecimal> usdTryByDay,
             BigDecimal latestUsdTryFallback) {

@@ -10,6 +10,7 @@ import ViopPriceChart from './components/ViopPriceChart';
 import { getViopContracts } from '../../../api/marketApi';
 import { fixViopContractName, viopContractNamesMatch } from './utils/viopContractNameFix';
 import { useTranslation } from '../../../context/LanguageContext';
+import { SkeletonDetail } from '../../../components/common/Skeleton';
 
 export default function FuturesDetailPage() {
   const { t } = useTranslation();
@@ -56,13 +57,7 @@ export default function FuturesDetailPage() {
         <Link to="/market/futures" className="inline-flex items-center gap-1.5 text-sm text-[#093eaa] font-semibold hover:underline">
           <ArrowLeft className="w-4 h-4" /> {t('Vadeli İşlemler')}
         </Link>
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-12 flex items-center justify-center">
-          <div className="flex gap-2">
-            <div className="w-3 h-3 bg-[#093eaa] rounded-full animate-bounce" />
-            <div className="w-3 h-3 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
-            <div className="w-3 h-3 bg-[#093eaa]/30 rounded-full animate-bounce [animation-delay:200ms]" />
-          </div>
-        </div>
+        <SkeletonDetail />
       </div>
     );
   }

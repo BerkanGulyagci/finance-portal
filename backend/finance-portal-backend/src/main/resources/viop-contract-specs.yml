@@ -298,6 +298,15 @@ viop:
       marginRate: 0.141
       currency: TRY
       settlementType: PHYSICAL
+    # YKBNK (Yapı Kredi): canlı listede var, YAML'da eksikti → fallback'e düşüp çarpan=1
+    # alıyordu (nominal 100 kat hatalı). marginRate İş Yatırım/Takasbank gerçek oranı %14.8.
+    # Çarpan tüm tek-hisselerde 100.
+    - code: YKBNK
+      assetClass: SINGLE_STOCK
+      multiplier: 100
+      marginRate: 0.148
+      currency: TRY
+      settlementType: PHYSICAL
 
     # ── Index Futures (multiplier=10, CASH; SASX10=1) ──
     - code: XU030

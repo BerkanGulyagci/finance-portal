@@ -180,7 +180,8 @@ class PortfolioPeriodGrowthCalculatorTest {
         PortfolioPerformanceCalculator calc = new PortfolioPerformanceCalculator(
                 org.mockito.Mockito.mock(com.finance.portal.market.application.bond.evds.EvdsBondService.class),
                 specRegistry,
-                new com.finance.portal.portfolio.application.viop.valuation.ViopValuationService());
+                new com.finance.portal.portfolio.application.viop.valuation.ViopValuationService(),
+                org.mockito.Mockito.mock(com.finance.portal.market.application.fx.port.TcmbFxHistoryPort.class));
 
         List<PortfolioTransaction> txs = List.of(
                 buyTx("THYAO", d1.atStartOfDay(), "10", "100"));

@@ -1,7 +1,8 @@
 import { useEffect, useState, useMemo } from 'react';
 import { X, ArrowLeftRight, TrendingUp, TrendingDown } from 'lucide-react';
 import { addTransaction, getPriceAtDate } from '../../../api/portfolioApi';
-import { getViopChart, getEvdsBondDetail, getGlobalBondDetail, getViopContractSpec } from '../../../api/marketApi';
+import { getViopChart, getEvdsBondDetail, getGlobalBondDetail, getViopContractSpec, getFxTcmb, getFxHistory } from '../../../api/marketApi';
+import { isUsdViop } from '../../market/futures/utils/viopCurrency';
 import InstrumentSearchModal from '../../../components/instrument/InstrumentSearchModal';
 import CommodityPriceHint from './CommodityPriceHint';
 import DateTimeField from './DateTimeField';
@@ -216,17 +217,53 @@ export default function AddTransactionModal({
   }, [instrument, form.transactionDate, step]);
 
   // VİOP: kontrat spec'ini backend'den çek (multiplier + marginRate) — önizleme için.
+  // USD-kote kontratta (EURUSD, XAUUSD…) önizlemenin TL karşılığı için USD/TRY kurunu da ekleriz:
+  //   - İşlem tarihi BUGÜN ise anlık TCMB kuru.
+  //   - GEÇMİŞ tarih ise O TARİHİN kuru (tarihsel seri) → teminat/nominal o günkü kurla hesaplanır.
   useEffect(() => {
     if (step !== 'form' || !instrument || !isFutureAssetType(instrument.assetType)) {
       setViopSpec(null);
       return undefined;
     }
     let cancelled = false;
-    getViopContractSpec(instrument.symbol)
-      .then(s => { if (!cancelled) setViopSpec(s); })
+    const usd = isUsdViop(instrument.symbol || instrument.name);
+    const txDate = (form.transactionDate || '').slice(0, 10);
+    const today = new Date().toISOString().slice(0, 10);
+    const isPast = txDate && txDate < today;
+
+    const fxPromise = !usd
+      ? Promise.resolve(null)
+      : (isPast
+          ? getFxHistory('USD', '3M').catch(() => null)   // geçmiş tarih → tarihsel seri
+          : getFxTcmb().catch(() => null));                // bugün → anlık
+
+    Promise.all([getViopContractSpec(instrument.symbol), fxPromise])
+      .then(([s, fx]) => {
+        if (cancelled || !s) { if (!cancelled) setViopSpec(s ?? null); return; }
+        let fxRate = null;
+        if (usd && fx) {
+          if (isPast) {
+            // Tarihsel seri: işlem tarihine ≤ en yakın (forward-fill) kapanış.
+            const pts = (fx.points ?? fx.content ?? fx) || [];
+            const arr = Array.isArray(pts) ? pts : [];
+            const onOrBefore = arr
+              .filter(p => (p.date || '').slice(0, 10) <= txDate)
+              .sort((a, b) => (a.date < b.date ? 1 : -1));
+            const pick = onOrBefore[0] ?? arr[arr.length - 1];
+            fxRate = pick ? Number(pick.close ?? pick.sell ?? pick.value) || null : null;
+          } else {
+            const list = fx.rates ?? fx.content ?? fx;
+            const usdRow = Array.isArray(list)
+              ? list.find(r => (r.symbol || r.code) === 'USD')
+              : null;
+            fxRate = usdRow ? Number(usdRow.sell ?? usdRow.buy) || null : null;
+          }
+        }
+        setViopSpec(fxRate ? { ...s, fxRate } : s);
+      })
       .catch(() => { if (!cancelled) setViopSpec(null); });
     return () => { cancelled = true; };
-  }, [instrument, step]);
+  }, [instrument, step, form.transactionDate]);
 
   // VİOP: kontratın ilk işlem gününü bul → o tarihten öncesi seçilemesin (kontrat o gün açıldı).
   useEffect(() => {
@@ -318,9 +355,12 @@ export default function AddTransactionModal({
       // FX: fiyat alanı "1 foreign = X TRY" oranıdır (örn. EUR fiyatı = 53,21 ₺ per EUR).
       // Toplam ödeme de TL. instrument.currency='EUR' gelse bile modal'da ₺ gösterilir.
       if (instrument?.assetType === 'FX') return 'TRY';
+      // USD-kote VİOP (EURUSD, XAUUSD…): fiyat USD parite/ons doları → '$' gösterilir.
+      if (isFutureAssetType(instrument?.assetType)
+          && isUsdViop(instrument?.symbol || instrument?.name)) return 'USD';
       return instrument?.currency || guessCurrency(instrument?.assetType, instrument?.symbol);
     },
-    [isEurobond, instrument?.currency, instrument?.assetType, instrument?.symbol],
+    [isEurobond, instrument?.currency, instrument?.assetType, instrument?.symbol, instrument?.name],
   );
 
   const symShort = getShortSymbol(instrument?.symbol);
@@ -1129,6 +1169,7 @@ export default function AddTransactionModal({
             isFuture={isFuture}
             commission={commission}
             currency={currency}
+            viopFxRate={currency === 'USD' ? (Number(viopSpec?.fxRate) || null) : null}
             useQtyFloor={useQtyFloor}
             availableQty={availableQty}
             price={price}

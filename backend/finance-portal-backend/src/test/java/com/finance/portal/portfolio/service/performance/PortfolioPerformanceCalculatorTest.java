@@ -37,7 +37,8 @@ class PortfolioPerformanceCalculatorTest {
         calculator = new PortfolioPerformanceCalculator(
                 org.mockito.Mockito.mock(com.finance.portal.market.application.bond.evds.EvdsBondService.class),
                 specRegistry,
-                new com.finance.portal.portfolio.application.viop.valuation.ViopValuationService());
+                new com.finance.portal.portfolio.application.viop.valuation.ViopValuationService(),
+                org.mockito.Mockito.mock(com.finance.portal.market.application.fx.port.TcmbFxHistoryPort.class));
     }
 
     @Test
