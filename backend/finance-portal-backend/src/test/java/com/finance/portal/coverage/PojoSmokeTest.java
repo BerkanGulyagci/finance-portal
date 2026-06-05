@@ -59,7 +59,6 @@ class PojoSmokeTest {
             "com.finance.portal.market.presentation.dto.EvdsBondHistoryPointDto",
             "com.finance.portal.market.presentation.dto.FxRateItemDto",
             "com.finance.portal.market.infrastructure.external.gold.BistGoldHistoricalPoint",
-            "com.finance.portal.market.infrastructure.external.gold.BistGoldHistoryResponse",
             "com.finance.portal.market.infrastructure.external.gold.GoldPriceEntry",
             "com.finance.portal.market.infrastructure.external.precious.BistMetalFiyatlariPoint",
             "com.finance.portal.market.infrastructure.external.precious.BistPreciousMetalsClient$BistApiResponse",
