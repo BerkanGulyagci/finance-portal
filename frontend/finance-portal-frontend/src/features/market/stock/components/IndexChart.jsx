@@ -139,14 +139,6 @@ export default function IndexChart({ symbol, label, showSummary = true, height =
     return () => { klineDispose(id); chartRef.current = null; };
   }, [data, loading, isDark]);
 
-  const isUp      = data.length > 1 && data[data.length - 1].price >= data[0].price;
-  const change    = data.length > 1
-    ? (((data[data.length - 1].price - data[0].price) / data[0].price) * 100).toFixed(2)
-    : null;
-  const absChange = data.length > 1
-    ? (data[data.length - 1].price - data[0].price).toLocaleString('tr-TR', { maximumFractionDigits: 2 })
-    : null;
-
   return (
     <div className={showSummary ? 'bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-5 mb-6' : ''}>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
@@ -199,24 +191,9 @@ export default function IndexChart({ symbol, label, showSummary = true, height =
         <ChartHoverCard hover={hover} pos={pos} />
       </div>
 
-      {change != null && (
-        <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-          <div>
-            <p className="text-xs text-gray-400">{t(activeRange.label)} {t('Değişim')}</p>
-            <p className={`text-sm font-bold ${isUp ? 'text-emerald-600' : 'text-rose-600'}`}>
-              {isUp ? '+' : ''}₺{absChange} ({isUp ? '+' : ''}{change}%)
-            </p>
-          </div>
-          {showSummary && (
-            <div className="text-right">
-              <p className="text-xs text-gray-400">{t('Son Değer')}</p>
-              <p className="text-sm font-bold text-gray-900">
-                {data[data.length - 1]?.price.toLocaleString('tr-TR', { maximumFractionDigits: 2 })}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Alt "X Değişim / Son Değer" satırı KALDIRILDI: başlıktaki resmi '% bugün' (getIndex)
+          ile çakışıyordu — alt satır grafiğin ilk-son farkıydı (farklı değer, kafa karıştırıcı),
+          Son Değer de başlıktaki fiyatın tekrarıydı. Tek otoriter gösterim: başlık. */}
     </div>
   );
 }

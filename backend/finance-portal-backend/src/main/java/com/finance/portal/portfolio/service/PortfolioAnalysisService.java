@@ -116,16 +116,22 @@ public class PortfolioAnalysisService {
     }
 
     public PortfolioAiAnalysisResult analyze(String userId, UUID portfolioId, String userName, String userEmail) {
-        return analyze(userId, portfolioId, userName, userEmail, true);
+        return analyze(userId, portfolioId, userName, userEmail, true, "tr");
+    }
+
+    public PortfolioAiAnalysisResult analyze(String userId, UUID portfolioId, String userName, String userEmail,
+                                             boolean full) {
+        return analyze(userId, portfolioId, userName, userEmail, full, "tr");
     }
 
     /**
      * @param full true ise tam analiz (what-if serisi, benchmark, stres testi, varlık sinyalleri, rebalancing,
      *             çok-ufuklu tahmin ve AI narrator dahil). false ise HAFİF: yalnız deterministik skorlar +
      *             sınıflandırma + Monte Carlo (GridBoard widget'ları için — AI narrator'ı/ağır kısımları BEKLEMEZ).
+     * @param lang AI yorumunun dili ("tr"/"en"); narrator'a iletilir.
      */
     public PortfolioAiAnalysisResult analyze(String userId, UUID portfolioId, String userName, String userEmail,
-                                             boolean full) {
+                                             boolean full, String lang) {
         PortfolioResponse resp = portfolioService.getPortfolioById(userId, portfolioId); // ownership + enrich
         PortfolioAiAnalysisResult r = new PortfolioAiAnalysisResult();
         r.setPortfolioId(portfolioId);
@@ -224,7 +230,7 @@ public class PortfolioAnalysisService {
                     r.getClassification() != null ? r.getClassification().profile() : "BALANCED"));
             r.setForecast(buildForecast(rows, totalValue, metrics, r.getAssetSignals()));
             try {
-                String report = narrator.generate(r, userId, userName, userEmail);
+                String report = narrator.generate(r, userId, userName, userEmail, lang);
                 r.setAiReport(report);
                 r.setAiReportAvailable(report != null && !report.isBlank());
             } catch (Exception e) {

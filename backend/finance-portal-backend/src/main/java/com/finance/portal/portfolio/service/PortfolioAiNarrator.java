@@ -89,13 +89,29 @@ public class PortfolioAiNarrator {
      * LLM hata verirse {@code AssistantUnavailableException} fırlatır (çağıran degrade eder).
      */
     public String generate(PortfolioAiAnalysisResult r, String userId, String userName, String userEmail) {
-        String cacheKey = CACHE_PREFIX + r.getPortfolioId() + ":" + metricsHash(r);
+        return generate(r, userId, userName, userEmail, "tr");
+    }
+
+    /**
+     * @param lang AI yorum dili: "en" → İngilizce rapor, diğer her şey → Türkçe (varsayılan).
+     *             EN ve TR ayrı cache'lenir (cacheKey'e dil eklenir).
+     */
+    public String generate(PortfolioAiAnalysisResult r, String userId, String userName, String userEmail, String lang) {
+        boolean english = "en".equalsIgnoreCase(lang);
+        String cacheKey = CACHE_PREFIX + (english ? "en:" : "tr:") + r.getPortfolioId() + ":" + metricsHash(r);
         String cached = read(cacheKey);
         if (cached != null) {
             return cached;
         }
+        // EN modunda sistem prompt'una ZORUNLU İngilizce talimatı eklenir (rapor yapısı/kurallar aynı kalır).
+        String systemPrompt = english
+                ? SYSTEM_PROMPT + "\n\nIMPORTANT — LANGUAGE OVERRIDE: Write the ENTIRE report in ENGLISH. "
+                  + "Translate every section heading to English (e.g. **Diagnosis**, **Portfolio Identity**, "
+                  + "**Strengths**, **Risks & Connections**, **Asset Highlights**, **Benchmark & Real Return**, "
+                  + "**Outlook**, **What Can Be Done**, **Overall Takeaway**). Do NOT use any Turkish words."
+                : SYSTEM_PROMPT;
         List<ChatMessage> messages = List.of(
-                ChatMessage.system(SYSTEM_PROMPT),
+                ChatMessage.system(systemPrompt),
                 ChatMessage.user(buildMetricsPrompt(r)));
         String reply = chatPort.complete(messages, new ToolContext(userId, userName, userEmail));
         if (reply != null && !reply.isBlank()) {

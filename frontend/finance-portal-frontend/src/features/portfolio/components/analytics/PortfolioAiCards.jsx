@@ -64,6 +64,7 @@ function ScoreRing({ score, color }) {
 }
 
 function FactorBars({ factors }) {
+  const { t } = useTranslation();
   if (!factors?.length) return null;
   const max = Math.max(1, ...factors.map(f => Math.abs(f.contribution)));
   // h-full + justify-between: barlar kartın dikey alanına eşit aralıkla yayılır
@@ -73,7 +74,7 @@ function FactorBars({ factors }) {
       {factors.map(f => (
         <div key={f.label} className="text-[11px]">
           <div className="flex justify-between items-baseline gap-3 text-gray-500">
-            <span className="truncate">{f.label}</span>
+            <span className="truncate">{t(f.label)}</span>
             <span className="font-semibold text-gray-700 shrink-0 tabular-nums">{f.contribution}</span>
           </div>
           <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">

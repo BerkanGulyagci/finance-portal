@@ -52,6 +52,7 @@ function ScoreGauge({ score, color, label, sub }) {
 }
 
 function FactorBars({ factors }) {
+  const { t } = useTranslation();
   if (!factors?.length) return null;
   const max = Math.max(1, ...factors.map((f) => Math.abs(f.contribution)));
   return (
@@ -59,7 +60,7 @@ function FactorBars({ factors }) {
       {factors.map((f) => (
         <div key={f.label} className="text-xs">
           <div className="flex justify-between items-baseline gap-3 text-gray-500">
-            <span title={f.detail} className="truncate">{f.label}</span>
+            <span title={t(f.detail)} className="truncate">{t(f.label)}</span>
             <span className="font-semibold text-gray-700 shrink-0 tabular-nums">{f.contribution}</span>
           </div>
           <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -140,7 +141,7 @@ function AssetSignalCard({ s }) {
           {metrics.map((m) => <Mini key={m.label} label={t(m.label)} value={fmtPct(m.v)} cls={signClass(m.v)} />)}
         </div>
       )}
-      {s.maState && <div className="text-[11px] text-gray-500">{s.maState}</div>}
+      {s.maState && <div className="text-[11px] text-gray-500">{t(s.maState)}</div>}
     </div>
   );
 }
@@ -169,7 +170,7 @@ function MonteCarloTooltip({ active, payload }) {
 }
 
 export default function AiAnalysisPage() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { id } = useParams();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -179,12 +180,13 @@ export default function AiAnalysisPage() {
   useEffect(() => {
     let alive = true;
     setLoading(true); setError(''); setProgress(8);
-    getPortfolioAiAnalysis(id)
+    // UI dilini AI raporuna ilet (EN ise İngilizce yorum üretilir). Dil değişince yeniden çekilir.
+    getPortfolioAiAnalysis(id, language)
       .then((d) => { if (alive) setData(d); })
       .catch((e) => { if (alive) setError(e?.response?.data?.message || t('Analiz alınamadı.')); })
       .finally(() => { if (alive) { setProgress(100); setLoading(false); } });
     return () => { alive = false; };
-  }, [id, t]);
+  }, [id, t, language]);
 
   // Analiz sürerken ilerleme çubuğunu ~%92'ye kadar yumuşakça doldur (LLM süresi değişken).
   useEffect(() => {
@@ -289,7 +291,7 @@ export default function AiAnalysisPage() {
               <div className={`inline-block px-2.5 py-1 rounded-full text-sm font-bold mb-2 ${profileStyle.bg} ${profileStyle.text}`}>
                 {t(cls.label)}
               </div>
-              <p className="text-sm text-gray-600 leading-snug mb-3">{cls.detail}</p>
+              <p className="text-sm text-gray-600 leading-snug mb-3">{t(cls.detail)}</p>
               <div className="space-y-2">
                 <WeightBar label={t('Büyüme-odaklı')} pct={cls.growthWeightPercent} color="#ef4444" />
                 <WeightBar label={t('Korumacı')} pct={cls.defensiveWeightPercent} color="#10b981" />

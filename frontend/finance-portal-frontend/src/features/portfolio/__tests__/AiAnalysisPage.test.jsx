@@ -162,7 +162,8 @@ describe('AiAnalysisPage (jsdom + testing-library + React 19)', () => {
   it('id ile getPortfolioAiAnalysis çağrılır (useParams köprüsü)', async () => {
     renderPage('42');
     await screen.findByRole('heading', { name: 'AI Portföy Analizi' });
-    expect(getPortfolioAiAnalysis).toHaveBeenCalledWith('42');
+    // Artık UI dili de geçilir (id, lang) → ikinci argüman dil ('tr' default).
+    expect(getPortfolioAiAnalysis).toHaveBeenCalledWith('42', expect.any(String));
   });
 
   it('hata → mesajı ve "Portföye dön" bağlantısını gösterir', async () => {

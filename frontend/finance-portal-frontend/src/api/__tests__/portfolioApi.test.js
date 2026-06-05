@@ -125,10 +125,13 @@ describe('getPortfolioById', () => {
 });
 
 describe('getPortfolioAiAnalysis', () => {
-  it('/ai-analysis GET atar ve wrapper.data döndürür', async () => {
+  it('/ai-analysis GET atar (lang param ile) ve wrapper.data döndürür', async () => {
     client.get.mockResolvedValue(wrap({ riskScore: 42 }));
-    const out = await getPortfolioAiAnalysis(3);
-    expect(client.get).toHaveBeenCalledWith('/api/v1/portfolios/3/ai-analysis');
+    const out = await getPortfolioAiAnalysis(3, 'en');
+    expect(client.get).toHaveBeenCalledWith(
+      '/api/v1/portfolios/3/ai-analysis',
+      { params: { lang: 'en' } },
+    );
     expect(out).toEqual({ riskScore: 42 });
   });
 });
