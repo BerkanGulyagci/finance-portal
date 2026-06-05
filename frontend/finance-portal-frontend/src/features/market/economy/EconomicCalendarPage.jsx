@@ -5,6 +5,7 @@ import Pagination from '../../../components/common/Pagination';
 import CalendarToolbar from './components/CalendarToolbar';
 import CalendarFilterPanel from './components/CalendarFilterPanel';
 import CalendarTable from './components/CalendarTable';
+import { SkeletonTable } from '../../../components/common/Skeleton';
 import {
   isoDate, startOfWeek, endOfWeek,
   parseEventTime, isAllDay, dateKey,
@@ -176,7 +177,7 @@ export default function EconomicCalendarPage() {
 
         <div className="overflow-x-auto">
           {loading ? (
-            <div className="p-8 text-center text-gray-400 text-sm">{t('Yükleniyor...')}</div>
+            <SkeletonTable rows={12} cols={6} />
           ) : error ? (
             <div className="p-6 text-rose-500 text-sm">{error}</div>
           ) : sorted.length === 0 ? (

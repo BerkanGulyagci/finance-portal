@@ -341,3 +341,79 @@ export function SkeletonDetail() {
     </div>
   );
 }
+
+/**
+ * Değerli metal detay iskeleti — GoldPage/SilverPage/PreciousMetalPage'in YENİ düzeni:
+ * üst sekmeler + fiyat başlığı, SOL grafik (2/3) + SAĞ fiyat-bilgileri kartı (1/3),
+ * altta çevirici + teorik fiyatlar. Eski bounce-spinner (GoldLoadingState) yerine.
+ * @param tabs üst sekme sayısı (altın 8, gümüş 3, platin/paladyum yok → 0)
+ */
+export function SkeletonMetalDetail({ tabs = 0 }) {
+  return (
+    <div className="space-y-5">
+      {tabs > 0 && (
+        <div className="flex gap-2 border-b border-gray-100 pb-1 overflow-hidden">
+          {Array.from({ length: tabs }).map((_, i) => (
+            <SkeletonBar key={i} className="h-9 w-24 rounded-lg shrink-0" />
+          ))}
+        </div>
+      )}
+      <div className="space-y-2">
+        <SkeletonBar className="h-5 w-40" />
+        <SkeletonBar className="h-9 w-56" />
+        <SkeletonBar className="h-4 w-32" />
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-5 items-start">
+        <div className="lg:col-span-2 min-w-0 space-y-3">
+          <div className="flex gap-2">
+            <SkeletonBar className="h-8 w-24 rounded-lg" />
+            <div className="flex-1" />
+            <SkeletonBar className="h-8 w-48 rounded-lg" />
+          </div>
+          <SkeletonBar className="h-[300px] w-full rounded-xl" />
+        </div>
+        <div className="min-w-0 space-y-3">
+          <SkeletonBar className="h-8 w-full rounded-lg" />
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5">
+            <SkeletonBar className="h-4 w-1/3 mb-3" />
+            <div className="grid grid-cols-2 gap-2.5">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="rounded-xl bg-gray-50 p-3 space-y-1.5">
+                  <SkeletonBar className="h-2.5 w-2/3 mx-auto" />
+                  <SkeletonBar className="h-4 w-3/4 mx-auto" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-5 items-start">
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 h-40" />
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 h-40" />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Genel liste sayfası iskeleti — başlık + opsiyonel sekmeler + tablo silüeti.
+ * Emtia/endeks/bildirim/ekonomik-takvim gibi liste sayfaları için.
+ */
+export function SkeletonList({ tabs = 0, rows = 10, cols = 6 }) {
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <SkeletonBar className="h-6 w-48" />
+        <SkeletonBar className="h-3.5 w-72" />
+      </div>
+      {tabs > 0 && (
+        <div className="flex gap-2">
+          {Array.from({ length: tabs }).map((_, i) => (
+            <SkeletonBar key={i} className="h-9 w-28 rounded-xl" />
+          ))}
+        </div>
+      )}
+      <SkeletonTable rows={rows} cols={cols} />
+    </div>
+  );
+}

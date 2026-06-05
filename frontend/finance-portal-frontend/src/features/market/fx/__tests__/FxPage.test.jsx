@@ -145,16 +145,16 @@ describe('FxPage (Döviz Kurları) — jsdom + testing-library', () => {
     expect(screen.getByText('2026-06-04')).toBeInTheDocument();
   });
 
-  it('TCMB yüklenirken yükleme noktaları, ardından tablo gösterilir', async () => {
+  it('TCMB yüklenirken yükleme iskeleti (SkeletonList), ardından tablo gösterilir', async () => {
     let resolve;
     getFxTcmb.mockReturnValue(new Promise((r) => { resolve = r; }));
     const { container } = renderPage();
-    // Çözülmeden önce animate-bounce noktaları (Dots) DOM'da.
-    expect(container.querySelector('.animate-bounce')).toBeInTheDocument();
+    // Çözülmeden önce skeleton placeholder'ları (animate-pulse) DOM'da.
+    expect(container.querySelector('.animate-pulse')).toBeInTheDocument();
     resolve(tcmbPayload());
-    // Çözülünce tablo satırı belirir.
+    // Çözülünce tablo satırı belirir, skeleton gider.
     expect((await screen.findAllByText('ABD Doları'))[0]).toBeInTheDocument();
-    expect(container.querySelector('.animate-bounce')).not.toBeInTheDocument();
+    expect(container.querySelector('.animate-pulse')).not.toBeInTheDocument();
   });
 
   it('ağ hatası (err.response yok) → "Sunucuya ulaşılamıyor." gösterir', async () => {

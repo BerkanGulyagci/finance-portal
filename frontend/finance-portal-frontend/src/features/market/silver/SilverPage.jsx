@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { getSilverSpot, getSilverHistory } from '../../../api/marketApi';
 
-import GoldLoadingState  from '../gold/components/GoldLoadingState';
 import GoldErrorState    from '../gold/components/GoldErrorState';
 import GoldChart         from '../gold/components/GoldChart';
 import GoldChartToolbar  from '../gold/components/GoldChartToolbar';
@@ -16,6 +15,7 @@ const PRECIOUS_CAT = { try_gram: 'GRAM_TRY', try_kg: 'KG_TRY', usd_ons: 'USD_ONS
 import GoldSourceNotice  from '../gold/components/GoldSourceNotice';
 import PreciousStatsCard from '../precious/components/PreciousStatsCard';
 import { useTranslation } from '../../../context/LanguageContext';
+import { SkeletonMetalDetail } from '../../../components/common/Skeleton';
 
 // ── Yardımcı ─────────────────────────────────────────────────────────────────
 function fmt(v, dec = 2) {
@@ -258,7 +258,7 @@ export default function SilverPage() {
 
         <div className="p-3 sm:p-6">
           {loadingSpot ? (
-            <GoldLoadingState />
+            <SkeletonMetalDetail tabs={SILVER_TABS.length} />
           ) : error ? (
             <GoldErrorState message={error} />
           ) : spot ? (

@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { getPreciousMetalSpot, getPreciousMetalHistory } from '../../../api/marketApi';
 
-import GoldLoadingState  from '../gold/components/GoldLoadingState';
 import GoldErrorState    from '../gold/components/GoldErrorState';
 import GoldChart         from '../gold/components/GoldChart';
 import GoldChartToolbar  from '../gold/components/GoldChartToolbar';
@@ -13,6 +12,7 @@ import UniversalCompareButton from '../../../components/common/UniversalCompareB
 import InstrumentActionButtons from '../../../components/instrument/InstrumentActionButtons';
 import PreciousStatsCard from './components/PreciousStatsCard';
 import { useTranslation } from '../../../context/LanguageContext';
+import { SkeletonMetalDetail } from '../../../components/common/Skeleton';
 
 // Aktif sekme → COMMODITY sembol kategorisi (portföy/alarm/kıyas için)
 const PRECIOUS_CAT = { try_gram: 'GRAM_TRY', try_kg: 'KG_TRY', usd_ons: 'USD_ONS', eur_ons: 'EUR_ONS' };
@@ -180,7 +180,7 @@ export default function PreciousMetalPage({ metal, metalName }) {
 
         <div className="p-3 sm:p-6">
           {loadingSpot ? (
-            <GoldLoadingState />
+            <SkeletonMetalDetail tabs={METAL_TABS.length} />
           ) : error ? (
             <GoldErrorState message={error} />
           ) : spot ? (

@@ -6,6 +6,7 @@ import {
 } from '../../api/notificationApi';
 import { useTranslation } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
+import { SkeletonTable } from '../../components/common/Skeleton';
 import { parseBackendDate } from '../../utils/dateUtils';
 
 function emailBadge(status, t) {
@@ -103,7 +104,7 @@ export default function NotificationsPage() {
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-4">
         {loading ? (
-          <p className="text-sm text-gray-400 py-8 text-center">{t('Yükleniyor...')}</p>
+          <SkeletonTable rows={8} cols={3} />
         ) : items.length === 0 ? (
           <div className="text-center py-12 text-sm text-gray-400">
             <Bell className="w-8 h-8 mx-auto mb-2 text-gray-300" />

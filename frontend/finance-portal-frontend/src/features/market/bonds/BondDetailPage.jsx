@@ -8,6 +8,7 @@ import BondAnalysisCard     from './components/BondAnalysisCard';
 import BondEvdsHistoryChart from './components/BondEvdsHistoryChart';
 import InstrumentActionButtons from '../../../components/instrument/InstrumentActionButtons';
 import { fmtPct } from './utils/bondChartUtils';
+import { SkeletonDetail } from '../../../components/common/Skeleton';
 import { useTranslation } from '../../../context/LanguageContext';
 
 export default function BondDetailPage() {
@@ -45,12 +46,8 @@ export default function BondDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <div className="flex gap-2">
-          <div className="w-2 h-2 bg-[#093eaa] rounded-full animate-bounce" />
-          <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
-          <div className="w-2 h-2 bg-[#093eaa]/30 rounded-full animate-bounce [animation-delay:200ms]" />
-        </div>
+      <div className="max-w-5xl mx-auto">
+        <SkeletonDetail />
       </div>
     );
   }

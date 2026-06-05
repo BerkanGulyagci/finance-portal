@@ -7,6 +7,7 @@ import SortableTh from '../../../components/common/SortableTh.jsx';
 import WatchlistStar from '../../../components/instrument/WatchlistStar';
 import { FX_META, FlagImg } from './utils/fxMeta';
 import { useTranslation } from '../../../context/LanguageContext';
+import { SkeletonList } from '../../../components/common/Skeleton';
 
 function num(v, dec = 4) {
   return v == null ? '-' : parseFloat(v).toLocaleString('tr-TR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
@@ -51,17 +52,6 @@ function FxColLabel({ tr, en, align = 'right' }) {
 const OPEN_BASES = ['USD', 'EUR', 'GBP', 'TRY'];
 const BANK_CURRENCIES = ['Tümü', 'USD', 'EUR', 'GBP', 'CHF', 'JPY', 'SAR', 'NOK', 'DKK', 'AUD', 'CAD', 'SEK'];
 const POPULAR = ['USD', 'EUR', 'GBP', 'CHF', 'JPY', 'SAR'];
-
-// Material 3 — yükleme noktaları
-function Dots() {
-  return (
-    <div className="flex justify-center gap-1.5 p-10">
-      <div className="w-2.5 h-2.5 bg-[#093eaa] rounded-full animate-bounce" />
-      <div className="w-2.5 h-2.5 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:120ms]" />
-      <div className="w-2.5 h-2.5 bg-[#093eaa]/30 rounded-full animate-bounce [animation-delay:240ms]" />
-    </div>
-  );
-}
 
 // Popüler döviz kartı (Material 3 — surface-container, elevation, state-layer)
 function PopularCard({ rate, onClick }) {
@@ -315,7 +305,7 @@ export default function FxPage() {
           </div>
         )}
 
-        {loading && <Dots />}
+        {loading && <SkeletonList tabs={3} rows={12} cols={5} />}
         {error && <div className="p-3 sm:p-6 text-rose-500 text-sm">{error}</div>}
 
         {/* TCMB Table */}

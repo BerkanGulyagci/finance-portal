@@ -4,7 +4,6 @@ import { getGoldSpot, getGoldHistory } from '../../../api/marketApi';
 
 import { GOLD_TABS, calcTheoreticalPrice } from './utils/goldConstants';
 import GoldTabs                   from './components/GoldTabs';
-import GoldLoadingState           from './components/GoldLoadingState';
 import GoldErrorState             from './components/GoldErrorState';
 import GoldHeaderCard             from './components/GoldHeaderCard';
 import GoldPriceStats             from './components/GoldPriceStats';
@@ -19,6 +18,7 @@ import GoldSourceNotice           from './components/GoldSourceNotice';
 import GoldTheoreticalPricesTable from './components/GoldTheoreticalPricesTable';
 import GoldCalculator             from './components/GoldCalculator';
 import { useTranslation } from '../../../context/LanguageContext';
+import { SkeletonMetalDetail } from '../../../components/common/Skeleton';
 
 // Alarm/işlem ön-doldurması için: compareSymbol → spot TRY fiyat alanı (backend probe ile aynı eşleme)
 const GOLD_SPOT_FIELD_BY_SYMBOL = {
@@ -206,7 +206,7 @@ export default function GoldPage() {
 
         <div className="p-3 sm:p-6">
           {loadingSpot ? (
-            <GoldLoadingState />
+            <SkeletonMetalDetail tabs={GOLD_TABS.length} />
           ) : error ? (
             <GoldErrorState message={error} />
           ) : spot ? (

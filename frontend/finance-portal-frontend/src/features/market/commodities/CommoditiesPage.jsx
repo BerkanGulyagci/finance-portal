@@ -5,8 +5,8 @@ import { CATEGORY_ORDER, CATEGORY_META } from './utils/commodityConstants';
 import CommoditiesHeader from './components/CommoditiesHeader';
 import CommoditiesSourceNotice from './components/CommoditiesSourceNotice';
 import CommodityCard from './components/CommodityCard';
-import CommoditiesLoadingState from './components/CommoditiesLoadingState';
 import CommoditiesErrorState from './components/CommoditiesErrorState';
+import { SkeletonCardGrid } from '../../../components/common/Skeleton';
 import { useTranslation } from '../../../context/LanguageContext';
 
 // M3 tarzı kategori filtre çipi
@@ -113,7 +113,7 @@ export default function CommoditiesPage() {
     ? ordered
     : ordered.filter(c => c.category === activeCategory);
 
-  if (loadingList) return <CommoditiesLoadingState />;
+  if (loadingList) return <SkeletonCardGrid count={12} />;
   if (error)       return <CommoditiesErrorState message={error} />;
 
   return (

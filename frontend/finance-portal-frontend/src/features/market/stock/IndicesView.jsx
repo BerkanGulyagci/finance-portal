@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { getIndices } from '../../../api/marketApi';
 import WatchlistStar from '../../../components/instrument/WatchlistStar';
+import { SkeletonTable } from '../../../components/common/Skeleton';
 import { useTranslation } from '../../../context/LanguageContext';
 
 const CATEGORY_ORDER = ['Ana', 'Sektör', 'Katılım', 'Tema'];
@@ -77,16 +78,7 @@ export default function IndicesView() {
         <span className="text-xs text-gray-400 ml-auto">{filtered.length} {t('endeks')}</span>
       </div>
 
-      {loading && (
-        <div className="p-4 sm:p-8 text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <div className="w-2 h-2 bg-[#093eaa] rounded-full animate-bounce" />
-            <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
-            <div className="w-2 h-2 bg-[#093eaa]/30 rounded-full animate-bounce [animation-delay:200ms]" />
-          </div>
-          <p className="text-gray-400 text-sm">{t('Endeksler yükleniyor...')}</p>
-        </div>
-      )}
+      {loading && <SkeletonTable rows={12} cols={6} />}
       {error && <div className="p-6 text-rose-500 text-sm">{error}</div>}
 
       {!loading && !error && (

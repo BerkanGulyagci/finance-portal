@@ -186,16 +186,16 @@ describe('PreciousMetalPage (Platin/Paladyum) — jsdom + testing-library', () =
     expect(screen.getByRole('button', { name: 'Ons Platin (€)' })).toBeInTheDocument();
   });
 
-  it('açılışta yükleme noktaları (GoldLoadingState) gösterilir, spot gelince kaybolur', async () => {
+  it('açılışta yükleme iskeleti (SkeletonMetalDetail) gösterilir, spot gelince kaybolur', async () => {
     let resolveSpot;
     getPreciousMetalSpot.mockReturnValue(new Promise((r) => { resolveSpot = r; }));
     const { container } = renderPage();
-    // Çözülmeden önce animate-bounce noktaları DOM'da.
-    expect(container.querySelector('.animate-bounce')).toBeInTheDocument();
+    // Çözülmeden önce skeleton placeholder'ları (animate-pulse) DOM'da.
+    expect(container.querySelector('.animate-pulse')).toBeInTheDocument();
     resolveSpot(spotPayload());
-    // Çözülünce grafik stub'ı belirir.
+    // Çözülünce grafik stub'ı belirir, skeleton gider.
     await screen.findByTestId('gold-chart');
-    expect(container.querySelector('.animate-bounce')).not.toBeInTheDocument();
+    expect(container.querySelector('.animate-pulse')).not.toBeInTheDocument();
   });
 
   it('spot çağrısı başarısız olunca metalName ile hata mesajı gösterilir, grafik render edilmez', async () => {
