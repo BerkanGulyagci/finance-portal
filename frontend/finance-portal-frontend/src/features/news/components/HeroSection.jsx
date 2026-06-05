@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Clock, TrendingUp, Send } from 'lucide-react';
 import { getNews, proxyImageUrl } from '../../../api/newsApi';
 import { useAuth } from '../../../context/AuthContext';
+import { SkeletonHero } from '../../../components/common/Skeleton';
 import { useTranslation } from '../../../context/LanguageContext';
 import { formatNewsTime } from '../../../utils/newsUtils';
 import NewsletterModal from '../../../components/shared/NewsletterModal';
@@ -77,6 +78,17 @@ export function HeroSection({ filterSlot }) {
   }, [slides.length]);
 
   const active = slides[current];
+
+  // Henüz haber gelmediyse (ilk yükleme) iskelet göster — boş siyah banner + "Yükleniyor"
+  // yerine. filterSlot (filtre çubuğu) varsa altında korunur.
+  if (items.length === 0) {
+    return (
+      <div>
+        <SkeletonHero />
+        {filterSlot && <div className="mb-6">{filterSlot}</div>}
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">

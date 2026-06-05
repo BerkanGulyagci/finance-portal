@@ -5,6 +5,7 @@ import com.finance.portal.common.application.logging.IntegrationLogSupport;
 import com.finance.portal.news.application.model.NewsArticle;
 import com.finance.portal.news.application.port.NewsProvider;
 import com.finance.portal.news.domain.NewsDateUtil;
+import com.finance.portal.news.domain.NewsHtmlUtil;
 import com.finance.portal.news.infrastructure.config.NewsSourcesProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -233,10 +234,11 @@ public class RssNewsProvider implements NewsProvider {
         if (s == null) {
             return null;
         }
-        String text = HTML_TAG.matcher(s).replaceAll(" ")
-                .replace("&nbsp;", " ").replace("&amp;", "&")
-                .replace("&lt;", "<").replace("&gt;", ">").replace("&#39;", "'")
-                .replace("&quot;", "\"").replaceAll("\\s+", " ").trim();
+        // HTML etiketlerini sök + TÜM entity'leri çöz. NewsHtmlUtil sayısal entity'leri
+        // (&#039; VE &#39;) ve çift-encode'u çözer; eski elle .replace() yalnız &#39;'i
+        // yakalıyordu, baştaki sıfırlı &#039; ham kalıp "ABD&#039;li" gibi görünüyordu.
+        String text = NewsHtmlUtil.decodeEntities(HTML_TAG.matcher(s).replaceAll(" "))
+                .replaceAll("\\s+", " ").trim();
         return text.length() > MAX_DESC ? text.substring(0, MAX_DESC).trim() + "…" : text;
     }
 }

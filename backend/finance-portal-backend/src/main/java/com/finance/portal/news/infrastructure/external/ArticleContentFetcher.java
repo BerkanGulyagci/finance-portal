@@ -246,12 +246,23 @@ public class ArticleContentFetcher implements ArticleContentPort {
             "güncelleme tarihi", "güncelleme :", "son dakika haberleri",
     };
 
+    // Kaynak sitelerin (ör. NTV) makale başına koyduğu "başlık tekrarı" boilerplate'i:
+    // "Canlı İzle Son Dakika <başlık> <gg.aa.yyyy ss:dd>" — başında bu kalıp + içinde tarih-saat.
+    // Gerçek haber paragrafı böyle başlayıp tarih-saatle bitmez → güvenle elenir.
+    private static final Pattern DATE_TIME = Pattern.compile("\\b\\d{1,2}\\.\\d{1,2}\\.\\d{4}\\s+\\d{1,2}:\\d{2}\\b");
+
     private static boolean looksLikeJunk(String text) {
         String low = text.toLowerCase(java.util.Locale.forLanguageTag("tr"));
         for (String kw : JUNK_KEYWORDS) {
             if (low.contains(kw)) {
                 return true;
             }
+        }
+        // Başlık-tekrar boilerplate: "canlı izle"/"son dakika" ile başlayan + tarih-saat içeren paragraf
+        String trimmed = low.stripLeading();
+        if ((trimmed.startsWith("canlı izle") || trimmed.startsWith("son dakika"))
+                && DATE_TIME.matcher(text).find()) {
+            return true;
         }
         // Birden çok yazı sistemi (Latin + Kiril + Arap) = dil değiştirici menü (ör. AA "EDITION ... Русский العربية")
         if (hasForeignScriptMix(text)) {
