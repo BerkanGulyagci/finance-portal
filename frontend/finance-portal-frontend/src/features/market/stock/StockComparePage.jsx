@@ -248,6 +248,7 @@ export default function StockComparePage() {
           selectedSymbols={selectedSymbols}
           rawPrices={rawPrices}
           bist100Prices={bist100Prices}
+          rangeIdx={rangeIdx}
           t={t}
         />
       )}

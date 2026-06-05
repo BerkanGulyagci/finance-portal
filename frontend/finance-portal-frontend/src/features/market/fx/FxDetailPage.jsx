@@ -116,7 +116,21 @@ export default function FxDetailPage() {
   const isUp = chartPoints.length > 1 && chartPoints[chartPoints.length - 1].value >= chartPoints[0].value;
   const strokeColor = isUp ? '#10b981' : '#ef4444';
 
-  const trendItem = useMemo(() => buildTrendItem(chartPoints.map(p => p.value), 'FX'), [chartPoints]);
+  // Trend için SABİT 5Y serisi (seçili range'den bağımsız) — kısa range'de MA20/MA50 için
+  // yeterli nokta olmayıp trendin kaybolmasını önler. FX geçmişi 'Tüm' yok; 5Y en geniş güvenli.
+  const [trendSeries, setTrendSeries] = useState([]);
+  useEffect(() => {
+    if (!symbol) { setTrendSeries([]); return; }
+    let cancelled = false;
+    getFxHistory(symbol, '5Y')
+      .then(d => { if (!cancelled) setTrendSeries((d?.points ?? []).map(p => parseFloat(p.close)).filter(Number.isFinite)); })
+      .catch(() => { if (!cancelled) setTrendSeries([]); });
+    return () => { cancelled = true; };
+  }, [symbol]);
+  const trendItem = useMemo(() => {
+    const src = trendSeries.length >= 20 ? trendSeries : chartPoints.map(p => p.value);
+    return buildTrendItem(src, 'FX');
+  }, [trendSeries, chartPoints]);
 
   const buy  = currentRate?.buy;
   const sell = currentRate?.sell;

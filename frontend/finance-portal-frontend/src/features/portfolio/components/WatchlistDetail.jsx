@@ -9,6 +9,7 @@ import { downloadWatchlistCsv } from '../utils/exportWatchlistCsv';
 import { getWatchlistDetailPath } from '../constants/watchlistMarketRoutes';
 import { computeTrend, TREND_SIGNAL } from '../../../utils/trendUtils';
 import { useTranslation } from '../../../context/LanguageContext';
+import { useConfirm } from '../../../context/ConfirmContext';
 
 const TABS = [
   { key: 'overview', label: 'Özet' },
@@ -23,6 +24,7 @@ const TABS = [
  */
 export default function WatchlistDetail({ portfolio }) {
   const { t } = useTranslation();
+  const confirm = useConfirm();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [items, setItems] = useState([]);
@@ -51,7 +53,7 @@ export default function WatchlistDetail({ portfolio }) {
   useEffect(() => { loadItems(); }, [loadItems]);
 
   async function handleDelete(itemId) {
-    if (!window.confirm(t('Bu sembolü izleme listesinden çıkarmak istediğinizden emin misiniz?'))) return;
+    if (!(await confirm(t('Bu sembolü izleme listesinden çıkarmak istediğinizden emin misiniz?')))) return;
     setDeletingId(itemId);
     try {
       await deleteWatchlistItem(portfolio.id, itemId);

@@ -12,6 +12,7 @@ import { getCommoditySpot, getFxTcmb, getCryptos, getGoldSpot } from '../../../a
 import { isYahooCommoditySymbol } from '../../../utils/commodityPriceUtils';
 import { formatMoney, formatPercent } from '../utils/portfolioFormatUtils';
 import { useTranslation } from '../../../context/LanguageContext';
+import { useConfirm } from '../../../context/ConfirmContext';
 
 function toNumberOrNull(v) {
   if (v == null || v === '') return null;
@@ -101,6 +102,7 @@ function SummaryRow({ label, value, subValue, positive, dotColor, tooltip }) {
  */
 export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialInstrument, onInitialInstrumentConsumed, onActiveTabChange, onHoldingsSelectedKeysChange }) {
   const { t } = useTranslation();
+  const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState('holdings');
 
   // Active tab değişimini parent'a bildir (export butonları "ekranda seçili" sekmeye göre filtrelemek için)
@@ -286,7 +288,7 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
       alert(t('Bu satırda işlem kimliği yok; sayfayı yenileyip tekrar deneyin.'));
       return;
     }
-    if (!window.confirm(t('Bu işlemi silmek istediğinizden emin misiniz?'))) return;
+    if (!(await confirm(t('Bu işlemi silmek istediğinizden emin misiniz?')))) return;
     setDeletingTxId(txId);
     try {
       const updated = await deleteTransaction(portfolio.id, txId);

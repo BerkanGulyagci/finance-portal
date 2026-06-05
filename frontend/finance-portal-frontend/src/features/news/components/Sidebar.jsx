@@ -219,14 +219,11 @@ export function Sidebar() {
           {ipos.length === 0 && (
             <div className="p-4 text-sm text-gray-400">{t('Yükleniyor...')}</div>
           )}
-          <div className="max-h-[460px] overflow-auto">
+          <div className="max-h-[460px] overflow-y-auto m3-scroll">
             {ipos.map((ipo, i) => (
-              <a
+              <div
                 key={i}
-                href={ipo.url || 'https://halkarz.com'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`p-3 flex items-center gap-3 hover:bg-gray-50 transition-colors ${i < ipos.length - 1 ? 'border-b border-gray-100' : ''}`}
+                className={`p-3 flex items-center gap-3 ${i < ipos.length - 1 ? 'border-b border-gray-100' : ''}`}
               >
                 <StockLogo symbol={ipo.ticker} name={ipo.name} size={30} />
                 <div className="flex-1 min-w-0">
@@ -236,7 +233,7 @@ export function Sidebar() {
                   </div>
                   <span className="text-[10px] text-gray-400">{ipo.date}</span>
                 </div>
-              </a>
+              </div>
             ))}
           </div>
         </div>

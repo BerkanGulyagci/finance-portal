@@ -4,6 +4,7 @@ import { Bell, Plus, Pencil, Trash2, Pause, Play, ChevronRight } from 'lucide-re
 import { getAlarms, updateAlarm, deleteAlarm } from '../../api/alarmApi';
 import { useTranslation } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
+import { useConfirm } from '../../context/ConfirmContext';
 import AlarmCreateModal from './AlarmCreateModal';
 import InstrumentSearchModal from './InstrumentSearchModal';
 
@@ -56,6 +57,7 @@ function StatusBadge({ status, t }) {
 export default function AlarmsManager({ compact = false }) {
   const { t } = useTranslation();
   const toast = useToast();
+  const confirm = useConfirm();
 
   const [alarms, setAlarms] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -87,7 +89,7 @@ export default function AlarmsManager({ compact = false }) {
   }
 
   async function remove(a) {
-    if (!window.confirm(t('Bu alarmı silmek istediğinize emin misiniz?'))) return;
+    if (!(await confirm(t('Bu alarmı silmek istediğinize emin misiniz?')))) return;
     setBusyId(a.id);
     try {
       await deleteAlarm(a.id);

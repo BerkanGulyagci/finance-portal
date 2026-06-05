@@ -29,7 +29,7 @@ export function PersonalNewsStrip() {
         <Sparkles className="w-4 h-4 text-[#093eaa]" /> {t('Size Özel')}
         <span className="text-xs font-normal text-gray-400">· {t('portföyünüze göre')}</span>
       </h3>
-      <div className="flex gap-3 overflow-x-auto pb-1">
+      <div className="flex gap-3 overflow-x-auto m3-scroll pb-1">
         {items.map(item => (
           <Link
             key={item.id}

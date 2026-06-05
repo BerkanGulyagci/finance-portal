@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { LifeBuoy, Plus, Pencil, Trash2, Check } from 'lucide-react';
 import { getMyTickets, createTicket, updateTicket, deleteTicket } from '../../../api/supportApi';
 import { useTranslation } from '../../../context/LanguageContext';
+import { useConfirm } from '../../../context/ConfirmContext';
 
 const STATUS_BADGE = {
   OPEN: 'bg-amber-100 text-amber-800',
@@ -12,6 +13,7 @@ const STATUS_BADGE = {
 /** Profil → "Bir problem mi yaşıyorsunuz?" — talep oluştur + kendi taleplerini gör/düzenle/sil (yalnız Açık). */
 export default function SupportTicketsCard() {
   const { t } = useTranslation();
+  const confirm = useConfirm();
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -52,7 +54,7 @@ export default function SupportTicketsCard() {
   }
 
   async function remove(id) {
-    if (!window.confirm(t('Bu talebi silmek istediğinize emin misiniz?'))) return;
+    if (!(await confirm(t('Bu talebi silmek istediğinize emin misiniz?')))) return;
     try { await deleteTicket(id); load(); } catch (e2) { alert(e2?.response?.data?.message || t('Silinemedi.')); }
   }
 

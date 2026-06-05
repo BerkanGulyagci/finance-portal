@@ -85,7 +85,7 @@ export default function PortfolioDonutChart({
   data,
   valuesHidden,
   currency,
-  height = 248,
+  height = null,   // null → parent'ı doldur (h-full); sayı → sabit piksel yükseklik
   getCellKey = (entry, i) => entry.type ?? `${entry.name}-${i}`,
   onSelect,
 }) {
@@ -134,9 +134,16 @@ export default function PortfolioDonutChart({
         CHART_DONUT_COLORS.length
     ];
 
+  // height verilmemişse (GridBoard kartı içinde) parent'ın TÜM yüksekliğini doldur (h-full) →
+  // kart büyüyünce/küçülünce donut aynı oranda ölçeklenir, altta boşluk kalmaz.
+  // Açık height verilirse (sabit-yükseklik isteyen yerler) o piksel değeri korunur.
+  const fillParent = height == null;
   return (
-    <div className="w-full min-w-0">
-      <div className="relative w-full min-w-0" style={{ height }}>
+    <div className={`w-full min-w-0 ${fillParent ? 'h-full flex flex-col min-h-0' : 'shrink-0'}`}>
+      <div
+        className={`relative w-full min-w-0 ${fillParent ? 'flex-1 min-h-0' : ''}`}
+        style={fillParent ? undefined : { height }}
+      >
         <ResponsiveContainer width="100%" height="100%" className="relative z-0">
           <PieChart margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
             <Pie

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { banUser, getUsers, unbanUser } from '../../../api/adminApi';
 import { useToast } from '../../../context/ToastContext';
+import { useConfirm } from '../../../context/ConfirmContext';
 import { useTranslation } from '../../../context/LanguageContext';
 import { BAN_STATUS_FILTER } from '../utils/banDisplay';
 
@@ -17,6 +18,7 @@ function mapLoadError(err, t) {
 export function useAdminUsers() {
   const { t } = useTranslation();
   const toast = useToast();
+  const confirm = useConfirm();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -124,7 +126,10 @@ export function useAdminUsers() {
   }
 
   async function unban(user) {
-    if (!window.confirm(t('{username} kullanıcısının banını kaldırmak istediğinize emin misiniz?', { username: user.username }))) return;
+    if (!(await confirm({
+      message: t('{username} kullanıcısının banını kaldırmak istediğinize emin misiniz?', { username: user.username }),
+      danger: false,
+    }))) return;
     setDetailUserId(null);
     setActionUserId(user.id);
     try {

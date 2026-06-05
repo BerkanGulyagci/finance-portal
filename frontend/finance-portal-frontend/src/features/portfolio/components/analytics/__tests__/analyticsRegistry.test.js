@@ -26,9 +26,9 @@ describe('ANALYTICS_CHARTS', () => {
       'dailyStatus',
       'categoryChange',
       'dailyContribution',
-      'gainersLosers',
       'aiRisk',
       'aiHealth',
+      'gainersLosers',
       'aiIdentity',
       'aiMonteCarlo',
     ]);
@@ -83,13 +83,13 @@ describe('ANALYTICS_CHARTS', () => {
 
   it('belirli kartların boyut (w/h) değerleri kaynaktaki tanımla eşleşir', () => {
     const allocation = ANALYTICS_CHARTS.find((c) => c.key === 'allocation');
-    expect(allocation).toMatchObject({ label: 'Varlık Türü Dağılımı', w: 4, h: 18 });
+    expect(allocation).toMatchObject({ label: 'Varlık Türü Dağılımı', w: 4, h: 15 });
 
     const gainersLosers = ANALYTICS_CHARTS.find((c) => c.key === 'gainersLosers');
     expect(gainersLosers).toMatchObject({
       label: 'En Çok Kazandıran / Kaybettiren',
       w: 8,
-      h: 14,
+      h: 10,
     });
 
     const aiMonteCarlo = ANALYTICS_CHARTS.find((c) => c.key === 'aiMonteCarlo');

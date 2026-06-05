@@ -56,7 +56,7 @@ export default function PortfolioCostValueChart({ holdings, valuesHidden, curren
       {!chartData.length ? (
         <p className="text-center text-sm text-gray-400 py-10">{t('Dağılım için yeterli veri bulunamadı.')}</p>
       ) : (
-        <div className="w-full min-w-0" style={{ height: chartHeight }}>
+        <div className="w-full min-w-0 flex-1 min-h-0" style={{ minHeight: chartHeight }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}

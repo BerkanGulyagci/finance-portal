@@ -1,14 +1,22 @@
 import { TrendingUp } from 'lucide-react';
 import { COLORS, calcMetrics } from '../utils/stockCompareUtils';
+import { STOCK_CHART_RANGES } from '../utils/stockChartRanges';
 
 /**
  * Hisse-hisse kıyasında performans metrikleri tablosu (getiri, BIST100'e göre, drawdown,
  * volatilite, RSI, MA durumları, trend...). SAF sunum: rawPrices/bist100Prices'tan metrikleri
- * hesaplayıp gösterir — state/handler yok. StockComparePage'den taşındı; JSX/Tailwind class'ları
- * ve hesaplar birebir aynıdır (görüntü/responsive/değerler değişmedi).
+ * hesaplayıp gösterir — state/handler yok.
+ *
+ * MA NOTU: MA7/MA25 son N VERİ NOKTASInın ortalamasıdır. 1A/3A/6A modunda veri SAATLİK
+ * (interval '1h') → MA7 ≈ son 7 saat, "7 gün" DEĞİL. Etiket buna göre dürüstçe ayarlanır:
+ * saatlik modda "MA7 (kısa)" + tooltip; günlük/haftalık/aylık modda gerçek MA7/MA25.
  */
-export default function PerformanceMetricsTable({ selectedSymbols, rawPrices, bist100Prices, t }) {
+export default function PerformanceMetricsTable({ selectedSymbols, rawPrices, bist100Prices, rangeIdx = 5, t }) {
   const bist100M = calcMetrics(bist100Prices);
+  // Seçili aralığın bar birimi (saatlik mi günlük mü) — MA etiketini dürüstleştirmek için.
+  const interval = STOCK_CHART_RANGES[rangeIdx]?.interval ?? '1d';
+  const barUnit = interval === '1h' ? t('saat') : interval === '1wk' ? t('hafta') : interval === '1mo' ? t('ay') : t('gün');
+  const maLabel = (n) => `MA${n} · ${n} ${barUnit}`;
   const metrics = {};
   selectedSymbols.forEach(sym => { metrics[sym] = calcMetrics(rawPrices[sym]); });
   const fmt2 = v => v == null ? '-' : parseFloat(v).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -52,7 +60,7 @@ export default function PerformanceMetricsTable({ selectedSymbols, rawPrices, bi
     { label: 'Risk/Getiri', render: m => m?.riskAdjusted != null ? fmt2(m.riskAdjusted) : '-' },
     // ── Teknik Analiz ──
     {
-      label: 'MA7 Durumu',
+      label: maLabel(7),
       render: m => {
         if (!m?.ma7 || !m.lastPrice) return '-';
         const above = m.lastPrice >= m.ma7;
@@ -60,30 +68,19 @@ export default function PerformanceMetricsTable({ selectedSymbols, rawPrices, bi
       },
     },
     {
-      label: 'MA25 Durumu',
+      label: maLabel(25),
       render: m => {
         if (!m?.ma25 || !m.lastPrice) return '-';
         const above = m.lastPrice >= m.ma25;
         return <span className={above ? 'text-emerald-600' : 'text-rose-600'}>{above ? t('▲ Üstünde') : t('▼ Altında')} <span className="text-gray-400 text-xs">(₺{fmt4(m.ma25)})</span></span>;
       },
     },
-    {
-      label: 'Trend',
-      render: m => {
-        if (!m?.trend) return '-';
-        const colorMap = { 'Güçlü Yükselen': 'text-emerald-700', 'Yükselen': 'text-emerald-600', 'Güçlü Düşen': 'text-rose-700', 'Düşen': 'text-rose-600', 'Yatay': 'text-gray-500' };
-        const iconMap  = { 'Güçlü Yükselen': '↑↑', 'Yükselen': '↗', 'Güçlü Düşen': '↓↓', 'Düşen': '↘', 'Yatay': '→' };
-        return <span className={`font-bold ${colorMap[m.trend] ?? 'text-gray-500'}`}>{iconMap[m.trend] ?? '→'} {t(m.trend)}</span>;
-      },
-    },
-    {
-      label: 'RSI Uyarısı',
-      render: m => {
-        if (!m?.rsiWarning) return <span className="text-gray-300 text-xs">—</span>;
-        const isOverbought = m.rsiWarning.includes('Alım');
-        return <span className={`text-xs font-semibold ${isOverbought ? 'text-rose-600' : 'text-emerald-600'}`}>{t(m.rsiWarning)}</span>;
-      },
-    },
+    // NOT: "Trend" ve "RSI Uyarısı" satırları kaldırıldı.
+    //  - Trend: compare MA7/25 + dönem getirisi (kısa-vade momentum) ile detay sayfası
+    //    MA20/50 + 52 hafta (uzun-vade) farklı şey ölçüyordu → aynı hisse iki yerde zıt
+    //    görünüp güveni zedeliyordu. Net sayısal metrikler (getiri/drawdown/volatilite/
+    //    MA üstünde-altında durumu) yeterli ve tutarlı; sübjektif tek-kelime trend çıkarıldı.
+    //  - RSI Uyarısı: çoğu zaman 30-70 arası → boş ("—"); MA durumu + RSI(14) zaten var.
   ];
 
   return (

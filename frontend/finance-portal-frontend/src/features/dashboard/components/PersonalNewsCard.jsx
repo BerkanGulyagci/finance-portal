@@ -28,7 +28,7 @@ export default function PersonalNewsCard() {
         </h3>
         <Link to="/news" className="text-[11px] font-semibold text-[#093eaa] hover:underline">{t('Tümü')}</Link>
       </div>
-      <div className="flex-1 min-h-0 overflow-auto -mx-1 px-1">
+      <div className="flex-1 min-h-0 overflow-y-auto m3-scroll -mx-1 px-1">
         {loading && <p className="text-sm text-gray-400 p-2">{t('Yükleniyor...')}</p>}
         {!loading && items.length === 0 && (
           <p className="text-xs text-gray-400 p-2 leading-relaxed">

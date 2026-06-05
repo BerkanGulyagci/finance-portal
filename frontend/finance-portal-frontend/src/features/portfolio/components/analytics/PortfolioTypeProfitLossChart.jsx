@@ -38,7 +38,7 @@ export default function PortfolioTypeProfitLossChart({ holdings, valuesHidden, c
       {!rows.length ? (
         <p className="text-center text-sm text-gray-400 py-10">{t('Kar/zarar verisi bulunamadı.')}</p>
       ) : (
-        <div className="h-[240px] w-full min-w-0">
+        <div className="flex-1 min-h-0 w-full min-w-0" style={{ minHeight: 200 }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={rows}

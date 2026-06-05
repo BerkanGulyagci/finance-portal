@@ -63,6 +63,19 @@ public class MarketMoversService {
     /** Tüm kategoriler için top-N yükselen + top-N düşen. Cache 120 sn. */
     @Cacheable(cacheNames = "market.movers", key = "'all:' + #limit")
     public List<MoversCategory> getMovers(int limit) {
+        return computeMovers(limit);
+    }
+
+    /**
+     * Cache'i arka planda tazeler (warm-up). {@code @CachePut} ile aynı key'e yazar —
+     * böylece kullanıcının ilk isteği soğuk-yük (~1.4 sn) beklemez, hazır gelir.
+     */
+    @org.springframework.cache.annotation.CachePut(cacheNames = "market.movers", key = "'all:' + #limit")
+    public List<MoversCategory> refreshMovers(int limit) {
+        return computeMovers(limit);
+    }
+
+    private List<MoversCategory> computeMovers(int limit) {
         return new ArrayList<>(List.of(
                 cryptoMovers(limit),
                 stockMovers(limit),
@@ -188,6 +201,16 @@ public class MarketMoversService {
      *  Emtia HARİÇ: Yahoo emtia hacmi kontrat adedi (lot) — parasal değil, kıyas anlamsız. */
     @Cacheable(cacheNames = "market.volumeLeaders", key = "'all:' + #limit")
     public List<MoversCategory> getVolumeLeaders(int limit) {
+        return computeVolumeLeaders(limit);
+    }
+
+    /** Hacim liderleri cache'ini arka planda tazeler (warm-up). Soğuk-yükü kullanıcıdan gizler. */
+    @org.springframework.cache.annotation.CachePut(cacheNames = "market.volumeLeaders", key = "'all:' + #limit")
+    public List<MoversCategory> refreshVolumeLeaders(int limit) {
+        return computeVolumeLeaders(limit);
+    }
+
+    private List<MoversCategory> computeVolumeLeaders(int limit) {
         return new ArrayList<>(List.of(
                 cryptoVolumeLeaders(limit),
                 stockVolumeLeaders(limit)));

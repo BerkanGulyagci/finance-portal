@@ -41,17 +41,20 @@ public class MarketListCacheWarmupService {
     private final MarketFxService marketFxService;
     private final InflationDeflatorService inflationDeflatorService;
     private final CentralIntegrationLogService integrationLogService;
+    private final com.finance.portal.market.application.movers.MarketMoversService marketMoversService;
 
     public MarketListCacheWarmupService(EvdsBondService evdsBondService,
                                         RasyonetFundService rasyonetFundService,
                                         MarketFxService marketFxService,
                                         InflationDeflatorService inflationDeflatorService,
-                                        CentralIntegrationLogService integrationLogService) {
+                                        CentralIntegrationLogService integrationLogService,
+                                        com.finance.portal.market.application.movers.MarketMoversService marketMoversService) {
         this.evdsBondService = evdsBondService;
         this.rasyonetFundService = rasyonetFundService;
         this.marketFxService = marketFxService;
         this.inflationDeflatorService = inflationDeflatorService;
         this.integrationLogService = integrationLogService;
+        this.marketMoversService = marketMoversService;
     }
 
     // ── Açılışta bir kez (asenkron — uygulama başlatmayı bloklamaz) ──────────────
@@ -63,8 +66,18 @@ public class MarketListCacheWarmupService {
         // temeli) → yavaş bonds (~45s) arkasında beklemesinler; ilk kullanıcı soğuk-fetch ödemesin.
         warmFxTcmb();
         warmEconomy();
+        warmMovers();
         warmBonds();
         warmFunds();
+    }
+
+    // ── Dashboard movers + hacim liderleri: 90 sn'de bir (cache TTL 120 sn) ──────
+    // Cold-start ~1.4 sn'yi kullanıcıdan gizler; dashboard kartları hazır gelir.
+    @Scheduled(fixedDelayString = "${market.warmup.movers.fixed-delay-ms:90000}",
+               initialDelayString = "${market.warmup.movers.initial-delay-ms:90000}")
+    @SchedulerLock(name = "market-movers-warmup", lockAtMostFor = "PT2M", lockAtLeastFor = "PT10S")
+    public void scheduledMoversWarmup() {
+        warmMovers();
     }
 
     // ── Tahvil listesi: 2 saatte bir (cache TTL 6 saat — warm-up'lar arası expire olmaz) ──
@@ -130,6 +143,18 @@ public class MarketListCacheWarmupService {
         if (fail > 0) {
             publishFailure("market_funds_list_warmup", IntegrationLogSupport.PROVIDER_RASYONET,
                     fail + " fund category warmup(s) failed");
+        }
+    }
+
+    private void warmMovers() {
+        // Frontend dashboard kartları limit=5 kullanıyor → o key'i ısıt.
+        try {
+            marketMoversService.refreshMovers(5);
+            marketMoversService.refreshVolumeLeaders(5);
+            log.info("Market movers + volume-leaders cache warmed (limit=5).");
+        } catch (Exception e) {
+            log.warn("Market movers/volume-leaders cache warmup failed: {}", e.getMessage());
+            publishFailure("market_movers_warmup", IntegrationLogSupport.PROVIDER_YAHOO, e.getMessage());
         }
     }
 

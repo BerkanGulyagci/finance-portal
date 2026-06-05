@@ -66,8 +66,10 @@ function ScoreRing({ score, color }) {
 function FactorBars({ factors }) {
   if (!factors?.length) return null;
   const max = Math.max(1, ...factors.map(f => Math.abs(f.contribution)));
+  // h-full + justify-between: barlar kartın dikey alanına eşit aralıkla yayılır
+  // (altta boşluk toplanmaz). En az ~minHeight kadar yer varsa okunur kalır.
   return (
-    <div className="mt-2 space-y-1 w-full">
+    <div className="mt-2 w-full h-full flex flex-col justify-between gap-1 min-h-[80px]">
       {factors.map(f => (
         <div key={f.label} className="text-[11px]">
           <div className="flex justify-between items-baseline gap-3 text-gray-500">

@@ -99,15 +99,23 @@ export default function GridBoard({ storageKey, items, removable = false, toolba
   const visibleKeys = keys.filter(k => !hidden.has(k));
   const hiddenCount = keys.filter(k => hidden.has(k)).length;
 
-  // Görünür kartlar için lg layout; kayıtta olmayan yeni kart en alta eklenir.
+  // Görünür kartlar için lg layout; kayıtta OLMAYAN yeni kartlar, kaydedilenlerin
+  // altındaki ilk satıra soldan sağa dizilir (sığmazsa alta sarar) — eskiden hepsi
+  // sol sütuna alt alta yığılıyordu. Kaydedilmiş kartların yeri hiç değişmez.
   const lgLayout = useMemo(() => {
     const map = new Map(storedLg.map(l => [l.i, l]));
-    let maxY = storedLg.reduce((m, l) => Math.max(m, (l.y || 0) + (l.h || DEFAULT_H)), 0);
+    // Yeni kartların başlayacağı satır: mevcut tüm kartların en altı.
+    const startY = storedLg.reduce((m, l) => Math.max(m, (l.y || 0) + (l.h || DEFAULT_H)), 0);
+    let x = 0, y = startY, rowMaxH = 0;
     return visibleKeys.map(key => {
       if (map.has(key)) return map.get(key);
       const meta = metaByKey[key] || {};
-      const item = { i: key, x: 0, y: maxY, w: meta.w || DEFAULT_W, h: meta.h || DEFAULT_H, minW: 3, minH: 4 };
-      maxY += meta.h || DEFAULT_H;
+      const W = Math.min(meta.w || DEFAULT_W, COLS.lg);
+      const H = meta.h || DEFAULT_H;
+      if (x + W > COLS.lg) { x = 0; y += rowMaxH; rowMaxH = 0; }   // satıra sığmazsa alta sar
+      const item = { i: key, x, y, w: W, h: H, minW: 3, minH: 4 };
+      x += W;
+      rowMaxH = Math.max(rowMaxH, H);
       return item;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps

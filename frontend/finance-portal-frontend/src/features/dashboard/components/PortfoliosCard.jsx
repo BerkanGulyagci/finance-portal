@@ -26,7 +26,7 @@ export default function PortfoliosCard({ portfolios, onHide, hiddenCount = 0, on
   );
 
   return (
-    <DashCard title={t('Portföylerim')} icon={Briefcase} action={action}>
+    <DashCard title={t('Portföylerim')} icon={Briefcase} action={action} scroll>
       {portfolios.length === 0 ? (
         <p className="text-sm text-gray-400 py-6 text-center">{t('Görüntülenecek portföy yok.')}</p>
       ) : (
