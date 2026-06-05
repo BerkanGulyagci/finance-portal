@@ -136,19 +136,19 @@ describe('StockDetailPage (Vitest + @testing-library/react)', () => {
     })).toBeInTheDocument();
   });
 
-  it('başlangıçta yükleme göstergesini (bounce dots) gösterir, veri gelince kaldırır', async () => {
+  it('başlangıçta skeleton gösterir, veri gelince kaldırır', async () => {
     // midas çağrısını askıda tut → loading=true kalsın.
     let resolveMidas;
     getStockMidasDetail.mockReturnValue(new Promise((res) => { resolveMidas = res; }));
     const { container } = renderPage();
-    // animate-bounce noktalar DOM'da (yükleme).
-    expect(container.querySelectorAll('.animate-bounce').length).toBeGreaterThan(0);
+    // Skeleton placeholder (animate-pulse) DOM'da (yükleme).
+    expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
     // Metrik kartı henüz yok.
     expect(screen.queryByText('Güncel Fiyat')).not.toBeInTheDocument();
     // Çöz → loading biter, içerik gelir.
     resolveMidas(MIDAS_FULL);
     expect(await screen.findByText('Güncel Fiyat')).toBeInTheDocument();
-    expect(container.querySelectorAll('.animate-bounce').length).toBe(0);
+    expect(container.querySelectorAll('.animate-pulse').length).toBe(0);
   });
 
   it('midas dolu olunca fiyat, hacim ve finansal metrik kartlarını gösterir', async () => {

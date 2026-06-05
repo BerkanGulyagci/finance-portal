@@ -137,19 +137,16 @@ describe('BondsPage (Tahvil / Bono) — jsdom + testing-library', () => {
     expect(screen.getByText('Toplam Aktif Kıymet')).toBeInTheDocument();
   });
 
-  it('yüklenirken animate-bounce noktaları, ardından tablo gösterilir', async () => {
+  it('yüklenirken skeleton (animate-pulse) gösterilir, ardından tablo gelir', async () => {
     let resolve;
     getEvdsBonds.mockReturnValue(new Promise((r) => { resolve = r; }));
     const { container } = renderPage();
-    // Çözülmeden önce yükleme noktaları DOM'da, metni görünür.
-    expect(container.querySelector('.animate-bounce')).toBeInTheDocument();
-    expect(
-      screen.getByText('EVDS tahvil/bono verileri yükleniyor...')
-    ).toBeInTheDocument();
+    // Çözülmeden önce skeleton placeholder (animate-pulse) DOM'da.
+    expect(container.querySelector('.animate-pulse')).toBeInTheDocument();
     resolve(listPayload());
-    // Çözülünce satır belirir, yükleme noktaları kaybolur.
+    // Çözülünce satır belirir, skeleton kaybolur.
     expect(await screen.findByText('TRD070725T18')).toBeInTheDocument();
-    expect(container.querySelector('.animate-bounce')).not.toBeInTheDocument();
+    expect(container.querySelector('.animate-pulse')).not.toBeInTheDocument();
   });
 
   it('boş liste (items=[]) gelince "veri bulunamadı" boş durumu gösterir', async () => {

@@ -7,6 +7,7 @@ import SortableTh from '../../../components/common/SortableTh';
 import Pagination from '../../../components/common/Pagination';
 import WatchlistStar from '../../../components/instrument/WatchlistStar';
 import { Dropdown } from '../../../components/shared/Dropdown';
+import { SkeletonTable } from '../../../components/common/Skeleton';
 import { useTranslation } from '../../../context/LanguageContext';
 
 const PAGE_SIZE = 20;
@@ -76,16 +77,7 @@ function FundTable({ funds, accentColor, loading, error, showFounder = false }) 
 
   const headerBg = { backgroundColor: accentColor };
 
-  if (loading) return (
-    <div className="p-10 text-center">
-      <div className="flex items-center justify-center gap-2 mb-2">
-        <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: accentColor }} />
-        <div className="w-2 h-2 rounded-full animate-bounce [animation-delay:100ms]" style={{ backgroundColor: accentColor + '99' }} />
-        <div className="w-2 h-2 rounded-full animate-bounce [animation-delay:200ms]" style={{ backgroundColor: accentColor + '44' }} />
-      </div>
-      <p className="text-gray-400 text-sm">{t('Fonlar yükleniyor...')}</p>
-    </div>
-  );
+  if (loading) return <SkeletonTable rows={10} cols={showFounder ? 12 : 11} />;
   if (error) return <div className="p-6 text-rose-500 text-sm">{error}</div>;
 
   return (
@@ -216,16 +208,7 @@ function OsmanliBulletinTable({ funds, loading, error }) {
   const thProps = (key, label, align = 'left') => ({ label, sortKey: key, currentKey: sortKey, currentDir: sortDir, onSort: handleSort, align, onColor: true });
   const AC = '#d97706';
 
-  if (loading) return (
-    <div className="p-10 text-center">
-      <div className="flex items-center justify-center gap-2 mb-2">
-        <div className="w-2 h-2 bg-amber-500 rounded-full animate-bounce" />
-        <div className="w-2 h-2 bg-amber-500/60 rounded-full animate-bounce [animation-delay:100ms]" />
-        <div className="w-2 h-2 bg-amber-500/30 rounded-full animate-bounce [animation-delay:200ms]" />
-      </div>
-      <p className="text-gray-400 text-sm">{t('Fon bülteni yükleniyor...')}</p>
-    </div>
-  );
+  if (loading) return <SkeletonTable rows={10} cols={11} />;
   if (error) return <div className="p-6 text-rose-500 text-sm">{error}</div>;
 
   return (

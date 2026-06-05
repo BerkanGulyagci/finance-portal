@@ -5,6 +5,7 @@ import { getGlobalBondDetail } from '../../../api/marketApi';
 import InstrumentActionButtons from '../../../components/instrument/InstrumentActionButtons';
 import EurobondChart from './components/EurobondChart';
 import { useTranslation } from '../../../context/LanguageContext';
+import { SkeletonDetail } from '../../../components/common/Skeleton';
 
 function fmtPrice(v, currency) {
   if (v == null) return '-';
@@ -50,7 +51,7 @@ export default function EurobondDetailPage() {
         <ArrowLeft className="w-4 h-4" /> {t('Tahviller')}
       </Link>
 
-      {loading && <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center text-sm text-gray-400">{t('Yükleniyor...')}</div>}
+      {loading && <SkeletonDetail />}
       {error && !loading && <div className="bg-white rounded-2xl border border-rose-200 p-6 text-rose-500 text-sm">{error}</div>}
 
       {!loading && !error && d && (

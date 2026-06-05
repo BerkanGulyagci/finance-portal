@@ -3,6 +3,7 @@ import { getFunds } from '../../../api/marketApi';
 import { useTranslation } from '../../../context/LanguageContext';
 import Pagination from '../../../components/common/Pagination';
 import WatchlistStar from '../../../components/instrument/WatchlistStar';
+import { SkeletonTable } from '../../../components/common/Skeleton';
 
 const PAGE_SIZE = 20;
 
@@ -56,7 +57,7 @@ export default function FundsPage() {
           <span className="text-xs text-gray-400 ml-auto">{filtered.length} {t('fon')}</span>
         </div>
 
-        {loading && <div className="p-4 sm:p-8 text-center text-gray-400 text-sm">{t('Yükleniyor...')}</div>}
+        {loading && <SkeletonTable rows={10} cols={10} />}
         {error && <div className="p-6 text-rose-500 text-sm">{error}</div>}
         {!loading && !error && (
           <div className="overflow-x-auto">

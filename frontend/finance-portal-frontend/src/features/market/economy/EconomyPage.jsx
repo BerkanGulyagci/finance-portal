@@ -3,6 +3,7 @@ import { getEconomyCharts } from '../../../api/marketApi.js';
 import { useTranslation } from '../../../context/LanguageContext';
 import EconomyChartCard from './components/EconomyChartCard';
 import { ECONOMY_TOPICS } from './utils/economyContent';
+import { SkeletonCardGrid } from '../../../components/common/Skeleton';
 
 export default function EconomyPage() {
   const { t } = useTranslation();
@@ -59,13 +60,7 @@ export default function EconomyPage() {
         {t('TCMB EVDS verileriyle güncel makroekonomik göstergeler — enflasyon, faiz, büyüme, dış denge ve daha fazlası.')}
       </p>
 
-      {loading && (
-        <div className="p-8 flex justify-center gap-1.5">
-          <div className="w-2 h-2 bg-[#093eaa] rounded-full animate-bounce" />
-          <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
-          <div className="w-2 h-2 bg-[#093eaa]/30 rounded-full animate-bounce [animation-delay:200ms]" />
-        </div>
-      )}
+      {loading && <SkeletonCardGrid count={6} />}
       {error && <div className="p-6 text-rose-500 text-sm">{error}</div>}
 
       {!loading && !error && (

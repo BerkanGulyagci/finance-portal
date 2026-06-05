@@ -124,23 +124,24 @@ describe('TefasFundDetailPage (Vitest + @testing-library/react)', () => {
   it('açılışta getRasyonetFundDetail(code, "TMF") çağrılır (listItem yok → varsayılan kaynak kodu)', async () => {
     renderPage();
     await screen.findByRole('heading', { name: FUND_DETAIL.name });
-    // location.state yok → sourceCode 'TMF' (TEFAS) varsayılanına düşer.
-    expect(getRasyonetFundDetail).toHaveBeenCalledWith('AFA', 'TMF');
+    // location.state yok → sourceCode 'TMF' (TEFAS) varsayılanına düşer. 3. arg = aktif dil
+    // (strateji çevirisi için backend'e geçilir; testte varsayılan 'tr').
+    expect(getRasyonetFundDetail).toHaveBeenCalledWith('AFA', 'TMF', 'tr');
   });
 
-  it('yükleme sırasında bounce göstergesini gösterir, veri gelince gizler (loading dalı)', async () => {
+  it('yükleme sırasında skeleton gösterir, veri gelince gizler (loading dalı)', async () => {
     // Çözülmeyen promise → kalıcı loading.
     let resolveFn;
     getRasyonetFundDetail.mockReturnValue(new Promise((res) => { resolveFn = res; }));
     const { container } = renderPage();
-    // Loading kartı animate-bounce noktalar içerir.
-    expect(container.querySelector('.animate-bounce')).toBeTruthy();
+    // Loading sırasında skeleton placeholder (animate-pulse) içerir.
+    expect(container.querySelector('.animate-pulse')).toBeTruthy();
     // Sekme butonları henüz yok (içerik !loading && d'ye bağlı).
     expect(screen.queryByRole('button', { name: 'Performans' })).not.toBeInTheDocument();
     // Veriyi çöz → loading biter, sekmeler gelir.
     resolveFn(FUND_DETAIL);
     expect(await screen.findByRole('button', { name: 'Performans' })).toBeInTheDocument();
-    await waitFor(() => expect(container.querySelector('.animate-bounce')).toBeFalsy());
+    await waitFor(() => expect(container.querySelector('.animate-pulse')).toBeFalsy());
   });
 
   it('varsayılan Performans sekmesi: getiri kartları + risk/performans bölümü', async () => {

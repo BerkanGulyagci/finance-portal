@@ -5,6 +5,7 @@ import { getEvdsBonds, getEvdsBondCategoryCounts } from '../../../api/marketApi'
 import { useTranslation } from '../../../context/LanguageContext';
 import Pagination from '../../../components/common/Pagination';
 import WatchlistStar from '../../../components/instrument/WatchlistStar';
+import { SkeletonTable } from '../../../components/common/Skeleton';
 import EurobondList from './components/EurobondList';
 
 // ── Format yardımcıları ───────────────────────────────────────────────────────
@@ -338,16 +339,7 @@ export default function BondsPage() {
 
       {/* ── Tablo ── */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        {loading && (
-          <div className="p-4 sm:p-8 text-center">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <div className="w-2 h-2 bg-[#093eaa] rounded-full animate-bounce" />
-              <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
-              <div className="w-2 h-2 bg-[#093eaa]/30 rounded-full animate-bounce [animation-delay:200ms]" />
-            </div>
-            <p className="text-gray-400 text-sm">{t('EVDS tahvil/bono verileri yükleniyor...')}</p>
-          </div>
-        )}
+        {loading && <SkeletonTable rows={10} cols={9} />}
 
         {error && (
           <div className="p-6 text-center">

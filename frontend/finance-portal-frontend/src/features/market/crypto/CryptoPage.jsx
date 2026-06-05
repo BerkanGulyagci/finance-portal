@@ -7,6 +7,7 @@ import { useSortable } from '../../../hooks/useSortable';
 import SortableTh from '../../../components/common/SortableTh';
 import WatchlistStar from '../../../components/instrument/WatchlistStar';
 import Pagination from '../../../components/common/Pagination';
+import { SkeletonTable } from '../../../components/common/Skeleton';
 import { useTranslation } from '../../../context/LanguageContext';
 
 const PAGE_SIZE = 50;
@@ -110,7 +111,7 @@ export default function CryptoPage() {
       <p className="text-sm text-gray-500 mb-6 pl-5">{t('CoinGecko verilerine göre TRY bazlı kripto para fiyatları')}</p>
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        {loading && <div className="p-4 sm:p-8 text-center text-gray-400 text-sm">{t('Yükleniyor...')}</div>}
+        {loading && <SkeletonTable rows={10} cols={9} />}
         {error && <div className="p-3 sm:p-6 text-rose-500 text-sm">{error}</div>}
 
         {!loading && !error && (

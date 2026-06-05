@@ -145,17 +145,16 @@ describe('TefasPage (Yatırım Fonları) — jsdom + testing-library', () => {
     expect(codeLink.closest('a')).toHaveAttribute('href', '/market/tefas/AAA');
   });
 
-  it('yüklenirken animate-bounce noktaları, ardından tablo gösterilir', async () => {
+  it('yüklenirken skeleton (animate-pulse), ardından tablo gösterilir', async () => {
     let resolve;
     getAllTefasFunds.mockReturnValue(new Promise((r) => { resolve = r; }));
     const { container } = renderPage();
-    // Çözülmeden önce yükleme noktaları + "Fonlar yükleniyor..." metni.
-    expect(container.querySelector('.animate-bounce')).toBeInTheDocument();
-    expect(screen.getByText('Fonlar yükleniyor...')).toBeInTheDocument();
+    // Çözülmeden önce skeleton placeholder (animate-pulse).
+    expect(container.querySelector('.animate-pulse')).toBeInTheDocument();
     resolve(tefasFunds());
-    // Çözülünce satır belirir, noktalar kaybolur.
+    // Çözülünce satır belirir, skeleton kaybolur.
     expect(await screen.findByText('Alfa Fonu')).toBeInTheDocument();
-    expect(container.querySelector('.animate-bounce')).not.toBeInTheDocument();
+    expect(container.querySelector('.animate-pulse')).not.toBeInTheDocument();
   });
 
   it('ağ hatası (err.response yok) → "Sunucuya ulaşılamıyor." gösterir', async () => {

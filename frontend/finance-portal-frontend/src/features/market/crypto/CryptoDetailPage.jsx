@@ -25,9 +25,10 @@ import CryptoLineChart from './components/CryptoLineChart';
 import CompareDropdown from './components/CompareDropdown';
 import { useTranslation } from '../../../context/LanguageContext';
 import { CURRENCIES, fmtPrice, fmt, pct, calcRSI, RSIBadge } from './cryptoDetailParts';
+import { SkeletonDetail } from '../../../components/common/Skeleton';
 
 export default function CryptoDetailPage() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { coinId } = useParams();
   const navigate = useNavigate();
 
@@ -286,7 +287,11 @@ export default function CryptoDetailPage() {
   const ath = md?.ath?.[cur], atl = md?.atl?.[cur];
   const athPct = md?.ath_change_percentage?.[cur], atlPct = md?.atl_change_percentage?.[cur];
   const circSupply = md?.circulating_supply, totalSupply = md?.total_supply, maxSupply = md?.max_supply;
-  const description = detail?.description?.tr || detail?.description?.en || '';
+  // CoinGecko açıklamayı 30+ dilde döndürür. Aktif dile göre seç (EN modunda İngilizce);
+  // seçili dil boşsa diğerine düş (tr↔en).
+  const description = (language === 'tr'
+    ? (detail?.description?.tr || detail?.description?.en)
+    : (detail?.description?.en || detail?.description?.tr)) || '';
   const shortDesc = description.replace(/<[^>]+>/g, '').slice(0, 300);
   const homepage = detail?.links?.homepage?.[0];
   const twitter = detail?.links?.twitter_screen_name;
@@ -314,6 +319,21 @@ export default function CryptoDetailPage() {
     })).filter(p => p.displayClose > 0);
   }, [chartData, chartMode]);
 
+  // İlk yükleme (henüz ne özet ne detay geldi) → tam SkeletonDetail. coin/detail
+  // gelir gelmez normal düzene geçilir ve para birimi değişimi yerinde güncellenir.
+  if (loading && !coin && !detail) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Link to="/market/crypto" className="inline-flex items-center gap-1.5 text-sm text-[#093eaa] font-semibold hover:underline">
+            <ArrowLeft className="w-4 h-4" /> {t('Kripto Para')}
+          </Link>
+        </div>
+        <SkeletonDetail />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -328,10 +348,16 @@ export default function CryptoDetailPage() {
           {/* Skeleton SADECE ilk yüklemede (henüz coin yokken). coin varsa kart kalır,
               para birimi (TRY/USD/EUR) değiştirilince rakamlar YERİNDE güncellenir — kart kaybolmaz. */}
           {loading && !coin ? (
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex gap-1.5">
-              <div className="w-2 h-2 bg-[#093eaa] rounded-full animate-bounce" />
-              <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
-              <div className="w-2 h-2 bg-[#093eaa]/30 rounded-full animate-bounce [animation-delay:200ms]" />
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gray-200 animate-pulse" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-2/3 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-3 w-1/3 bg-gray-200 rounded animate-pulse" />
+                </div>
+              </div>
+              <div className="h-8 w-1/2 bg-gray-200 rounded animate-pulse" />
+              <div className="h-4 w-1/3 bg-gray-200 rounded animate-pulse" />
             </div>
           ) : coin && (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-5">

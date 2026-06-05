@@ -47,7 +47,7 @@ export default function StockComparePage() {
 
       {/* ── Hisse Seçici ── */}
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3 sm:p-5">
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Hisse Ekle</p>
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">{t('Hisse Ekle')}</p>
 
         {/* Hızlı ekle: endeksler + faiz/enflasyon benchmark'ları */}
         <div className="flex flex-wrap gap-2 mb-3 items-center">
@@ -82,7 +82,7 @@ export default function StockComparePage() {
                     : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-[#7c3aed] hover:text-[#7c3aed]'
                 }`}
               >
-                {b.label}
+                {t(b.label)}
                 {isSelected && <X className="w-3 h-3 ml-0.5" />}
               </button>
             );
@@ -124,7 +124,7 @@ export default function StockComparePage() {
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold text-white"
                 style={{ background: COLORS[globalIdx % COLORS.length] }}
               >
-                {it.name || it.symbol}
+                {t(it.name || it.symbol)}
                 <span className="opacity-70 text-xs">· {typeLabel}</span>
                 <button
                   onClick={() => removeExtra(it.key)}
@@ -161,7 +161,7 @@ export default function StockComparePage() {
                     : 'text-gray-500 hover:text-gray-800'
                 }`}
               >
-                {r.label}
+                {t(r.label)}
               </button>
             ))}
           </div>
@@ -279,7 +279,7 @@ export default function StockComparePage() {
             {selectedSymbols.length === 0
               ? t('Karşılaştırmak istediğin hisseleri seç')
               : selectedSymbols.length === 1
-              ? 'En az bir hisse daha ekle'
+              ? t('En az bir hisse daha ekle')
               : t('"Karşılaştır" butonuna tıkla')}
           </p>
           <p className="text-gray-400 text-sm mt-1">

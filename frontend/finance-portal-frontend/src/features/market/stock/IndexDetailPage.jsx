@@ -7,6 +7,7 @@ import WatchlistStar from '../../../components/instrument/WatchlistStar';
 import CandlestickChart from './components/CandlestickChart';
 import LineChart from './components/LineChart';
 import { useTranslation } from '../../../context/LanguageContext';
+import { SkeletonDetail } from '../../../components/common/Skeleton';
 
 // Bileşeni tam alınabilen (resmî liste) endeksler — başlık "Endeksteki Hisseler" olur;
 // diğerlerinde (sektör/küratörlü/temsilî) "Endeksteki Bazı Hisseler".
@@ -88,15 +89,7 @@ export default function IndexDetailPage() {
         </div>
       </div>
 
-      {loading && (
-        <div className="flex items-center justify-center py-20">
-          <div className="flex gap-2">
-            <div className="w-2 h-2 bg-[#093eaa] rounded-full animate-bounce" />
-            <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
-            <div className="w-2 h-2 bg-[#093eaa]/30 rounded-full animate-bounce [animation-delay:200ms]" />
-          </div>
-        </div>
-      )}
+      {loading && <SkeletonDetail />}
 
       {error && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-6 py-4 rounded-2xl">{error}</div>}
 

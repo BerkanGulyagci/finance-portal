@@ -297,7 +297,7 @@ export default function CandlestickChart({ symbol }) {
         )}
         <div id={chartId.current} style={{ width: '100%', height: '460px' }} />
       </div>
-      <p className="text-xs text-gray-400 mt-2">Kaynak: Yahoo Finance · OHLC verisi</p>
+      <p className="text-xs text-gray-400 mt-2">{t('Kaynak: Yahoo Finance · OHLC verisi')}</p>
     </div>
   );
 }

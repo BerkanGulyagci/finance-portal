@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Check, BarChart2 } from 'lucide-react';
 import { getStocks, getAllStocks } from '../../../api/marketApi';
 import SortableTh from '../../../components/common/SortableTh';
+import { SkeletonTable } from '../../../components/common/Skeleton';
 import WatchlistStar from '../../../components/instrument/WatchlistStar';
 import InstrumentLogo from '../../../components/instrument/InstrumentLogo';
 import Pagination from '../../../components/common/Pagination';
@@ -217,16 +218,7 @@ export default function StocksPage() {
           </span>
         </div>
 
-        {loading && (
-          <div className="p-4 sm:p-8 text-center">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <div className="w-2 h-2 bg-[#093eaa] rounded-full animate-bounce" />
-              <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
-              <div className="w-2 h-2 bg-[#093eaa]/30 rounded-full animate-bounce [animation-delay:200ms]" />
-            </div>
-            <p className="text-gray-400 text-sm">{t('Hisseler yükleniyor...')}</p>
-          </div>
-        )}
+        {loading && <SkeletonTable rows={10} cols={9} />}
         {error && <div className="p-6 text-rose-500 text-sm">{error}</div>}
 
         {!loading && !error && (

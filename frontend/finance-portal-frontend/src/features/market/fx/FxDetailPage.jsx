@@ -8,6 +8,7 @@ import { FX_META, FlagImg } from './utils/fxMeta';
 import { useTranslation } from '../../../context/LanguageContext';
 import UniversalCompareButton from '../../../components/common/UniversalCompareButton';
 import TrendBadge from '../../../components/common/TrendBadge';
+import { SkeletonBar } from '../../../components/common/Skeleton';
 import InstrumentActionButtons from '../../../components/instrument/InstrumentActionButtons';
 import { buildTrendItem } from '../../../utils/trendUtils';
 import FxChart from './components/FxChart';
@@ -169,10 +170,9 @@ export default function FxDetailPage() {
                   <span className="bg-[#eef2f8] px-2.5 py-1 rounded-full text-xs font-semibold text-[#5a6472]">{FX_META[sym]?.ad ?? sym}</span>
                 </div>
                 {loading ? (
-                  <div className="flex items-center gap-1.5 py-2">
-                    <div className="w-2 h-2 bg-[#093eaa] rounded-full animate-bounce" />
-                    <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:120ms]" />
-                    <div className="w-2 h-2 bg-[#093eaa]/30 rounded-full animate-bounce [animation-delay:240ms]" />
+                  <div className="flex items-end gap-3 mt-2">
+                    <SkeletonBar className="h-9 w-40" />
+                    <SkeletonBar className="h-5 w-24 mb-1.5" />
                   </div>
                 ) : (
                   <div className="flex items-end gap-3 flex-wrap mt-2">

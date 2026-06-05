@@ -7,6 +7,7 @@ import {
 } from 'recharts';
 import { getStockMidasDetail, getMarketPriceHistory } from '../../../api/marketApi';
 import TrendBadge from '../../../components/common/TrendBadge';
+import { SkeletonDetail } from '../../../components/common/Skeleton';
 import InstrumentActionButtons from '../../../components/instrument/InstrumentActionButtons';
 import { buildTrendItem } from '../../../utils/trendUtils';
 import { registerOverlay } from 'klinecharts';
@@ -204,15 +205,7 @@ export default function StockDetailPage() {
         </div>
       </div>
 
-      {loading && (
-        <div className="flex items-center justify-center py-20">
-          <div className="flex gap-2">
-            <div className="w-2 h-2 bg-[#093eaa] rounded-full animate-bounce" />
-            <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
-            <div className="w-2 h-2 bg-[#093eaa]/30 rounded-full animate-bounce [animation-delay:200ms]" />
-          </div>
-        </div>
-      )}
+      {loading && <SkeletonDetail />}
 
       {error && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-6 py-4 rounded-2xl">{error}</div>}
 
@@ -280,7 +273,7 @@ export default function StockDetailPage() {
 
           {/* ── Financial Metrics Table ── */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-6">
-            <h2 className="text-base font-bold text-gray-900 mb-4">{ticker} Hisse ve Finansal Bilgileri</h2>
+            <h2 className="text-base font-bold text-gray-900 mb-4">{ticker} {t('Hisse ve Finansal Bilgileri')}</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
               <MetricCard label="Son İşlem Fiyatı"     value={midas?.currentPrice} highlight />
               <MetricCard label="Alış"                 value={midas?.bid} />

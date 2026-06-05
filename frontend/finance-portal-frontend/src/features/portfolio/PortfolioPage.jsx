@@ -12,6 +12,7 @@ import PortfolioTypeBadge from './components/PortfolioTypeBadge';
 import AlarmsManager from '../../components/instrument/AlarmsManager';
 import PortfolioOverviewDonut from './components/analytics/PortfolioOverviewDonut';
 import { calculateAllocationByType } from './utils/portfolioAnalyticsHelpers';
+import { SkeletonTable } from '../../components/common/Skeleton';
 import { useTranslation } from '../../context/LanguageContext';
 
 const CURRENCY_ORDER = ['TRY', 'USD', 'EUR'];
@@ -414,13 +415,8 @@ export default function PortfolioPage() {
 
       {/* Loading */}
       {loading && (
-        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-8 text-center">
-          <div className="flex items-center justify-center gap-2">
-            <div className="w-2 h-2 bg-[#093eaa] rounded-full animate-bounce" />
-            <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
-            <div className="w-2 h-2 bg-[#093eaa]/30 rounded-full animate-bounce [animation-delay:200ms]" />
-          </div>
-          <p className="text-gray-400 text-sm mt-3">{t('Yükleniyor...')}</p>
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <SkeletonTable rows={6} cols={7} />
         </div>
       )}
 

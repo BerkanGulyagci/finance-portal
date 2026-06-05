@@ -109,17 +109,18 @@ beforeEach(() => {
 });
 
 describe('PortfolioPage (jsdom + testing-library + React 19)', () => {
-  it('yükleme sırasında "Yükleniyor..." gösterir, başlık her zaman görünür', async () => {
+  it('yükleme sırasında skeleton gösterir, başlık her zaman görünür', async () => {
     // getMyPortfolios çözülmeden loading dalını yakala.
     let resolve;
     getMyPortfolios.mockReturnValue(new Promise(r => { resolve = r; }));
-    renderPage();
+    const { container } = renderPage();
 
     expect(screen.getByRole('heading', { name: 'Portföylerim' })).toBeInTheDocument();
-    expect(screen.getByText('Yükleniyor...')).toBeInTheDocument();
+    // Loading sırasında skeleton placeholder (animate-pulse).
+    expect(container.querySelector('.animate-pulse')).toBeInTheDocument();
 
     resolve([]);
-    await waitFor(() => expect(screen.queryByText('Yükleniyor...')).not.toBeInTheDocument());
+    await waitFor(() => expect(container.querySelector('.animate-pulse')).not.toBeInTheDocument());
   });
 
   it('boş liste dönünce boş-durum mesajını ve "Portföy Oluştur" butonunu gösterir', async () => {

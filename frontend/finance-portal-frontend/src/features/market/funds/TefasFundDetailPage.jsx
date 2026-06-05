@@ -8,6 +8,7 @@ import InstrumentActionButtons from '../../../components/instrument/InstrumentAc
 import TefasPriceChart from './components/TefasPriceChart';
 import MonthlyReturnChart from './components/MonthlyReturnChart';
 import AssetAllocationChart from './components/AssetAllocationChart';
+import { SkeletonDetail } from '../../../components/common/Skeleton';
 
 // ── Yardımcılar ───────────────────────────────────────────────────────────────
 
@@ -100,7 +101,7 @@ function ReturnCard({ label, value }) {
 
 /* ─── Drawing Toolbar (hisse sayfasıyla aynı yapı) ─── */
 export default function TefasFundDetailPage() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { code }   = useParams();
   const location   = useLocation();
   const [fund, setFund]       = useState(location.state?.listItem ?? null);
@@ -124,14 +125,14 @@ export default function TefasFundDetailPage() {
   useEffect(() => {
     setLoading(true);
     setError('');
-    getRasyonetFundDetail(code, sourceCode)
+    getRasyonetFundDetail(code, sourceCode, language)
       .then(data => {
         if (!data) setError(t('Fon bilgisi bulunamadı.'));
         else setDetail(data);
       })
       .catch(() => setError(t('Veriler yüklenemedi.')))
       .finally(() => setLoading(false));
-  }, [code, sourceCode]);
+  }, [code, sourceCode, language]);
 
   const d = detail;
   const name = d?.name ?? fund?.name ?? code;
@@ -197,15 +198,7 @@ export default function TefasFundDetailPage() {
       </div>
 
       {/* ── Loading / Error ── */}
-      {loading && (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-12 flex items-center justify-center">
-          <div className="flex gap-2">
-            <div className="w-2 h-2 bg-[#093eaa] rounded-full animate-bounce" />
-            <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
-            <div className="w-2 h-2 bg-[#093eaa]/30 rounded-full animate-bounce [animation-delay:200ms]" />
-          </div>
-        </div>
-      )}
+      {loading && <SkeletonDetail />}
       {error && (
         <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 text-rose-600 text-sm">{error}</div>
       )}

@@ -7,6 +7,7 @@ import { buildVisibleCols } from './utils/holdingsTableUtils';
 import PortfolioTypeBadge from './components/PortfolioTypeBadge';
 import EditPortfolioModal from './components/EditPortfolioModal';
 import HoldingsDetail from './components/HoldingsDetail';
+import { SkeletonPortfolio } from '../../components/common/Skeleton';
 import WatchlistDetail from './components/WatchlistDetail';
 import { useTranslation } from '../../context/LanguageContext';
 
@@ -47,15 +48,7 @@ export default function PortfolioDetailPage() {
   useEffect(() => { load(); }, [load]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="flex gap-2">
-          <div className="w-2 h-2 bg-[#093eaa] rounded-full animate-bounce" />
-          <div className="w-2 h-2 bg-[#093eaa]/60 rounded-full animate-bounce [animation-delay:100ms]" />
-          <div className="w-2 h-2 bg-[#093eaa]/30 rounded-full animate-bounce [animation-delay:200ms]" />
-        </div>
-      </div>
-    );
+    return <SkeletonPortfolio />;
   }
 
   if (error) {
