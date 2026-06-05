@@ -62,6 +62,8 @@ const en = {
   'Kullanıcı adı veya e-posta ara...': 'Search by username or email...',
   'Kullanıcı ara': 'Search users',
   'Aramayı temizle': 'Clear search',
+  'Talep açanlar': 'With tickets',
+  'Yalnızca destek talebi açan kullanıcılar': 'Only users who opened support tickets',
   'Durum': 'Status',
   'kullanıcı': 'users',
   'Sonraki sayfa mevcut': 'Next page available',
@@ -108,7 +110,19 @@ const en = {
   '{username} kullanıcısının banını kaldırmak istediğinize emin misiniz?':
     'Are you sure you want to remove the ban for user {username}?',
   'Ban kaldırıldı.': 'Ban removed.',
+  'Kullanıcının banı kaldırıldı.': 'The user has been unbanned.',
   'Unban işlemi başarısız.': 'Unban failed.',
+  'Kullanıcı kalıcı olarak banlandı.': 'User has been permanently banned.',
+  'Kullanıcı {value} {unit} süreyle banlandı.': 'User has been banned for {value} {unit}.',
+  'dakika': 'minutes',
+  'saat': 'hours',
+  'gün': 'days',
+
+  // Support ticket status labels (AdminUserTickets / SupportTicketsCard)
+  'Açık': 'Open',
+  'İlgileniliyor': 'In Progress',
+  'Çözüldü': 'Resolved',
+  'Güncellenemedi.': 'Could not be updated.',
 
   // Additional common admin labels
   'Kullanıcılar': 'Users',

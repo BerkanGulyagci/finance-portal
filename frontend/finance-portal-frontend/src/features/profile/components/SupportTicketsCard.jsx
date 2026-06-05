@@ -9,6 +9,11 @@ const STATUS_BADGE = {
   IN_PROGRESS: 'bg-sky-100 text-sky-800',
   RESOLVED: 'bg-emerald-100 text-emerald-800',
 };
+const STATUS_LABEL = {
+  OPEN: 'Açık',
+  IN_PROGRESS: 'İlgileniliyor',
+  RESOLVED: 'Çözüldü',
+};
 
 /** Profil → "Bir problem mi yaşıyorsunuz?" — talep oluştur + kendi taleplerini gör/düzenle/sil (yalnız Açık). */
 export default function SupportTicketsCard() {
@@ -134,7 +139,7 @@ export default function SupportTicketsCard() {
                   <p className="mt-0.5 text-xs text-gray-500 whitespace-pre-wrap break-words line-clamp-3">{tk.message}</p>
                 </div>
                 <span className={`shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-md ${STATUS_BADGE[tk.status] || 'bg-gray-100 text-gray-600'}`}>
-                  {tk.statusLabel}
+                  {STATUS_LABEL[tk.status] ? t(STATUS_LABEL[tk.status]) : tk.statusLabel}
                 </span>
               </div>
               {tk.adminNote && (

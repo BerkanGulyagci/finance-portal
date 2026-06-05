@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Bot, X, ArrowUp, Maximize2, Minimize2, Trash2, TrendingUp, Newspaper, Wallet } from 'lucide-react';
+import { Bot, X, ArrowUp, Maximize2, Minimize2, Trash2 } from 'lucide-react';
 import { sendAssistantChat } from '../../api/assistantApi';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../context/LanguageContext';
@@ -11,10 +11,13 @@ let msgSeq = 1;
 const nextId = () => ++msgSeq;
 
 // Hızlı işlemler — M3 assist-chip; önceden hazır soru gönderir.
+// İkon YOK (kısa kalsın, yan yana sığsın). label + prompt çeviri ANAHTARIDIR (t() ile
+// dile göre çevrilir) → tıklanınca gönderilen mesaj da seçili dilde gider.
 const QUICK_ACTIONS = [
-  { label: 'Piyasa Özeti', icon: TrendingUp, prompt: 'Dolar, euro, gram altın ve Bitcoin şu an kaç TL?' },
-  { label: 'Haberler', icon: Newspaper, prompt: 'Bugün ekonomi haberlerinde ne var? Kısaca özetle.' },
-  { label: 'Portföyüm', icon: Wallet, prompt: 'Portföyümü özetle, dağılımım dengeli mi?' },
+  { label: 'Piyasa Özeti', prompt: 'Dolar, euro, gram altın ve Bitcoin şu an kaç TL?' },
+  { label: 'Haberler', prompt: 'Bugün ekonomi haberlerinde ne var? Kısaca özetle.' },
+  { label: 'Portföyüm', prompt: 'Portföyümü özetle, dağılımım dengeli mi?' },
+  { label: 'Neler yapabilirsin?', prompt: 'Bu sitede neler yapabilirim? Sana neler sorabilirim, hangi konularda yardımcı olabilirsin? Kısaca özetle.' },
 ];
 
 function loadSaved() {
@@ -36,8 +39,8 @@ export function AIChatWidget() {
   const greeting = () => ({
     id: 1,
     text: isAuthenticated && username
-      ? t('Merhaba {name}! Ben Porti. Piyasa, fiyat ve finans sorularında yardımcı olabilirim. Ne öğrenmek istersin?', { name: username })
-      : t('Merhaba! Ben Porti. Piyasa, fiyat ve finans sorularında yardımcı olabilirim. Ne öğrenmek istersin?'),
+      ? t('Merhaba {name}! Ben Porti, Portiva\'nın finans asistanıyım. Fiyatlar, piyasalar, portföyün ve haberler hakkında soru sorabilirsin. Sana nasıl yardımcı olabileceğimi öğrenmek için aşağıdaki "Neler yapabilirsin?" butonuna dokunabilirsin.', { name: username })
+      : t('Merhaba! Ben Porti, Portiva\'nın finans asistanıyım. Fiyatlar, piyasalar ve haberler hakkında soru sorabilirsin. Sana nasıl yardımcı olabileceğimi öğrenmek için aşağıdaki "Neler yapabilirsin?" butonuna dokunabilirsin.'),
     isBot: true,
   });
 
@@ -250,12 +253,13 @@ export function AIChatWidget() {
 
       {/* Alt: hızlı işlemler + giriş */}
       <div className="px-3.5 pt-2.5 pb-3 bg-white border-t border-[#eeedf7]">
+        {/* İkonsuz, kompakt çipler → 4'ü dar pencerede sığar. Tıklanınca gönderilen prompt
+            t() ile çevrilir → mesaj seçili dilde gider (EN modunda İngilizce soru). */}
         {!locked && (
           <div className="flex flex-wrap gap-1.5 mb-2.5">
             {QUICK_ACTIONS.map(a => (
-              <button key={a.label} onClick={() => handleSend(a.prompt)} disabled={loading}
-                className="inline-flex items-center gap-1.5 pl-2 pr-3 py-1.5 rounded-full text-xs font-medium border border-[#e2e1eb] text-[#434653] bg-white hover:bg-[#f3f3fc] hover:border-[#093eaa]/40 hover:text-[#093eaa] transition-colors disabled:opacity-50">
-                <a.icon className="w-3.5 h-3.5" />
+              <button key={a.label} onClick={() => handleSend(t(a.prompt))} disabled={loading}
+                className="inline-flex items-center px-2.5 py-1.5 rounded-full text-[11px] font-medium border border-[#e2e1eb] text-[#434653] bg-white hover:bg-[#f3f3fc] hover:border-[#093eaa]/40 hover:text-[#093eaa] transition-colors disabled:opacity-50">
                 {t(a.label)}
               </button>
             ))}

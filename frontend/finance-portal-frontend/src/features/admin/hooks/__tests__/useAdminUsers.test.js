@@ -341,6 +341,28 @@ describe('useAdminUsers — ban akışı', () => {
     expect(getUsers).toHaveBeenCalled(); // loadUsers tekrar
   });
 
+  it('confirmBan geçici ban: success toast istemcide kurulan metni kullanır (backend mesajını değil)', async () => {
+    banUser.mockResolvedValue({ message: 'Kullanıcı 8 saat süreyle banlandı.' });
+    const { result } = await renderSettled();
+    act(() => result.current.requestBan({ id: 9 }));
+
+    act(() => {
+      result.current.confirmBan({ banType: 'TEMPORARY', durationValue: 8, durationUnit: 'HOURS' });
+    });
+
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Kullanıcı 8 saat süreyle banlandı.'));
+  });
+
+  it('confirmBan kalıcı ban: success toast istemci metnini kullanır', async () => {
+    banUser.mockResolvedValue({ message: 'backend tr' });
+    const { result } = await renderSettled();
+    act(() => result.current.requestBan({ id: 9 }));
+
+    act(() => { result.current.confirmBan({ banType: 'PERMANENT' }); });
+
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Kullanıcı kalıcı olarak banlandı.'));
+  });
+
   it('confirmBan mesajsız yanıtta fallback başarı metnini kullanır', async () => {
     banUser.mockResolvedValue({});
     const { result } = await renderSettled();
@@ -386,7 +408,7 @@ describe('useAdminUsers — unban akışı', () => {
     expect(result.current.actionUserId).toBeNull();
   });
 
-  it('confirm onaylanırsa unbanUser çağrılır, success toast, detay kapanır, liste yenilenir', async () => {
+  it('confirm onaylanırsa unbanUser çağrılır, success toast (istemci metni), detay kapanır, liste yenilenir', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     unbanUser.mockResolvedValue({ message: 'Ban kalktı' });
     const { result } = await renderSettled();
@@ -396,20 +418,21 @@ describe('useAdminUsers — unban akışı', () => {
     act(() => { result.current.unban({ id: 3, username: 'foo' }); });
 
     await waitFor(() => expect(unbanUser).toHaveBeenCalledWith(3));
-    await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Ban kalktı'));
+    // Backend mesajı her zaman TR döner; EN modunda doğru çeviri için mesaj istemcide kurulur.
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Kullanıcının banı kaldırıldı.'));
     await waitFor(() => expect(result.current.detailUserId).toBeNull());
     await waitFor(() => expect(result.current.actionUserId).toBeNull());
     expect(getUsers).toHaveBeenCalled();
   });
 
-  it('unban mesajsız yanıtta fallback başarı metni', async () => {
+  it('unban: success toast her zaman istemci metnini kullanır', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     unbanUser.mockResolvedValue({});
     const { result } = await renderSettled();
 
     await act(async () => { await result.current.unban({ id: 3, username: 'foo' }); });
 
-    expect(toastSuccess).toHaveBeenCalledWith('Ban kaldırıldı.');
+    expect(toastSuccess).toHaveBeenCalledWith('Kullanıcının banı kaldırıldı.');
   });
 
   it('unban hata: error toast (backend mesajı), actionUserId sıfırlanır', async () => {

@@ -91,6 +91,7 @@ const en = {
   'Makro göstergeler: enflasyon, faiz, büyüme': 'Macro indicators: inflation, interest, growth',
   'Ekonomik Takvim': 'Economic Calendar',
   'Küresel makro veri açıklamaları (Finnhub)': 'Global macro data releases (Finnhub)',
+  'Küresel makro veri açıklamaları': 'Global macro data releases',
   'Kredi Hesaplama': 'Loan Calculator',
   'Taksit, toplam geri ödeme, faiz hesabı': 'Installment, total repayment, interest calc',
   'Mevduat Hesaplama': 'Deposit Calculator',

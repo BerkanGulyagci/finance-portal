@@ -13,6 +13,11 @@ const BADGE = {
   IN_PROGRESS: 'bg-sky-100 text-sky-800',
   RESOLVED: 'bg-emerald-100 text-emerald-800',
 };
+const STATUS_LABEL = {
+  OPEN: 'Açık',
+  IN_PROGRESS: 'İlgileniliyor',
+  RESOLVED: 'Çözüldü',
+};
 
 /** Admin kullanıcı detay modalında: o kullanıcının destek talepleri + durum/not güncelleme (kullanıcıya bildirim gider). */
 export default function AdminUserTickets({ userId }) {
@@ -58,7 +63,7 @@ export default function AdminUserTickets({ userId }) {
               <div className="flex items-start justify-between gap-2">
                 <p className="text-sm font-bold text-gray-900 break-words min-w-0">{tk.subject}</p>
                 <span className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full ${BADGE[tk.status] || 'bg-gray-100 text-gray-600'}`}>
-                  {tk.statusLabel}
+                  {STATUS_LABEL[tk.status] ? t(STATUS_LABEL[tk.status]) : tk.statusLabel}
                 </span>
               </div>
               <p className="mt-1 text-xs text-gray-600 whitespace-pre-wrap break-words">{tk.message}</p>

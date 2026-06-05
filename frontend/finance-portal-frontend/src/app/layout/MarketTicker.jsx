@@ -256,7 +256,9 @@ export function MarketTicker() {
         const spark = closes.length >= 2 ? downsample(closes, 28) : trendSparkline(last, pct ?? 0);
         // VİOP (FUTURE) custom kalemi gerçek döviz/varlıkla karışmasın diye "VİOP" etiketlenir
         // (ör. "USDTRY" VİOP vadeli ≠ "USD/TRY" döviz kuru).
-        const baseLabel = d.name || d.symbol;
+        // t() ile çevrilir: backend'den Türkçe gelen isimler (GRAM ALTIN/BUĞDAY...) EN modunda
+        // çeviri tablosundan İngilizceye döner; çeviri yoksa orijinal (Türkçe) kalır (güvenli).
+        const baseLabel = t(d.name || d.symbol);
         const label = d.assetType === 'FUTURE' ? `${baseLabel} · VİOP` : baseLabel;
         return {
           key: `custom:${d.assetType}:${d.symbol}`,

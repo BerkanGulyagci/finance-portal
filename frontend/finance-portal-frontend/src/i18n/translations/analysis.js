@@ -80,6 +80,10 @@ const en = {
   '52h verisi yok': 'No 52w data',
   '52h dip': '52w low',
   'tepe': 'high',
+  'Fiyat MA20 ve MA50 üstünde': 'Price above MA20 and MA50',
+  'Fiyat MA20 ve MA50 altında': 'Price below MA20 and MA50',
+  'MA50 üstü, MA20 altı': 'Above MA50, below MA20',
+  'MA20 üstü, MA50 altı': 'Above MA20, below MA50',
 
   // AI report
   'AI Yorum Raporu': 'AI Commentary Report',
@@ -144,6 +148,36 @@ const en = {
   'Düşüş eğilimi': 'Downtrend',
   'Yatay/belirsiz': 'Flat/unclear',
   'Kararsız': 'Mixed',
+
+  // ── Risk/Health score factor bar labels (from backend) ──────────
+  'Volatilite': 'Volatility',
+  'Yoğunlaşma': 'Concentration',
+  'Varlık tipi': 'Asset type',
+  'Max düşüş': 'Max drawdown',
+  'Geçmiş kısa': 'Short history',
+  'Çeşitlendirme': 'Diversification',
+  'Risk-ayarlı getiri': 'Risk-adjusted return',
+  'Reel getiri': 'Real return',
+  'Düşüş kontrolü': 'Drawdown control',
+
+  // ── Factor bar tooltips (detail, from backend) ──────────────────
+  'Yıllık dalgalanma katkısı': 'Annual volatility contribution',
+  'En büyük pozisyon + Herfindahl': 'Largest position + Herfindahl',
+  'Kripto/vadeli yüksek, tahvil/mevduat düşük': 'Crypto/futures high, bonds/deposits low',
+  'Tepe-dip kayıp katkısı': 'Peak-to-trough loss contribution',
+  'Volatilite/drawdown hesaplanamadı': 'Volatility/drawdown could not be computed',
+  'Yoğunlaşma ne kadar düşükse o kadar iyi': 'The lower the concentration, the better',
+  'Sharpe oranı': 'Sharpe ratio',
+  'Enflasyondan arındırılmış getiri': 'Inflation-adjusted return',
+  'Max drawdown ne kadar küçükse o kadar iyi': 'The smaller the max drawdown, the better',
+
+  // ── Portfolio Identity detail text (from backend) ───────────────
+  'Büyüme-odaklı varlık ağırlığı baskın; getiri potansiyeli yüksek, dalgalanma da yüksek.':
+    'Growth-oriented asset weight dominates; high return potential, but also high volatility.',
+  'Korumacı/sabit-getirili ağırlık baskın; sermaye koruma önceliği, getiri daha ılımlı.':
+    'Defensive/fixed-income weight dominates; capital preservation is the priority, returns are more moderate.',
+  'Büyüme ve korumacı varlıklar dengeli; orta risk-getiri profili.':
+    'Growth and defensive assets are balanced; a moderate risk-return profile.',
 
   // ── AI GridBoard widget subtitles (portfolio charts section) ────
   'Monte Carlo Projeksiyon': 'Monte Carlo Projection',

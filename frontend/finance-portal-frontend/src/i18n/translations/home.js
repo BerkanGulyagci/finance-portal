@@ -40,6 +40,18 @@ const en = {
     'Hi! I\'m Porti. I can help with market, price and finance questions. What would you like to know?',
   'Merhaba {name}! Ben Porti. Piyasa, fiyat ve finans sorularında yardımcı olabilirim. Ne öğrenmek istersin?':
     'Hi {name}! I\'m Porti. I can help with market, price and finance questions. What would you like to know?',
+  // Yeni karşılama (yetenek tanıtımı + "Neler yapabilirsin?" yönlendirmesi)
+  'Merhaba! Ben Porti, Portiva\'nın finans asistanıyım. Fiyatlar, piyasalar ve haberler hakkında soru sorabilirsin. Sana nasıl yardımcı olabileceğimi öğrenmek için aşağıdaki "Neler yapabilirsin?" butonuna dokunabilirsin.':
+    'Hi! I\'m Porti, Portiva\'s finance assistant. You can ask me about prices, markets and news. To learn how I can help you, tap the "What can you do?" button below.',
+  'Merhaba {name}! Ben Porti, Portiva\'nın finans asistanıyım. Fiyatlar, piyasalar, portföyün ve haberler hakkında soru sorabilirsin. Sana nasıl yardımcı olabileceğimi öğrenmek için aşağıdaki "Neler yapabilirsin?" butonuna dokunabilirsin.':
+    'Hi {name}! I\'m Porti, Portiva\'s finance assistant. You can ask me about prices, markets, your portfolio and news. To learn how I can help you, tap the "What can you do?" button below.',
+  // Hızlı işlem çipleri + tıklanınca gönderilen prompt'lar (dile göre)
+  'Neler yapabilirsin?': 'What can you do?',
+  'Dolar, euro, gram altın ve Bitcoin şu an kaç TL?': 'What are the current prices of USD, EUR, gram gold and Bitcoin in TRY?',
+  'Bugün ekonomi haberlerinde ne var? Kısaca özetle.': 'What\'s in today\'s economy news? Summarize briefly.',
+  'Portföyümü özetle, dağılımım dengeli mi?': 'Summarize my portfolio — is my allocation balanced?',
+  'Bu sitede neler yapabilirim? Sana neler sorabilirim, hangi konularda yardımcı olabilirsin? Kısaca özetle.':
+    'What can I do on this site? What can I ask you and how can you help me? Summarize briefly.',
   'Porti': 'Porti',
   'Finansal Asistan': 'Financial Assistant',
   "Porti'ye sorun...": 'Ask Porti...',

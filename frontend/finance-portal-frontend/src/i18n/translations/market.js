@@ -730,6 +730,34 @@ const en = {
   'Önceki Uzlaşma': 'Prev. Settlement',
   'önceki uzlaşmaya göre': 'vs prev. settlement',
   'grafik dönemi': 'chart period',
+
+  // ── Ticker custom kalem isimleri (backend Türkçe gönderir; EN modunda çevrilir) ──
+  // Emtialar
+  'Buğday': 'Wheat',
+  'BUĞDAY': 'WHEAT',
+  'Mısır': 'Corn',
+  'Kahve': 'Coffee',
+  'Kakao': 'Cocoa',
+  'Pamuk': 'Cotton',
+  'Bakır': 'Copper',
+  'Doğal Gaz': 'Natural Gas',
+  'WTI Ham Petrol': 'WTI Crude Oil',
+  'Brent Ham Petrol': 'Brent Crude Oil',
+  // Altın türleri (ticker büyük-harf varyantları dahil)
+  'GRAM ALTIN': 'GRAM GOLD',
+  'ALTIN ONS': 'GOLD OUNCE',
+  'Çeyrek Altın': 'Quarter Gold',
+  'Yarım Altın': 'Half Gold',
+  'Tam Altın': 'Full Gold',
+  'TAM ALTIN (ZIYNET)': 'FULL GOLD (ZIYNET)',
+  'Cumhuriyet Altını': 'Republic Gold',
+  'Ata Altın': 'Ata Gold',
+  // Metaller (ticker varyantları)
+  'KG PLATIN': 'KG PLATINUM',
+  'KG PLATIN (₺)': 'KG PLATINUM (₺)',
+  'GRAM GÜMÜŞ': 'GRAM SILVER',
+  'GRAM PLATIN': 'GRAM PLATINUM',
+  'GRAM PALADYUM': 'GRAM PALLADIUM',
   'Zaman': 'Time',
   'kontrat': 'contracts',
 

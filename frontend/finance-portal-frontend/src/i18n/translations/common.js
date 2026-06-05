@@ -4,6 +4,11 @@ const en = {
   'Tamam': 'OK',
   'Tarih seçin': 'Pick a date',
 
+  // ConfirmContext (shared confirm dialog)
+  'Onay': 'Confirm',
+  'Evet': 'Yes',
+  'İptal': 'Cancel',
+
   // Çizimlerim (grafik çizimleri hızlı erişim)
   'Çizimlerim': 'My Drawings',
   'çizim': 'drawings',

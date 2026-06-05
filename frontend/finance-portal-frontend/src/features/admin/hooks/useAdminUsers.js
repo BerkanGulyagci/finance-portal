@@ -8,6 +8,27 @@ import { BAN_STATUS_FILTER } from '../utils/banDisplay';
 const PAGE_SIZE = 20;
 const SEARCH_DEBOUNCE_MS = 400;
 
+const DURATION_UNIT_LABEL = {
+  MINUTES: 'dakika',
+  HOURS: 'saat',
+  DAYS: 'gün',
+};
+
+/** Backend "banlandı" mesajı her zaman Türkçe döner; EN modunda doğru göstermek için mesajı istemcide kuruyoruz. */
+function buildBanMessage(banPayload, t) {
+  if (banPayload?.banType === 'PERMANENT') {
+    return t('Kullanıcı kalıcı olarak banlandı.');
+  }
+  const unitKey = DURATION_UNIT_LABEL[banPayload?.durationUnit];
+  if (banPayload?.durationValue != null && unitKey) {
+    return t('Kullanıcı {value} {unit} süreyle banlandı.', {
+      value: banPayload.durationValue,
+      unit: t(unitKey),
+    });
+  }
+  return null;
+}
+
 function mapLoadError(err, t) {
   if (!err.response) return t('Sunucuya ulaşılamıyor.');
   if (err.response.status === 403) return t('Bu işlem için yönetici yetkisi gerekir.');
@@ -115,7 +136,7 @@ export function useAdminUsers() {
     setActionUserId(banTarget.id);
     try {
       const res = await banUser(banTarget.id, banPayload);
-      toast.success(res?.message || t('Ban işlemi başarılı.'));
+      toast.success(buildBanMessage(banPayload, t) || res?.message || t('Ban işlemi başarılı.'));
       setBanTarget(null);
       await loadUsers();
     } catch (err) {
@@ -133,8 +154,8 @@ export function useAdminUsers() {
     setDetailUserId(null);
     setActionUserId(user.id);
     try {
-      const res = await unbanUser(user.id);
-      toast.success(res?.message || t('Ban kaldırıldı.'));
+      await unbanUser(user.id);
+      toast.success(t('Kullanıcının banı kaldırıldı.'));
       await loadUsers();
     } catch (err) {
       toast.error(err.response?.data?.message || t('Unban işlemi başarısız.'));
