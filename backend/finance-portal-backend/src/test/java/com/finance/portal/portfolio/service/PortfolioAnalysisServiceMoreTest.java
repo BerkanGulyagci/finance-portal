@@ -57,7 +57,7 @@ class PortfolioAnalysisServiceMoreTest {
                 stressTestService, historicalRiskService, monteCarloService, rebalanceService, narrator);
         // toTry: TRY varsayımı (identity) — gerektiğinde testler override eder.
         when(currencyConverter.toTry(any(), any())).thenAnswer(inv -> inv.getArgument(0));
-        when(narrator.generate(any(), any(), any(), any())).thenReturn("Yorum.");
+        when(narrator.generate(any(), any(), any(), any(), any())).thenReturn("Yorum.");
         when(stressTestService.compute(any())).thenReturn(List.of());
         when(whatIfService.computeSeries(any(), any(), any(), any())).thenReturn(sampleSeries());
         // Varsayılan tarihsel-risk "yok" (testler available metrik gerektiğinde override eder).

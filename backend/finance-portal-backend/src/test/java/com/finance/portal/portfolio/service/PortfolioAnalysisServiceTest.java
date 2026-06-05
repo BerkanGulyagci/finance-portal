@@ -58,7 +58,7 @@ class PortfolioAnalysisServiceTest {
                 new PortfolioAiAnalysisResult.RiskMetrics(null, null, null, null, null, null, 0, false, "hist yok"));
         // toTry: TRY varsayımı (identity).
         when(currencyConverter.toTry(any(), any())).thenAnswer(inv -> inv.getArgument(0));
-        when(narrator.generate(any(), any(), any(), any())).thenReturn("Test yorum raporu.");
+        when(narrator.generate(any(), any(), any(), any(), any())).thenReturn("Test yorum raporu.");
         when(stressTestService.compute(any())).thenReturn(java.util.List.of());
         when(portfolioService.getPortfolioById(eq("u1"), eq(pid))).thenReturn(samplePortfolio());
         when(whatIfService.computeSeries(any(), any(), any(), any())).thenReturn(sampleSeries());
@@ -176,7 +176,7 @@ class PortfolioAnalysisServiceTest {
 
     @Test
     void analyze_aiNarratorFailure_degradesGracefully() {
-        when(narrator.generate(any(), any(), any(), any())).thenThrow(new RuntimeException("LLM down"));
+        when(narrator.generate(any(), any(), any(), any(), any())).thenThrow(new RuntimeException("LLM down"));
         PortfolioAiAnalysisResult r = service.analyze("u1", pid, "Berkan", "b@x.com");
 
         assertThat(r.isAiReportAvailable()).isFalse();
