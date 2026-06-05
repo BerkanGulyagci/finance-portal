@@ -5,6 +5,7 @@ import com.finance.portal.market.application.funds.model.FundPriceHistoryRespons
 import com.finance.portal.market.application.funds.model.RasyonetFundDetailDto;
 import com.finance.portal.market.application.funds.model.RasyonetFundDto;
 import com.finance.portal.market.application.funds.model.RasyonetOsmanliFundBulletinDto;
+import com.finance.portal.market.application.funds.FundStrategyTranslationService;
 import com.finance.portal.market.application.funds.service.RasyonetFundService;
 import com.finance.portal.market.application.funds.service.TefasFundService;
 import jakarta.validation.constraints.Max;
@@ -37,11 +38,14 @@ public class MarketFundController {
 
     private final RasyonetFundService rasyonetFundService;
     private final TefasFundService tefasFundService;
+    private final FundStrategyTranslationService strategyTranslationService;
 
     public MarketFundController(RasyonetFundService rasyonetFundService,
-                                TefasFundService tefasFundService) {
+                                TefasFundService tefasFundService,
+                                FundStrategyTranslationService strategyTranslationService) {
         this.rasyonetFundService = rasyonetFundService;
         this.tefasFundService = tefasFundService;
+        this.strategyTranslationService = strategyTranslationService;
     }
 
     /** GET /api/v1/market/funds/tefas/all — TMF yatırım fonları */
@@ -84,11 +88,16 @@ public class MarketFundController {
     @GetMapping("/tefas/{code:[A-Z0-9]{2,6}}")
     public ResponseEntity<ApiResponse<RasyonetFundDetailDto>> getTefasFundDetail(
             @PathVariable String code,
-            @RequestParam(defaultValue = "TMF") String sourceCode) {
-        RasyonetFundDetailDto detail = rasyonetFundService.getFundDetailRich(code.toUpperCase(), sourceCode.toUpperCase());
+            @RequestParam(defaultValue = "TMF") String sourceCode,
+            @RequestParam(required = false) String lang) {
+        String upper = code.toUpperCase();
+        RasyonetFundDetailDto detail = rasyonetFundService.getFundDetailRich(upper, sourceCode.toUpperCase());
         if (detail == null) {
             return ResponseEntity.ok(ApiResponse.success(null, "Fon bulunamadı: " + code));
         }
+        // Yatırım stratejisi TEFAS'tan yalnız Türkçe gelir; EN modunda çevir (cache'li, best-effort).
+        // KRİTİK: çevrilmiş KOPYA döner — getFundDetailRich @Cacheable, orijinali mutate ETMEZ.
+        detail = strategyTranslationService.withTranslatedStrategy(detail, lang);
         return ResponseEntity.ok(ApiResponse.success(detail, "Fund detail retrieved via Rasyonet"));
     }
 

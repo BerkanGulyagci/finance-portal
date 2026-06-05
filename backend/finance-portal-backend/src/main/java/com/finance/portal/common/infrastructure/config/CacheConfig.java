@@ -255,6 +255,8 @@ public class CacheConfig {
                 .withCacheConfiguration("market.funds.page", marketFundsCacheConfig)
                 .withCacheConfiguration("market.funds.detail", marketFundsCacheConfig)
                 .withCacheConfiguration("market.funds.chart", marketFundsHistoryCacheConfig)
+                // Fon strateji çevirisi (EN) — metin fon başına sabit, uzun TTL (history ile aynı, 6sa)
+                .withCacheConfiguration("market.fund.strategy.translated", marketFundsHistoryCacheConfig)
                 .withCacheConfiguration("market.futures.page", marketFuturesCacheConfig)
                 .withCacheConfiguration("market.commodity.spot", marketCommoditySpotCacheConfig)
                 .withCacheConfiguration("market.commodity.history", marketCommodityHistoryCacheConfig)

@@ -261,16 +261,16 @@ export async function getOsmanliFundBulletin() {
  * GET /api/v1/market/funds/tefas/{code}?sourceCode={sourceCode}
  * sourceCode: TMF (default/TEFAS) | TPF (BES) | TAF (OKS)
  */
-export async function getRasyonetFundDetail(code, sourceCode = 'TMF') {
+export async function getRasyonetFundDetail(code, sourceCode = 'TMF', lang) {
   const { data } = await client.get(`/api/v1/market/funds/tefas/${encodeURIComponent(code)}`, {
-    params: { sourceCode },
+    params: { sourceCode, ...(lang ? { lang } : {}) },
   });
   return data.data ?? null;
 }
 
 /** Alias — TefasComparePage uyumluluğu için */
-export async function getTefasFundDetail(code) {
-  return getRasyonetFundDetail(code);
+export async function getTefasFundDetail(code, lang) {
+  return getRasyonetFundDetail(code, 'TMF', lang);
 }
 
 /**

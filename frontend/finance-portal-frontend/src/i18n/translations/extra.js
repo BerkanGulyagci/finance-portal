@@ -258,6 +258,7 @@ const en = {
   'Sözleşmenin tam piyasa büyüklüğü (adet × fiyat × çarpan). Sadece referans değer — portföy toplamına EKLENMEZ.':
     'The contract\'s full market size (quantity × price × multiplier). Reference value only — NOT added to the portfolio total.',
   'Sıklık': 'Frequency',
+  'Sürekli': 'Recurring',
   'TCMB EVDS': 'CBRT EVDS',
   'TCMB EVDS "Bugünkü Değer" — 100 TL nominal üzerinden kote. Toplam ödeme = nominal × fiyat / 100.':
     'CBRT EVDS "Today\'s Value" — quoted per 100 TL face value. Total payment = face value × price / 100.',
@@ -270,6 +271,7 @@ const en = {
   'Talep açanlar': 'Ticket openers',
   'Tema': 'Theme',
   'Teminat': 'Margin',
+  'Tek Seferlik': 'One-Time',
   'Toplam K/Z': 'Total P/L',
   'Trend:': 'Trend:',
   'Tutar (TL)': 'Amount (TL)',
