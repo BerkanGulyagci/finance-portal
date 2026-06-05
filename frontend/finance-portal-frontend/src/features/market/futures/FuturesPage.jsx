@@ -4,6 +4,7 @@ import { getFutures, getViopContracts } from '../../../api/marketApi';
 import { useSortable } from '../../../hooks/useSortable';
 import SortableTh from '../../../components/common/SortableTh';
 import Pagination from '../../../components/common/Pagination';
+import { SkeletonTable } from '../../../components/common/Skeleton';
 import WatchlistStar from '../../../components/instrument/WatchlistStar';
 import InstrumentLogo from '../../../components/instrument/InstrumentLogo';
 import { useTranslation } from '../../../context/LanguageContext';
@@ -122,7 +123,7 @@ export default function FuturesPage() {
       <p className="text-sm text-gray-500 mb-6 pl-5">{t('Türkiye VİOP kontratları')}</p>
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        {loading && <div className="p-4 sm:p-8 text-center text-gray-400 text-sm">{t('Yükleniyor...')}</div>}
+        {loading && <SkeletonTable rows={10} cols={8} />}
         {error && <div className="p-3 sm:p-6 text-rose-500 text-sm">{error}</div>}
 
         {/* VIOP Tab */}

@@ -1,5 +1,6 @@
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
+import { ConfirmProvider } from './context/ConfirmContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { WatchlistProvider } from './context/WatchlistContext';
 import { PreferencesProvider } from './context/PreferencesContext';
@@ -11,13 +12,15 @@ export default function App() {
     <LanguageProvider>
       <AuthProvider>
         <ToastProvider>
-          <WatchlistProvider>
-            <PreferencesProvider>
-              <ThemeProvider>
-                <AppRouter />
-              </ThemeProvider>
-            </PreferencesProvider>
-          </WatchlistProvider>
+          <ConfirmProvider>
+            <WatchlistProvider>
+              <PreferencesProvider>
+                <ThemeProvider>
+                  <AppRouter />
+                </ThemeProvider>
+              </PreferencesProvider>
+            </WatchlistProvider>
+          </ConfirmProvider>
         </ToastProvider>
       </AuthProvider>
     </LanguageProvider>

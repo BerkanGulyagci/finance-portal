@@ -112,17 +112,20 @@ beforeEach(() => {
 });
 
 describe('ProfilePage (jsdom + testing-library + React 19)', () => {
-  it('yükleme sırasında "Yükleniyor..." gösterir, sayfa başlığı her zaman görünür', async () => {
+  it('yükleme sırasında iskelet (skeleton) gösterir, sayfa başlığı her zaman görünür', async () => {
     // getMe çözülmeden loading dalını yakala.
     let resolve;
     getMe.mockReturnValue(new Promise((r) => { resolve = r; }));
-    renderPage();
+    const { container } = renderPage();
 
     expect(screen.getByText('Profilim')).toBeInTheDocument();
-    expect(screen.getByText('Yükleniyor...')).toBeInTheDocument();
+    // Loading dalında SkeletonProfile render olur (animate-pulse placeholder'lar); henüz isim yok.
+    expect(container.querySelector('.animate-pulse')).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Berkan Gulyagci' })).not.toBeInTheDocument();
 
     resolve(sampleProfile());
-    await waitFor(() => expect(screen.queryByText('Yükleniyor...')).not.toBeInTheDocument());
+    // Veri gelince hero başlık (gerçek isim) görünür → skeleton geçti.
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Berkan Gulyagci' })).toBeInTheDocument());
   });
 
   it('profil başarıyla yüklenince hero kartı (isim, @kullanıcı, baş harfler) ve hesap bilgilerini gösterir', async () => {

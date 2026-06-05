@@ -12,6 +12,7 @@ import {
 import TickerCustomizer from './components/TickerCustomizer';
 import NewsletterModal from '../../components/shared/NewsletterModal';
 import SupportTicketsCard from './components/SupportTicketsCard';
+import { SkeletonProfile } from '../../components/common/Skeleton';
 import { getNewsletter } from '../../api/newsletterApi';
 
 function Field({ label, value }) {
@@ -141,7 +142,7 @@ export default function ProfilePage() {
       )}
 
       {loading && (
-        <div className="m3-card p-8 text-center text-sm text-gray-500">{t('Yükleniyor...')}</div>
+        <SkeletonProfile />
       )}
 
       {!loading && error && (

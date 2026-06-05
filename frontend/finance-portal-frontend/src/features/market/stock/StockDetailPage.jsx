@@ -7,7 +7,7 @@ import {
 } from 'recharts';
 import { getStockMidasDetail, getMarketPriceHistory } from '../../../api/marketApi';
 import TrendBadge from '../../../components/common/TrendBadge';
-import { SkeletonDetail } from '../../../components/common/Skeleton';
+import { SkeletonStockDetail } from '../../../components/common/Skeleton';
 import InstrumentActionButtons from '../../../components/instrument/InstrumentActionButtons';
 import { buildTrendItem } from '../../../utils/trendUtils';
 import { registerOverlay } from 'klinecharts';
@@ -205,7 +205,7 @@ export default function StockDetailPage() {
         </div>
       </div>
 
-      {loading && <SkeletonDetail />}
+      {loading && <SkeletonStockDetail />}
 
       {error && <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-6 py-4 rounded-2xl">{error}</div>}
 

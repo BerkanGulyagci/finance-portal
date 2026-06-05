@@ -63,6 +63,172 @@ export function SkeletonCardGrid({ count = 8 }) {
 }
 
 /**
+ * Portföy kartları grid iskeleti — PortfolioPage'in gerçek kart düzeninin silüeti
+ * (başlık + tip/para-birimi rozetleri + 3 satır değer: maliyet/piyasa değeri/kâr-zarar).
+ * Generic SkeletonCardGrid (tek satır avatar) yerine kullanılır → yükleme hâli, dolu hâle birebir benzer.
+ */
+export function SkeletonPortfolioGrid({ count = 6 }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 sm:p-6">
+          {/* Başlık + chevron */}
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex-1 min-w-0 space-y-1.5">
+              <SkeletonBar className="h-4 w-1/2" />
+              <SkeletonBar className="h-3 w-2/3" />
+            </div>
+            <SkeletonBar className="h-4 w-4 ml-2 shrink-0" />
+          </div>
+          {/* Tip + para birimi rozetleri */}
+          <div className="flex items-center gap-2 mb-4">
+            <SkeletonBar className="h-5 w-20" />
+            <SkeletonBar className="h-5 w-12" />
+          </div>
+          {/* 3 satır değer (sonuncusu üst-çizgili) */}
+          <div className="space-y-2.5">
+            <div className="flex justify-between"><SkeletonBar className="h-3.5 w-24" /><SkeletonBar className="h-3.5 w-20" /></div>
+            <div className="flex justify-between"><SkeletonBar className="h-3.5 w-20" /><SkeletonBar className="h-3.5 w-24" /></div>
+            <div className="flex justify-between pt-2 border-t border-gray-100"><SkeletonBar className="h-3.5 w-16" /><SkeletonBar className="h-5 w-24" /></div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Profil sayfası iskeleti — ProfilePage'in gerçek düzeni: üst hero kart (avatar + isim +
+ * rozetler) + altta 2 sütunlu bilgi kartları. "Yükleniyor..." metninin yerine.
+ */
+export function SkeletonProfile() {
+  return (
+    <div className="space-y-3 sm:space-y-5">
+      {/* Üst hero kart */}
+      <div className="m3-card p-3 sm:p-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center">
+          <div className="flex items-center gap-4 min-w-0 flex-1">
+            <div className="w-16 h-16 rounded-full bg-gray-200 animate-pulse shrink-0" />
+            <div className="flex-1 space-y-2 min-w-0">
+              <SkeletonBar className="h-5 w-40" />
+              <SkeletonBar className="h-3.5 w-56" />
+              <div className="flex gap-1.5 mt-1">
+                <SkeletonBar className="h-5 w-24" />
+                <SkeletonBar className="h-5 w-20" />
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <SkeletonBar className="h-9 w-28 rounded-lg" />
+            <SkeletonBar className="h-9 w-28 rounded-lg" />
+          </div>
+        </div>
+      </div>
+      {/* 2 sütunlu bilgi kartları */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-5 items-start">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="m3-card p-3 sm:p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <SkeletonBar className="h-9 w-9 rounded-lg" />
+              <div className="flex-1 space-y-1.5">
+                <SkeletonBar className="h-4 w-1/3" />
+                <SkeletonBar className="h-3 w-1/2" />
+              </div>
+            </div>
+            {Array.from({ length: 3 }).map((_, j) => (
+              <div key={j} className="flex justify-between">
+                <SkeletonBar className="h-3.5 w-24" />
+                <SkeletonBar className="h-3.5 w-32" />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Hisse/endeks detay iskeleti — StockDetailPage'in GERÇEK düzeni: tam genişlik kart içinde
+ * 2 fiyat kutusu (Güncel Fiyat | Günlük Hacim) yan yana + grafik kartı (mod/range tab + grafik) +
+ * alt bilgi kartları. Sol-340px SkeletonDetail'den (kripto/fon) farklı; hisseye birebir uyar.
+ */
+export function SkeletonStockDetail() {
+  return (
+    <div className="space-y-4 sm:space-y-6">
+      {/* Fiyat + hacim + grafik kartı */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
+          <div className="p-4 sm:p-6 space-y-2">
+            <SkeletonBar className="h-9 w-32" />
+            <SkeletonBar className="h-3.5 w-24" />
+          </div>
+          <div className="p-4 sm:p-6 space-y-2">
+            <SkeletonBar className="h-7 w-28" />
+            <SkeletonBar className="h-3.5 w-28" />
+          </div>
+        </div>
+        <div className="px-4 pt-2 pb-4">
+          {/* Mod tab + range butonları */}
+          <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+            <SkeletonBar className="h-8 w-40 rounded-lg" />
+            <SkeletonBar className="h-8 w-28 rounded-lg" />
+          </div>
+          <div className="flex gap-1.5 mb-3">
+            {Array.from({ length: 8 }).map((_, i) => <SkeletonBar key={i} className="h-7 w-10 rounded-md" />)}
+          </div>
+          {/* Grafik alanı */}
+          <SkeletonBar className="h-[340px] w-full rounded-xl" />
+        </div>
+      </div>
+      {/* Alt bilgi kartları (Finansal Bilgiler / Şirket Hakkında / İlişkili VİOP) */}
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6">
+          <SkeletonBar className="h-5 w-48" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Ekonomi sayfası iskeleti — sol dikey bölüm-navigasyonu + sağ içerik (başlık + paragraflar +
+ * grafik kutusu) silueti. EconomyPage'in gerçek sol-nav + içerik düzenine uyar
+ * (generic SkeletonCardGrid yerine).
+ */
+export function SkeletonEconomy({ sections = 3 }) {
+  return (
+    <div className="lg:flex lg:gap-8 lg:items-start">
+      {/* Sol dikey nav */}
+      <nav className="hidden lg:block lg:w-52 shrink-0">
+        <SkeletonBar className="h-3 w-20 mb-3 ml-4" />
+        <div className="border-l border-gray-200 space-y-2 pl-4 py-1">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <SkeletonBar key={i} className="h-3.5 w-3/4" />
+          ))}
+        </div>
+      </nav>
+      {/* Sağ içerik: her bölüm başlık + paragraf çizgileri + grafik kutusu */}
+      <div className="flex-1 min-w-0 space-y-12">
+        {Array.from({ length: sections }).map((_, i) => (
+          <div key={i}>
+            <SkeletonBar className="h-6 w-1/3 mb-3" />
+            <div className="space-y-2 mb-5">
+              <SkeletonBar className="h-3.5 w-full" />
+              <SkeletonBar className="h-3.5 w-5/6" />
+            </div>
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6">
+              <SkeletonBar className="h-4 w-40 mx-auto mb-4" />
+              <SkeletonBar className="h-[260px] w-full rounded-xl" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
  * Haber ana sayfası "hero" iskeleti — büyük banner + sağ "öne çıkan" listesi düzeni.
  * NewsPage HeroSection'ın yükleme hâli için.
  */

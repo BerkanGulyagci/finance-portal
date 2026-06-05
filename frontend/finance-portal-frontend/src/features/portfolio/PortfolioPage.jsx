@@ -12,8 +12,9 @@ import PortfolioTypeBadge from './components/PortfolioTypeBadge';
 import AlarmsManager from '../../components/instrument/AlarmsManager';
 import PortfolioOverviewDonut from './components/analytics/PortfolioOverviewDonut';
 import { calculateAllocationByType } from './utils/portfolioAnalyticsHelpers';
-import { SkeletonTable } from '../../components/common/Skeleton';
+import { SkeletonPortfolioGrid } from '../../components/common/Skeleton';
 import { useTranslation } from '../../context/LanguageContext';
+import { useConfirm } from '../../context/ConfirmContext';
 
 const CURRENCY_ORDER = ['TRY', 'USD', 'EUR'];
 
@@ -196,6 +197,7 @@ function PnlBadge({ value }) {
 
 export default function PortfolioPage() {
   const { t } = useTranslation();
+  const confirm = useConfirm();
   const [portfolios, setPortfolios] = useState([]);
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState('');
@@ -252,7 +254,12 @@ export default function PortfolioPage() {
   async function handleDelete(e, portfolioId) {
     e.preventDefault();
     e.stopPropagation();
-    if (!window.confirm(t('Bu portföyü silmek istediğinizden emin misiniz? Tüm veriler silinecek.'))) return;
+    if (!(await confirm({
+      title: t('Portföyü Sil'),
+      message: t('Bu portföyü silmek istediğinizden emin misiniz? Tüm veriler silinecek.'),
+      confirmLabel: t('Sil'),
+      danger: true,
+    }))) return;
     setDeletingId(portfolioId);
     try {
       await deletePortfolio(portfolioId);
@@ -413,12 +420,8 @@ export default function PortfolioPage() {
         </div>
       )}
 
-      {/* Loading */}
-      {loading && (
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <SkeletonTable rows={6} cols={7} />
-        </div>
-      )}
+      {/* Loading — gerçek kart grid'inin silüeti (tablo değil; portföyler kart olarak gösterilir) */}
+      {loading && <SkeletonPortfolioGrid count={6} />}
 
       {/* Hata */}
       {error && (

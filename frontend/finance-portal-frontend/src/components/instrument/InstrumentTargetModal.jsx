@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { X, Wallet, Eye, Plus, Check, ChevronRight } from 'lucide-react';
 import {
@@ -104,9 +105,21 @@ export default function InstrumentTargetModal({ instrument, onClose, onChanged, 
     );
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1a1b22]/30 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl border border-[#e2e1eb] w-full max-w-md overflow-hidden">
+  // Portal ile body'ye render: market liste sayfaları kendi overflow/transform
+  // bağlamına sahip → fixed modal o bağlama hapsolup tabloyla iç içe geçiyordu.
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#1a1b22]/30 backdrop-blur-sm"
+      onClick={onClose}
+      onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
+      role="presentation"
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl border border-[#e2e1eb] w-full max-w-md overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+      >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <h2 className="font-bold text-gray-900 text-lg">{watchlistOnly ? t('İzleme Listesine Ekle') : t('Listeye / Portföye Ekle')}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 rounded-full p-1 hover:bg-gray-50">
@@ -184,6 +197,7 @@ export default function InstrumentTargetModal({ instrument, onClose, onChanged, 
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
