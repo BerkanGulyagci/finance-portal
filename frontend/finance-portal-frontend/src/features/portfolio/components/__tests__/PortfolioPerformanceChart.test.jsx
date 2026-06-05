@@ -85,8 +85,12 @@ describe('PortfolioPerformanceChart (Vitest + testing-library, klinecharts mock)
       expect(screen.queryByText('Yükleniyor…')).not.toBeInTheDocument();
     });
     // Grafik bileşeni mount oldu → klinecharts.init çağrıldı, veri uygulandı.
-    expect(klinecharts.init).toHaveBeenCalled();
-    expect(klineChartInstance.applyNewData).toHaveBeenCalled();
+    // init/applyNewData ayrı bir effect'te (canvas ref hazır olunca) tetiklenir;
+    // yükleme kaybolmasından SONRA gelebilir → waitFor ile bekle (flaky değil).
+    await waitFor(() => {
+      expect(klinecharts.init).toHaveBeenCalled();
+      expect(klineChartInstance.applyNewData).toHaveBeenCalled();
+    });
   });
 
   it('aralık butonuna tıklanınca yeni aralık ile API tekrar çağrılır', async () => {
