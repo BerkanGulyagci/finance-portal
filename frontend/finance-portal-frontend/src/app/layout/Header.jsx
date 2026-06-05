@@ -267,7 +267,7 @@ export function Header() {
           title: 'Genel',
           items: [
             { label: 'Türkiye Ekonomisi', path: '/market/economy', desc: 'Makro göstergeler: enflasyon, faiz, büyüme' },
-            { label: 'Ekonomik Takvim', path: '/market/economic-calendar', desc: 'Küresel makro veri açıklamaları (Finnhub)' },
+            { label: 'Ekonomik Takvim', path: '/market/economic-calendar', desc: 'Küresel makro veri açıklamaları' },
           ],
         },
         {
@@ -282,18 +282,18 @@ export function Header() {
     {
       label: 'Piyasalar',
       items: [
-        { label: 'Hisse Senetleri', path: '/market/stocks', desc: 'BIST hisse fiyatları' },
-        { label: 'Kripto Para', path: '/market/crypto', desc: 'CoinGecko TRY bazlı' },
+        { label: 'Hisse Senetleri', path: '/market/stocks', desc: 'BIST hisse fiyatları ve endeksler' },
+        { label: 'Kripto Para', path: '/market/crypto', desc: 'Anlık kripto fiyatları' },
         { label: 'Vadeli İşlemler', path: '/market/futures', desc: 'VİOP ve küresel vadeli' },
-        { label: 'Tahvil / Bono', path: '/market/bonds', desc: 'Devlet İç Borçlanma Senetleri' },
-        { label: 'Varlık Karşılaştırma', path: '/market/stocks/compare', desc: 'Hisse/kripto/altın/endeks… yan yana' },
+        { label: 'Tahvil / Bono', path: '/market/bonds', desc: 'Devlet İç Borçlanma Senetleri ve Eurobondlar' },
+        { label: 'Varlık Karşılaştırma', path: '/market/stocks/compare', desc: 'Farklı varlıkları aynı grafikte kıyasla' },
       ],
     },
     {
       label: 'Döviz',
       items: [
-        { label: 'TCMB Kurları', path: '/market/fx', desc: 'Resmi döviz kurları' },
-        { label: 'Open Exchange Rates', path: '/market/fx', desc: 'Gerçek zamanlı kurlar' },
+        { label: 'TCMB Kurları', path: '/market/fx?tab=tcmb', desc: 'Resmi döviz kurları' },
+        { label: 'Open Exchange Rates', path: '/market/fx?tab=open', desc: 'Uluslararası serbest piyasa kurları' },
         { label: 'Banka Kurları', path: '/market/fx?tab=banks', desc: 'Türk bankalarının alış/satış kurları' },
         { label: 'Karşılaştır', path: '/market/fx/compare', desc: 'Dövizleri karşılaştır' },
       ],

@@ -103,7 +103,7 @@ export function Footer() {
             </Link>
             <span className="text-gray-300">·</span>
             <a
-              href="mailto:bgulyaci@gmail.com"
+              href="mailto:brknglygc2@gmail.com"
               className="inline-flex items-center gap-1 hover:text-[#093eaa] transition-colors"
             >
               <Mail className="w-3.5 h-3.5" />

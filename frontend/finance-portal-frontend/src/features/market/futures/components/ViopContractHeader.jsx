@@ -38,6 +38,7 @@ export default function ViopContractHeader({ contract }) {
               <span className={`flex items-center gap-0.5 text-sm font-bold ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
                 {isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                 {isPositive ? '+' : ''}{changePercent.toFixed(2)}%
+                <span className="text-[11px] font-normal text-gray-400 ml-0.5">({t('önceki uzlaşmaya göre')})</span>
               </span>
             )}
           </div>

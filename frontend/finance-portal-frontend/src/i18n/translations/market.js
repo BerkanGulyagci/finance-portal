@@ -728,6 +728,8 @@ const en = {
   'Açık Poz. Değ.': 'Open Pos. Change',
   'Uzlaşma': 'Settlement',
   'Önceki Uzlaşma': 'Prev. Settlement',
+  'önceki uzlaşmaya göre': 'vs prev. settlement',
+  'grafik dönemi': 'chart period',
   'Zaman': 'Time',
   'kontrat': 'contracts',
 

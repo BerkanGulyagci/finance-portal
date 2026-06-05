@@ -146,7 +146,7 @@ export default function EconomicCalendarPage() {
         {t('Ekonomik Takvim')}
       </h1>
       <p className="text-sm text-gray-500 mb-6 pl-5">
-        {t('Küresel makro veri açıklamaları — enflasyon, faiz kararları, istihdam, GSYİH ve daha fazlası. Kaynak: Finnhub.')}
+        {t('Küresel makro veri açıklamaları — enflasyon, faiz kararları, istihdam, GSYİH ve daha fazlası.')}
       </p>
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
