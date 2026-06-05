@@ -125,6 +125,21 @@ export default function CandlestickChart({ symbol }) {
     chartRef.current = chart;
     indicatorPaneIds.current = {}; // Temizle
 
+    // İmleç hover'ında OHLC + tarih tooltip'i (kripto/emtia grafiğiyle aynı deneyim).
+    // klinecharts crosshair + candle tooltip'ini açıkça etkinleştir.
+    try {
+      chart.setStyles({
+        crosshair: { show: true },
+        candle: {
+          tooltip: {
+            showRule: 'always',
+            showType: 'standard',
+            text: { size: 12, color: '#1a1b22', marginLeft: 8, marginTop: 6 },
+          },
+        },
+      });
+    } catch (_) { /* klinecharts sürüm farkı */ }
+
     setLoading(true);
     setError(false);
 

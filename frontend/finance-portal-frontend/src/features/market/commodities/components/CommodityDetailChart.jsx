@@ -7,6 +7,7 @@ import { useChartDrawings } from '../../../../hooks/useChartDrawings';
 import { useYAxisWheelZoom } from '../../../../hooks/useYAxisWheelZoom';
 import TrendBadge from '../../../../components/common/TrendBadge';
 import IndicatorMenu from '../../../../components/common/IndicatorMenu';
+import ChartHoverCard from '../../../../components/common/ChartHoverCard';
 import { buildTrendItem } from '../../../../utils/trendUtils';
 
 // ── Custom Overlay Kayıtları ───────────────────────────────────────────────────
@@ -174,6 +175,7 @@ const SUB_INDICATORS = [
 
 export default function CommodityDetailChart({
   points,
+  trendPoints = null,  // trend rozeti için SABİT 1Y serisi (range'den bağımsız); yoksa points'e düşer
   chartMode,
   loading,
   sourceNote,
@@ -208,11 +210,13 @@ export default function CommodityDetailChart({
   // Fiyat ekseninde fare tekerleği ile dikey zoom
   useYAxisWheelZoom(chartRef);
 
-  // Trend rozeti — fiyat serisinden (MA20/50 + 52h konumu)
-  const trendItem = useMemo(
-    () => buildTrendItem((points ?? []).map(p => parseFloat(p.displayClose ?? p.rawClose)), 'COMMODITY'),
-    [points],
-  );
+  // Trend rozeti — SABİT 1Y serisinden (trendPoints) hesaplanır; seçili grafik range'i
+  // kısa (1A/1H) olunca MA20/MA50 için yeterli nokta olmamasından trendin kaybolmasını önler.
+  // trendPoints henüz yüklenmediyse mevcut points'e düşer (en azından bir şey göster).
+  const trendItem = useMemo(() => {
+    const src = (trendPoints && trendPoints.length >= 20) ? trendPoints : (points ?? []);
+    return buildTrendItem(src.map(p => parseFloat(p.displayClose ?? p.rawClose)), 'COMMODITY');
+  }, [trendPoints, points]);
 
   // ── MA toggle ──────────────────────────────────────────────────────────────
   const applyMA = useCallback((periods) => {
@@ -318,6 +322,7 @@ export default function CommodityDetailChart({
     const color  = isDown ? '#ef4444' : '#10b981';
 
     if (isCandle) {
+      // Mum modu: saf DEFAULT klinecharts tooltip'i (custom YOK — gram altınla birebir aynı).
       chart.setStyles({ candle: { type: 'candle_solid' } });
     } else {
       chart.setStyles({
@@ -360,8 +365,6 @@ export default function CommodityDetailChart({
         const idx = data?.dataIndex;
         if (idx == null || idx < 0 || !arr[idx]) { setHover(null); return; }
         const ptD = arr[idx];
-        const base = arr[0]?.close;
-        const changePct = (base && base > 0) ? ((ptD.close - base) / base) * 100 : null;
         const dt = new Date(ptD.timestamp);
         const hasTime = dt.getHours() !== 0 || dt.getMinutes() !== 0;
         const dateLabel = dt.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: '2-digit' })
@@ -370,10 +373,9 @@ export default function CommodityDetailChart({
         const priceLabel = fmtRef.current
           ? fmtRef.current(ptD.close)
           : Number(ptD.close).toLocaleString('tr-TR', { minimumFractionDigits: prec, maximumFractionDigits: prec });
-        const volumeLabel = ptD.volume > 0
-          ? Number(ptD.volume).toLocaleString('tr-TR', { notation: 'compact', maximumFractionDigits: 2 })
-          : null;
-        setHover({ dateLabel, priceLabel, changePct, up: changePct == null ? true : changePct >= 0, volumeLabel });
+        // Hover'da sadece TARİH + FİYAT. '% dönem' (grafik ilk noktasına göre — kafa karıştırıcı)
+        // ve 'Hacim' (Yahoo/CoinGecko hacmi yanıltıcı/tutarsız) KALDIRILDI. Emtia + kripto ortak.
+        setHover({ dateLabel, priceLabel, changePct: null, up: true, volumeLabel: null });
       });
     } catch (_) { /* klinecharts sürüm uyumsuzluğu */ }
 
@@ -442,35 +444,8 @@ export default function CommodityDetailChart({
         )}
         <div id={chartId.current} style={{ width: '100%', height: '300px' }} />
 
-        {/* Şık hover tooltip — imleci takip eder, kenarlarda otomatik ters çevrilir (çizgi modu) */}
-        {hover && (
-          <div
-            className="pointer-events-none absolute z-30 min-w-[140px] rounded-xl bg-slate-900/90 px-3.5 py-2.5 shadow-2xl ring-1 ring-white/10 backdrop-blur-md"
-            style={{
-              left: pos.x,
-              top: pos.y,
-              transform: `translate(${pos.flipX ? 'calc(-100% - 14px)' : '14px'}, ${pos.flipY ? 'calc(-100% - 14px)' : '14px'})`,
-            }}
-          >
-            <div className="mb-1 flex items-center gap-1.5">
-              <span className="inline-block h-2 w-2 rounded-full" style={{ background: hover.up ? '#10b981' : '#ef4444' }} />
-              <span className="text-[11px] font-medium text-slate-300">{hover.dateLabel}</span>
-            </div>
-            <div className="text-base font-black leading-tight text-white tabular-nums">{hover.priceLabel}</div>
-            {hover.changePct != null && (
-              <div className={`mt-0.5 flex items-center gap-1 text-xs font-bold ${hover.up ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {hover.up ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                {hover.up ? '+' : ''}{hover.changePct.toFixed(2)}%
-                <span className="font-medium text-slate-500">· {t('dönem')}</span>
-              </div>
-            )}
-            {hover.volumeLabel && (
-              <div className="mt-1 border-t border-white/10 pt-1 text-[11px] text-slate-400">
-                {t('Hacim')}: <span className="font-semibold text-slate-200">{hover.volumeLabel}</span>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Şık hover tooltip — imleci takip eder, tema uyumlu (ortak ChartHoverCard) */}
+        <ChartHoverCard hover={hover} pos={pos} />
       </div>
 
       {resolvedSourceNote && <p className="text-xs text-gray-400 mt-2">{resolvedSourceNote}</p>}

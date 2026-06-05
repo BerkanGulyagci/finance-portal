@@ -9,6 +9,8 @@ import {
 } from '../utils/stockChartConfig';
 import { STOCK_CHART_RANGES } from '../utils/stockChartRanges';
 import { useTranslation } from '../../../../context/LanguageContext';
+import { computeKlinePricePrecision } from '../../../../utils/numberFormat';
+import ChartHoverCard from '../../../../components/common/ChartHoverCard';
 
 const RANGES = STOCK_CHART_RANGES;
 
@@ -18,6 +20,8 @@ export default function LineChart({ symbol }) {
   const chartId = useRef(`kline_line_${Date.now()}`);
   const chartRef = useRef(null);
   const indicatorPaneIds = useRef({});
+  const klineDataRef = useRef([]);
+  const pricePrecRef = useRef(2);
   const [rangeIdx, setRangeIdx] = useState(2);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(false);
@@ -25,6 +29,9 @@ export default function LineChart({ symbol }) {
   const [activeMAs, setActiveMAs] = useState([]);
   const [activeSubInds, setActiveSubInds] = useState([]);
   const [indMenuOpen, setIndMenuOpen] = useState(false);
+  // Tema uyumlu hover kartı (ChartHoverCard) — imleci takip eder.
+  const [hover, setHover] = useState(null);
+  const [pos,   setPos]   = useState({ x: 0, y: 0, flipX: false, flipY: false });
 
   const rangeConfig = RANGES[rangeIdx];
   const { range, interval } = rangeConfig;
@@ -149,6 +156,34 @@ export default function LineChart({ symbol }) {
         // Görünür alanı yalnız seçili pencereye sığdır (ısınma verisi sola kayar, MA dolu çizilir)
         const winMsL = RANGE_WINDOW_MS[range];
         fitVisibleToWindow(chartRef.current, id, klineData, (winMsL && winMsL !== Infinity) ? Date.now() - winMsL : 0);
+
+        // Hover tooltip (tema uyumlu ChartHoverCard) — default klinecharts metin tooltip'ini gizle.
+        klineDataRef.current = klineData;
+        try { pricePrecRef.current = computeKlinePricePrecision(klineData.map(d => d.close)); } catch (_) {}
+        try { chartRef.current?.setStyles({ candle: { tooltip: { showRule: 'none' } } }); } catch (_) {}
+        try {
+          chartRef.current?.subscribeAction('onCrosshairChange', (data) => {
+            const arr = klineDataRef.current;
+            const idx = data?.dataIndex;
+            if (idx == null || idx < 0 || !arr[idx]) { setHover(null); return; }
+            const ptD = arr[idx];
+            const dt = new Date(ptD.timestamp);
+            const hasTime = dt.getHours() !== 0 || dt.getMinutes() !== 0;
+            const dateLabel = dt.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: '2-digit' })
+              + (hasTime ? ' · ' + dt.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '');
+            const prec = pricePrecRef.current;
+            const priceLabel = '₺' + Number(ptD.close).toLocaleString('tr-TR', { minimumFractionDigits: prec, maximumFractionDigits: prec });
+            // Sadece tarih + fiyat göster. Yüzde DEĞİŞİM gösterilmez: seri ısınma verisiyle geldiği
+            // için arr[0] görünür pencerenin başı değil → "dönem %" yanıltıcı çıkıyordu. Hacim de
+            // çizgi endpoint'inde yok. up: fiyat yönü değil, sadece nokta rengi için nötr (yeşil).
+            setHover({ dateLabel, priceLabel, changePct: null, up: true, volumeLabel: null });
+            const el = document.getElementById(id);
+            const r = el?.getBoundingClientRect();
+            if (r && data?.x != null && data?.y != null) {
+              setPos({ x: data.x, y: data.y, flipX: data.x > r.width - 200, flipY: data.y > r.height - 96 });
+            }
+          });
+        } catch (_) {}
         // Veri yüklendikten sonra aktif indikatörleri yeniden ekle
         if (chartRef.current) {
           if (activeMAs.length > 0) {
@@ -250,7 +285,7 @@ export default function LineChart({ symbol }) {
         indicatorSlot={lineIndicatorDropdown}
       />
 
-      <div className="relative">
+      <div className="relative" onMouseLeave={() => setHover(null)}>
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
             <div className="flex gap-1.5">
@@ -266,6 +301,8 @@ export default function LineChart({ symbol }) {
           </div>
         )}
         <div id={chartId.current} style={{ width: '100%', height: '380px' }} />
+        {/* Tema uyumlu hover kartı (imleci takip eder) */}
+        <ChartHoverCard hover={hover} pos={pos} />
       </div>
     </div>
   );

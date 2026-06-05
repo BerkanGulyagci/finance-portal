@@ -298,11 +298,27 @@ export default function CryptoDetailPage() {
   const github = detail?.links?.repos_url?.github?.[0];
   const categories = detail?.categories?.slice(0, 3) ?? [];
 
-  // Trend rozeti — fiyat serisinden (MA20/50 + 52h konumu + 7g momentum)
-  const trendItem = useMemo(
-    () => buildTrendItem(chartData.map(d => d.price), 'CRYPTO', { priceChangePercentage7d: coin?.priceChangePercentage7d }),
-    [chartData, coin],
-  );
+  // Trend için SABİT ~1Y serisi (seçili range'den bağımsız) — kısa range'de (1G/1H) MA20/MA50
+  // için yeterli nokta olmayıp trendin kaybolmasını önler. 7g momentum coin'den (range-bağımsız).
+  const [trendSeries, setTrendSeries] = useState([]);
+  useEffect(() => {
+    if (!coinId) { setTrendSeries([]); return; }
+    let cancelled = false;
+    getCryptoChart(coinId, 365, currency.toLowerCase())
+      .then(res => {
+        const pts = (res?.prices ?? res?.points ?? res ?? []).map(p =>
+          Array.isArray(p) ? p[1] : (p?.price ?? p?.value));
+        if (!cancelled) setTrendSeries(pts.filter(v => Number.isFinite(Number(v))));
+      })
+      .catch(() => { if (!cancelled) setTrendSeries([]); });
+    return () => { cancelled = true; };
+  }, [coinId, currency]);
+
+  // Trend rozeti — sabit 1Y seriden (MA20/50) + 7g momentum; yeterli nokta yoksa chartData'ya düşer.
+  const trendItem = useMemo(() => {
+    const src = trendSeries.length >= 20 ? trendSeries : chartData.map(d => d.price);
+    return buildTrendItem(src, 'CRYPTO', { priceChangePercentage7d: coin?.priceChangePercentage7d });
+  }, [trendSeries, chartData, coin]);
 
 
   // CommodityDetailChart için points formatına çevir (çizgi grafik)

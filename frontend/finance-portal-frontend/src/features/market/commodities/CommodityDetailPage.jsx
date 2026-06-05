@@ -75,6 +75,19 @@ export default function CommodityDetailPage() {
 
   useEffect(() => { loadHistory(); }, [loadHistory]);
 
+  // Trend rozeti için SABİT 1Y serisi — seçili grafik range'inden bağımsız.
+  // Aksi halde kısa range'de (1A/1H) MA20/MA50 için yeterli nokta olmaz → trend kaybolurdu
+  // (hisse detayı da trendi sabit 1Y'den hesaplar; tutarlı davranış).
+  const [trendPoints, setTrendPoints] = useState([]);
+  useEffect(() => {
+    if (!decodedSymbol || preciousRedirect) { setTrendPoints([]); return; }
+    let cancelled = false;
+    getCommodityHistory(decodedSymbol, '1Y')
+      .then(h => { if (!cancelled) setTrendPoints(h?.points ?? []); })
+      .catch(() => { if (!cancelled) setTrendPoints([]); });
+    return () => { cancelled = true; };
+  }, [decodedSymbol, preciousRedirect]);
+
   // Range değişince 5Y'de mum kapat
   function handleRangeChange(newRange) {
     setRange(newRange);
@@ -163,6 +176,7 @@ export default function CommodityDetailPage() {
           key={`${range}-${chartMode}`}
           persistId={decodedSymbol ? `commodity:${decodedSymbol}` : null}
           points={displayPoints}
+          trendPoints={trendPoints}
           chartMode={chartMode}
           loading={loadingChart}
         />

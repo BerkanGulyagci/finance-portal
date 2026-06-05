@@ -61,7 +61,7 @@ export default function DrawnChartsPage() {
               </div>
               <button
                 type="button"
-                onClick={(ev) => handleRemove(ev, it.key)}
+                onClick={(ev) => handleRemove(ev, it.allKeys ?? it.key)}
                 title={t('Çizimleri sil')}
                 className="shrink-0 p-1.5 rounded-lg text-gray-300 hover:text-rose-500 hover:bg-rose-50 transition-colors"
               >

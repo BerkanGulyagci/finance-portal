@@ -75,7 +75,7 @@ const BIST_INDEX_CODES = new Set([
 ]);
 
 /** Sembol bir BIST endeksi mi? (.IS soneki olsa da olmasa da). → endeks kodu ya da null. */
-function indexCodeOf(symbol) {
+export function indexCodeOf(symbol) {
   const code = String(symbol ?? '').trim().toUpperCase().replace(/\.IS$/, '');
   return BIST_INDEX_CODES.has(code) ? code : null;
 }

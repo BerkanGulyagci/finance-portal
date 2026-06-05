@@ -97,19 +97,37 @@ export function useChartDrawings({ chartRef, chartIdRef, persistKey }) {
   // CAPTURE fazı: klinecharts olayı yutsa bile yakalar. pointerup gerçek mouse'ta da gelir (onDrawEnd'e
   // güvenmiyoruz). 80ms: klinecharts noktayı sonlandırsın, sonra getOverlayById dolu noktalarla okusun.
   useEffect(() => {
-    const id = chartIdRef?.current;
-    const el = id ? document.getElementById(id) : null;
-    if (!el) return;
     let timer;
+    let cleanup = null;
     const onUp = () => { clearTimeout(timer); timer = setTimeout(() => persistSnapshot(), 80); };
-    el.addEventListener('mouseup', onUp, true);
-    el.addEventListener('touchend', onUp, true);
-    el.addEventListener('pointerup', onUp, true);
+
+    // chartIdRef.current bazı grafiklerde (GoldChart) chart hazır olunca SONRADAN dolar; bu effect
+    // mount anında boş bulup dinleyici kurmuyordu → çizim kaydedilmiyordu. Element gelene kadar
+    // kısa aralıkla yokla (poll); bulununca dinleyiciyi kur. Emtia/hisse (id baştan dolu) ilk denemede kurar.
+    let attempts = 0;
+    let poll;
+    const tryAttach = () => {
+      const id = chartIdRef?.current;
+      const el = id ? document.getElementById(id) : null;
+      if (el) {
+        el.addEventListener('mouseup', onUp, true);
+        el.addEventListener('touchend', onUp, true);
+        el.addEventListener('pointerup', onUp, true);
+        cleanup = () => {
+          el.removeEventListener('mouseup', onUp, true);
+          el.removeEventListener('touchend', onUp, true);
+          el.removeEventListener('pointerup', onUp, true);
+        };
+        return;
+      }
+      if (attempts++ < 40) poll = setTimeout(tryAttach, 100);   // ~4 sn boyunca yokla
+    };
+    tryAttach();
+
     return () => {
-      el.removeEventListener('mouseup', onUp, true);
-      el.removeEventListener('touchend', onUp, true);
-      el.removeEventListener('pointerup', onUp, true);
+      clearTimeout(poll);
       clearTimeout(timer);
+      if (cleanup) cleanup();
     };
   }, [persistSnapshot, chartIdRef]);
 

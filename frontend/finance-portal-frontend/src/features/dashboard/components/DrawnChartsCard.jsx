@@ -60,7 +60,7 @@ export default function DrawnChartsCard() {
               </span>
               <button
                 type="button"
-                onClick={(ev) => handleRemove(ev, it.key)}
+                onClick={(ev) => handleRemove(ev, it.allKeys ?? it.key)}
                 title={t('Çizimleri sil')}
                 className="shrink-0 p-1 rounded text-gray-300 hover:text-rose-500 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-all"
               >
