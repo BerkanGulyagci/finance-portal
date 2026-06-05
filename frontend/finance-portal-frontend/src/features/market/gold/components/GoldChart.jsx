@@ -2,7 +2,9 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { init as klineInit, dispose as klineDispose, registerOverlay } from 'klinecharts';
 import { Trash2, X, ChevronDown } from 'lucide-react';
 import { useTranslation } from '../../../../context/LanguageContext';
+import { useTheme } from '../../../../context/ThemeContext';
 import IndicatorMenu from '../../../../components/common/IndicatorMenu';
+import { useChartDrawings } from '../../../../hooks/useChartDrawings';
 
 // ── Custom overlay kayıtları (bir kez) ───────────────────────────────────────
 let _overlaysRegistered = false;
@@ -143,8 +145,9 @@ function DrawingToolbar({ activeTool, onSelectTool, onDeleteSelected, onClearAll
   );
 }
 
-// ── Floating tooltip ──────────────────────────────────────────────────────────
+// ── Floating tooltip (tema uyumlu: açık→beyaz/siyah, koyu→koyu/beyaz) ──────────
 function FloatingTooltip({ tooltip, containerRef, currency }) {
+  const { isDark } = useTheme();
   if (!tooltip || !containerRef.current) return null;
   const sym = currency === 'USD' ? '$' : '₺';
   const { x, y, date, close, high, low, containerWidth } = tooltip;
@@ -155,16 +158,18 @@ function FloatingTooltip({ tooltip, containerRef, currency }) {
     ? parseFloat(v).toLocaleString('tr-TR', { minimumFractionDigits:2, maximumFractionDigits:2 }) : '-';
   const fmtD = ts => { try { return new Date(ts).toLocaleDateString('tr-TR', { year:'numeric', month:'2-digit', day:'2-digit' }); } catch { return ''; } };
   const showHiLo = high != null && low != null && (high !== close || low !== close);
+  const card = isDark ? 'bg-slate-900/90 text-white ring-white/10' : 'bg-white/95 text-gray-900 ring-black/10';
+  const subText = isDark ? 'text-slate-400' : 'text-gray-500';
   return (
     <div style={{ position:'absolute', left, top, pointerEvents:'none', zIndex:20, minWidth:130 }}
-      className="bg-gray-900/90 text-white rounded-xl px-3 py-2.5 shadow-xl backdrop-blur-sm">
-      <p className="text-xs text-gray-400 mb-1 font-medium">{fmtD(date)}</p>
+      className={`rounded-xl px-3 py-2.5 shadow-xl ring-1 backdrop-blur-md ${card}`}>
+      <p className={`text-xs mb-1 font-medium ${subText}`}>{fmtD(date)}</p>
       <p className="text-lg font-black leading-tight">{sym}{fmtP(close)}</p>
       {showHiLo && (
-        <p className="text-xs text-gray-400 mt-1.5">
-          <span className="text-emerald-400 font-semibold">↑</span> {sym}{fmtP(high)}
-          <span className="mx-1.5 text-gray-600">·</span>
-          <span className="text-rose-400 font-semibold">↓</span> {sym}{fmtP(low)}
+        <p className={`text-xs mt-1.5 ${subText}`}>
+          <span className="text-emerald-500 font-semibold">↑</span> {sym}{fmtP(high)}
+          <span className="mx-1.5 opacity-40">·</span>
+          <span className="text-rose-500 font-semibold">↓</span> {sym}{fmtP(low)}
         </p>
       )}
     </div>
@@ -187,14 +192,15 @@ function useGoldKline({ idRef, points, buildStyles, buildKlineData, isLine, curr
     const id    = idRef.current;
     const chart = klineInit(id);
     chartRef.current = chart;
-    if (onChartReady) onChartReady(chart);
-
     chart.setStyles(buildStyles());
 
     const kd = buildKlineData(points);
     klineDataRef.current = kd;
     if (!kd.length) { klineDispose(id); return; }
     chart.applyNewData(kd);
+
+    // Veri uygulandıktan SONRA hazır bildir (çizimler veri üstüne doğru otursun) — DOM id'si + klineData.
+    if (onChartReady) onChartReady(chart, id, kd);
 
     // MA
     const maP = [...(showMA20 && points.length>=20?[20]:[]), ...(showMA50 && points.length>=50?[50]:[]), ...(showMA200 && points.length>=200?[200]:[])];
@@ -363,39 +369,50 @@ export default function GoldChart({
   showMA20, showMA50, showMA200, showTrend, currency,
   onToggleMA20, onToggleMA50, onToggleMA200, onToggleTrend, dataLen = 0,
   height = 280,
+  persistId = null,   // çizim kalıcılık anahtarı (ör. "gold:gram"); yoksa kalıcılık kapalı
 }) {
   const { t } = useTranslation();
   const [activeSubInds, setActiveSubInds] = useState([]);
   const subPaneIds  = useRef({});
   const chartRef    = useRef(null);
-  const [activeTool, setActiveTool] = useState(null);
+  const chartIdRef  = useRef(null);
+
+  // Çizim KALICILIĞI — hisse CandlestickChart ile AYNI hook. Çizim araçlarını (handleSelectTool)
+  // ve sil/temizle'yi hook'tan alıyoruz; hook overlay'leri kendi event'leriyle (onDrawEnd→kaydet)
+  // oluşturduğu için çizimler localStorage/sunucuya yazılır ve restoreOverlays ile geri yüklenir.
+  // persistKey null (persistId verilmemiş) ise hook overlay oluşturur ama kalıcılık yapmaz.
+  const {
+    activeTool, setActiveTool,
+    handleSelectTool, handleDeleteSelected, handleClearAll,
+    restoreOverlays,
+  } = useChartDrawings({
+    chartRef,
+    chartIdRef,
+    persistKey: persistId ? `chart-overlays:${persistId}` : null,
+  });
 
   // ESC ile çizim aracını kapat
   useEffect(() => {
     const h = (e) => { if (e.key === 'Escape') setActiveTool(null); };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
-  }, []);
+  }, [setActiveTool]);
 
-  const handleChartReady = useCallback((chart) => { chartRef.current = chart; }, []);
+  const handleChartReady = useCallback((chart, domId, klineData) => {
+    chartRef.current = chart;
+    // chartIdRef = grafik DOM element id'si (useChartDrawings getElementById ile mouseup dinler).
+    if (domId) chartIdRef.current = domId;
+    // Chart hazır + veri uygulandı → kayıtlı çizimleri geri yükle (klineData ile pencere filtresi).
+    if (chart) restoreOverlays(klineData);
+  }, [restoreOverlays]);
 
-  const handleSelectTool = useCallback((toolId) => {
-    setActiveTool(toolId);
-    if (chartRef.current && toolId) {
-      try { chartRef.current.createOverlay({ name: toolId }); } catch(_){}
-    }
-  }, []);
-
-  const handleDeleteSelected = useCallback(() => {
-    try { chartRef.current?.removeOverlay(); } catch(_){}
-  }, []);
-
-  const handleClearAll = useCallback(() => {
+  const handleClearAllLocal = useCallback(() => {
+    handleClearAll();
     ALL_DRAWING_IDS.forEach(id => {
       try { chartRef.current?.removeOverlay({ name: id }); } catch(_){}
     });
     setActiveTool(null);
-  }, []);
+  }, [handleClearAll, setActiveTool]);
 
   const toggleSubInd = useCallback((name) => {
     setActiveSubInds(prev =>
@@ -423,7 +440,7 @@ export default function GoldChart({
         activeTool={activeTool}
         onSelectTool={handleSelectTool}
         onDeleteSelected={handleDeleteSelected}
-        onClearAll={handleClearAll}
+        onClearAll={handleClearAllLocal}
         indicatorSlot={indicatorMenu}
       />
 

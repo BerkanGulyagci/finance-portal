@@ -14,6 +14,7 @@ import InstrumentActionButtons from '../../../components/instrument/InstrumentAc
 // Aktif sekme → COMMODITY sembol kategorisi (portföy/alarm/kıyas için)
 const PRECIOUS_CAT = { try_gram: 'GRAM_TRY', try_kg: 'KG_TRY', usd_ons: 'USD_ONS', eur_ons: 'EUR_ONS' };
 import GoldSourceNotice  from '../gold/components/GoldSourceNotice';
+import PreciousStatsCard from '../precious/components/PreciousStatsCard';
 import { useTranslation } from '../../../context/LanguageContext';
 
 // ── Yardımcı ─────────────────────────────────────────────────────────────────
@@ -23,18 +24,6 @@ function fmt(v, dec = 2) {
     minimumFractionDigits: dec,
     maximumFractionDigits: dec,
   });
-}
-
-function StatRow({ label, value, colored, positive }) {
-  const { t } = useTranslation();
-  return (
-    <div className="flex justify-between items-center py-2 border-b border-gray-50">
-      <span className="text-xs font-bold text-gray-500 tracking-wider">{t(label)}</span>
-      <span className={`text-sm font-semibold ${colored ? (positive ? 'text-emerald-600' : 'text-rose-600') : 'text-gray-900'}`}>
-        {value}
-      </span>
-    </div>
-  );
 }
 
 // ── Tab tanımları ─────────────────────────────────────────────────────────────
@@ -307,83 +296,85 @@ export default function SilverPage() {
                 )}
               </div>
 
-              {/* İstatistikler */}
-              <div className="grid grid-cols-2 gap-x-3 sm:gap-x-8 gap-y-0 border-t border-gray-100 pt-4 mb-6">
-                <StatRow label="Güncel Fiyat (Kapanış)" value={displayPrice != null ? `${sym}${fmt(displayPrice)}` : '-'} />
-                <StatRow label="En Yüksek"              value={stats?.high != null ? `${sym}${fmt(stats.high)}` : '-'} />
-                <StatRow label="En Düşük"               value={stats?.low  != null ? `${sym}${fmt(stats.low)}`  : '-'} />
-                <StatRow label="Dönem Kapanış"          value={stats?.last != null ? `${sym}${fmt(stats.last)}` : '-'} />
-                <StatRow label="Dönem Ağırlıklı Ort." value={stats?.wa   != null ? `${sym}${fmt(stats.wa)}`   : '-'} />
-                <StatRow label="Dönem Değişimi"
-                  value={changePct != null ? `${changePct >= 0 ? '+' : ''}${fmt(changePct)}%` : '-'}
-                  colored={changePct != null} positive={changePct != null && changePct >= 0} />
-                {!activeTab.isUsd && (
-                  <>
-                    <StatRow label="TL/Kg Kapanış" value={spot.closeTryKg != null ? `₺${fmt(spot.closeTryKg, 0)}` : '-'} />
-                    <StatRow label="TL/Gram"        value={spot.silverGramTry != null ? `₺${fmt(spot.silverGramTry)}` : '-'} />
-                  </>
-                )}
-                {activeTab.isUsd && (
-                  <StatRow label="USD/Ons" value={spot.silverUsdOns != null ? `$${fmt(spot.silverUsdOns)}` : '-'} />
-                )}
-              </div>
-
-              {/* Karşılaştır + Portföye Ekle + Alarm */}
-              <div className="flex items-center gap-2 flex-wrap mb-4">
-                <PreciousCompareButton />
-                <UniversalCompareButton
-                  assetType="COMMODITY"
-                  symbol={`SILVER:${PRECIOUS_CAT[activeTabKey] ?? 'GRAM_TRY'}`}
-                  name={t(activeTab.label)}
-                />
-                <InstrumentActionButtons
-                  assetType="COMMODITY"
-                  symbol={`SILVER:${PRECIOUS_CAT[activeTabKey] ?? 'GRAM_TRY'}`}
-                  name={t(activeTab.label)}
-                  price={displayPrice}
-                />
-              </div>
-
-              {/* Toolbar */}
-              <GoldChartToolbar
-                activeTab={activeTab}
-                range={range}
-                onRangeChange={handleRangeChange}
-                chartMode={chartMode}
-                onChartModeChange={setChartMode}
-                showMA7={showMA7}   onToggleMA7={() => setShowMA7(v => !v)}
-                showMA30={showMA30} onToggleMA30={() => setShowMA30(v => !v)}
-                showMA90={showMA90} onToggleMA90={() => setShowMA90(v => !v)}
-                showTrend={showTrend} onToggleTrend={() => setShowTrend(v => !v)}
-                loading={loadingChart}
-                onRefresh={loadHistory}
-              />
-
-              {/* Mum grafik uyarısı */}
-              {chartMode === 'candle' && (
-                <div className="mb-3 text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-                  {t('⚠ Gümüş mum grafiğinde açılış değeri BIST tarafından verilmediği için sentetik olarak hesaplanmıştır.')}
-                  {normalizedCount > 0 && (
-                    <span className="ml-1">
-                      {normalizedCount} {t('günün aşırı sapmalı değerleri görsel tutarlılık için normalize edildi.')}
-                    </span>
+              {/* ── SOL: toolbar + grafik 2/3 · SAĞ: butonlar + fiyat bilgileri 1/3 ── */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-5 items-start">
+                <div className="lg:col-span-2 min-w-0">
+                  <GoldChartToolbar
+                    activeTab={activeTab}
+                    range={range}
+                    onRangeChange={handleRangeChange}
+                    chartMode={chartMode}
+                    onChartModeChange={setChartMode}
+                    showMA7={showMA7}   onToggleMA7={() => setShowMA7(v => !v)}
+                    showMA30={showMA30} onToggleMA30={() => setShowMA30(v => !v)}
+                    showMA90={showMA90} onToggleMA90={() => setShowMA90(v => !v)}
+                    showTrend={showTrend} onToggleTrend={() => setShowTrend(v => !v)}
+                    loading={loadingChart}
+                    onRefresh={loadHistory}
+                  />
+                  {chartMode === 'candle' && (
+                    <div className="mb-3 text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                      {t('⚠ Gümüş mum grafiğinde açılış değeri BIST tarafından verilmediği için sentetik olarak hesaplanmıştır.')}
+                      {normalizedCount > 0 && (
+                        <span className="ml-1">
+                          {normalizedCount} {t('günün aşırı sapmalı değerleri görsel tutarlılık için normalize edildi.')}
+                        </span>
+                      )}
+                    </div>
                   )}
+                  <GoldChart
+                    key={`${activeTabKey}-${range}-${chartMode}`}
+                    points={displayPoints}
+                    chartMode={chartMode}
+                    isDown={isDown}
+                    loading={loadingChart}
+                    showMA7={showMA7}
+                    showMA30={showMA30}
+                    showMA90={showMA90}
+                    showTrend={showTrend}
+                    currency={activeTab.isUsd ? 'USD' : 'TRY'}
+                    height={300}
+                    persistId={`silver:${activeTabKey}`}
+                  />
                 </div>
-              )}
-
-              {/* Grafik */}
-              <GoldChart
-                key={`${activeTabKey}-${range}-${chartMode}`}
-                points={displayPoints}
-                chartMode={chartMode}
-                isDown={isDown}
-                loading={loadingChart}
-                showMA7={showMA7}
-                showMA30={showMA30}
-                showMA90={showMA90}
-                showTrend={showTrend}
-                currency={activeTab.isUsd ? 'USD' : 'TRY'}
-              />
+                {/* SAĞ: butonlar (üstte) + bilgi kartı */}
+                <div className="min-w-0 space-y-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <PreciousCompareButton />
+                    <UniversalCompareButton
+                      assetType="COMMODITY"
+                      symbol={`SILVER:${PRECIOUS_CAT[activeTabKey] ?? 'GRAM_TRY'}`}
+                      name={t(activeTab.label)}
+                    />
+                    <InstrumentActionButtons
+                      assetType="COMMODITY"
+                      symbol={`SILVER:${PRECIOUS_CAT[activeTabKey] ?? 'GRAM_TRY'}`}
+                      name={t(activeTab.label)}
+                      price={displayPrice}
+                    />
+                  </div>
+                  <PreciousStatsCard
+                    stats={[
+                      { label: 'Güncel Fiyat (Kapanış)', value: displayPrice != null ? `${sym}${fmt(displayPrice)}` : '-', highlight: true },
+                      { label: 'En Yüksek',     value: stats?.high != null ? `${sym}${fmt(stats.high)}` : '-' },
+                      { label: 'En Düşük',      value: stats?.low  != null ? `${sym}${fmt(stats.low)}`  : '-' },
+                      { label: 'Dönem Kapanış', value: stats?.last != null ? `${sym}${fmt(stats.last)}` : '-' },
+                      { label: 'Dönem Ağırlıklı Ort.', value: stats?.wa != null ? `${sym}${fmt(stats.wa)}` : '-' },
+                      {
+                        label: 'Dönem Değişimi',
+                        value: changePct != null ? `${changePct >= 0 ? '+' : ''}${fmt(changePct)}%` : '-',
+                        color: changePct != null ? (changePct >= 0 ? 'text-emerald-600' : 'text-rose-600') : null,
+                      },
+                      ...(!activeTab.isUsd ? [
+                        { label: 'TL/Kg Kapanış', value: spot.closeTryKg != null ? `₺${fmt(spot.closeTryKg, 0)}` : '-' },
+                        { label: 'TL/Gram',       value: spot.silverGramTry != null ? `₺${fmt(spot.silverGramTry)}` : '-' },
+                      ] : [
+                        { label: 'USD/Ons', value: spot.silverUsdOns != null ? `$${fmt(spot.silverUsdOns)}` : '-' },
+                      ]),
+                    ]}
+                  />
+                </div>
+              </div>
 
               <div className="mt-4">
                 <GoldSourceNotice

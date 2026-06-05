@@ -127,25 +127,34 @@ export default function GoldPriceStats({ spot, activeTab, historyPoints }) {
     ] : []),
   ];
 
+  // Boş ('-') alanlar görünmesin; ilk öğe (Güncel Fiyat) highlight; VİOP-stili kutu-grid.
+  const visible = rows.filter(r => r.value != null && r.value !== '-' && String(r.value).trim() !== '');
+  if (!visible.length) return null;
+
   return (
-    <div className="grid grid-cols-2 gap-x-8 gap-y-0 border-t border-gray-100 pt-4 mb-6">
-      {rows.map(row => (
-        <div
-          key={row.label}
-          className="flex justify-between items-center py-2 border-b border-gray-50"
-        >
-          <span className="text-xs font-bold text-gray-500 tracking-wider">{t(row.label)}</span>
-          <span
-            className={`text-sm font-semibold ${
-              row.colored
-                ? row.positive ? 'text-emerald-600' : 'text-rose-600'
-                : 'text-gray-900'
-            }`}
-          >
-            {row.value}
-          </span>
-        </div>
-      ))}
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5 h-full">
+      <h2 className="font-bold text-gray-900 mb-3 text-sm sm:text-base">{t('Fiyat Bilgileri')}</h2>
+      <div className="grid grid-cols-2 gap-2.5">
+        {visible.map((row, i) => {
+          const highlight = i === 0;
+          const color = row.colored
+            ? (row.positive ? 'text-emerald-600' : 'text-rose-600')
+            : (highlight ? 'text-[#093eaa]' : 'text-gray-900');
+          return (
+            <div
+              key={row.label}
+              className={`rounded-xl p-3 text-center ${
+                highlight ? 'bg-[#093eaa]/[0.06] border border-[#093eaa]/20' : 'bg-gray-50 border border-transparent'
+              }`}
+            >
+              <p className={`text-[10px] font-semibold mb-1 ${highlight ? 'text-[#093eaa]' : 'text-gray-500'}`}>
+                {t(row.label)}
+              </p>
+              <p className={`text-sm font-bold ${color}`}>{row.value}</p>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

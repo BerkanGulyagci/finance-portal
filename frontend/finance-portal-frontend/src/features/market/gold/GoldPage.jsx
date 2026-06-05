@@ -145,6 +145,18 @@ export default function GoldPage() {
 
   useEffect(() => { loadHistory(); }, [loadHistory]);
 
+  // Trend rozeti için SABİT 1Y serisi (seçili range'den bağımsız) — kısa range'de (1A/1H)
+  // MA20/MA50 için yeterli nokta olmayıp trendin kaybolmasını önler. Para birimi (USD/TRY)
+  // sekmesine bağlı; range'e değil.
+  const [trendPts, setTrendPts] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    getGoldHistory('1Y', activeTab.currency)
+      .then(h => { if (!cancelled) setTrendPts(h?.points ?? []); })
+      .catch(() => { if (!cancelled) setTrendPts([]); });
+    return () => { cancelled = true; };
+  }, [activeTab.currency, activeTab.key]);
+
   // Range değişince 5Y/ALL'da mum modunu kapat
   function handleRangeChange(newRange) {
     setRange(newRange);
@@ -167,11 +179,15 @@ export default function GoldPage() {
     [history?.points, activeTab]
   );
 
-  // Grafik yönü (son - ilk)
-  const trendItem = useMemo(
-    () => buildTrendItem(displayPoints.map(p => parseFloat(p.displayClose)), 'GOLD'),
-    [displayPoints],
+  // Trend: SABİT 1Y serisinden (trendPts); yeterli nokta yoksa seçili grafiğe (displayPoints) düşer.
+  const trendDisplayPts = useMemo(
+    () => (trendPts.length ? buildDisplayPoints(trendPts, activeTab) : []),
+    [trendPts, activeTab],
   );
+  const trendItem = useMemo(() => {
+    const src = trendDisplayPts.length >= 20 ? trendDisplayPts : displayPoints;
+    return buildTrendItem(src.map(p => parseFloat(p.displayClose)), 'GOLD');
+  }, [trendDisplayPts, displayPoints]);
   const isDown = useMemo(() => {
     if (!displayPoints.length) return false;
     const first = parseFloat(displayPoints[0].displayClose ?? 0);
@@ -202,68 +218,69 @@ export default function GoldPage() {
                 historyPoints={displayPoints}
               />
 
-              {/* Bilgiler (geniş) + Çevirici (dar) */}
+              {/* ── SOL: grafik (toolbar + grafik) 2/3 · SAĞ: butonlar + fiyat bilgileri 1/3 ── */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-5 items-start">
                 <div className="lg:col-span-2 min-w-0">
+                  <GoldChartToolbar
+                    activeTab={activeTab}
+                    range={range}
+                    onRangeChange={handleRangeChange}
+                    chartMode={chartMode}
+                    onChartModeChange={setChartMode}
+                    loading={loadingChart}
+                    onRefresh={loadHistory}
+                  />
+                  <GoldChart
+                    key={`${activeTabKey}-${range}-${chartMode}`}
+                    points={displayPoints}
+                    chartMode={activeTab.canCandle ? chartMode : 'line'}
+                    isDown={isDown}
+                    loading={loadingChart}
+                    showMA20={showMA20}   onToggleMA20={() => setShowMA20(v => !v)}
+                    showMA50={showMA50}   onToggleMA50={() => setShowMA50(v => !v)}
+                    showMA200={showMA200} onToggleMA200={() => setShowMA200(v => !v)}
+                    showTrend={showTrend} onToggleTrend={() => setShowTrend(v => !v)}
+                    dataLen={displayPoints.length}
+                    currency={activeTab.currency}
+                    height={300}
+                    persistId={`gold:${activeTabKey}`}
+                  />
+                </div>
+                {/* SAĞ sütun: Trend + Karşılaştır/Portföy/Alarm butonları (üstte, eski boş alan) + bilgi kartı */}
+                <div className="min-w-0 space-y-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {trendItem && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-400 font-medium">{t('Trend:')}</span>
+                        <TrendBadge item={trendItem} size="sm" />
+                      </div>
+                    )}
+                    <PreciousCompareButton />
+                    <UniversalCompareButton
+                      assetType="GOLD"
+                      symbol={activeTab.compareSymbol}
+                      name={t(activeTab.label)}
+                    />
+                    <InstrumentActionButtons
+                      assetType="GOLD"
+                      symbol={activeTab.compareSymbol}
+                      name={t(activeTab.label)}
+                      price={spot?.[GOLD_SPOT_FIELD_BY_SYMBOL[activeTab.compareSymbol] ?? 'gramGoldTry']}
+                    />
+                  </div>
                   <GoldPriceStats
                     spot={spot}
                     activeTab={activeTab}
                     historyPoints={displayPoints}
                   />
                 </div>
+              </div>
+
+              {/* ── ALTTA yan yana: Çevirici · Teorik Referans Fiyatlar ── */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-5 items-start mt-5">
                 <GoldCalculator spot={spot} />
+                <GoldTheoreticalPricesTable spot={spot} />
               </div>
-
-              {/* Trend rozeti + Karşılaştır (sola hizalı — sağdaki zaman filtresinden ayrı) */}
-              <div className="flex items-center gap-3 flex-wrap mb-4 mt-3">
-                {trendItem && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400 font-medium">{t('Trend:')}</span>
-                    <TrendBadge item={trendItem} size="sm" />
-                  </div>
-                )}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <PreciousCompareButton />
-                  <UniversalCompareButton
-                    assetType="GOLD"
-                    symbol={activeTab.compareSymbol}
-                    name={t(activeTab.label)}
-                  />
-                  <InstrumentActionButtons
-                    assetType="GOLD"
-                    symbol={activeTab.compareSymbol}
-                    name={t(activeTab.label)}
-                    price={spot?.[GOLD_SPOT_FIELD_BY_SYMBOL[activeTab.compareSymbol] ?? 'gramGoldTry']}
-                  />
-                </div>
-              </div>
-
-              {/* Grafik toolbar */}
-              <GoldChartToolbar
-                activeTab={activeTab}
-                range={range}
-                onRangeChange={handleRangeChange}
-                chartMode={chartMode}
-                onChartModeChange={setChartMode}
-                loading={loadingChart}
-                onRefresh={loadHistory}
-              />
-
-              {/* Grafik (tam genişlik) */}
-              <GoldChart
-                key={`${activeTabKey}-${range}-${chartMode}`}
-                points={displayPoints}
-                chartMode={activeTab.canCandle ? chartMode : 'line'}
-                isDown={isDown}
-                loading={loadingChart}
-                showMA20={showMA20}   onToggleMA20={() => setShowMA20(v => !v)}
-                showMA50={showMA50}   onToggleMA50={() => setShowMA50(v => !v)}
-                showMA200={showMA200} onToggleMA200={() => setShowMA200(v => !v)}
-                showTrend={showTrend} onToggleTrend={() => setShowTrend(v => !v)}
-                dataLen={displayPoints.length}
-                currency={activeTab.currency}
-                height={340}
-              />
 
               {/* Kaynak uyarısı */}
               <div className="mt-4">
@@ -273,11 +290,6 @@ export default function GoldPage() {
                   fallback={history?.fallback ?? spot?.fallback}
                   disclaimer={history?.disclaimer ?? spot?.disclaimer}
                 />
-              </div>
-
-              {/* Teorik referans fiyatlar — grafiğin altında */}
-              <div className="mt-5">
-                <GoldTheoreticalPricesTable spot={spot} />
               </div>
             </>
           ) : null}

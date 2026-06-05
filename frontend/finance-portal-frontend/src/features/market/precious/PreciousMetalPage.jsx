@@ -11,6 +11,7 @@ import GoldSourceNotice  from '../gold/components/GoldSourceNotice';
 import PreciousCompareButton from '../../../components/common/PreciousCompareButton';
 import UniversalCompareButton from '../../../components/common/UniversalCompareButton';
 import InstrumentActionButtons from '../../../components/instrument/InstrumentActionButtons';
+import PreciousStatsCard from './components/PreciousStatsCard';
 import { useTranslation } from '../../../context/LanguageContext';
 
 // Aktif sekme → COMMODITY sembol kategorisi (portföy/alarm/kıyas için)
@@ -23,18 +24,6 @@ function fmt(v, dec = 2) {
     minimumFractionDigits: dec,
     maximumFractionDigits: dec,
   });
-}
-
-function StatRow({ label, value, colored, positive }) {
-  const { t } = useTranslation();
-  return (
-    <div className="flex justify-between items-center py-2 border-b border-gray-50">
-      <span className="text-xs font-bold text-gray-500 tracking-wider">{t(label)}</span>
-      <span className={`text-sm font-semibold ${colored ? (positive ? 'text-emerald-600' : 'text-rose-600') : 'text-gray-900'}`}>
-        {value}
-      </span>
-    </div>
-  );
 }
 
 // ── Tab tanımları ─────────────────────────────────────────────────────────────
@@ -229,65 +218,72 @@ export default function PreciousMetalPage({ metal, metalName }) {
                 )}
               </div>
 
-              {/* İstatistikler */}
-              <div className="grid grid-cols-2 gap-x-3 sm:gap-x-8 gap-y-0 border-t border-gray-100 pt-4 mb-6">
-                <StatRow label="Güncel Fiyat"  value={currentPrice != null ? `${sym}${fmt(currentPrice)}` : '-'} />
-                <StatRow label="En Yüksek"     value={stats?.high != null ? `${sym}${fmt(stats.high)}` : '-'} />
-                <StatRow label="En Düşük"      value={stats?.low  != null ? `${sym}${fmt(stats.low)}`  : '-'} />
-                <StatRow label="Kapanış"       value={stats?.last != null ? `${sym}${fmt(stats.last)}` : '-'} />
-                <StatRow label="Dönem Değişimi"
-                  value={changePct != null ? `${changePct >= 0 ? '+' : ''}${fmt(changePct)}%` : '-'}
-                  colored={changePct != null} positive={changePct != null && changePct >= 0} />
-                <StatRow label="USD/Ons"  value={spot.usdOns  != null ? `$${fmt(spot.usdOns)}`  : '-'} />
-                <StatRow label="TL/Gram"  value={spot.tryGram != null ? `₺${fmt(spot.tryGram)}` : '-'} />
-                <StatRow label="TL/Kg"    value={spot.tryKg   != null ? `₺${fmt(spot.tryKg, 0)}` : '-'} />
-                <StatRow label="EUR/Ons"  value={spot.eurOns  != null ? `€${fmt(spot.eurOns)}`  : '-'} />
+              {/* ── SOL: toolbar + grafik 2/3 · SAĞ: butonlar + fiyat bilgileri 1/3 ── */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-5 items-start">
+                <div className="lg:col-span-2 min-w-0">
+                  <GoldChartToolbar
+                    activeTab={activeTab}
+                    range={range}
+                    onRangeChange={setRange}
+                    chartMode="line"
+                    onChartModeChange={() => {}}
+                    showMA7={showMA7}   onToggleMA7={() => setShowMA7(v => !v)}
+                    showMA30={showMA30} onToggleMA30={() => setShowMA30(v => !v)}
+                    showMA90={showMA90} onToggleMA90={() => setShowMA90(v => !v)}
+                    showTrend={showTrend} onToggleTrend={() => setShowTrend(v => !v)}
+                    loading={loadingChart}
+                    onRefresh={loadHistory}
+                  />
+                  <GoldChart
+                    key={`${activeTabKey}-${range}`}
+                    points={displayPoints}
+                    chartMode="line"
+                    isDown={isDown}
+                    loading={loadingChart}
+                    showMA7={showMA7}
+                    showMA30={showMA30}
+                    showMA90={showMA90}
+                    showTrend={showTrend}
+                    currency={activeTab.isUsd ? 'USD' : activeTab.isEur ? 'EUR' : 'TRY'}
+                    height={300}
+                    persistId={`${metal}:${activeTabKey}`}
+                  />
+                </div>
+                {/* SAĞ: butonlar (üstte) + bilgi kartı */}
+                <div className="min-w-0 space-y-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <PreciousCompareButton />
+                    <UniversalCompareButton
+                      assetType="COMMODITY"
+                      symbol={`${metal.toUpperCase()}:${PRECIOUS_CAT[activeTabKey] ?? 'GRAM_TRY'}`}
+                      name={activeTab.label}
+                    />
+                    <InstrumentActionButtons
+                      assetType="COMMODITY"
+                      symbol={`${metal.toUpperCase()}:${PRECIOUS_CAT[activeTabKey] ?? 'GRAM_TRY'}`}
+                      name={activeTab.label}
+                      price={currentPrice}
+                    />
+                  </div>
+                  <PreciousStatsCard
+                    stats={[
+                      { label: 'Güncel Fiyat', value: currentPrice != null ? `${sym}${fmt(currentPrice)}` : '-', highlight: true },
+                      { label: 'En Yüksek',    value: stats?.high != null ? `${sym}${fmt(stats.high)}` : '-' },
+                      { label: 'En Düşük',     value: stats?.low  != null ? `${sym}${fmt(stats.low)}`  : '-' },
+                      { label: 'Kapanış',      value: stats?.last != null ? `${sym}${fmt(stats.last)}` : '-' },
+                      {
+                        label: 'Dönem Değişimi',
+                        value: changePct != null ? `${changePct >= 0 ? '+' : ''}${fmt(changePct)}%` : '-',
+                        color: changePct != null ? (changePct >= 0 ? 'text-emerald-600' : 'text-rose-600') : null,
+                      },
+                      { label: 'USD/Ons', value: spot.usdOns  != null ? `$${fmt(spot.usdOns)}`  : '-' },
+                      { label: 'TL/Gram', value: spot.tryGram != null ? `₺${fmt(spot.tryGram)}` : '-' },
+                      { label: 'TL/Kg',   value: spot.tryKg   != null ? `₺${fmt(spot.tryKg, 0)}` : '-' },
+                      { label: 'EUR/Ons', value: spot.eurOns  != null ? `€${fmt(spot.eurOns)}`  : '-' },
+                    ]}
+                  />
+                </div>
               </div>
-
-              {/* Karşılaştır + Portföye Ekle + Alarm */}
-              <div className="flex items-center gap-2 flex-wrap mb-4">
-                <PreciousCompareButton />
-                <UniversalCompareButton
-                  assetType="COMMODITY"
-                  symbol={`${metal.toUpperCase()}:${PRECIOUS_CAT[activeTabKey] ?? 'GRAM_TRY'}`}
-                  name={activeTab.label}
-                />
-                <InstrumentActionButtons
-                  assetType="COMMODITY"
-                  symbol={`${metal.toUpperCase()}:${PRECIOUS_CAT[activeTabKey] ?? 'GRAM_TRY'}`}
-                  name={activeTab.label}
-                  price={currentPrice}
-                />
-              </div>
-
-              {/* Toolbar — canCandle:false → mum grafik butonu yok */}
-              <GoldChartToolbar
-                activeTab={activeTab}
-                range={range}
-                onRangeChange={setRange}
-                chartMode="line"
-                onChartModeChange={() => {}}
-                showMA7={showMA7}   onToggleMA7={() => setShowMA7(v => !v)}
-                showMA30={showMA30} onToggleMA30={() => setShowMA30(v => !v)}
-                showMA90={showMA90} onToggleMA90={() => setShowMA90(v => !v)}
-                showTrend={showTrend} onToggleTrend={() => setShowTrend(v => !v)}
-                loading={loadingChart}
-                onRefresh={loadHistory}
-              />
-
-              {/* Grafik — sadece çizgi */}
-              <GoldChart
-                key={`${activeTabKey}-${range}`}
-                points={displayPoints}
-                chartMode="line"
-                isDown={isDown}
-                loading={loadingChart}
-                showMA7={showMA7}
-                showMA30={showMA30}
-                showMA90={showMA90}
-                showTrend={showTrend}
-                currency={activeTab.isUsd ? 'USD' : activeTab.isEur ? 'EUR' : 'TRY'}
-              />
 
               <div className="mt-4">
                 <GoldSourceNotice

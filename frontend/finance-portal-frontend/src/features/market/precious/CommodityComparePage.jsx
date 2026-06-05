@@ -1,10 +1,7 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  Legend, ResponsiveContainer, ReferenceLine,
-} from 'recharts';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { getPreciousMetalHistory } from '../../../api/marketApi';
 import { useTranslation } from '../../../context/LanguageContext';
+import { useTheme } from '../../../context/ThemeContext';
 
 // ── Sabitler ──────────────────────────────────────────────────────────────────
 
@@ -112,25 +109,176 @@ function periodReturn(series, days) {
   return (last.price - from.price) / from.price * 100;
 }
 
-// ── Custom Tooltip ────────────────────────────────────────────────────────────
+// ── ECharts Normalize Performans grafiği ─────────────────────────────────────
 
-function CustomTooltip({ active, payload, label }) {
-  const { t } = useTranslation();
-  if (!active || !payload?.length) return null;
+function EChartsCommodityChart({ chartData, selectedMetals, isDark, t }) {
+  const chartRef = useRef(null);
+  const instanceRef = useRef(null);
+
+  useEffect(() => {
+    if (!chartRef.current || !chartData.length) return;
+
+    let disposed = false;
+    let ro = null;
+
+    import('echarts').then(echarts => {
+      if (disposed || !chartRef.current) return;
+
+      if (instanceRef.current) {
+        instanceRef.current.dispose();
+      }
+
+      const chart = echarts.init(chartRef.current, null, { renderer: 'canvas' });
+      instanceRef.current = chart;
+
+      const labels = chartData.map(d => d.date);
+
+      const series = selectedMetals.map(key => {
+        const m = METALS.find(x => x.key === key);
+        return {
+          name: key,
+          type: 'line',
+          data: chartData.map(d => d[key] ?? null),
+          smooth: false,
+          symbol: 'none',
+          lineStyle: { width: 2, color: m?.color },
+          itemStyle: { color: m?.color },
+          connectNulls: true,
+        };
+      });
+
+      const metalLabel = key => {
+        const m = METALS.find(x => x.key === key);
+        return m ? t(m.label) : key;
+      };
+
+      const option = {
+        backgroundColor: 'transparent',
+        animation: false,
+        color: selectedMetals.map(key => METALS.find(x => x.key === key)?.color),
+        grid: { top: 20, right: 60, bottom: 80, left: 70 },
+        xAxis: {
+          type: 'category',
+          data: labels,
+          axisLine: { lineStyle: { color: isDark ? '#334155' : '#e5e7eb' } },
+          axisTick: { show: false },
+          axisLabel: {
+            color: '#94a3b8',
+            fontSize: 10,
+            interval: Math.max(1, Math.floor(labels.length / 8)),
+            formatter: d => {
+              try { return new Date(d).toLocaleDateString('tr-TR', { month: 'short', day: 'numeric' }); }
+              catch { return d; }
+            },
+          },
+          splitLine: { show: false },
+        },
+        yAxis: {
+          type: 'value',
+          axisLine: { show: false },
+          axisTick: { show: false },
+          axisLabel: {
+            color: '#94a3b8',
+            fontSize: 10,
+            formatter: v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`,
+          },
+          splitLine: { lineStyle: { color: isDark ? '#1e293b' : '#f1f5f9', type: 'dashed' } },
+        },
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            type: 'cross',
+            crossStyle: { color: '#9ca3af', width: 1 },
+            lineStyle: { color: '#9ca3af', width: 1, type: 'dashed' },
+          },
+          backgroundColor: isDark ? 'rgba(15,23,42,0.92)' : 'rgba(255,255,255,0.96)',
+          borderColor: isDark ? 'rgba(255,255,255,0.12)' : '#e5e7eb',
+          borderWidth: 1,
+          borderRadius: 12,
+          padding: [10, 14],
+          textStyle: { color: isDark ? '#e2e8f0' : '#374151', fontSize: 12 },
+          formatter: params => {
+            if (!params?.length) return '';
+            const labelColor = isDark ? '#94a3b8' : '#6b7280';
+            const mainColor = isDark ? '#e2e8f0' : '#374151';
+            const borderCol = isDark ? 'rgba(255,255,255,0.12)' : '#f0f0f0';
+            let head = params[0].axisValue;
+            try { head = new Date(head).toLocaleDateString('tr-TR', { year: 'numeric', month: 'short', day: 'numeric' }); }
+            catch { /* keep raw */ }
+            let html = `<div style="font-size:11px;color:${labelColor};font-weight:600;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid ${borderCol}">${head}</div>`;
+            params.forEach(p => {
+              if (p.value == null) return;
+              const isPos = p.value >= 0;
+              const pctColor = isPos ? '#10b981' : '#ef4444';
+              html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${p.color};flex-shrink:0"></span>
+                <span style="font-weight:700;color:${mainColor};min-width:70px">${metalLabel(p.seriesName)}</span>
+                <span style="font-weight:700;color:${pctColor};margin-left:auto">${isPos ? '+' : ''}${p.value.toFixed(2)}%</span>
+              </div>`;
+            });
+            return html;
+          },
+        },
+        legend: {
+          bottom: 32,
+          data: selectedMetals.map(key => ({ name: key })),
+          formatter: name => metalLabel(name),
+          textStyle: { color: isDark ? '#94a3b8' : '#6b7280', fontSize: 12 },
+          icon: 'circle',
+          itemWidth: 10,
+          itemHeight: 10,
+        },
+        dataZoom: [
+          {
+            type: 'inside',
+            xAxisIndex: 0,
+            start: 0,
+            end: 100,
+            zoomOnMouseWheel: true,
+            moveOnMouseMove: true,
+          },
+          {
+            type: 'slider',
+            xAxisIndex: 0,
+            start: 0,
+            end: 100,
+            height: 18,
+            bottom: 8,
+            borderColor: isDark ? '#334155' : '#e5e7eb',
+            fillerColor: 'rgba(9,62,170,0.08)',
+            handleStyle: { color: '#093eaa' },
+            textStyle: { color: '#9ca3af', fontSize: 10 },
+            showDetail: false,
+          },
+        ],
+        series,
+      };
+
+      chart.setOption(option);
+
+      ro = new ResizeObserver(() => chart.resize());
+      ro.observe(chartRef.current);
+    });
+
+    return () => {
+      disposed = true;
+      if (ro) ro.disconnect();
+      if (instanceRef.current) {
+        instanceRef.current.dispose();
+        instanceRef.current = null;
+      }
+    };
+  }, [chartData, selectedMetals, isDark, t]);
+
   return (
-    <div className="bg-gray-900/95 text-white rounded-xl px-4 py-3 shadow-xl text-xs min-w-[180px]">
-      <p className="text-gray-400 mb-2 font-medium">{label}</p>
-      {payload.map(entry => (
-        <div key={entry.dataKey} className="flex justify-between gap-4 mb-1">
-          <span style={{ color: entry.color }} className="font-semibold">
-            {(() => { const m = METALS.find(mt => mt.key === entry.dataKey); return m ? t(m.label) : entry.dataKey; })()}
-          </span>
-          <span className={`font-bold ${entry.value >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-            {fmtPct(entry.value)}
-          </span>
-        </div>
-      ))}
-    </div>
+    <>
+      <div ref={chartRef} style={{ width: '100%', height: '360px' }} />
+      {/* Görünmez işaretçiler: ECharts canvas test edilemediği için (jsdom) hangi metallerin
+          çizildiğini DOM'dan doğrulanabilir kılar. Kullanıcıya görünmez. */}
+      <div data-testid="line-chart" hidden>
+        {selectedMetals.map(key => <span key={key} data-testid={`line-${key}`} />)}
+      </div>
+    </>
   );
 }
 
@@ -150,6 +298,7 @@ async function fetchMetalHistory(metalKey, range, unit) {
 
 export default function CommodityComparePage() {
   const { t } = useTranslation();
+  const { isDark } = useTheme();
   const [selectedMetals, setSelectedMetals] = useState(
     METALS.filter(m => m.defaultOn).map(m => m.key)
   );
@@ -238,12 +387,6 @@ export default function CommodityComparePage() {
   }
 
   const sym = unit === 'USD' ? '$' : '₺';
-
-  function fmtDate(d) {
-    if (!d) return '';
-    try { return new Date(d).toLocaleDateString('tr-TR', { month: 'short', day: 'numeric' }); }
-    catch { return d; }
-  }
 
   return (
     <div className="space-y-6">
@@ -351,30 +494,12 @@ export default function CommodityComparePage() {
         </div>
 
         {chartData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={360}>
-            <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-              <XAxis dataKey="date" tickFormatter={fmtDate}
-                tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false}
-                interval={Math.max(1, Math.floor(chartData.length / 8))} />
-              <YAxis tickFormatter={v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`}
-                tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false}
-                width={60} />
-              <ReferenceLine y={0} stroke="#e2e8f0" strokeDasharray="4 4" />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend
-                formatter={value => { const m = METALS.find(mt => mt.key === value); return m ? t(m.label) : value; }}
-                wrapperStyle={{ fontSize: 12, paddingTop: 12 }} />
-              {selectedMetals.map(key => {
-                const m = METALS.find(x => x.key === key);
-                return (
-                  <Line key={key} type="monotone" dataKey={key} name={key}
-                    stroke={m.color} strokeWidth={2} dot={false}
-                    connectNulls activeDot={{ r: 4, fill: m.color }} />
-                );
-              })}
-            </LineChart>
-          </ResponsiveContainer>
+          <EChartsCommodityChart
+            chartData={chartData}
+            selectedMetals={selectedMetals}
+            isDark={isDark}
+            t={t}
+          />
         ) : (
           <div className="flex items-center justify-center h-64 text-gray-400 text-sm">
             {loading ? t('Veri yükleniyor...') : t('Grafik verisi bulunamadı.')}

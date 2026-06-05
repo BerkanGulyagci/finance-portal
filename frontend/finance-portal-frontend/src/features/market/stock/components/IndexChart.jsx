@@ -1,13 +1,19 @@
 import { useEffect, useState, useRef } from 'react';
+import { init as klineInit, dispose as klineDispose } from 'klinecharts';
 import { getStockChart, getIndex } from '../../../../api/marketApi';
 import { STOCK_CHART_RANGES, formatStockChartTimeLabel } from '../utils/stockChartRanges';
 import { useTranslation } from '../../../../context/LanguageContext';
+import { useTheme } from '../../../../context/ThemeContext';
+import { computeKlinePricePrecision } from '../../../../utils/numberFormat';
+import ChartHoverCard from '../../../../components/common/ChartHoverCard';
 
 /**
  * Tek tip BIST endeks grafiği — hem Hisse sayfasındaki BIST 30/50/100 hem de endeks DETAY
- * sayfasında AYNI bileşen kullanılır (aynı kaynak + aynı çizim). ECharts alan/çizgi grafiği;
- * "Son Değer" ve günlük % Endeksler listesiyle BİREBİR aynı kaynaktan (getIndex → cache snapshot).
- * Crosshair + değer etiketli hover.
+ * sayfasında AYNI bileşen kullanılır. Grafik motoru: KLINECHARTS (alan/çizgi) — endeks DETAY
+ * çizgi grafiğiyle (LineChart) AYNI motor + AYNI kaynak (getStockChart kapanış serisi).
+ * "Son Değer" ve günlük % ise Endeksler listesiyle BİREBİR aynı kaynaktan (getIndex → cache
+ * snapshot); son nokta snapshot fiyatıyla hizalanır → grafik ucu + "Son Değer" listeyle tutarlı.
+ * Hover: tema uyumlu ChartHoverCard (onCrosshairChange ile beslenir, LineChart deseni).
  *
  * @param symbol      Yahoo sembolü (XU100.IS, XBANK.IS …)
  * @param label       Görünen ad (BIST 100 …) — showSummary=true iken başlıkta
@@ -17,13 +23,20 @@ import { useTranslation } from '../../../../context/LanguageContext';
  */
 export default function IndexChart({ symbol, label, showSummary = true, height = 260 }) {
   const { t } = useTranslation();
+  const { isDark } = useTheme();
   const [data, setData]         = useState([]);
   const [summary, setSummary]   = useState(null); // { price, changePercent } — Endeksler listesiyle aynı snapshot
   const [loading, setLoading]   = useState(true);
   const [rangeIdx, setRangeIdx] = useState(2); // default 1A
 
-  const chartRef    = useRef(null);
-  const instanceRef = useRef(null);
+  const chartId       = useRef(`kline_index_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`);
+  const chartRef      = useRef(null);
+  const klineDataRef  = useRef([]);
+  const pricePrecRef  = useRef(2);
+
+  // Tema uyumlu hover kartı (ChartHoverCard) — imleci takip eder.
+  const [hover, setHover] = useState(null);
+  const [pos,   setPos]   = useState({ x: 0, y: 0, flipX: false, flipY: false });
 
   const activeRange = STOCK_CHART_RANGES[rangeIdx];
   const code = (symbol ?? '').replace(/\.IS$/i, '').toUpperCase();
@@ -42,9 +55,10 @@ export default function IndexChart({ symbol, label, showSummary = true, height =
         const ts     = res?.timestamps  ?? [];
         const prices = res?.closePrices ?? [];
         const points = ts.map((tt, i) => ({
+          ts:    Number(tt) * 1000,
           label: formatStockChartTimeLabel(tt, activeRange.range, activeRange.interval),
           price: prices[i] != null ? parseFloat(prices[i]) : null,
-        })).filter(d => d.price != null);
+        })).filter(d => d.price != null && Number.isFinite(d.price));
         const listPrice = idx?.price != null ? parseFloat(idx.price) : null;
         if (listPrice != null && points.length > 0) {
           points[points.length - 1] = { ...points[points.length - 1], price: listPrice };
@@ -58,124 +72,72 @@ export default function IndexChart({ symbol, label, showSummary = true, height =
     return () => { alive = false; };
   }, [symbol, code, activeRange.range, activeRange.interval]);
 
-  // ECharts render
+  // KlineCharts render (alan grafiği — yön rengine göre yeşil/kırmızı + alan gradyanı)
   useEffect(() => {
-    if (!chartRef.current || data.length < 2) return;
+    if (loading || data.length < 2) return;
 
-    import('echarts').then(echarts => {
-      if (instanceRef.current) instanceRef.current.dispose();
+    const id = chartId.current;
+    const chart = klineInit(id);
+    chartRef.current = chart;
 
-      const chart = echarts.init(chartRef.current, null, { renderer: 'canvas' });
-      instanceRef.current = chart;
+    const klineData = data
+      .map(d => ({
+        timestamp: d.ts,
+        open: d.price, high: d.price, low: d.price, close: d.price,
+        volume: 0, turnover: 0,
+      }))
+      .sort((a, b) => a.timestamp - b.timestamp);
 
-      const isUp  = data[data.length - 1].price >= data[0].price;
-      const color = isUp ? '#10b981' : '#ef4444';
+    const isUp  = klineData[klineData.length - 1].close >= klineData[0].close;
+    const color = isUp ? '#10b981' : '#ef4444';
 
-      chart.setOption({
-        backgroundColor: 'transparent',
-        animation: false,
-        grid: { top: 16, right: 16, bottom: 80, left: 72 },
-        xAxis: {
-          type: 'category',
-          data: data.map(d => d.label),
-          boundaryGap: false,
-          axisLine: { lineStyle: { color: '#e5e7eb' } },
-          axisTick: { show: false },
-          axisLabel: { color: '#9ca3af', fontSize: 10, interval: 'auto' },
-          splitLine: { show: false },
-        },
-        yAxis: {
-          type: 'value',
-          min: 'dataMin',
-          max: 'dataMax',
-          axisLine: { show: false },
-          axisTick: { show: false },
-          axisLabel: {
-            color: '#9ca3af',
-            fontSize: 10,
-            formatter: v => v.toLocaleString('tr-TR', { maximumFractionDigits: 0 }),
-          },
-          splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } },
-        },
-        tooltip: {
-          trigger: 'axis',
-          // Hover: çapraz crosshair + eksen üzerinde değer etiketleri
-          axisPointer: {
-            type: 'cross',
-            lineStyle: { color: '#093eaa', type: 'dashed', width: 1 },
-            label: {
-              backgroundColor: '#093eaa',
-              color: '#ffffff',
-              fontSize: 10,
-              formatter: p => (p.axisDimension === 'y'
-                ? Number(p.value).toLocaleString('tr-TR', { maximumFractionDigits: 2 })
-                : p.value),
-            },
-          },
-          backgroundColor: '#ffffff',
-          borderColor: '#e5e7eb',
-          borderRadius: 12,
-          padding: [10, 14],
-          formatter: params => {
-            if (!params?.length) return '';
-            const p = params[0];
-            return `<div style="font-size:11px;color:#6b7280;font-weight:600;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #f0f0f0">${p.axisValue}</div>
-              <div style="display:flex;justify-content:space-between;gap:16px;align-items:center">
-                <span style="font-size:11px;color:#6b7280">${t('Değer:')}</span>
-                <span style="font-weight:700;font-size:11px;color:#111827">${p.value != null ? parseFloat(p.value).toLocaleString('tr-TR', { maximumFractionDigits: 2 }) : '-'}</span>
-              </div>`;
-          },
-        },
-        dataZoom: [
-          { type: 'inside', xAxisIndex: 0, start: 0, end: 100, zoomOnMouseWheel: true },
-          {
-            type: 'slider',
-            xAxisIndex: 0,
-            start: 0,
-            end: 100,
-            height: 18,
-            bottom: 8,
-            borderColor: '#e5e7eb',
-            fillerColor: 'rgba(9,62,170,0.08)',
-            handleStyle: { color: '#093eaa' },
-            showDetail: false,
-          },
-        ],
-        series: [{
-          type: 'line',
-          data: data.map(d => d.price),
+    chart.setStyles({
+      candle: {
+        type: 'area',
+        area: {
+          lineColor: color,
+          lineSize: 2,
+          value: 'close',
           smooth: false,
-          // Normalde nokta gizli; hover'da o noktada işaret belirir
-          symbol: 'circle',
-          symbolSize: 7,
-          showSymbol: false,
-          lineStyle: { width: 2, color },
-          itemStyle: { color },
-          emphasis: { focus: 'series', itemStyle: { borderColor: '#fff', borderWidth: 2 } },
-          areaStyle: {
-            color: {
-              type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-              colorStops: [
-                { offset: 0, color: color + '33' },
-                { offset: 1, color: color + '00' },
-              ],
-            },
-          },
-        }],
-      });
-
-      const ro = new ResizeObserver(() => chart.resize());
-      ro.observe(chartRef.current);
-      return () => ro.disconnect();
+          backgroundColor: [
+            { offset: 0, color: color + '33' },
+            { offset: 1, color: color + '00' },
+          ],
+        },
+        // Default metin tooltip'ini gizle → tema uyumlu ChartHoverCard kullanılır.
+        tooltip: { showRule: 'none' },
+      },
     });
 
-    return () => {
-      if (instanceRef.current) {
-        instanceRef.current.dispose();
-        instanceRef.current = null;
-      }
-    };
-  }, [data, loading]);
+    chart.applyNewData(klineData);
+
+    klineDataRef.current = klineData;
+    try { pricePrecRef.current = computeKlinePricePrecision(klineData.map(d => d.close)); } catch (_) {}
+
+    try {
+      chart.subscribeAction('onCrosshairChange', (cd) => {
+        const arr = klineDataRef.current;
+        const idx = cd?.dataIndex;
+        if (idx == null || idx < 0 || !arr[idx]) { setHover(null); return; }
+        const ptD = arr[idx];
+        const dt = new Date(ptD.timestamp);
+        const hasTime = dt.getHours() !== 0 || dt.getMinutes() !== 0;
+        const dateLabel = dt.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: '2-digit' })
+          + (hasTime ? ' · ' + dt.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : '');
+        const prec = pricePrecRef.current;
+        const priceLabel = Number(ptD.close).toLocaleString('tr-TR', { minimumFractionDigits: prec, maximumFractionDigits: prec });
+        // Sadece tarih + değer. Endekste ₺ sembolü yok (puan değeri). Yön rengi nötr (yeşil).
+        setHover({ dateLabel, priceLabel, changePct: null, up: true, volumeLabel: null });
+        const el = document.getElementById(id);
+        const r = el?.getBoundingClientRect();
+        if (r && cd?.x != null && cd?.y != null) {
+          setPos({ x: cd.x, y: cd.y, flipX: cd.x > r.width - 200, flipY: cd.y > r.height - 96 });
+        }
+      });
+    } catch (_) {}
+
+    return () => { klineDispose(id); chartRef.current = null; };
+  }, [data, loading, isDark]);
 
   const isUp      = data.length > 1 && data[data.length - 1].price >= data[0].price;
   const change    = data.length > 1
@@ -217,7 +179,7 @@ export default function IndexChart({ symbol, label, showSummary = true, height =
       </div>
 
       {/* Loading overlay — chart div her zaman DOM'da kalır */}
-      <div style={{ position: 'relative', height }}>
+      <div className="relative" style={{ height }} onMouseLeave={() => setHover(null)}>
         {loading && (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card, #fff)', zIndex: 10 }}>
             <div className="flex gap-1.5">
@@ -232,7 +194,9 @@ export default function IndexChart({ symbol, label, showSummary = true, height =
             <span className="text-gray-400 text-sm">{t('Grafik verisi yüklenemedi.')}</span>
           </div>
         )}
-        <div ref={chartRef} style={{ width: '100%', height: '100%', visibility: loading || data.length < 2 ? 'hidden' : 'visible' }} />
+        <div id={chartId.current} style={{ width: '100%', height: '100%', visibility: loading || data.length < 2 ? 'hidden' : 'visible' }} />
+        {/* Tema uyumlu hover kartı (imleci takip eder) */}
+        <ChartHoverCard hover={hover} pos={pos} />
       </div>
 
       {change != null && (

@@ -187,7 +187,11 @@ describe('GoldChart — çizim aracı etkileşimi', () => {
     // "Yatay Çizgi" aracını seç
     fireEvent.click(screen.getByRole('button', { name: /Yatay Çizgi/ }));
 
-    expect(lastChart.createOverlay).toHaveBeenCalledWith({ name: 'horizontalStraightLine' });
+    // useChartDrawings çizimi overlay-event'leriyle (onDrawEnd→kaydet) oluşturur → name dışında
+    // event handler'ları da geçer; sadece name'in doğru olduğunu doğrula (objectContaining).
+    expect(lastChart.createOverlay).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'horizontalStraightLine' })
+    );
     // Aktif araç rozeti (ml-auto span) — etiket görünür hale gelir
     const matches = screen.getAllByText('Yatay Çizgi');
     expect(matches.length).toBeGreaterThan(0);

@@ -1,26 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor} from '@testing-library/react';
 
-// ── Recharts mock ──────────────────────────────────────────────────────────────
-// jsdom'da SVG ölçümü/ResponsiveContainer 0 boyut verir → grafik dalı hiç render
-// olmaz. Tüm recharts bileşenlerini hafif passthrough'larla değiştirip "grafik var"
-// (LineChart) ile "grafik yok" (boş mesaj) dallarını ayırt edilebilir kılıyoruz.
-// Her <Line> için data-testid="line-<dataKey>" basıyoruz ki hangi metalin çizildiğini
-// doğrulayabilelim.
-vi.mock('recharts', () => {
-  const Pass = ({ children }) => <div>{children}</div>;
-  return {
-    ResponsiveContainer: ({ children }) => <div data-testid="rc-container">{children}</div>,
-    LineChart: ({ children }) => <div data-testid="line-chart">{children}</div>,
-    Line: ({ dataKey }) => <div data-testid={`line-${dataKey}`} />,
-    XAxis: Pass,
-    YAxis: Pass,
-    CartesianGrid: Pass,
-    Tooltip: Pass,
-    Legend: Pass,
-    ReferenceLine: Pass,
-  };
-});
+// ── ECharts mock ─────────────────────────────────────────────────────────────────
+// Grafik artık ECharts (canvas). jsdom'da clientWidth/Height 0 → echarts.init throw eder.
+// init/setOption/resize/dispose'u stub'lıyoruz. setOption çağrısını yakalayıp en son
+// option'ı global'e yazıyoruz → testler hangi metallerin (series) çizildiğini doğrulayabilir.
+let __lastEchartsOption = null;
+vi.mock('echarts', () => ({
+  init: vi.fn(() => ({
+    setOption: vi.fn((opt) => { __lastEchartsOption = opt; }),
+    resize: vi.fn(),
+    dispose: vi.fn(),
+    on: vi.fn(),
+    off: vi.fn(),
+  })),
+  use: vi.fn(),
+  graphic: {},
+}));
 
 // ── API mock ────────────────────────────────────────────────────────────────────
 // Komponent getPreciousMetalHistory(metal, range, currency) → { points: [...] }
