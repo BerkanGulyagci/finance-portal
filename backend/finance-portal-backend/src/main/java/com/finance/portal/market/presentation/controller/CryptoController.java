@@ -4,9 +4,11 @@ import com.finance.portal.common.presentation.dto.ApiResponse;
 import com.finance.portal.market.application.crypto.CryptoBinanceChartService;
 import com.finance.portal.market.application.crypto.CryptoMarketService;
 import com.finance.portal.market.application.crypto.CryptoYahooChartService;
+import com.finance.portal.market.application.crypto.FearGreedService;
 import com.finance.portal.market.application.stock.StockChartResponse;
 import com.finance.portal.market.application.crypto.model.CryptoChartCandle;
 import com.finance.portal.market.application.crypto.model.CryptoMarketItem;
+import com.finance.portal.market.application.crypto.model.FearGreedPoint;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.http.ResponseEntity;
@@ -28,13 +30,16 @@ public class CryptoController {
     private final CryptoMarketService cryptoMarketService;
     private final CryptoBinanceChartService cryptoBinanceChartService;
     private final CryptoYahooChartService cryptoYahooChartService;
+    private final FearGreedService fearGreedService;
 
     public CryptoController(CryptoMarketService cryptoMarketService,
                             CryptoBinanceChartService cryptoBinanceChartService,
-                            CryptoYahooChartService cryptoYahooChartService) {
+                            CryptoYahooChartService cryptoYahooChartService,
+                            FearGreedService fearGreedService) {
         this.cryptoMarketService = cryptoMarketService;
         this.cryptoBinanceChartService = cryptoBinanceChartService;
         this.cryptoYahooChartService = cryptoYahooChartService;
+        this.fearGreedService = fearGreedService;
     }
 
     @GetMapping
@@ -137,6 +142,19 @@ public class CryptoController {
                 ? "No Binance TRY candles for this symbol/range (use Yahoo fallback on client)"
                 : "Binance TRY chart candles retrieved";
         return ResponseEntity.ok(ApiResponse.success(candles, msg));
+    }
+
+    /**
+     * Crypto Fear &amp; Greed Index (piyasa-geneli, coinId YOK) — son {@code days} günlük seri.
+     * Kaynak alternative.me; nokta başına {@code timestamp} MİLİSANİYE, {@code value} 0-100,
+     * {@code classification} metin. Frontend bunu coin fiyatıyla karşılaştırmalı çizer.
+     */
+    @GetMapping("/fear-greed")
+    public ResponseEntity<ApiResponse<List<FearGreedPoint>>> getFearGreed(
+            @RequestParam(defaultValue = "90") @Min(1) @Max(365) int days
+    ) {
+        List<FearGreedPoint> points = fearGreedService.getFearGreed(days);
+        return ResponseEntity.ok(ApiResponse.success(points, "Fear & Greed index retrieved"));
     }
 
     @GetMapping("/{coinId}/chart")

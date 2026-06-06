@@ -57,6 +57,16 @@ export async function getCryptoChart(coinId, days = 7, currency = 'try', interva
   return data.data ?? {};
 }
 
+/**
+ * Piyasa-geneli Korku & Açgözlülük (Fear & Greed) endeksi — günlük.
+ * Belirli bir coin'e bağlı değildir; tüm coinler için aynıdır.
+ * Dönüş: [{ timestamp (ms), value (0-100 int), classification: 'Extreme Fear'|... }]
+ */
+export async function getCryptoFearGreed(days = 90) {
+  const { data } = await client.get('/api/v1/market/crypto/fear-greed', { params: { days } });
+  return data.data ?? [];
+}
+
 /** TRY 5Y / Tüm — Binance Spot klines (boşsa Yahoo fallback) */
 export async function getCryptoBinanceCandles(symbol, range, currency = 'try') {
   const { data } = await client.get(

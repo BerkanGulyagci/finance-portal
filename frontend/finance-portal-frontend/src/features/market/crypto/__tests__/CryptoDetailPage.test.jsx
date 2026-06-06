@@ -55,6 +55,7 @@ vi.mock('../../../../api/marketApi', () => ({
   getCryptoDetail: vi.fn(),
   getCryptoChart: vi.fn(),
   getCryptoOhlc: vi.fn(),
+  getCryptoFearGreed: vi.fn(),
 }));
 
 // react-router-dom — useParams (coinId) + useNavigate (spy) override; MemoryRouter/Link gerçek.
@@ -65,7 +66,7 @@ vi.mock('react-router-dom', async (orig) => {
 });
 
 import {
-  getAllCryptos, getCryptoDetail, getCryptoChart, getCryptoOhlc,
+  getAllCryptos, getCryptoDetail, getCryptoChart, getCryptoOhlc, getCryptoFearGreed,
 } from '../../../../api/marketApi';
 import CryptoDetailPage from '../CryptoDetailPage';
 
@@ -130,6 +131,7 @@ describe('CryptoDetailPage (Vitest + @testing-library/react)', () => {
     getCryptoDetail.mockResolvedValue(DETAIL_FULL);
     getCryptoChart.mockResolvedValue(CHART_DATA);
     getCryptoOhlc.mockResolvedValue([]);
+    getCryptoFearGreed.mockResolvedValue([]);
   });
 
   it('mock\'larla hata fırlatmadan render olur ve geri-dönüş linkini gösterir (smoke)', async () => {

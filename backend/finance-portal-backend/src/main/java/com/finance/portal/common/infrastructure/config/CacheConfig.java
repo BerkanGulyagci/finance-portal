@@ -43,6 +43,10 @@ public class CacheConfig {
     @Value("${cache.market.crypto.ttl-seconds:60}")
     private long marketCryptoTtlSeconds;
 
+    // Crypto Fear & Greed Index — alternative.me'de günde 1 güncellenir; 2 saat TTL fazlasıyla taze.
+    @Value("${cache.market.feargreed.ttl-seconds:7200}")
+    private long marketFearGreedTtlSeconds;
+
     @Value("${cache.market.funds.ttl-seconds:600}")
     private long marketFundsTtlSeconds;
 
@@ -285,6 +289,12 @@ public class CacheConfig {
                 .withCacheConfiguration("market.crypto.binance.candles", cryptoChartCacheConfig)
                 .withCacheConfiguration("market.crypto.yahoo.ohlc", cryptoChartCacheConfig)
                 .withCacheConfiguration("market.crypto.yahoo.chart", cryptoChartCacheConfig)
+                // Crypto Fear & Greed Index (alternative.me) — günde 1 güncellenir, 2 saat TTL.
+                .withCacheConfiguration("market.feargreed",
+                        RedisCacheConfiguration.defaultCacheConfig()
+                                .entryTtl(Duration.ofSeconds(marketFearGreedTtlSeconds))
+                                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(
+                                        new GenericJackson2JsonRedisSerializer())))
                 // BIST endeksleri (XU100/XU030/XU050) Yahoo'dan günlük seri — 60 dk önbellek
                 // (endeksler intraday yavaş hareket eder, ticker kullanımına yeterli).
                 .withCacheConfiguration("market.bistIndex.history",

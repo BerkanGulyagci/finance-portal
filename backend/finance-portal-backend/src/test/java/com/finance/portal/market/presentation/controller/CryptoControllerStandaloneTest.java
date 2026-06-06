@@ -35,6 +35,7 @@ class CryptoControllerStandaloneTest {
     @Mock CryptoMarketService cryptoMarketService;
     @Mock CryptoBinanceChartService cryptoBinanceChartService;
     @Mock CryptoYahooChartService cryptoYahooChartService;
+    @Mock com.finance.portal.market.application.crypto.FearGreedService fearGreedService;
 
     private MockMvc mockMvc;
 
@@ -42,7 +43,8 @@ class CryptoControllerStandaloneTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
         mockMvc = MockMvcBuilders.standaloneSetup(new CryptoController(
-                cryptoMarketService, cryptoBinanceChartService, cryptoYahooChartService)).build();
+                cryptoMarketService, cryptoBinanceChartService, cryptoYahooChartService,
+                fearGreedService)).build();
     }
 
     private CryptoMarketItem sampleItem() {

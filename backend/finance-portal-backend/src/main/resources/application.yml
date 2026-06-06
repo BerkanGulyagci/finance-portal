@@ -372,6 +372,9 @@ cache:
       ttl-seconds: 600
     crypto:
       ttl-seconds: ${CACHE_MARKET_CRYPTO_TTL_SECONDS:300}
+    # Crypto Fear & Greed Index (alternative.me) — günde 1 güncellenir, 2 saat TTL fazlasıyla taze.
+    feargreed:
+      ttl-seconds: ${CACHE_MARKET_FEARGREED_TTL_SECONDS:7200}
     funds:
       # Fon LİSTESİ + detay. Warm-up 8 dk'da bir tazeler → TTL bundan UZUN olmalı (10 dk),
       # yoksa warm-up'lar arasında expire olup soğuk pencere oluşur (8dk<10dk; stock deseniyle aynı).
@@ -502,6 +505,10 @@ coingecko:
 
 binance:
   base-url: ${BINANCE_BASE_URL:https://api.binance.com}
+
+# Crypto Fear & Greed Index (anahtarsız, ücretsiz). Endeks günde 1 güncellenir.
+feargreed:
+  base-url: ${FEARGREED_BASE_URL:https://api.alternative.me}
 
 resilience4j:
   circuitbreaker:

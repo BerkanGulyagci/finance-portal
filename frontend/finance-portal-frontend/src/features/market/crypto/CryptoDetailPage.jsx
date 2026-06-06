@@ -23,6 +23,7 @@ import {
 import { COMPARE_COLORS, MA_OPTIONS } from './utils/cryptoChartConfig';
 import CryptoLineChart from './components/CryptoLineChart';
 import CompareDropdown from './components/CompareDropdown';
+import FearGreedChart from './components/FearGreedChart';
 import { useTranslation } from '../../../context/LanguageContext';
 import { CURRENCIES, fmtPrice, fmt, pct, calcRSI, RSIBadge } from './cryptoDetailParts';
 import { SkeletonDetail } from '../../../components/common/Skeleton';
@@ -656,6 +657,9 @@ export default function CryptoDetailPage() {
               )}
             </div>
           </div>
+
+          {/* Korku & Açgözlülük (Fear & Greed) — coin fiyatı vs piyasa F&G (çift eksen) */}
+          <FearGreedChart priceData={chartData} coinName={coin?.name} days={90} />
 
           {shortDesc && (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-5">

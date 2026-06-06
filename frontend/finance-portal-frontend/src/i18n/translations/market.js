@@ -1128,6 +1128,18 @@ const en = {
   'ABD mallarının TL fiyatıdır (ABD enflasyonu × USD/TRY) — "dolar alım gücünü korudun mu" ölçüsü. Çizginin yüksekliği ABD enflasyonundan değil, ağırlıkla TL\'nin dolara karşı değer kaybından (USD/TRY artışından) gelir.':
     'is the TL price of US goods (US inflation × USD/TRY) — a "did you keep your dollar purchasing power" yardstick. Its height comes mostly not from US inflation but from the lira losing value against the dollar (USD/TRY rising).',
 
+  // ── Korku & Açgözlülük (Fear & Greed) ─────────────────────────────────────
+  'Korku & Açgözlülük': 'Fear & Greed',
+  'Fiyatı vs Korku & Açgözlülük': 'Price vs Fear & Greed',
+  'Güncel Korku & Açgözlülük endeksi': 'Current Fear & Greed index',
+  'Piyasa geneli · son {n} gün': 'Market-wide · last {n} days',
+  // Fear & Greed sınıflandırmaları (backend EN sabit → TR/EN etiket)
+  'Aşırı Korku': 'Extreme Fear',
+  'Korku': 'Fear',
+  'Nötr': 'Neutral',
+  'Açgözlülük': 'Greed',
+  'Aşırı Açgözlülük': 'Extreme Greed',
+
 };
 
 export default { en };

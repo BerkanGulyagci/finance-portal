@@ -29,6 +29,7 @@ public final class IntegrationLogSupport {
     public static final String PROVIDER_CANLI_ALTIN = "canli_altin";
     public static final String PROVIDER_HALKARZ = "halkarz";
     public static final String PROVIDER_BINANCE = "binance";
+    public static final String PROVIDER_ALTERNATIVE_ME = "alternative_me";
     public static final String PROVIDER_TCMB = "tcmb";
     public static final String PROVIDER_OPEN_FX = "open_fx";
     public static final String PROVIDER_EVDS = "evds";
