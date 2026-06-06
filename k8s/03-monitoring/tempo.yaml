@@ -55,10 +55,11 @@ spec:
           resources:
             requests:
               cpu: 100m
-              memory: 128Mi
-            limits:
-              cpu: 250m
               memory: 256Mi
+            # 256Mi limit OOMKilled veriyordu (trace topladıkça bellek artar) → 512Mi.
+            limits:
+              cpu: 500m
+              memory: 512Mi
       volumes:
         - name: tempo-config
           configMap:

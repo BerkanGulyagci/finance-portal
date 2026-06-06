@@ -24,6 +24,11 @@ spec:
         app: prometheus
         tier: monitoring
     spec:
+      # PVC root'u root'a ait; prometheus nobody(65534) yazamıyor → fsGroup devreder.
+      securityContext:
+        fsGroup: 65534
+        runAsUser: 65534
+        runAsNonRoot: true
       containers:
         - name: prometheus
           image: prom/prometheus:v2.51.0
