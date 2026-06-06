@@ -147,11 +147,16 @@ public class AssistantService {
             return AssistantReply.of(Status.UNAVAILABLE);
         }
         if (incoming == null || incoming.isEmpty()) {
+            // INVALID = sağlayıcı hatası DEĞİL; istemci boş/biçimsiz gönderdi (ör. eski/cache'li
+            // bundle, geçmişsiz çağrı). Sessiz kalmasın diye logla → cloud teşhisi kolaylaşsın.
+            log.warn("Assistant chat INVALID: boş veya null messages geldi (userId={}, ip={})", userId, clientIp);
             return AssistantReply.of(Status.INVALID);
         }
 
         List<ChatMessage> sanitized = sanitizeHistory(incoming);
         if (sanitized.isEmpty()) {
+            log.warn("Assistant chat INVALID: sanitize sonrası kullanıcı mesajı kalmadı "
+                    + "(gelen {} mesaj, userId={}, ip={})", incoming.size(), userId, clientIp);
             return AssistantReply.of(Status.INVALID);
         }
 

@@ -145,6 +145,11 @@ export function AIChatWidget() {
         case 'UNAVAILABLE':
           pushBot(t('Asistan şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin.'));
           break;
+        case 'INVALID':
+          // Geçersiz/boş istek (genelde eski sekme/cache'li bundle). Sohbeti temizlemek
+          // sayfayı tazeleyip güncel bundle'ı yükletir → bir sonraki mesaj düzelir.
+          pushBot(t('İsteğiniz işlenemedi. Lütfen sayfayı yenileyip tekrar deneyin.'));
+          break;
         default:
           pushBot(t('Bir hata oluştu. Lütfen tekrar deneyin.'));
       }

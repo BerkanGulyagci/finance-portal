@@ -59,6 +59,11 @@ spec:
             # Doğrulama sonrası cloud frontend'ine yönlendir.
             - name: KEYCLOAK_POST_VERIFY_REDIRECT_URI
               value: "https://8-233-66-172.nip.io/login"
+            # --- LDAP (apacheds) K8s override ---
+            # Default 'finance-portal-apacheds' compose adı; K8s Service adı 'apacheds'.
+            # Yanlış host → kayıt (LDAP'a yazma) 500 veriyordu.
+            - name: LDAP_URL
+              value: "ldap://apacheds:10389"
             # --- OpenTelemetry Java Agent ---
             - name: OTEL_SERVICE_NAME
               value: "finance-portal-backend"

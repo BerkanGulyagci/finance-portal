@@ -73,6 +73,7 @@ const en = {
   'Asistan şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin.': 'The assistant is currently unavailable. Please try again later.',
   'Şu an yoğunluk var (günlük ücretsiz AI kotası dolmuş olabilir). Lütfen birkaç dakika sonra tekrar deneyin.': 'High demand right now (the free daily AI quota may be used up). Please try again in a few minutes.',
   'Bir hata oluştu. Lütfen tekrar deneyin.': 'Something went wrong. Please try again.',
+  'İsteğiniz işlenemedi. Lütfen sayfayı yenileyip tekrar deneyin.': 'Your request could not be processed. Please refresh the page and try again.',
   'Porti yapay zekâdır, hata yapabilir. Yatırım tavsiyesi değildir.': 'Porti is AI-generated and may be wrong. Not investment advice.',
 
   // Sidebar
