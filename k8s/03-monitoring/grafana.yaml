@@ -1,9 +1,6 @@
-# Grafana — gözlemlenebilirlik panosu (Deployment + PVC). Prometheus (metrik), Tempo (trace)
-# ve OpenSearch (log) datasource'larını birleştirir. OpenSearch için resmi eklenti otomatik kurulur.
-# Admin şifresi HARDCODE EDİLMEZ — "db-secrets" Secret'ından (GRAFANA_ADMIN_PASSWORD) gelir.
-# Service adı: "grafana", port 3000.
-# İNTERNETE KAPALI (ClusterIP) — erişim: kubectl port-forward svc/grafana 3000:3000
-# kubectl apply -f k8s/03-monitoring/grafana.yaml
+# Grafana — gözlemlenebilirlik panosu (Deployment + PVC); Prometheus/Tempo/OpenSearch datasource'ları.
+# Admin şifresi "db-secrets" Secret'ından (GRAFANA_ADMIN_PASSWORD). Service "grafana":3000.
+# İnternete kapalı (ClusterIP) — erişim: kubectl port-forward svc/grafana 3000:3000
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -37,14 +34,13 @@ spec:
                 secretKeyRef:
                   name: db-secrets
                   key: GRAFANA_ADMIN_PASSWORD
-            # Resmi OpenSearch datasource eklentisi (gereksinim: OpenSearch — Elasticsearch değil).
+            # Resmi OpenSearch datasource eklentisi (Elasticsearch değil).
             - name: GF_INSTALL_PLUGINS
               value: grafana-opensearch-datasource
           volumeMounts:
             - name: grafana-data
               mountPath: /var/lib/grafana
-            # TODO: provisioning (datasource + dashboard) ConfigMap ile eklenecek
-            #       → mount /etc/grafana/provisioning. Compose'daki ./docker/grafana/provisioning karşılığı.
+            # TODO: provisioning (datasource + dashboard) ConfigMap ile /etc/grafana/provisioning'e mount.
           readinessProbe:
             httpGet:
               path: /api/health
@@ -71,7 +67,7 @@ spec:
           persistentVolumeClaim:
             claimName: grafana-data
 ---
-# Grafana kalıcı veri (dashboard/datasource/kullanıcı) — Deployment ile ayrı PVC kullanılır.
+# Grafana kalıcı veri (dashboard/datasource/kullanıcı) PVC'si.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

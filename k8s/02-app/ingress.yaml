@@ -1,29 +1,19 @@
-# =============================================================================
-# Ingress — dış dünyadan frontend + backend'e erişim.
-# GKE Ingress controller bir EXTERNAL IP ayırır (birkaç dakika sürer).
-#
-# Yönlendirme:
-#   /api/*  → backend:8080  (Spring Boot API)
-#   /*      → frontend:80   (nginx SPA)
-#
-# NOT: nginx zaten /api'yi backend'e proxy'liyor; ama Ingress seviyesinde de
-#      /api'yi doğrudan backend'e yönlendirmek daha temiz (frontend'i bypass).
-#      Basit tutmak için TÜM trafiği frontend'e verip nginx proxy'sine
-#      güvenebiliriz de — ama path-based routing daha "K8s-native".
-# =============================================================================
+# Ingress — frontend + backend dış erişim (GKE controller EXTERNAL IP ayırır).
+# Routing: /api → backend:8080 (Spring Boot), /* → frontend:80 (nginx SPA).
+# Not: nginx de /api proxy'liyor; Ingress'te path-based routing daha K8s-native.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: portiva-ingress
   namespace: portiva
   annotations:
-    # GKE'nin yönetilen L7 load balancer'ını kullan (external IP verir).
+    # GKE yönetilen L7 load balancer (external IP verir).
     kubernetes.io/ingress.class: "gce"
 spec:
   rules:
     - http:
         paths:
-          # /api/* → backend (Spring Boot)
+          # /api → backend
           - path: /api
             pathType: Prefix
             backend:
@@ -31,7 +21,7 @@ spec:
                 name: backend
                 port:
                   number: 8080
-          # Diğer her şey → frontend (nginx SPA)
+          # diğer her şey → frontend (nginx SPA)
           - path: /
             pathType: Prefix
             backend:

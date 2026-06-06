@@ -1,17 +1,7 @@
-# =============================================================================
-# HPA (Horizontal Pod Autoscaler) — backend'i CPU yüküne göre OTOMATİK ölçekler.
-#
-# Mantık:
-#   - Min 1, Max 6 pod (yük yoksa 1, yük gelince 6'ya kadar)
-#   - CPU ortalaması %50'yi geçince → yeni pod açar (scale UP)
-#   - Yük düşünce → pod kapatır (scale DOWN)
-#
-# k6 yük testi: backend'e bol istek → CPU artar → HPA pod sayısını artırır.
-# `kubectl get hpa -n portiva -w` ile CANLI izlenir.
-#
-# NOT: HPA, backend deployment'ının resource requests'i olduğu için çalışır
-#      (requests: cpu 500m). %50 = 250m CPU eşiği.
-# =============================================================================
+# HPA — backend'i CPU yüküne göre otomatik ölçekler.
+# CPU ortalaması %50'yi geçince scale UP, düşünce scale DOWN.
+# Çalışması için deployment'ta resource requests şart (cpu 500m → %50 = 250m eşiği).
+# İzleme: kubectl get hpa -n portiva -w
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -22,7 +12,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: backend
-  minReplicas: 1
+  # min 2 → biri yenilenirken diğeri trafiği taşır (PDB ile zero-downtime)
+  minReplicas: 2
   maxReplicas: 6
   metrics:
     - type: Resource
@@ -32,7 +23,7 @@ spec:
           type: Utilization
           averageUtilization: 50
   behavior:
-    # Hızlı yukarı ölçekle (yük gelince hemen pod aç), yavaş aşağı (yük gidince acele kapatma)
+    # Hızlı scale UP, yavaş scale DOWN.
     scaleUp:
       stabilizationWindowSeconds: 15
       policies:

@@ -1,0 +1,12 @@
+# PodDisruptionBudget — rolling update/drain'de en az 1 backend pod hep ayakta kalsın
+# (aksi halde tüm pod'lar aynı anda yenilenince API geçici 502 verir).
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: backend-pdb
+  namespace: portiva
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: backend

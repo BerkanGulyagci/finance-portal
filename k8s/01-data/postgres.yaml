@@ -1,10 +1,6 @@
-# PostgreSQL — kalıcı veri (StatefulSet + PVC). finance_portal + keycloak DB'lerini barındırır.
-# Service adı (headless): "postgres", port 5432
-#   → backend  : jdbc:postgresql://postgres:5432/finance_portal
-#   → keycloak : jdbc:postgresql://postgres:5432/keycloak
-# User/şifre HARDCODE EDİLMEZ — "db-secrets" Secret'ından gelir.
-# Init: "postgres-init" ConfigMap (01-create-keycloak-db.sql) ilk boş data dizininde keycloak DB'sini yaratır.
-# kubectl apply -f k8s/01-data/postgres.yaml
+# PostgreSQL — kalıcı veri (StatefulSet + PVC); finance_portal + keycloak DB'leri.
+# Headless Service "postgres":5432. User/şifre "db-secrets" Secret'ından.
+# Init: "postgres-init" ConfigMap ilk açılışta keycloak DB'sini yaratır.
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -46,8 +42,7 @@ spec:
                   key: POSTGRES_PASSWORD
             - name: TZ
               value: Europe/Istanbul
-            # postgres:17 imajında data dizini volume mount'un kökünde değil alt-klasörde
-            # olmalı (lost+found çatışmasını önler).
+            # postgres:17 data dizini alt-klasörde olmalı (lost+found çatışmasını önler).
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
           volumeMounts:
@@ -96,7 +91,7 @@ spec:
           requests:
             storage: 5Gi
 ---
-# Headless Service — StatefulSet için stabil DNS (postgres.portiva.svc.cluster.local).
+# Headless Service — StatefulSet için stabil DNS.
 apiVersion: v1
 kind: Service
 metadata:

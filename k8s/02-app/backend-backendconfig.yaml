@@ -1,16 +1,7 @@
-# =============================================================================
-# BackendConfig — GKE Ingress (GCLB) health check'ini özelleştirir.
-#
-# SORUN: GCLB backend'i /actuator/health (AGGREGATE) ile kontrol ediyordu.
-#        Aggregate health, MailHealthIndicator (Gmail SMTP rate-limit) yüzünden
-#        503 dönüyor → GCLB backend'i UNHEALTHY işaretliyor → Ingress 502.
-#
-# ÇÖZÜM: GCLB health check'ini /actuator/health/readiness'e yönlendir
-#        (sadece db+redis kontrol eder, mail YOK — application.yml'deki grup).
-#
-# Backend Service'e annotation ile bağlanır:
-#   cloud.google.com/backend-config: '{"default": "backend-bconfig"}'
-# =============================================================================
+# BackendConfig — GCLB health check'ini /actuator/health/readiness'e yönlendirir
+# (aggregate health, MailHealthIndicator yüzünden 503 dönüp Ingress'i 502 yapıyordu;
+# readiness sadece db+redis kontrol eder, mail YOK).
+# Backend Service annotation ile bağlanır: cloud.google.com/backend-config.
 apiVersion: cloud.google.com/v1
 kind: BackendConfig
 metadata:
@@ -25,5 +16,5 @@ spec:
     timeoutSec: 10
     healthyThreshold: 1
     unhealthyThreshold: 3
-  # Yük altında uzun isteklerin kesilmemesi için timeout
+  # Yük altında uzun istekler kesilmesin diye timeout.
   timeoutSec: 120

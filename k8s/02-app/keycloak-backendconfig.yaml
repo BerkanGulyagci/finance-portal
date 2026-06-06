@@ -1,14 +1,6 @@
-# =============================================================================
-# Keycloak BackendConfig — GCLB health check'ini doğru path'e yönlendirir.
-#
-# SORUN: GCLB Keycloak'ı "/" (kök) ile kontrol ediyordu. Keycloak kök path'te
-#        302 redirect / beklenmedik cevap dönüyor → GCLB UNHEALTHY → 502.
-#
-# ÇÖZÜM: /realms/master path'i Keycloak'ta her zaman HTTP 200 döner (master realm
-#        her zaman var) → health check için güvenilir. (Keycloak health/ready port
-#        9000 management'ta, ama Service 8080'i expose ediyor → 8080'de 200 dönen
-#        /realms/master kullanılır.)
-# =============================================================================
+# Keycloak BackendConfig — GCLB health check'ini /realms/master'a yönlendirir
+# (kök "/" 302 redirect dönüp UNHEALTHY → 502 yapıyordu; /realms/master daima 200).
+# Not: health/ready port 9000'de, ama Service 8080 expose ettiği için 8080'de 200 dönen path kullanılır.
 apiVersion: cloud.google.com/v1
 kind: BackendConfig
 metadata:

@@ -1,8 +1,4 @@
-# =============================================================================
-# Backend (Spring Boot) — finance-portal-backend
-# Docker Compose 'backend' servisinden uyarlandı.
-# Image: <registry>/backend:v1
-# =============================================================================
+# Backend — Spring Boot finance-portal-backend (image: <registry>/backend:v1)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -12,7 +8,7 @@ metadata:
     app: backend
     tier: app
 spec:
-  replicas: 2 # HPA bu Deployment'a takılacak
+  replicas: 2 # HPA bu Deployment'a takılır
   selector:
     matchLabels:
       app: backend
@@ -55,15 +51,12 @@ spec:
             - name: EVDS_BASE_URL
               value: "https://evds3.tcmb.gov.tr/igmevdsms-dis"
             # --- Keycloak K8s override'ları ---
-            # backend-secrets içindeki KEYCLOAK_ADMIN_URL=http://finance-portal-keycloak:8080
-            # COMPOSE container adı → K8s'te YANLIŞ (Service adı "keycloak"). Explicit env
-            # envFrom secret'ı EZER → backend doğru Service'e bağlanır. (Aksi halde admin token
-            # alınamıyor → portföy/profil/kripto 500.)
+            # Explicit env, envFrom secret'taki yanlış compose adını EZER → doğru Service'e bağlanır.
             - name: KEYCLOAK_ADMIN_URL
               value: "http://keycloak:8080"
             - name: KEYCLOAK_JWK_SET_URI
               value: "http://keycloak:8080/realms/finance-portal/protocol/openid-connect/certs"
-            # Doğrulama sonrası kullanıcıyı cloud frontend'ine yönlendir (compose localhost değil).
+            # Doğrulama sonrası cloud frontend'ine yönlendir.
             - name: KEYCLOAK_POST_VERIFY_REDIRECT_URI
               value: "https://8-233-66-172.nip.io/login"
             # --- OpenTelemetry Java Agent ---
@@ -83,20 +76,15 @@ spec:
               value: "tracecontext,baggage"
             - name: OTEL_INSTRUMENTATION_LOG4J_APPENDER_ENABLED
               value: "false"
-            # --- JVM / TEFAS proxy bypass (compose satır 53 aynen) ---
+            # --- JVM / TEFAS proxy bypass ---
             - name: JAVA_TOOL_OPTIONS
               value: '-Djdk.http.auth.tunneling.disabledSchemes="" -Djava.net.useSystemProxies=false'
-          # backend-secrets içindeki 26 değerin TAMAMI toplu yüklenir
-          # (EVDS_API_KEY, FINNHUB_API_KEY, ASSISTANT_API_KEY, SMTP_*, KEYCLOAK_ADMIN_* vb.)
+          # backend-secrets içindeki tüm değerler toplu yüklenir (API key'ler, SMTP_*, vb.)
           envFrom:
             - secretRef:
                 name: backend-secrets
-          # ÖNEMLİ: probe'lar AGGREGATE /actuator/health KULLANMAZ. application.yml health
-          # grupları tanımlı (liveness=livenessState, readiness=readinessState,db,redis). Aggregate
-          # health, MailHealthIndicator (Gmail SMTP "Too many login attempts") yüzünden kalıcı 503
-          # dönüyordu → pod hiç READY olamıyor → endpoint boş → Ingress 502. Mail non-kritik bir
-          # bileşen, ama aggregate'i DOWN yapıp tüm sistemi düşürüyordu. Çözüm: probe'ları sadece
-          # KRİTİK bileşenleri içeren gruplara yönlendir (mail probe'a girmez).
+          # Probe'lar aggregate /actuator/health DEĞİL, kritik bileşen gruplarını kullanır
+          # (mail hariç) — MailHealthIndicator 503'ü aggregate'i DOWN yapıp pod'u READY olmaktan alıkoyuyordu.
           # startupProbe: Spring Boot başlangıç toleransı.
           startupProbe:
             httpGet:
@@ -106,7 +94,7 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 18
-          # readiness: trafik almaya hazır mı (db+redis UP mı). Mail DAHİL DEĞİL.
+          # readiness: trafik almaya hazır mı (db+redis UP, mail hariç).
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
@@ -114,8 +102,7 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 10
             failureThreshold: 6
-          # liveness: süreç canlı mı (livenessState). Dış bağımlılıklara BAKMAZ → yük/mail
-          # sorunu pod'u öldürmez. Restart fırtınasını bu çözer.
+          # liveness: süreç canlı mı (livenessState); dış bağımlılıklara bakmaz → gereksiz restart yok.
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
@@ -127,7 +114,7 @@ spec:
             requests:
               memory: "768Mi"
               cpu: "500m"
-            # CPU limiti 1→2: yük altında throttle olup boğulmasın, daha fazla istek işlesin.
+            # CPU limiti 2: yük altında throttle olmasın.
             limits:
               memory: "1.5Gi"
               cpu: "2"
@@ -141,8 +128,7 @@ metadata:
     app: backend
     tier: app
   annotations:
-    # GCLB health check'ini BackendConfig ile /actuator/health/readiness'e yönlendir
-    # (aggregate /actuator/health mail yüzünden 503 dönüp backend'i UNHEALTHY yapıyordu → 502).
+    # GCLB health check'ini /actuator/health/readiness'e yönlendir (aggregate mail yüzünden 503 → 502 yapıyordu).
     cloud.google.com/backend-config: '{"default": "backend-bconfig"}'
 spec:
   type: ClusterIP # Ingress dışa açar

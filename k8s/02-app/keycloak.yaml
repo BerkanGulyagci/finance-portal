@@ -1,15 +1,5 @@
-# =============================================================================
-# Keycloak (Identity Provider) — quay.io/keycloak/keycloak:26.0
-# Docker Compose 'keycloak' servisinden uyarlandı.
-#
-# TODO: Realm import (./docker/keycloak/import) ve theme override
-#       (./docker/keycloak/themes) volume mount'ları BURADA ATLANDI.
-#       Bunlar ConfigMap/initContainer ile sonra eklenecek.
-#       --import-realm boş import klasörüyle de sorunsuz başlar; sadece
-#       herhangi bir realm IMPORT ETMEZ (Keycloak ayağa kalkar).
-#
+# Keycloak — Identity Provider (quay.io/keycloak/keycloak:26.0).
 # Realm import tek instance'ta çalışmalı → replicas: 1.
-# =============================================================================
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -24,7 +14,7 @@ spec:
     matchLabels:
       app: keycloak
   strategy:
-    type: Recreate # Tek instance — eski pod ölmeden yenisi DB'ye yapışmasın
+    type: Recreate # Tek instance — eski pod ölmeden yenisi DB'ye bağlanmasın
   template:
     metadata:
       labels:
@@ -33,15 +23,14 @@ spec:
     spec:
       containers:
         - name: keycloak
-          # Custom image: özel "finance-portal" login teması gömülü (docker/keycloak/Dockerfile).
-          # Base quay.io/keycloak/keycloak:26.0 + COPY themes/finance-portal.
+          # Custom image: base keycloak:26.0 + gömülü "finance-portal" login teması.
           image: europe-west1-docker.pkg.dev/project-f3ab8cbf-895a-47c2-91d/portiva-images/keycloak:v3
           imagePullPolicy: Always
           args: ["start-dev", "--import-realm"]
           ports:
             - containerPort: 8080
               name: http
-            # Keycloak 26: /health/* ve /metrics MANAGEMENT portunda (9000), 8080'de değil.
+            # Keycloak 26: /health/* ve /metrics management portunda (9000).
             - containerPort: 9000
               name: management
           env:
@@ -71,21 +60,19 @@ spec:
             # --- HTTP / hostname ---
             - name: KC_HTTP_ENABLED
               value: "true"
-            # Keycloak 26'da /health/* endpoint'leri VARSAYILAN KAPALI → probe'lar 'connection
-            # refused/404' alip pod'u olduruyordu. KC_HEALTH_ENABLED ile acilir (port 9000 management).
+            # Keycloak 26'da /health/* varsayılan kapalı; KC_HEALTH_ENABLED ile açılır (port 9000).
             - name: KC_HEALTH_ENABLED
               value: "true"
             - name: KC_HOSTNAME_STRICT
               value: "false"
             # --- Cloud HTTPS (LB arkasında) ---
-            # Keycloak HTTPS Ingress (GCLB) arkasında çalışır. Proxy header'larını oku ki
-            # üretilen URL'ler (redirect/issuer) https://<nip.io> olsun, internal http değil.
+            # Proxy header'larını oku ki üretilen URL'ler https://<nip.io> olsun (internal http değil).
             - name: KC_PROXY_HEADERS
               value: "xforwarded"
-            # Keycloak'ın kendini tanıttığı dış hostname (frontend bu URL'e yönlendirir).
+            # Dış hostname (frontend bu URL'e yönlendirir).
             - name: KC_HOSTNAME
               value: "https://8-233-66-172.nip.io"
-            # Admin konsolu için de aynı hostname (yoksa admin'e erişim kırılır).
+            # Admin konsolu için de aynı hostname.
             - name: KC_HOSTNAME_ADMIN
               value: "https://8-233-66-172.nip.io"
             # --- Tema cache (dev) ---
@@ -96,9 +83,7 @@ spec:
             # --- Zaman dilimi ---
             - name: TZ
               value: "Europe/Istanbul"
-          # startupProbe: Keycloak ilk başlangıçta (realm import + DB schema migration) cloud'da
-          # ÇOK yavaş (5+ dk olabilir). startupProbe başarana kadar liveness/readiness DEVRE DIŞI →
-          # başlangıçta erken öldürülmez. 30 × 15s = 7.5 dk tolerans.
+          # startupProbe: ilk başlangıç (realm import + DB migration) cloud'da yavaş; 30×15s = 7.5 dk tolerans.
           startupProbe:
             httpGet:
               path: /health/ready
@@ -128,8 +113,7 @@ spec:
             limits:
               memory: "1Gi"
               cpu: "1"
-          # Realm import: keycloak-realm-import ConfigMap (cloud kopyası, nip.io redirect URI'li)
-          # /opt/keycloak/data/import'a mount edilir → --import-realm bunu yükler.
+          # Realm import: keycloak-realm-import ConfigMap'i import dizinine mount → --import-realm yükler.
           volumeMounts:
             - name: realm-import
               mountPath: /opt/keycloak/data/import
@@ -148,7 +132,7 @@ metadata:
     app: keycloak
     tier: app
   annotations:
-    # GCLB health check'ini /realms/master'a yönlendir (kök "/" 302 dönüp UNHEALTHY → 502 yapıyordu).
+    # GCLB health check'ini /realms/master'a yönlendir (kök "/" 302 → UNHEALTHY → 502 yapıyordu).
     cloud.google.com/backend-config: '{"default": "keycloak-bconfig"}'
 spec:
   type: ClusterIP
