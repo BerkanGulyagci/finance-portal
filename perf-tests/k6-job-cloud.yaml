@@ -1,0 +1,70 @@
+# Cluster içinden k6 yük testi (HPA autoscale doğrulaması).
+# Sadece cached/güvenli endpoint'lere vurur (dış API yok, rate-limit yok).
+# kubectl apply -f perf-tests/k6-job-cloud.yaml; kubectl logs -f job/k6-load -n portiva
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: k6-script
+  namespace: portiva
+data:
+  script.js: |
+    import http from 'k6/http';
+    import { check, sleep } from 'k6';
+
+    export const options = {
+      stages: [
+        { duration: '1m', target: 300 },   // ısınma → 300 sanal kullanıcı
+        { duration: '2m', target: 500 },   // 500'e çık → HPA tetiklenmeli
+        { duration: '1m', target: 0 },     // soğuma
+      ],
+      thresholds: {
+        http_req_failed: ['rate<0.05'],          // %5'ten az hata
+        http_req_duration: ['p(95)<3000'],       // p95 < 3sn
+      },
+    };
+
+    // Cluster içinden Service adıyla — Ingress/GCLB baypas, sadece backend kapasitesi ölçülür.
+    const BASE = 'http://backend:8080';
+
+    export default function () {
+      // Sadece cached + dış-API'siz endpoint'ler (güvenli):
+      const r1 = http.get(`${BASE}/actuator/health/readiness`);
+      check(r1, { 'health 200': (r) => r.status === 200 });
+
+      const r2 = http.get(`${BASE}/api/v1/market/bonds/evds`);
+      check(r2, { 'bonds ok': (r) => r.status === 200 || r.status === 304 });
+
+      const r3 = http.get(`${BASE}/api/v1/news`);
+      check(r3, { 'news ok': (r) => r.status === 200 || r.status === 304 });
+
+      sleep(1);
+    }
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: k6-load
+  namespace: portiva
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: k6
+          image: grafana/k6:latest
+          command: ['k6', 'run', '/scripts/script.js']
+          volumeMounts:
+            - name: script
+              mountPath: /scripts
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: script
+          configMap:
+            name: k6-script

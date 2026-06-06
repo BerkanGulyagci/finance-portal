@@ -55,6 +55,24 @@ describe('sendAssistantChat', () => {
     expect(result).toBeNull();
   });
 
+  it('boş/biçimsiz kayıtları eler (savunma: backend boş messages → INVALID kırılmasın)', async () => {
+    const inner = { status: 'OK', reply: 'ok' };
+    client.post.mockResolvedValue({ data: { data: inner } });
+
+    // null, content olmayan, boş-string, sadece-boşluk → hepsi elenir; geçerli olan kalır.
+    await sendAssistantChat([
+      null,
+      { role: 'user' },
+      { role: 'user', content: '   ' },
+      { role: 'user', content: '' },
+      { role: 'user', content: 'Merhaba' },
+    ]);
+
+    expect(client.post).toHaveBeenCalledWith('/api/v1/assistant/chat', {
+      messages: [{ role: 'user', content: 'Merhaba' }],
+    });
+  });
+
   it('içteki data alanı yoksa undefined döndürür (edge: wrapper.data tanımsız)', async () => {
     client.post.mockResolvedValue({ data: {} });
 
@@ -63,7 +81,7 @@ describe('sendAssistantChat', () => {
     expect(result).toBeUndefined();
   });
 
-  it('boş messages dizisi de aynen gövdeye konur (edge: geçmiş yok)', async () => {
+  it('boş messages dizisi boş gönderilir (edge: geçmiş yok)', async () => {
     const inner = { status: 'OK', reply: null };
     client.post.mockResolvedValue({ data: { data: inner } });
 
@@ -73,12 +91,12 @@ describe('sendAssistantChat', () => {
     expect(result).toBe(inner);
   });
 
-  it('messages undefined olsa bile aynen iletir (dönüşüm/varsayılan yok)', async () => {
+  it('messages undefined ise boş diziye normalize edilir (savunma)', async () => {
     client.post.mockResolvedValue({ data: { data: { status: 'OK', reply: '' } } });
 
     await sendAssistantChat(undefined);
 
-    expect(client.post).toHaveBeenCalledWith('/api/v1/assistant/chat', { messages: undefined });
+    expect(client.post).toHaveBeenCalledWith('/api/v1/assistant/chat', { messages: [] });
   });
 
   it('client.post reddedilirse hata yukarı fırlatılır (yutulmaz)', async () => {
