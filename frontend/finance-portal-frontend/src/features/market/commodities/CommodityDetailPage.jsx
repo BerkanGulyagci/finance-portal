@@ -3,7 +3,6 @@ import { Navigate, useParams } from 'react-router-dom';
 import { getCommoditySpot, getCommodityHistory, getFxTcmb } from '../../../api/marketApi';
 import { getPreciousMetalMarketPath } from '../../portfolio/constants/watchlistMarketRoutes';
 import CommodityDetailHeader      from './components/CommodityDetailHeader';
-import CommodityDetailOhlcCards   from './components/CommodityDetailOhlcCards';
 import CommodityDetailToolbar     from './components/CommodityDetailToolbar';
 import CommodityDetailChart       from './components/CommodityDetailChart';
 import CommodityDetailSourceNotice from './components/CommodityDetailSourceNotice';
@@ -137,11 +136,6 @@ export default function CommodityDetailPage() {
           showTry={showTry}
           onToggleCurrency={() => setShowTry(v => !v)}
         />
-      )}
-
-      {/* OHLC kartları */}
-      {displayPoints.length > 0 && (
-        <CommodityDetailOhlcCards points={displayPoints} />
       )}
 
       {/* Grafik kartı */}

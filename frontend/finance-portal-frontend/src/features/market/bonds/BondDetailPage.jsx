@@ -8,7 +8,7 @@ import BondAnalysisCard     from './components/BondAnalysisCard';
 import BondEvdsHistoryChart from './components/BondEvdsHistoryChart';
 import InstrumentActionButtons from '../../../components/instrument/InstrumentActionButtons';
 import { fmtPct } from './utils/bondChartUtils';
-import { SkeletonDetail } from '../../../components/common/Skeleton';
+import { SkeletonBondDetail } from '../../../components/common/Skeleton';
 import { useTranslation } from '../../../context/LanguageContext';
 
 export default function BondDetailPage() {
@@ -47,7 +47,7 @@ export default function BondDetailPage() {
   if (loading) {
     return (
       <div className="max-w-5xl mx-auto">
-        <SkeletonDetail />
+        <SkeletonBondDetail variant="dibs" />
       </div>
     );
   }

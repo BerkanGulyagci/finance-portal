@@ -270,15 +270,18 @@ describe('CryptoLineChart — karşılaştırma modu', () => {
     expect(lastChart.subscribeAction).toHaveBeenCalledWith('onCrosshairChange', expect.any(Function));
   });
 
-  it('her karşılaştırma coini için bir MA-overlay (createIndicator name:MA, candle_pane) eklenir', () => {
+  it('karşılaştırma çizgileri TEK CMP_MULTI indikatörüyle candle_pane\'e eklenir (1 coin → 1 slot)', () => {
     renderChart(compareProps);
-    const maCalls = lastChart.createIndicator.mock.calls.filter(
-      ([cfg]) => cfg && cfg.name === 'MA',
+    const cmpCalls = lastChart.createIndicator.mock.calls.filter(
+      ([cfg]) => cfg && cfg.name === 'CMP_MULTI',
     );
-    // 1 karşılaştırma coini → 1 MA overlay çağrısı.
-    expect(maCalls.length).toBe(1);
+    // Tüm karşılaştırma çizgileri TEK instance → tek createIndicator çağrısı.
+    expect(cmpCalls.length).toBe(1);
     // candle_pane'e eklenir (3. argüman).
-    expect(maCalls[0][2]).toEqual({ id: 'candle_pane' });
+    expect(cmpCalls[0][2]).toEqual({ id: 'candle_pane' });
+    // extendData: slot dizisi — 1 coin → 1 dolu slot.
+    expect(cmpCalls[0][0].extendData.length).toBe(1);
+    expect(cmpCalls[0][0].styles.lines.length).toBe(1);
   });
 
   it('karşılaştırma modunda restoreOverlays YOLU çalışmaz (removeIndicator candle_pane/MA YAPILMAZ)', () => {
@@ -288,7 +291,7 @@ describe('CryptoLineChart — karşılaştırma modu', () => {
     expect(lastChart.setPriceVolumePrecision).not.toHaveBeenCalled();
   });
 
-  it('iki karşılaştırma coini → iki MA-overlay çağrısı (createIndicator)', () => {
+  it('iki karşılaştırma coini → TEK CMP_MULTI çağrısı, extendData 2 slot (3 coin=2 çizgi bug fix)', () => {
     renderChart({
       ...compareProps,
       compareCoins: [
@@ -300,10 +303,13 @@ describe('CryptoLineChart — karşılaştırma modu', () => {
         solana: makeCompareSeries(30, 20),
       },
     });
-    const maCalls = lastChart.createIndicator.mock.calls.filter(
-      ([cfg]) => cfg && cfg.name === 'MA',
+    const cmpCalls = lastChart.createIndicator.mock.calls.filter(
+      ([cfg]) => cfg && cfg.name === 'CMP_MULTI',
     );
-    expect(maCalls.length).toBe(2);
+    // Çoklu coin TEK instance → tek çağrı; her coin extendData'da ayrı slot.
+    expect(cmpCalls.length).toBe(1);
+    expect(cmpCalls[0][0].extendData.length).toBe(2);
+    expect(cmpCalls[0][0].styles.lines.length).toBe(2);
   });
 });
 

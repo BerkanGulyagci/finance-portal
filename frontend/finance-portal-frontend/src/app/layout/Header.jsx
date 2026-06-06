@@ -422,20 +422,20 @@ export function Header() {
           <div className="flex items-center gap-1.5 ml-auto">
             <SearchBox />
 
-            {/* Language toggle — bayraklı geçiş */}
-            <LanguageToggle className="hidden sm:inline-flex" />
+            {/* Language toggle — bayraklı geçiş (mobilde de görünür) */}
+            <LanguageToggle />
 
-            {/* Açık/Koyu mod geçişi */}
-            <ThemeToggle className="hidden sm:inline-flex" />
+            {/* Açık/Koyu mod geçişi — mobilde drawer içinde */}
+            <ThemeToggle className="hidden lg:inline-flex" />
 
             {isAuthenticated && (
-              <div className="hidden sm:block">
+              <div className="hidden lg:block">
                 <NotificationBell />
               </div>
             )}
 
             {isAuthenticated ? (
-              <div className="relative hidden sm:block" ref={profileRef}>
+              <div className="relative hidden lg:block" ref={profileRef}>
                 <button
                   type="button"
                   onClick={() => setProfileOpen((open) => !open)}
@@ -450,7 +450,8 @@ export function Header() {
                 {profileOpen && <ProfileMenu onClose={() => setProfileOpen(false)} t={t} />}
               </div>
             ) : (
-              <div className="flex items-center gap-2">
+              // Giriş/Kayıt yalnız desktop'ta header'da; mobilde hamburger menü içinde
+              <div className="hidden lg:flex items-center gap-2">
                 <Link to="/login"
                   className="text-gray-700 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-gray-50 transition-all border border-gray-200">
                   {t('Giriş Yap')}

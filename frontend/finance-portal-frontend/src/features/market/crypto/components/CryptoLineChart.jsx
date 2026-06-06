@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { init as klineInit, dispose as klineDispose } from 'klinecharts';
+import { init as klineInit, dispose as klineDispose, registerIndicator } from 'klinecharts';
 import { computeKlinePricePrecision, computeKlineVolumePrecision } from '../../../../utils/numberFormat';
 import { COMPARE_COLORS, MA_OPTIONS } from '../utils/cryptoChartConfig';
 import { useTranslation } from '../../../../context/LanguageContext';
@@ -7,6 +7,31 @@ import { useTheme } from '../../../../context/ThemeContext';
 import { useChartDrawings } from '../../../../hooks/useChartDrawings';
 import { useYAxisWheelZoom } from '../../../../hooks/useYAxisWheelZoom';
 import DrawingToolbar from '../../stock/components/DrawingToolbar';
+
+// Karşılaştırma çizgileri için TEK indikatör + N figür.
+// Önceki yaklaşım her coin'e ayrı `createIndicator` (CMP_0/CMP_1…) yapıyordu;
+// klinecharts v9'da candle_pane'e art arda stack'lenen indikatör instance'ları
+// async addInstance/calc yarışı yüzünden bazen son çizgiyi çizmiyordu (3 coin → 2 çizgi).
+// Çözüm: tek bir 'CMP_MULTI' indikatörü, her karşılaştırma slotu bir 'line' figürü;
+// tüm seriler tek `extendData` (slot dizisi) ile geçer → tek instance, yarış yok.
+const COMPARE_MAX = 4;
+const COMPARE_FIGURE_KEYS = Array.from({ length: COMPARE_MAX }, (_, i) => `cmp${i}`);
+try {
+  registerIndicator({
+    name: 'CMP_MULTI',
+    shouldOhlc: false,
+    figures: COMPARE_FIGURE_KEYS.map((key) => ({ key, title: '', type: 'line' })),
+    // extendData: [ serie0[], serie1[], ... ] — her serie normalizedData uzunluğunda { value }.
+    calc: (dataList, indicator) => {
+      const series = indicator.extendData ?? [];
+      return dataList.map((_, i) => {
+        const row = {};
+        COMPARE_FIGURE_KEYS.forEach((key, s) => { row[key] = series[s]?.[i]?.value ?? null; });
+        return row;
+      });
+    },
+  });
+} catch (_) { /* zaten kayıtlı */ }
 
 export default function CryptoLineChart({ chartData, currency, compareCoins, compareData, coinId, mainCoinSymbol, activeMAs }) {
   const { t } = useTranslation();
@@ -105,15 +130,22 @@ export default function CryptoLineChart({ chartData, currency, compareCoins, com
         },
       });
 
-      // Karşılaştırma coinleri için custom indicator ekle
-      compareCoins.forEach((c, i) => {
+      // Karşılaştırma coinleri için TEK indikatör — her coin bir slot/figür.
+      const compareSeries = [];   // extendData: slot index → [{ value }, …]
+      const compareLineStyles = []; // figür index → çizgi stili
+      compareCoins.slice(0, COMPARE_MAX).forEach((c, i) => {
         const prices = compareData[c.id] ?? [];
         const base = prices[0]?.[1];
-        if (!base || base === 0) return;
+        if (!base || base === 0) {
+          // Veri yoksa slotu boş bırak (çizgi düz null → görünmez) ama index korunur.
+          compareSeries[i] = [];
+          compareLineStyles[i] = { color: COMPARE_COLORS[i + 1] || '#6b7280', size: 2, smooth: true };
+          return;
+        }
 
-        // Her karşılaştırma coini için overlay line ekle
+        // Her karşılaştırma coini için, ana coin zaman noktalarına en yakın % değişim serisi.
         const overlayData = normalizedData.map(point => {
-          // Timestamp bazlı en yakın noktayı bul
+          // Timestamp bazlı en yakın noktayı bul (prices artan sıralı → tek geçiş).
           let closest = prices[0];
           let minDiff = Math.abs(prices[0][0] - point.timestamp);
           for (let j = 1; j < prices.length; j++) {
@@ -121,45 +153,30 @@ export default function CryptoLineChart({ chartData, currency, compareCoins, com
             if (diff < minDiff) { minDiff = diff; closest = prices[j]; }
             else break;
           }
-          
+
           const pctChange = ((closest[1] - base) / base) * 100;
           return { value: pctChange };
         });
 
-        // Custom overlay olarak ekle
-        try {
-          chart.createIndicator({
-            name: 'MA',
-            calcParams: [1], // Dummy MA, sadece çizgi çizmek için
-            figures: [{
-              key: 'ma',
-              title: '',   // Grafik üzerindeki coin adı yazısını kapat
-              type: 'line',
-              baseValue: 0,
-              styles: (data, indicator, defaultStyles) => {
-                return {
-                  line: {
-                    style: 'solid',
-                    smooth: true,
-                    size: 2,
-                    color: COMPARE_COLORS[i + 1] || '#6b7280',
-                  }
-                };
-              }
-            }],
-            calc: (dataList) => {
-              return dataList.map((kLineData, i) => {
-                return { ma: overlayData[i]?.value ?? null };
-              });
-            },
-          }, false, { id: 'candle_pane' });
-        } catch (e) {
-          console.error('Error adding compare line:', e);
-        }
+        compareSeries[i] = overlayData;
+        compareLineStyles[i] = { color: COMPARE_COLORS[i + 1] || '#6b7280', size: 2, smooth: true };
 
         // Overlay data'yı ref'e kaydet (tooltip için)
         compareOverlayRef.current[c.id] = overlayData;
       });
+
+      // Tek indikatör → tüm karşılaştırma çizgileri aynı instance'ta (async yarış yok).
+      if (compareSeries.length > 0) {
+        try {
+          chart.createIndicator({
+            name: 'CMP_MULTI',
+            extendData: compareSeries,          // calc her figürü ilgili slottan üretir
+            styles: { lines: compareLineStyles }, // figür index ↔ renk eşlemesi
+          }, true, { id: 'candle_pane' });        // isStack:true → ana alan grafiğini silmez
+        } catch (e) {
+          console.error('Error adding compare lines:', e);
+        }
+      }
 
       // Crosshair hover event — floating tooltip için
       try {

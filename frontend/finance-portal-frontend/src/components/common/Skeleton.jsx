@@ -396,6 +396,144 @@ export function SkeletonMetalDetail({ tabs = 0 }) {
 }
 
 /**
+ * Tahvil/Bono detay iskeleti — bond detay sayfalarının GERÇEK düzenine uyar
+ * (generic SkeletonDetail'in sol-340px + grafik şablonu bu sayfalara uymuyordu).
+ *
+ * variant='dibs' (BondDetailPage / TCMB EVDS DİBS-Bono):
+ *   header kartı → işlem-buton satırı → 4'lü metrik bar → 2 sütun (göstergeler | bilgi tablosu)
+ *   → mini-analiz kartı → tarihsel grafik kartı → uyarı şeridi.
+ * variant='eurobond' (EurobondDetailPage / Business Insider):
+ *   geri-link → isim+fiyat üst kartı → fiyat grafiği kartı → tahvil bilgileri tablosu.
+ */
+export function SkeletonBondDetail({ variant = 'dibs' }) {
+  if (variant === 'eurobond') {
+    return (
+      <div className="space-y-5">
+        {/* Üst kart: isim + canlı fiyat */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-5">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="min-w-0 space-y-2 flex-1">
+              <SkeletonBar className="h-6 w-2/3" />
+              <SkeletonBar className="h-3.5 w-1/2" />
+              <SkeletonBar className="h-3 w-1/3" />
+            </div>
+            <div className="flex items-center gap-2">
+              <SkeletonBar className="h-8 w-24 rounded-lg" />
+              <SkeletonBar className="h-8 w-24 rounded-lg" />
+            </div>
+          </div>
+          <div className="mt-4 pt-4 border-t border-gray-100 flex items-baseline gap-3">
+            <SkeletonBar className="h-9 w-40" />
+            <SkeletonBar className="h-5 w-16" />
+          </div>
+        </div>
+        {/* Fiyat grafiği kartı */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-5">
+          <SkeletonBar className="h-5 w-32 mb-3" />
+          <SkeletonBar className="h-[300px] w-full rounded-xl" />
+        </div>
+        {/* Tahvil bilgileri tablosu */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-100">
+            <SkeletonBar className="h-5 w-40" />
+          </div>
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="flex items-center justify-between gap-4 px-4 py-3 border-b border-gray-100 last:border-0">
+              <SkeletonBar className="h-3.5 w-1/3" />
+              <SkeletonBar className="h-3.5 w-1/4" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // variant === 'dibs'
+  return (
+    <div className="space-y-3 sm:space-y-5">
+      {/* 1. Header kartı — kod + tür rozeti + tarih badge'leri + kaynak */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm px-5 py-4">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <SkeletonBar className="h-5 w-5 rounded shrink-0" />
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <SkeletonBar className="h-7 w-40" />
+                <SkeletonBar className="h-5 w-14 rounded-full" />
+              </div>
+              <div className="flex gap-2">
+                <SkeletonBar className="h-5 w-24 rounded-full" />
+                <SkeletonBar className="h-5 w-24 rounded-full" />
+                <SkeletonBar className="h-5 w-20 rounded-full" />
+              </div>
+            </div>
+          </div>
+          <div className="space-y-1.5 text-right">
+            <SkeletonBar className="h-3 w-28 ml-auto" />
+            <SkeletonBar className="h-3 w-32 ml-auto" />
+          </div>
+        </div>
+      </div>
+
+      {/* 2. İşlem butonları satırı (sağa yaslı) */}
+      <div className="flex justify-end gap-2">
+        <SkeletonBar className="h-9 w-28 rounded-lg" />
+        <SkeletonBar className="h-9 w-24 rounded-lg" />
+      </div>
+
+      {/* 3. 4'lü metrik bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-5 space-y-2">
+            <SkeletonBar className="h-3 w-2/3" />
+            <SkeletonBar className="h-7 w-1/2" />
+          </div>
+        ))}
+      </div>
+
+      {/* 4. Göstergeler (sol) + Kıymet Bilgileri (sağ) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-5 items-start">
+        {Array.from({ length: 2 }).map((_, col) => (
+          <div key={col} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+            <SkeletonBar className="h-4 w-32 mb-4" />
+            <div className="space-y-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex items-center justify-between py-1 border-b border-gray-50 last:border-0">
+                  <SkeletonBar className="h-3 w-1/3" />
+                  <SkeletonBar className="h-3 w-1/4" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 5. Mini analiz kartı (tam genişlik) */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 space-y-3">
+        <SkeletonBar className="h-4 w-40" />
+        <SkeletonBar className="h-3.5 w-full" />
+        <SkeletonBar className="h-3.5 w-5/6" />
+      </div>
+
+      {/* 6. Tarihsel grafik kartı */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+        <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+          <SkeletonBar className="h-5 w-40" />
+          <SkeletonBar className="h-8 w-28 rounded-lg" />
+        </div>
+        <SkeletonBar className="h-[300px] w-full rounded-xl" />
+      </div>
+
+      {/* 7. Uyarı şeridi */}
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 space-y-2">
+        <SkeletonBar className="h-3 w-full" />
+        <SkeletonBar className="h-3 w-2/3" />
+      </div>
+    </div>
+  );
+}
+
+/**
  * Genel liste sayfası iskeleti — başlık + opsiyonel sekmeler + tablo silüeti.
  * Emtia/endeks/bildirim/ekonomik-takvim gibi liste sayfaları için.
  */

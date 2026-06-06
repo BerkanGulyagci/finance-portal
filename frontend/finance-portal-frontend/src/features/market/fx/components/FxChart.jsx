@@ -288,7 +288,47 @@ export default function FxChart({ symbol, chartPoints, lineColor, mainLabel, ran
 
     return () => { klineDispose(id); chartRef.current = null; indicatorPaneIds.current = {}; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chartPoints, lineColor, mainLabel, isDark]);
+  }, [chartPoints]);
+
+  // Tema/renk/etiket DEĞİŞİNCE grafiği YENİDEN KURMA — yalnız stilleri güncelle.
+  // (Önceden lineColor/mainLabel/isDark veri-effect'inin deps'indeydi → her tema değişiminde
+  //  chart dispose+init oluyordu; bu sırada aktif indikatör paneId'leri sıfırlanıp eklenen
+  //  indikatör KALDIRILAMIYORDU. Hisse grafiği de chart'ı yalnız veri/range'de kurar — aynı
+  //  kararlı desen: indikatör instance'ı stabil kalır, toggle güvenle add/remove eder.)
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    chart.setStyles({
+      candle: {
+        type: 'area',
+        area: {
+          lineColor, lineSize: 2, value: 'close', smooth: true,
+          backgroundColor: [
+            { offset: 0, color: lineColor + '33' },
+            { offset: 1, color: lineColor + '00' },
+          ],
+        },
+        tooltip: {
+          showRule: 'follow_cross', showType: 'rect',
+          text: { size: 12, marginTop: 4, marginBottom: 4, marginLeft: 8, marginRight: 8 },
+          rect: {
+            offsetLeft: 8, offsetTop: 8, offsetRight: 8, paddingLeft: 10, paddingRight: 10, paddingTop: 8, paddingBottom: 8,
+            borderRadius: 8, borderSize: 1,
+            borderColor: isDark ? 'rgba(255,255,255,0.12)' : '#e5e7eb',
+            color: isDark ? 'rgba(15,23,42,0.92)' : 'rgba(255,255,255,0.94)',
+          },
+          custom: (data) => {
+            const d = data?.current ?? {};
+            const date = d.timestamp ? new Date(d.timestamp).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+            return [
+              { title: '', value: { text: date, color: isDark ? '#94a3b8' : '#6b7280' } },
+              { title: mainLabel ? { text: `${mainLabel}:`, color: lineColor } : '', value: { text: fmt(d.close, 4), color: lineColor } },
+            ];
+          },
+        },
+      },
+    });
+  }, [lineColor, mainLabel, isDark]);
 
   const indicatorDropdown = (
     <div className="relative">
