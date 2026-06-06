@@ -6,6 +6,7 @@ import {
 import { getFxHistory, getFxTcmb, getFxOpen, getBankCurrencyRates } from '../../../api/marketApi.js';
 import { FX_META, FlagImg } from './utils/fxMeta';
 import { useTranslation } from '../../../context/LanguageContext';
+import { useAuth } from '../../../context/AuthContext';
 import UniversalCompareButton from '../../../components/common/UniversalCompareButton';
 import TrendBadge from '../../../components/common/TrendBadge';
 import { SkeletonBar } from '../../../components/common/Skeleton';
@@ -29,6 +30,7 @@ function fmt(v, dec = 4) {
 
 export default function FxDetailPage() {
   const { t } = useTranslation();
+  const { isAuthenticated } = useAuth();
   const { symbol } = useParams();
   const sym = symbol?.toUpperCase();
 
@@ -159,14 +161,17 @@ export default function FxDetailPage() {
         <Link to="/market/fx" className="m3-state inline-flex items-center gap-1.5 text-sm text-[#093eaa] font-semibold hover:underline rounded-full px-2 py-1 -ml-2">
           <ArrowLeft className="w-4 h-4" /> {t('Döviz Kurları')}
         </Link>
-        <button
-          onClick={toggleWatchlist}
-          className={`m3-state inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border transition-all ${
-            inWatchlist ? 'bg-amber-50 border-amber-300 text-amber-700' : 'bg-white border-[#e2e8f0] text-[#5a6472] hover:border-[#093eaa]/40'
-          }`}>
-          <Star className={`w-4 h-4 ${inWatchlist ? 'fill-amber-400 text-amber-400' : ''}`} />
-          {inWatchlist ? t('İzleme Listesinde') : t('İzleme Listesine Ekle')}
-        </button>
+        {/* İzleme listesi kişiseldir → yalnız giriş yapan kullanıcıya göster. */}
+        {isAuthenticated && (
+          <button
+            onClick={toggleWatchlist}
+            className={`m3-state inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border transition-all ${
+              inWatchlist ? 'bg-amber-50 border-amber-300 text-amber-700' : 'bg-white border-[#e2e8f0] text-[#5a6472] hover:border-[#093eaa]/40'
+            }`}>
+            <Star className={`w-4 h-4 ${inWatchlist ? 'fill-amber-400 text-amber-400' : ''}`} />
+            {inWatchlist ? t('İzleme Listesinde') : t('İzleme Listesine Ekle')}
+          </button>
+        )}
       </div>
 
       {/* Başlık kartı — sol: kimlik+fiyat+istatistik · sağ: döviz çevirici */}

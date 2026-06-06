@@ -17,7 +17,6 @@ import {
   getCryptoChart,
   getMarketPriceHistory,
   getIndex,
-  getEconomicIndicators,
 } from '../../api/marketApi';
 import { useTranslation } from '../../context/LanguageContext';
 import Sparkline from './Sparkline';
@@ -203,18 +202,9 @@ export function MarketTicker() {
           })
         );
 
-        // Ekonomi göstergeleri (TÜFE/faiz/ÜFE/mevduat) — günlük değişim/sparkline yok, yalnız değer (%).
-        const eco = await getEconomicIndicators().catch(() => null);
-        if (eco) {
-          const pushEco = (key, label, v) => {
-            if (v == null || v === '') return;
-            result.push({ key, label, value: `%${v}`, change: null, dir: null, spark: [] });
-          };
-          pushEco('eco:inflation', t('TÜFE'), eco.inflation);
-          pushEco('eco:policyRate', t('Politika Faizi'), eco.policyRate);
-          pushEco('eco:ppi', t('ÜFE'), eco.ppi);
-          pushEco('eco:deposit', t('Mevduat Faizi'), eco.depositRate);
-        }
+        // NOT: TÜFE / Politika Faizi / ÜFE / Mevduat Faizi gibi makro/faiz göstergeleri ticker'dan
+        // KALDIRILDI — ticker sürekli değişen CANLI fiyatlar içindir; aylık güncellenen statik makro
+        // veriler buraya uygun değildi (yön/sparkline'ı da yoktu). Bu veriler Ekonomi sayfasında mevcut.
 
         setAllItems(result);
       } catch {

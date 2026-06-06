@@ -8,6 +8,7 @@ import CandlestickChart from './components/CandlestickChart';
 import LineChart from './components/LineChart';
 import { useTranslation } from '../../../context/LanguageContext';
 import { SkeletonStockDetail } from '../../../components/common/Skeleton';
+import { currencySymbol } from '../../../utils/numberFormat';
 
 // Bileşeni tam alınabilen (resmî liste) endeksler — başlık "Endeksteki Hisseler" olur;
 // diğerlerinde (sektör/küratörlü/temsilî) "Endeksteki Bazı Hisseler".
@@ -180,7 +181,7 @@ export default function IndexDetailPage() {
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-700">{r.name ?? '-'}</td>
                         <td className="px-4 py-3 text-sm font-semibold text-right">
-                          {num(r.price)} <span className="text-gray-400 text-xs">{r.currency}</span>
+                          {num(r.price)} <span className="text-gray-400 text-xs">{currencySymbol(r.currency)}</span>
                         </td>
                         <td className="px-4 py-3 text-sm text-right">{pct(r.changePercent)}</td>
                         <td className="px-2 py-3 text-center" onClick={e => e.stopPropagation()}>

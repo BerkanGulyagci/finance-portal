@@ -402,7 +402,9 @@ export default function BondsPage() {
                         <DaysBadge days={b.remainingDays} />
                       </td>
                       <td className="px-4 py-3 text-sm text-right font-mono font-semibold text-gray-900">
-                        {fmtNum(b.indicatorValue, 2)}
+                        {b.indicatorValue != null
+                          ? <>{fmtNum(b.indicatorValue, 2)} <span className="text-gray-400 text-xs">₺</span></>
+                          : '-'}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <ChangeBadge value={b.dailyChangePercent} />

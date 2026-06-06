@@ -6,6 +6,7 @@ import {
   computeKlinePricePrecision,
   computeKlineVolumePrecision,
   formatQuantity,
+  currencySymbol,
 } from '../numberFormat';
 
 describe('parseTrNumber', () => {
@@ -115,6 +116,31 @@ describe('computeKlinePricePrecision', () => {
 
   it('string sayıları da kabul eder', () => {
     expect(computeKlinePricePrecision(['150', '300'])).toBe(2);
+  });
+});
+
+describe('currencySymbol', () => {
+  it('bilinen kodları sembole çevirir (sembol değerin sağında kullanılır)', () => {
+    expect(currencySymbol('TRY')).toBe('₺');
+    expect(currencySymbol('TL')).toBe('₺');
+    expect(currencySymbol('USD')).toBe('$');
+    expect(currencySymbol('EUR')).toBe('€');
+    expect(currencySymbol('GBP')).toBe('£');
+  });
+
+  it('küçük harf/boşluklu kodu normalize eder', () => {
+    expect(currencySymbol(' usd ')).toBe('$');
+    expect(currencySymbol('try')).toBe('₺');
+  });
+
+  it('null/boş kod → varsayılan ₺ (liste varlıkları TL bazlı)', () => {
+    expect(currencySymbol(null)).toBe('₺');
+    expect(currencySymbol(undefined)).toBe('₺');
+    expect(currencySymbol('')).toBe('₺');
+  });
+
+  it('bilinmeyen kod kendisini döner', () => {
+    expect(currencySymbol('ZAR')).toBe('ZAR');
   });
 });
 

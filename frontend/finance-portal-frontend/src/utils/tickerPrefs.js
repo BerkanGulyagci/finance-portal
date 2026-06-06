@@ -44,15 +44,10 @@ export const TICKER_CATALOG = [
       { key: 'crypto:sol', label: 'SOL' },
     ],
   },
-  {
-    group: 'Ekonomi',
-    items: [
-      { key: 'eco:inflation', label: 'TÜFE (Enflasyon)' },
-      { key: 'eco:policyRate', label: 'Politika Faizi' },
-      { key: 'eco:ppi', label: 'ÜFE' },
-      { key: 'eco:deposit', label: 'Mevduat Faizi' },
-    ],
-  },
+  // NOT: "Ekonomi" grubu (TÜFE/Politika Faizi/ÜFE/Mevduat Faizi) ticker'dan kaldırıldı —
+  // ticker canlı/sürekli değişen fiyatlar içindir; aylık güncellenen statik makro veriler
+  // buraya uygun değildi. Bu göstergeler Ekonomi sayfasında mevcut. Eski kullanıcı
+  // tercihlerindeki eco:* anahtarları readTickerPrefs() filter'ı ile otomatik temizlenir.
 ];
 
 export const ALL_TICKER_KEYS = TICKER_CATALOG.flatMap(g => g.items.map(i => i.key));

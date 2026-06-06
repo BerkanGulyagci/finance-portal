@@ -152,7 +152,9 @@ function FundTable({ funds, accentColor, loading, error, showFounder = false }) 
                 <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">{r.fundType ?? '-'}</td>
                 <td className="px-4 py-3 text-center"><RiskBadge level={r.riskLevel} /></td>
                 <td className="px-4 py-3 text-sm text-right font-mono text-gray-700">
-                  {toFloat(r.price) != null ? toFloat(r.price).toFixed(6) : '-'}
+                  {toFloat(r.price) != null
+                    ? <>{toFloat(r.price).toFixed(6)} <span className="text-gray-400 text-xs">₺</span></>
+                    : '-'}
                 </td>
                 <td className="px-4 py-3 text-sm text-right">{fmtPct(r.returnOneMonth)}</td>
                 <td className="px-4 py-3 text-sm text-right">{fmtPct(r.returnThreeMonths)}</td>

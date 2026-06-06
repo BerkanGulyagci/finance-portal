@@ -83,3 +83,27 @@ export function computeKlineVolumePrecision(values) {
 export function formatQuantity(value) {
   return formatTrNumber(value, 0);
 }
+
+/**
+ * Para birimi kodunu sembole çevirir (TRY → ₺, USD → $, …).
+ * Liste sayfalarında fiyat birimini TUTARLI göstermek için kullanılır:
+ * sembol her zaman değerin SAĞINA yazılır (VİOP listesi referans formatı).
+ *
+ * Bilinmeyen/boş kod için kodun kendisi döner (örn. "ZAR"); null/boş → '₺'
+ * (liste varlıkları büyük çoğunlukla TL bazlıdır, birim alanı boş gelirse TL varsay).
+ */
+const CURRENCY_SYMBOLS = {
+  TRY: '₺',
+  TL: '₺',
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  JPY: '¥',
+  CHF: 'CHF',
+};
+
+export function currencySymbol(code) {
+  if (code == null || code === '') return '₺';
+  const c = String(code).trim().toUpperCase();
+  return CURRENCY_SYMBOLS[c] ?? c;
+}

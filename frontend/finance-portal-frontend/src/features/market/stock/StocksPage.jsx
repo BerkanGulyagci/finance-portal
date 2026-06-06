@@ -10,6 +10,7 @@ import Pagination from '../../../components/common/Pagination';
 import IndicesView from './IndicesView';
 import IndexChart from './components/IndexChart';
 import { useTranslation } from '../../../context/LanguageContext';
+import { currencySymbol } from '../../../utils/numberFormat';
 
 const PAGE_SIZE = 20;
 
@@ -251,7 +252,7 @@ export default function StocksPage() {
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700">{r.name ?? '-'}</td>
                       <td className="px-4 py-3 text-sm font-semibold text-right">
-                        {num(r.price)} <span className="text-gray-400 text-xs">{r.currency}</span>
+                        {num(r.price)} <span className="text-gray-400 text-xs">{currencySymbol(r.currency)}</span>
                       </td>
                       <td className="px-4 py-3 text-sm text-right">
                         {r.change == null ? '-' : <span className={parseFloat(r.change) >= 0 ? 'text-emerald-600 font-semibold' : 'text-rose-600 font-semibold'}>{num(r.change)}</span>}

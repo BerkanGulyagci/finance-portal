@@ -7,6 +7,7 @@ import Pagination from '../../../../components/common/Pagination';
 import { Dropdown } from '../../../../components/shared/Dropdown';
 import { SkeletonTable } from '../../../../components/common/Skeleton';
 import { useTranslation } from '../../../../context/LanguageContext';
+import { currencySymbol } from '../../../../utils/numberFormat';
 
 const PAGE_SIZE = 20;
 
@@ -127,7 +128,11 @@ export default function EurobondList() {
                     </td>
                     <td className="px-4 py-3 text-sm text-right font-semibold text-gray-800">{b.couponRate ?? '-'}</td>
                     <td className="px-4 py-3 text-sm text-right text-gray-600 whitespace-nowrap">{b.maturityDate ?? '-'}</td>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-gray-900">{num(b.lastPrice)}</td>
+                    <td className="px-4 py-3 text-sm text-right font-semibold text-gray-900">
+                      {b.lastPrice != null
+                        ? <>{num(b.lastPrice)} <span className="text-gray-400 text-xs">{currencySymbol(b.currency)}</span></>
+                        : '-'}
+                    </td>
                     <td className="px-4 py-3 text-sm text-right">{pct(b.changePercent)}</td>
                   </tr>
                 ))

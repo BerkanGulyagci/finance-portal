@@ -6,8 +6,10 @@ import { LanguageProvider } from '../../../context/LanguageContext';
 import { TICKER_PREFS_KEY } from '../../../utils/tickerPrefs';
 
 // ── marketApi tamamen mock'lanır ─────────────────────────────────────────────
-// MarketTicker mount'ta onlarca piyasa endpoint'i çağırır (FX/kripto/altın/BIST/
-// ekonomi). jsdom'da ağ yok → hepsini vi.fn ile stub'la, her teste göre veri ver.
+// MarketTicker mount'ta onlarca piyasa endpoint'i çağırır (FX/kripto/altın/BIST).
+// jsdom'da ağ yok → hepsini vi.fn ile stub'la, her teste göre veri ver.
+// NOT: getEconomicIndicators artık çağrılmıyor (faiz/enflasyon ticker'dan kaldırıldı),
+// bu yüzden mock listesinde de yok.
 vi.mock('../../../api/marketApi', () => ({
   getFxTcmb: vi.fn(),
   getCryptos: vi.fn(),
@@ -17,7 +19,7 @@ vi.mock('../../../api/marketApi', () => ({
   getGoldHistory: vi.fn(),
   getCryptoChart: vi.fn(),
   getMarketPriceHistory: vi.fn(),
-  getEconomicIndicators: vi.fn(),
+  getIndex: vi.fn(),
 }));
 
 import * as marketApi from '../../../api/marketApi';
@@ -47,7 +49,7 @@ function stubEmptyDefaults() {
   marketApi.getCryptoChart.mockResolvedValue({});
   // BIST + özel varlık price-history: boş seri → o öğeler atlanır.
   marketApi.getMarketPriceHistory.mockResolvedValue({ closePrices: [], timestamps: [] });
-  marketApi.getEconomicIndicators.mockResolvedValue(null);
+  marketApi.getIndex.mockResolvedValue(null);
 }
 
 let warnSpy;
@@ -79,14 +81,13 @@ describe('MarketTicker (jsdom + testing-library)', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('FX/kripto/ekonomi verisi gelince ilgili öğeleri (label) render eder', async () => {
+  it('FX/kripto verisi gelince ilgili öğeleri (label) render eder', async () => {
     marketApi.getFxTcmb.mockResolvedValue({
       rates: [{ symbol: 'USD', sell: '34.5' }, { symbol: 'EUR', sell: '37.2' }],
     });
     marketApi.getCryptos.mockResolvedValue([
       { symbol: 'btc', id: 'bitcoin', currentPrice: 2500000, priceChangePercentage24h: 1.5 },
     ]);
-    marketApi.getEconomicIndicators.mockResolvedValue({ inflation: '38.1', policyRate: '50' });
 
     renderTicker();
 
@@ -95,9 +96,18 @@ describe('MarketTicker (jsdom + testing-library)', () => {
     expect(usd.length).toBeGreaterThan(0);
     expect(screen.getAllByText('EUR/TRY').length).toBeGreaterThan(0);
     expect(screen.getAllByText('BTC').length).toBeGreaterThan(0);
-    // Ekonomi: key 'eco:inflation' → label t('TÜFE') = "TÜFE", değer "%38.1".
-    expect(screen.getAllByText('TÜFE').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('%38.1').length).toBeGreaterThan(0);
+  });
+
+  it('faiz/enflasyon (TÜFE/Politika Faizi) öğeleri ARTIK ticker’da render edilmez', async () => {
+    marketApi.getFxTcmb.mockResolvedValue({ rates: [{ symbol: 'USD', sell: '34.5' }] });
+
+    renderTicker();
+
+    // USD gelince şerit basılı; eco öğeleri hiç eklenmediği için DOM'da olmamalı.
+    expect((await screen.findAllByText('USD/TRY')).length).toBeGreaterThan(0);
+    expect(screen.queryByText('TÜFE')).not.toBeInTheDocument();
+    expect(screen.queryByText('Politika Faizi')).not.toBeInTheDocument();
+    expect(screen.queryByText('Mevduat Faizi')).not.toBeInTheDocument();
   });
 
   it('açık şeritte gizle butonu bulunur; tıklanınca kapanır ve "Göster" gösterilir', async () => {
@@ -137,20 +147,18 @@ describe('MarketTicker (jsdom + testing-library)', () => {
     expect(screen.getAllByText('USD/TRY').length).toBeGreaterThan(0);
   });
 
-  it('enabledKeys ile devre dışı bırakılan öğe (eco:inflation) render edilmez', async () => {
-    // Sadece USD açık; ekonomi/diğer anahtarlar tercih listesinde değil → filtrelenir.
+  it('enabledKeys ile devre dışı bırakılan öğe (fx:EUR) render edilmez', async () => {
+    // Sadece USD açık; EUR tercih listesinde değil → filtrelenir.
     localStorage.setItem(TICKER_PREFS_KEY, JSON.stringify(['fx:USD']));
-    marketApi.getFxTcmb.mockResolvedValue({ rates: [{ symbol: 'USD', sell: '34.5' }] });
-    marketApi.getEconomicIndicators.mockResolvedValue({ inflation: '38.1' });
+    marketApi.getFxTcmb.mockResolvedValue({
+      rates: [{ symbol: 'USD', sell: '34.5' }, { symbol: 'EUR', sell: '37.2' }],
+    });
 
     renderTicker();
 
     expect((await screen.findAllByText('USD/TRY')).length).toBeGreaterThan(0);
-    // eco:inflation tercihte yok → TÜFE öğesi DOM'da olmamalı.
-    await waitFor(() => {
-      expect(marketApi.getEconomicIndicators).toHaveBeenCalled();
-    });
-    expect(screen.queryByText('TÜFE')).not.toBeInTheDocument();
+    // fx:EUR tercihte yok → EUR/TRY öğesi DOM'da olmamalı.
+    expect(screen.queryByText('EUR/TRY')).not.toBeInTheDocument();
   });
 
   it('yükleme hata fırlatırsa (getFxTcmb reject) çökmeyip null render eder', async () => {

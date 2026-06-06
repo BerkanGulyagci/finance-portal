@@ -60,12 +60,13 @@ describe('TICKER_CATALOG — katalog yapısı', () => {
   });
 
   it('beklenen grup başlıklarını sırasıyla içerir', () => {
+    // NOT: "Ekonomi" grubu (TÜFE/Politika Faizi/ÜFE/Mevduat Faizi) ticker'dan kaldırıldı —
+    // ticker yalnız canlı/sürekli değişen fiyatlar içindir.
     expect(TICKER_CATALOG.map((g) => g.group)).toEqual([
       'TCMB Döviz',
       'Endeksler (BIST)',
       'Altın',
       'Kripto',
-      'Ekonomi',
     ]);
   });
 
@@ -86,7 +87,13 @@ describe('TICKER_CATALOG — katalog yapısı', () => {
     expect(ALL_TICKER_KEYS).toContain('fx:USD');
     expect(ALL_TICKER_KEYS).toContain('bist:XU100');
     expect(ALL_TICKER_KEYS).toContain('crypto:btc');
-    expect(ALL_TICKER_KEYS).toContain('eco:inflation');
+  });
+
+  it('ekonomi/faiz anahtarlarını (eco:*) ARTIK içermez', () => {
+    expect(ALL_TICKER_KEYS).not.toContain('eco:inflation');
+    expect(ALL_TICKER_KEYS).not.toContain('eco:policyRate');
+    expect(ALL_TICKER_KEYS).not.toContain('eco:ppi');
+    expect(ALL_TICKER_KEYS).not.toContain('eco:deposit');
   });
 });
 
@@ -177,9 +184,17 @@ describe('saveTickerPrefs', () => {
   });
 
   it('kaydedileni readTickerPrefs gerçekten geri okuyabilir (round-trip)', () => {
-    saveTickerPrefs(new Set(['fx:USD', 'eco:ppi']));
+    saveTickerPrefs(new Set(['fx:USD', 'crypto:eth']));
     const s = readTickerPrefs();
-    expect([...s].sort()).toEqual(['eco:ppi', 'fx:USD'].sort());
+    expect([...s].sort()).toEqual(['crypto:eth', 'fx:USD'].sort());
+  });
+
+  it('eski tercihlerdeki kaldırılmış eco:* anahtarları okumada elenir', () => {
+    // Önceden kaydedilmiş (eco grubu varken) bir tercih → eco:* artık ALL_TICKER_KEYS'te
+    // olmadığı için readTickerPrefs onları sessizce filtreler (ölü seçenek kalmaz).
+    saveTickerPrefs(new Set(['fx:USD', 'eco:inflation', 'eco:policyRate']));
+    const s = readTickerPrefs();
+    expect([...s]).toEqual(['fx:USD']);
   });
 });
 

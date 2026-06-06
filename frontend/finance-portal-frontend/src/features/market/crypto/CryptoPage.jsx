@@ -152,13 +152,13 @@ export default function CryptoPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm font-semibold text-gray-900 text-right">
-                        {c.currentPrice != null ? `₺${num(c.currentPrice)}` : '-'}
+                        {c.currentPrice != null ? <>{num(c.currentPrice)} <span className="text-gray-400 text-xs">₺</span></> : '-'}
                       </td>
                       <td className="px-4 py-3 text-sm text-right">{pct(c.priceChangePercentage1h)}</td>
                       <td className="px-4 py-3 text-sm text-right">{pct(c.priceChangePercentage24h)}</td>
                       <td className="px-4 py-3 text-sm text-right">{pct(c.priceChangePercentage7d)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600 text-right">{c.totalVolume != null ? `₺${num(c.totalVolume, 0)}` : '-'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600 text-right">{c.marketCap != null ? `₺${num(c.marketCap, 0)}` : '-'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600 text-right">{c.totalVolume != null ? <>{num(c.totalVolume, 0)} <span className="text-gray-400 text-xs">₺</span></> : '-'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600 text-right">{c.marketCap != null ? <>{num(c.marketCap, 0)} <span className="text-gray-400 text-xs">₺</span></> : '-'}</td>
                       <td className="px-4 py-3 text-right">
                         <WatchlistStar assetType="CRYPTO" symbol={(c.symbol || '').toUpperCase()} name={c.name} price={c.currentPrice} />
                       </td>
