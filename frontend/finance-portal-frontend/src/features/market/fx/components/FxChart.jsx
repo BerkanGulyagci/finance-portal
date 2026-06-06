@@ -213,20 +213,10 @@ export default function FxChart({ symbol, chartPoints, lineColor, mainLabel, ran
     });
   }, []);
 
-  useEffect(() => {
-    const handler = (e) => { if (e.key === 'Escape') setActiveTool(null); };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [setActiveTool]);
-
-  // Veri uygulandığında chart'ı kur / yeniden çiz ve aktif indikatörleri geri ekle
-  useEffect(() => {
-    if (!chartPoints || chartPoints.length === 0) return;
-    const id = chartId.current;
-    const chart = klineInit(id);
-    chartRef.current = chart;
-    indicatorPaneIds.current = {};
-
+  // Alan (area) + tooltip stilini uygula — INIT ile TEMA effect'i tek kaynaktan kullanır
+  // (tekrarı önler; tema değişince yalnız bu çağrılır, chart YENİDEN KURULMAZ).
+  const applyAreaStyles = useCallback((chart) => {
+    if (!chart) return;
     chart.setStyles({
       candle: {
         type: 'area',
@@ -257,20 +247,15 @@ export default function FxChart({ symbol, chartPoints, lineColor, mainLabel, ran
           },
         },
       },
-      indicator: { tooltip: { showRule: 'follow_cross', showType: 'rect', showName: true, showParams: false, defaultValue: '—', text: { size: 12, marginTop: 4, marginBottom: 4, marginLeft: 8, marginRight: 8 } } },
-      xAxis: { tickText: { color: '#4b5563', size: 11 } },
-      yAxis: { type: 'normal', tickText: { color: '#4b5563', size: 11 } },
     });
+  }, [lineColor, mainLabel, isDark]);
 
-    const klineData = chartPoints
-      .map(p => { const ts = new Date(p.date).getTime(); const v = p.value ?? 0; return { timestamp: ts, open: v, high: v, low: v, close: v, volume: 0, turnover: 0 }; })
-      .filter(d => !isNaN(d.close) && d.close > 0)
-      .sort((a, b) => a.timestamp - b.timestamp);
-
-    if (klineData.length === 0) { klineDispose(id); chartRef.current = null; return; }
-    chart.applyNewData(klineData);
-
-    // Aktif indikatörleri geri ekle (range değişince chart yeniden kurulur)
+  // Aktif indikatörleri İDEMPOTENT yeniden uygula — önce kaldır, sonra ekle. applyNewData
+  // sonrası güvenlik ağı; iki kez koşsa bile tek kopya kalır (asla katlanmaz).
+  const reconcileIndicators = useCallback((chart) => {
+    if (!chart) return;
+    // MA: removeIndicator+create zaten idempotent.
+    try { chart.removeIndicator('candle_pane', 'MA'); } catch (_) { /* yoksay */ }
     if (activeMAs.length > 0) {
       try {
         chart.createIndicator(
@@ -279,14 +264,72 @@ export default function FxChart({ symbol, chartPoints, lineColor, mainLabel, ran
         );
       } catch (_) { /* yoksay */ }
     }
+    // Alt indikatörler: bilinen eski pane'i kaldır, sonra ekle; yeni pane id'yi yaz.
     activeSubInds.forEach(indName => {
-      try { const paneId = chart.createIndicator({ name: indName }, true, { height: 80 }); if (paneId) indicatorPaneIds.current[indName] = paneId; } catch (_) { /* yoksay */ }
+      const oldPane = indicatorPaneIds.current[indName];
+      if (oldPane) { try { chart.removeIndicator(oldPane, indName); } catch (_) { /* yoksay */ } }
+      try {
+        const paneId = chart.createIndicator({ name: indName }, true, { height: 80 });
+        if (paneId) indicatorPaneIds.current[indName] = paneId;
+      } catch (_) { /* yoksay */ }
     });
+  }, [activeMAs, activeSubInds]);
 
-    // Kaydedilmiş çizimleri geri yükle (applyNewData'dan sonra).
-    restoreOverlays(klineData);
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') setActiveTool(null); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [setActiveTool]);
 
+  // chartPoints → klinecharts veri dizisi (memoize'sız; ucuz dönüşüm). Konteyner div
+  // KOŞULSUZ render edildiğinden (aşağı bkz.) chart instance'ı tek seferlik kurulur ve
+  // RANGE/TEMA değişiminde YAŞAR; bu effect yalnız applyNewData yapar.
+  const buildKlineData = useCallback(() => (
+    (chartPoints ?? [])
+      .map(p => { const ts = new Date(p.date).getTime(); const v = p.value ?? 0; return { timestamp: ts, open: v, high: v, low: v, close: v, volume: 0, turnover: 0 }; })
+      .filter(d => !isNaN(d.close) && d.close > 0)
+      .sort((a, b) => a.timestamp - b.timestamp)
+  ), [chartPoints]);
+
+  const hasData = (chartPoints?.length ?? 0) > 0;
+
+  // ── INIT effect (deps=[]) — KÖKLÜ ÇÖZÜM: chart yalnız BİR KEZ kurulur ───────────
+  // Hisse grafiği (CandlestickChart.jsx) ile aynı kararlı desen: konteyner div koşulsuz
+  // mount olduğundan DOM id stabil; klineInit↔dispose 1:1. Range/tema değişiminde chart
+  // dispose+init OLMAZ → indikatörler hiç yok edilip yeniden eklenmez → KATLANMA biter.
+  // Cleanup HER zaman çalışır (erken-return yok), bir sonraki init temiz instance verir.
+  useEffect(() => {
+    // Veri yokken de konteyner mount olabilir; ilk veri gelince init edilir (gate aşağıda).
+    if (!hasData) return undefined;
+    const id = chartId.current;
+    if (chartRef.current) return undefined; // zaten kurulu (idempotent — re-render'da yeniden kurma)
+    const chart = klineInit(id);
+    chartRef.current = chart;
+    indicatorPaneIds.current = {};
+    chart.setStyles({
+      indicator: { tooltip: { showRule: 'follow_cross', showType: 'rect', showName: true, showParams: false, defaultValue: '—', text: { size: 12, marginTop: 4, marginBottom: 4, marginLeft: 8, marginRight: 8 } } },
+      xAxis: { tickText: { color: '#4b5563', size: 11 } },
+      yAxis: { type: 'normal', tickText: { color: '#4b5563', size: 11 } },
+    });
+    applyAreaStyles(chart);
     return () => { klineDispose(id); chartRef.current = null; indicatorPaneIds.current = {}; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasData]);
+
+  // ── DATA effect (deps=[chartPoints]) — sadece veriyi GÜNCELLE, instance'ı YAŞAT ──
+  // Range değişince yeni chartPoints ref'i gelir → chart dispose EDİLMEZ; var olan instance'a
+  // applyNewData yapılır. klinecharts v9 applyNewData mevcut indikatörleri otomatik yeniden
+  // hesaplar ve KORUR → indikatör state'i imperatif toggle ile tutulur, desync/katlanma yok.
+  // Güvenlik ağı: applyNewData sonrası aktif indikatörleri İDEMPOTENT (önce kaldır→sonra ekle)
+  // yeniden uygula; tekrar koşsa bile tek kopya kalır.
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    const klineData = buildKlineData();
+    chart.applyNewData(klineData);
+    if (klineData.length === 0) return;
+    reconcileIndicators(chart);
+    restoreOverlays(klineData);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chartPoints]);
 
@@ -296,39 +339,8 @@ export default function FxChart({ symbol, chartPoints, lineColor, mainLabel, ran
   //  indikatör KALDIRILAMIYORDU. Hisse grafiği de chart'ı yalnız veri/range'de kurar — aynı
   //  kararlı desen: indikatör instance'ı stabil kalır, toggle güvenle add/remove eder.)
   useEffect(() => {
-    const chart = chartRef.current;
-    if (!chart) return;
-    chart.setStyles({
-      candle: {
-        type: 'area',
-        area: {
-          lineColor, lineSize: 2, value: 'close', smooth: true,
-          backgroundColor: [
-            { offset: 0, color: lineColor + '33' },
-            { offset: 1, color: lineColor + '00' },
-          ],
-        },
-        tooltip: {
-          showRule: 'follow_cross', showType: 'rect',
-          text: { size: 12, marginTop: 4, marginBottom: 4, marginLeft: 8, marginRight: 8 },
-          rect: {
-            offsetLeft: 8, offsetTop: 8, offsetRight: 8, paddingLeft: 10, paddingRight: 10, paddingTop: 8, paddingBottom: 8,
-            borderRadius: 8, borderSize: 1,
-            borderColor: isDark ? 'rgba(255,255,255,0.12)' : '#e5e7eb',
-            color: isDark ? 'rgba(15,23,42,0.92)' : 'rgba(255,255,255,0.94)',
-          },
-          custom: (data) => {
-            const d = data?.current ?? {};
-            const date = d.timestamp ? new Date(d.timestamp).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
-            return [
-              { title: '', value: { text: date, color: isDark ? '#94a3b8' : '#6b7280' } },
-              { title: mainLabel ? { text: `${mainLabel}:`, color: lineColor } : '', value: { text: fmt(d.close, 4), color: lineColor } },
-            ];
-          },
-        },
-      },
-    });
-  }, [lineColor, mainLabel, isDark]);
+    applyAreaStyles(chartRef.current);
+  }, [applyAreaStyles]);
 
   const indicatorDropdown = (
     <div className="relative">
@@ -419,11 +431,12 @@ export default function FxChart({ symbol, chartPoints, lineColor, mainLabel, ran
             </div>
           </div>
         )}
-        {(!chartPoints || chartPoints.length === 0) && !loadingChart ? (
-          <div className="flex items-center justify-center h-[380px] text-gray-400 text-sm">{t('Grafik verisi yüklenemedi.')}</div>
-        ) : (
-          <div id={chartId.current} style={{ width: '100%', height: '380px' }} />
+        {/* Konteyner div KOŞULSUZ render (DOM id STABİL → klineInit↔dispose 1:1, instance YAŞAR).
+            "Veri yüklenemedi" mesajı boş+loading-değil durumda üstüne ABSOLUTE overlay biner. */}
+        {!hasData && !loadingChart && (
+          <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm z-10">{t('Grafik verisi yüklenemedi.')}</div>
         )}
+        <div id={chartId.current} style={{ width: '100%', height: '380px' }} />
       </div>
     </div>
   );

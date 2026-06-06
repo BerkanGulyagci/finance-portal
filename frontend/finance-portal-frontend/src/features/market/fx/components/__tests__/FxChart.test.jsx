@@ -47,7 +47,7 @@ vi.mock('klinecharts', () => ({
   registerIndicator: vi.fn(),
 }));
 
-import { init as klineInit } from 'klinecharts';
+import { init as klineInit, dispose as klineDispose } from 'klinecharts';
 import { LanguageProvider } from '../../../../../context/LanguageContext';
 import FxChart from '../FxChart';
 
@@ -297,6 +297,98 @@ describe('FxChart — İndikatör menüsü (MA / osilatör)', () => {
     await waitFor(() => {
       expect(lastChart.removeIndicator).toHaveBeenCalledWith('candle_pane', 'MA');
     });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 5b) KÖKLÜ FIX regresyonu — zaman filtresi (range) değişiminde indikatör KATLANMASI
+//     Bug: chartPoints değişince chart dispose+init oluyor, aktif indikatörler ÜST ÜSTE
+//     biniyordu (ikiye katlanma + hayalet panel). Fix: chart instance YAŞAR, yalnız
+//     applyNewData çağrılır; indikatörler idempotent reconcile ile TEK kopya kalır.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('FxChart — range değişiminde indikatör KATLANMAZ (köklü fix)', () => {
+  it('chartPoints (range) değişince chart YENİDEN init/dispose EDİLMEZ; sadece applyNewData', () => {
+    const { rerender } = renderChart({ chartPoints: makePoints(30) });
+    expect(klineInit).toHaveBeenCalledTimes(1);
+    const firstChart = lastChart;
+    const applyCallsBefore = firstChart.applyNewData.mock.calls.length;
+
+    // Range değişimi = parent yeni chartPoints ref'i geçirir
+    rerender(
+      <LanguageProvider>
+        <FxChart {...BASE_PROPS} chartPoints={makePoints(40, 25)} />
+      </LanguageProvider>,
+    );
+
+    // KÖKLÜ FIX: instance yaşar → ikinci init YOK, dispose YOK
+    expect(klineInit).toHaveBeenCalledTimes(1);
+    expect(klineDispose).not.toHaveBeenCalled();
+    // Aynı instance üzerinde yeni veri uygulanır
+    expect(lastChart).toBe(firstChart);
+    expect(firstChart.applyNewData.mock.calls.length).toBeGreaterThan(applyCallsBefore);
+  });
+
+  it('MA20 açıkken range değişince MA TEK kopya kalır (idempotent: önce remove, sonra create)', () => {
+    const { rerender } = renderChart({ chartPoints: makePoints(30) });
+    const chart = lastChart;
+
+    // MA20 aç
+    fireEvent.click(screen.getByRole('button', { name: /İndikatör/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'MA20' }));
+    chart.createIndicator.mockClear();
+    chart.removeIndicator.mockClear();
+
+    // Range değişimi
+    rerender(
+      <LanguageProvider>
+        <FxChart {...BASE_PROPS} chartPoints={makePoints(40, 25)} />
+      </LanguageProvider>,
+    );
+
+    // reconcileIndicators: MA önce removeIndicator('candle_pane','MA') sonra TEK createIndicator(MA)
+    expect(chart.removeIndicator).toHaveBeenCalledWith('candle_pane', 'MA');
+    const maCreates = chart.createIndicator.mock.calls.filter(([cfg]) => cfg && cfg.name === 'MA');
+    expect(maCreates.length).toBe(1); // KATLANMA YOK (2 değil)
+    expect(maCreates[0][0].calcParams).toContain(20);
+  });
+
+  it('RSI açıkken range değişince RSI TEK kopya kalır (eski pane kaldırılıp yeniden eklenir)', () => {
+    const { rerender } = renderChart({ chartPoints: makePoints(30) });
+    const chart = lastChart;
+
+    fireEvent.click(screen.getByRole('button', { name: /İndikatör/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'RSI' }));
+    chart.createIndicator.mockClear();
+    chart.removeIndicator.mockClear();
+
+    rerender(
+      <LanguageProvider>
+        <FxChart {...BASE_PROPS} chartPoints={makePoints(40, 25)} />
+      </LanguageProvider>,
+    );
+
+    // Eski RSI pane kaldırılır (mock paneId='pane_x'), sonra TEK kez yeniden eklenir
+    expect(chart.removeIndicator).toHaveBeenCalledWith('pane_x', 'RSI');
+    const rsiCreates = chart.createIndicator.mock.calls.filter(([cfg]) => cfg && cfg.name === 'RSI');
+    expect(rsiCreates.length).toBe(1); // KATLANMA YOK
+  });
+
+  it('tema (lineColor/mainLabel) değişince chart YENİDEN init EDİLMEZ — sadece setStyles', () => {
+    const { rerender } = renderChart({ chartPoints: makePoints(30) });
+    expect(klineInit).toHaveBeenCalledTimes(1);
+    const chart = lastChart;
+    chart.setStyles.mockClear();
+
+    // Tema değişimi simülasyonu: lineColor + mainLabel değişir (chartPoints AYNI ref)
+    rerender(
+      <LanguageProvider>
+        <FxChart {...BASE_PROPS} lineColor="#10b981" mainLabel="EUR/TRY" />
+      </LanguageProvider>,
+    );
+
+    expect(klineInit).toHaveBeenCalledTimes(1); // re-init YOK (önceki fix korunur)
+    expect(klineDispose).not.toHaveBeenCalled();
+    expect(chart.setStyles).toHaveBeenCalled(); // yalnız stil güncellenir
   });
 });
 
