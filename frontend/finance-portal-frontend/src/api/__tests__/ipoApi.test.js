@@ -1,16 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // HTTP istemcisini MOCK'la — gerçek ağ YOK.
-// Kaynak `import axios from 'axios'` kullanır → axios.get çağrılır.
-// axios bare-modül adıyla import edildiği için mock yolu testin konumundan BAĞIMSIZ ('axios').
-vi.mock('axios', () => ({
+// Kaynak paylaşılan `client` (lib/http) kullanır → relative path (hardcoded localhost YOK).
+vi.mock('../../lib/http', () => ({
   default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn(), patch: vi.fn() },
 }));
 
-import axios from 'axios';
+import client from '../../lib/http';
 import { getIpos } from '../ipoApi';
-
-const BASE_URL = 'http://localhost:8080';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -18,14 +15,14 @@ beforeEach(() => {
 
 describe('getIpos', () => {
   it('doğru IPO uç noktasını argümansız (params YOK) GET ile çağırır', async () => {
-    axios.get.mockResolvedValue({ data: { data: [] } });
+    client.get.mockResolvedValue({ data: { data: [] } });
 
     await getIpos();
 
-    expect(axios.get).toHaveBeenCalledTimes(1);
-    expect(axios.get).toHaveBeenCalledWith(`${BASE_URL}/api/v1/market/ipo`);
+    expect(client.get).toHaveBeenCalledTimes(1);
+    expect(client.get).toHaveBeenCalledWith(`/api/v1/market/ipo`);
     // Bu fonksiyon ikinci bir options/params argümanı GEÇİRMEZ.
-    expect(axios.get.mock.calls[0]).toHaveLength(1);
+    expect(client.get.mock.calls[0]).toHaveLength(1);
   });
 
   it('wrapper.data dizisini olduğu gibi döndürür (happy-path)', async () => {
@@ -33,7 +30,7 @@ describe('getIpos', () => {
       { symbol: 'ABCD', company: 'ABC A.Ş.', date: '2026-06-10' },
       { symbol: 'EFGH', company: 'EFG A.Ş.', date: '2026-07-01' },
     ];
-    axios.get.mockResolvedValue({ data: { data: payload } });
+    client.get.mockResolvedValue({ data: { data: payload } });
 
     const res = await getIpos();
 
@@ -42,7 +39,7 @@ describe('getIpos', () => {
   });
 
   it('wrapper.data undefined ise boş dizi döndürür (?? [] fallback)', async () => {
-    axios.get.mockResolvedValue({ data: {} }); // wrapper.data === undefined
+    client.get.mockResolvedValue({ data: {} }); // wrapper.data === undefined
 
     const res = await getIpos();
 
@@ -50,7 +47,7 @@ describe('getIpos', () => {
   });
 
   it('wrapper.data null ise boş dizi döndürür (?? [] fallback)', async () => {
-    axios.get.mockResolvedValue({ data: { data: null } });
+    client.get.mockResolvedValue({ data: { data: null } });
 
     const res = await getIpos();
 
@@ -59,7 +56,7 @@ describe('getIpos', () => {
 
   it('wrapper.data boş dizi ise boş diziyi korur (falsy DEĞİL, ?? tetiklenmez)', async () => {
     const empty = [];
-    axios.get.mockResolvedValue({ data: { data: empty } });
+    client.get.mockResolvedValue({ data: { data: empty } });
 
     const res = await getIpos();
 
@@ -67,7 +64,7 @@ describe('getIpos', () => {
   });
 
   it('axios reddederse hatayı yukarı fırlatır', async () => {
-    axios.get.mockRejectedValue(new Error('network down'));
+    client.get.mockRejectedValue(new Error('network down'));
 
     await expect(getIpos()).rejects.toThrow('network down');
   });

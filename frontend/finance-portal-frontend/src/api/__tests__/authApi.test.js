@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-// authApi, ağ çağrıları için axios'u DOĞRUDAN import eder (paylaşılan ../lib/http DEĞİL).
-// Bu yüzden mock hedefi 'axios'tur. Gerçek ağ isteği YAPILMAZ.
+// authApi, Keycloak token/logout çağrıları için axios'u DOĞRUDAN import eder
+// (exchangeCodeForToken / refreshAccessToken ham axios kullanır). Bu yüzden axios mock'lanır.
+// Gerçek ağ isteği YAPILMAZ.
 vi.mock('axios', () => ({
   default: {
     post: vi.fn(),
@@ -12,7 +13,16 @@ vi.mock('axios', () => ({
   },
 }));
 
+// registerRequest artık paylaşılan ../lib/http client'ı (relative path) kullanıyor.
+// lib/http.js modül yükünde axios.create() çağırır VE authApi'den refreshAccessToken
+// import eder (döngüsel) → gerçek modülü mock'layıp client.post stub'ı veriyoruz;
+// böylece axios.create yok, döngü kırılmaz.
+vi.mock('../../lib/http', () => ({
+  default: { post: vi.fn() },
+}));
+
 import axios from 'axios';
+import client from '../../lib/http';
 import {
   OAUTH_ACTION_COMPLETE_MESSAGE,
   OAuthActionCompleteError,
@@ -29,7 +39,11 @@ import {
 const KEYCLOAK_URL = 'http://localhost:8081';
 const REALM = 'finance-portal';
 const CLIENT_ID = 'finance-portal-api';
-const REDIRECT_URI = 'http://localhost:5173/auth/callback';
+// REDIRECT_URI artık `${window.location.origin}/auth/callback`. authApi.js'de bu, MODÜL YÜK
+// ANINDA bir kez hesaplanır → o an window.location henüz STUB'lanmamış, jsdom'un gerçek origin'i
+// geçerli. Vitest jsdom varsayılan URL'i 'http://localhost:3000' → origin 'http://localhost:3000'.
+const TEST_ORIGIN = 'http://localhost:3000';
+const REDIRECT_URI = `${TEST_ORIGIN}/auth/callback`;
 const TOKEN_ENDPOINT = `${KEYCLOAK_URL}/realms/${REALM}/protocol/openid-connect/token`;
 const LOGOUT_ENDPOINT = `${KEYCLOAK_URL}/realms/${REALM}/protocol/openid-connect/logout`;
 const AUTH_ENDPOINT = `${KEYCLOAK_URL}/realms/${REALM}/protocol/openid-connect/auth`;
@@ -50,7 +64,9 @@ beforeEach(() => {
   localStorage.clear();
 
   originalLocation = window.location;
-  locationStub = { assign: vi.fn(), href: '', replace: vi.fn() };
+  // origin: logoutRedirect, post_logout_redirect_uri'yi ÇAĞRI ANINDA window.location.origin'den
+  // türetir → stub'a origin verilir (jsdom gerçek origin'iyle aynı: TEST_ORIGIN).
+  locationStub = { assign: vi.fn(), href: '', replace: vi.fn(), origin: TEST_ORIGIN };
   delete window.location;
   window.location = locationStub;
 });
@@ -325,7 +341,7 @@ describe('logoutRedirect', () => {
     expect(locationStub.href.startsWith(`${LOGOUT_ENDPOINT}?`)).toBe(true);
     const qs = new URLSearchParams(locationStub.href.split('?')[1]);
     expect(qs.get('client_id')).toBe(CLIENT_ID);
-    expect(qs.get('post_logout_redirect_uri')).toBe('http://localhost:5173/');
+    expect(qs.get('post_logout_redirect_uri')).toBe(`${TEST_ORIGIN}/`);
   });
 
   it('id_token_hint KASITLI gönderilmez', () => {
@@ -350,13 +366,15 @@ describe('registerRequest', () => {
     lastName: 'G',
   };
 
+  // registerRequest artık ham axios DEĞİL, paylaşılan client (../lib/http) ile RELATIVE
+  // path'e POST atar → assertion'lar client.post üzerinden.
   it('backend register endpoint’ine alanları POST eder ve data döner', async () => {
-    axios.post.mockResolvedValue({ data: { id: 1, username: 'berkan' } });
+    client.post.mockResolvedValue({ data: { id: 1, username: 'berkan' } });
 
     const result = await registerRequest(payload);
 
-    expect(axios.post).toHaveBeenCalledTimes(1);
-    expect(axios.post).toHaveBeenCalledWith('http://localhost:8080/api/v1/auth/register', {
+    expect(client.post).toHaveBeenCalledTimes(1);
+    expect(client.post).toHaveBeenCalledWith('/api/v1/auth/register', {
       username: 'berkan',
       email: 'b@x.com',
       password: 'secret',
@@ -367,12 +385,12 @@ describe('registerRequest', () => {
   });
 
   it('yanıt (err.response) yoksa "Sunucuya ulaşılamıyor." fırlatır', async () => {
-    axios.post.mockRejectedValue(new Error('boom')); // response alanı yok
+    client.post.mockRejectedValue(new Error('boom')); // response alanı yok
     await expect(registerRequest(payload)).rejects.toThrow('Sunucuya ulaşılamıyor.');
   });
 
   it('body.data alan-bazlı doğrulama hatası varsa ilk mesajı fırlatır', async () => {
-    axios.post.mockRejectedValue({
+    client.post.mockRejectedValue({
       response: {
         status: 400,
         data: { data: { email: 'E-posta zaten kayıtlı', password: 'çok kısa' } },
@@ -382,21 +400,21 @@ describe('registerRequest', () => {
   });
 
   it('body.data var ama ilk değer boş/falsy ise body.message’a düşer', async () => {
-    axios.post.mockRejectedValue({
+    client.post.mockRejectedValue({
       response: { status: 400, data: { data: { field: '' }, message: 'Doğrulama mesajı' } },
     });
     await expect(registerRequest(payload)).rejects.toThrow('Doğrulama mesajı');
   });
 
   it('body.data yoksa body.message fırlatılır', async () => {
-    axios.post.mockRejectedValue({
+    client.post.mockRejectedValue({
       response: { status: 409, data: { message: 'Kullanıcı zaten var' } },
     });
     await expect(registerRequest(payload)).rejects.toThrow('Kullanıcı zaten var');
   });
 
   it('body.message de yoksa status kodlu genel mesaj fırlatılır', async () => {
-    axios.post.mockRejectedValue({ response: { status: 500, data: {} } });
+    client.post.mockRejectedValue({ response: { status: 500, data: {} } });
     await expect(registerRequest(payload)).rejects.toThrow('Kayıt başarısız (500).');
   });
 });

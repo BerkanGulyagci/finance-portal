@@ -1,9 +1,14 @@
 import axios from 'axios';
+import client from '../lib/http';
 
-const KEYCLOAK_URL = 'http://localhost:8081';
-const REALM = 'finance-portal';
+// Taşınabilir config: env varsa onu kullan, yoksa local default (keycloakAccount.js ile aynı desen).
+// Local: env yok → localhost. Cloud: VITE_KEYCLOAK_URL build-arg ile gerçek host verilir.
+const KEYCLOAK_URL = (import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8081').replace(/\/$/, '');
+const REALM = import.meta.env.VITE_KEYCLOAK_REALM || 'finance-portal';
 const CLIENT_ID = 'finance-portal-api';
-const REDIRECT_URI = 'http://localhost:5173/auth/callback';
+// Redirect URI'ler runtime'da tarayıcının kendi origin'inden türetilir → hangi host'ta açıldıysa
+// oraya döner (local localhost:5173, cloud gerçek domain). Env'e bile gerek yok, en taşınabiliri.
+const REDIRECT_URI = `${window.location.origin}/auth/callback`;
 
 const AUTH_ENDPOINT = `${KEYCLOAK_URL}/realms/${REALM}/protocol/openid-connect/auth`;
 const TOKEN_ENDPOINT = `${KEYCLOAK_URL}/realms/${REALM}/protocol/openid-connect/token`;
@@ -139,6 +144,8 @@ export async function exchangeCodeForToken(code, state) {
   });
 
   try {
+    // HAM axios (client DEĞİL): Keycloak token endpoint'ine interceptor'ın Authorization header'ı
+    // veya refresh-özyinelemesi GİRMEMELİ (sonsuz döngü + Keycloak reddi). KEYCLOAK_URL env'li.
     const { data } = await axios.post(TOKEN_ENDPOINT, body.toString(), {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     });
@@ -165,6 +172,8 @@ export async function refreshAccessToken(refreshToken) {
     client_id: CLIENT_ID,
     refresh_token: refreshToken,
   });
+  // HAM axios (client DEĞİL): bu fonksiyon interceptor TARAFINDAN çağrılıyor → client kullanırsa
+  // sonsuz refresh özyinelemesi olur. Keycloak'a direkt, header'sız.
   const { data } = await axios.post(TOKEN_ENDPOINT, body.toString(), {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
   });
@@ -182,7 +191,8 @@ export async function refreshAccessToken(refreshToken) {
 export function logoutRedirect(idToken) {
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
-    post_logout_redirect_uri: 'http://localhost:5173/',
+    // Tarayıcı origin'inden türet → hangi host'ta açıldıysa oraya dön (taşınabilir).
+    post_logout_redirect_uri: `${window.location.origin}/`,
   });
   // id_token_hint kasıtlı GÖNDERİLMİYOR: Keycloak görünür logout akışını göstersin ve oturumu
   // güvenle sonlandırsın. (id_token_hint, access token yenilendiğinde bayatlayıp Keycloak'ın
@@ -195,7 +205,8 @@ export function logoutRedirect(idToken) {
  */
 export async function registerRequest({ username, email, password, firstName, lastName }) {
   try {
-    const { data } = await axios.post('http://localhost:8080/api/v1/auth/register', {
+    // Backend'e relative path → prod nginx / dev vite proxy (taşınabilir, diğer 13 API gibi).
+    const { data } = await client.post('/api/v1/auth/register', {
       username, email, password, firstName, lastName,
     });
     return data;

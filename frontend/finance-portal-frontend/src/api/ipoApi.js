@@ -1,8 +1,7 @@
-import axios from 'axios';
+import client from '../lib/http';
 
-const BASE_URL = 'http://localhost:8080';
-
+// Relative path → prod'da nginx, dev'de vite proxy üzerinden backend'e gider (hardcoded localhost DEĞİL).
 export async function getIpos() {
-  const { data: wrapper } = await axios.get(`${BASE_URL}/api/v1/market/ipo`);
+  const { data: wrapper } = await client.get('/api/v1/market/ipo');
   return wrapper.data ?? [];
 }

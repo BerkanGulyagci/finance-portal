@@ -1,18 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-// HTTP istemcilerini MOCK'la — gerçek ağ YOK.
-// Kaynak iki yol kullanır:
-//   * `import axios from 'axios'` → axios.get (getNews / getNewsDetail / getBloombergHtNews / getGoldNews)
-//   * `import client from '../lib/http'` → client.get (getForMeNews)
-// Test src/api/__tests__/ içinde olduğundan lib yolu '../../lib/http'.
-vi.mock('axios', () => ({
-  default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn(), patch: vi.fn() },
-}));
+// HTTP istemcisini MOCK'la — gerçek ağ YOK.
+// Tüm news çağrıları paylaşılan `client` (lib/http) üzerinden RELATIVE path ile gider
+// (hardcoded localhost YOK → prod nginx / dev vite proxy). Test src/api/__tests__/ içinde
+// olduğundan lib yolu '../../lib/http'.
 vi.mock('../../lib/http', () => ({
   default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn(), patch: vi.fn() },
 }));
 
-import axios from 'axios';
 import client from '../../lib/http';
 import {
   proxyImageUrl,
@@ -22,8 +17,6 @@ import {
   getBloombergHtNews,
   getGoldNews,
 } from '../newsApi';
-
-const BASE_URL = 'http://localhost:8080';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -39,7 +32,7 @@ describe('proxyImageUrl', () => {
   it('bloomberght.com görselini proxy URL’ine sarar (encode ederek)', () => {
     const src = 'https://www.bloomberght.com/img/foo bar.jpg?x=1';
     const out = proxyImageUrl(src);
-    expect(out).toBe(`${BASE_URL}/api/v1/proxy/image?url=${encodeURIComponent(src)}`);
+    expect(out).toBe(`/api/v1/proxy/image?url=${encodeURIComponent(src)}`);
     // boşluk ve & encode edilmeli (ham URL gömülmemeli)
     expect(out).toContain('%20');
     expect(out).not.toContain('foo bar');
@@ -52,20 +45,20 @@ describe('proxyImageUrl', () => {
 });
 
 describe('getNews', () => {
-  it('argümansız çağrıldığında varsayılan page=1 & pageSize=12 ile axios.get çağırır', async () => {
-    axios.get.mockResolvedValue({ data: { data: { items: [1], totalPages: 3 } } });
+  it('argümansız çağrıldığında varsayılan page=1 & pageSize=12 ile client.get çağırır', async () => {
+    client.get.mockResolvedValue({ data: { data: { items: [1], totalPages: 3 } } });
 
     const res = await getNews();
 
-    expect(axios.get).toHaveBeenCalledTimes(1);
-    expect(axios.get).toHaveBeenCalledWith(`${BASE_URL}/api/v1/news`, {
+    expect(client.get).toHaveBeenCalledTimes(1);
+    expect(client.get).toHaveBeenCalledWith(`/api/v1/news`, {
       params: { page: 1, pageSize: 12 },
     });
     expect(res).toEqual({ items: [1], totalPages: 3 });
   });
 
   it('verilen tüm filtreleri (category/source/q/range/region/lang + page/pageSize) params’a ekler', async () => {
-    axios.get.mockResolvedValue({ data: { data: { items: [] } } });
+    client.get.mockResolvedValue({ data: { data: { items: [] } } });
 
     await getNews({
       category: 'CRYPTO',
@@ -78,7 +71,7 @@ describe('getNews', () => {
       pageSize: 24,
     });
 
-    expect(axios.get).toHaveBeenCalledWith(`${BASE_URL}/api/v1/news`, {
+    expect(client.get).toHaveBeenCalledWith(`/api/v1/news`, {
       params: {
         page: 2,
         pageSize: 24,
@@ -93,22 +86,22 @@ describe('getNews', () => {
   });
 
   it('boş/eksik opsiyonel filtreler params’a EKLENMEZ (sadece page & pageSize kalır)', async () => {
-    axios.get.mockResolvedValue({ data: { data: {} } });
+    client.get.mockResolvedValue({ data: { data: {} } });
 
     // category='' falsy → eklenmemeli; page=0 falsy → ?? sadece null/undefined’a baktığı için 0 KORUNUR.
     await getNews({ category: '', source: undefined, q: null, page: 0, pageSize: 0 });
 
-    expect(axios.get).toHaveBeenCalledWith(`${BASE_URL}/api/v1/news`, {
+    expect(client.get).toHaveBeenCalledWith(`/api/v1/news`, {
       params: { page: 0, pageSize: 0 },
     });
-    const sentParams = axios.get.mock.calls[0][1].params;
+    const sentParams = client.get.mock.calls[0][1].params;
     expect(sentParams).not.toHaveProperty('category');
     expect(sentParams).not.toHaveProperty('source');
     expect(sentParams).not.toHaveProperty('q');
   });
 
   it('wrapper.data yoksa varsayılan boş haber zarfını döndürür', async () => {
-    axios.get.mockResolvedValue({ data: {} }); // wrapper.data === undefined
+    client.get.mockResolvedValue({ data: {} }); // wrapper.data === undefined
 
     const res = await getNews();
 
@@ -118,7 +111,7 @@ describe('getNews', () => {
   });
 
   it('axios reddederse hatayı yukarı fırlatır', async () => {
-    axios.get.mockRejectedValue(new Error('network down'));
+    client.get.mockRejectedValue(new Error('network down'));
     await expect(getNews()).rejects.toThrow('network down');
   });
 });
@@ -132,8 +125,6 @@ describe('getForMeNews', () => {
     expect(client.get).toHaveBeenCalledTimes(1);
     expect(client.get).toHaveBeenCalledWith('/api/v1/news/for-me', { params: { limit: 9 } });
     expect(res).toEqual({ items: [{ id: 1 }] });
-    // axios DEĞİL, korumalı client kullanılmalı (token gerektirir)
-    expect(axios.get).not.toHaveBeenCalled();
   });
 
   it('lang verildiğinde params’a lang ekler ve özel limit’i geçirir', async () => {
@@ -168,54 +159,54 @@ describe('getForMeNews', () => {
 
 describe('getNewsDetail', () => {
   it('lang verildiğinde id’li detay URL’ine { lang } params ile gider', async () => {
-    axios.get.mockResolvedValue({ data: { data: { id: 42, title: 'X' } } });
+    client.get.mockResolvedValue({ data: { data: { id: 42, title: 'X' } } });
 
     const res = await getNewsDetail(42, 'en');
 
-    expect(axios.get).toHaveBeenCalledWith(`${BASE_URL}/api/v1/news/detail/42`, {
+    expect(client.get).toHaveBeenCalledWith(`/api/v1/news/detail/42`, {
       params: { lang: 'en' },
     });
     expect(res).toEqual({ id: 42, title: 'X' });
   });
 
   it('lang verilmediğinde boş params nesnesi ({}) ile çağırır', async () => {
-    axios.get.mockResolvedValue({ data: { data: { id: 7 } } });
+    client.get.mockResolvedValue({ data: { data: { id: 7 } } });
 
     await getNewsDetail(7);
 
-    expect(axios.get).toHaveBeenCalledWith(`${BASE_URL}/api/v1/news/detail/7`, { params: {} });
+    expect(client.get).toHaveBeenCalledWith(`/api/v1/news/detail/7`, { params: {} });
   });
 
   it('wrapper.data yoksa null döndürür', async () => {
-    axios.get.mockResolvedValue({ data: {} });
+    client.get.mockResolvedValue({ data: {} });
     const res = await getNewsDetail(1, 'tr');
     expect(res).toBeNull();
   });
 
   it('hata durumunda reddi yukarı taşır', async () => {
-    axios.get.mockRejectedValue(new Error('404'));
+    client.get.mockRejectedValue(new Error('404'));
     await expect(getNewsDetail(99)).rejects.toThrow('404');
   });
 });
 
 describe('getBloombergHtNews', () => {
   it('bloomberg-ht uç noktasını çağırır ve wrapper.data’yı döndürür', async () => {
-    axios.get.mockResolvedValue({ data: { data: [{ t: 'a' }] } });
+    client.get.mockResolvedValue({ data: { data: [{ t: 'a' }] } });
 
     const res = await getBloombergHtNews();
 
-    expect(axios.get).toHaveBeenCalledWith(`${BASE_URL}/api/v1/news/bloomberg-ht`);
+    expect(client.get).toHaveBeenCalledWith(`/api/v1/news/bloomberg-ht`);
     expect(res).toEqual([{ t: 'a' }]);
   });
 
   it('wrapper.data yoksa boş dizi döndürür', async () => {
-    axios.get.mockResolvedValue({ data: {} });
+    client.get.mockResolvedValue({ data: {} });
     const res = await getBloombergHtNews();
     expect(res).toEqual([]);
   });
 
   it('hata durumunda reddi yukarı taşır', async () => {
-    axios.get.mockRejectedValue(new Error('boom'));
+    client.get.mockRejectedValue(new Error('boom'));
     await expect(getBloombergHtNews()).rejects.toThrow('boom');
   });
 });
@@ -223,22 +214,22 @@ describe('getBloombergHtNews', () => {
 describe('getGoldNews', () => {
   it('gold uç noktasını çağırır ve wrapper.data’yı döndürür', async () => {
     const payload = { items: [{ id: 1 }], isFiltered: true, label: 'Altın' };
-    axios.get.mockResolvedValue({ data: { data: payload } });
+    client.get.mockResolvedValue({ data: { data: payload } });
 
     const res = await getGoldNews();
 
-    expect(axios.get).toHaveBeenCalledWith(`${BASE_URL}/api/v1/news/gold`);
+    expect(client.get).toHaveBeenCalledWith(`/api/v1/news/gold`);
     expect(res).toEqual(payload);
   });
 
   it('wrapper.data yoksa varsayılan altın zarfını döndürür', async () => {
-    axios.get.mockResolvedValue({ data: {} });
+    client.get.mockResolvedValue({ data: {} });
     const res = await getGoldNews();
     expect(res).toEqual({ items: [], isFiltered: false, label: 'Son Haberler' });
   });
 
   it('hata durumunda reddi yukarı taşır', async () => {
-    axios.get.mockRejectedValue(new Error('fail'));
+    client.get.mockRejectedValue(new Error('fail'));
     await expect(getGoldNews()).rejects.toThrow('fail');
   });
 });
