@@ -1,0 +1,133 @@
+# Finance Portal — Continuous Deployment (manuel onaylı)
+#
+# Akış (main'e push'ta):
+#   1) build-backend   — backend image'ı git-SHA tag'iyle build edip Artifact Registry'e push
+#   2) build-frontend  — frontend image'ı (cloud Keycloak URL'si build-arg ile gömülü) push
+#   3) deploy          — `production` environment → MANUEL ONAY bekler → kubectl set image
+#
+# Kimlik doğrulama: Workload Identity Federation (anahtarsız). GitHub repo'su
+# google-github-actions/auth ile kısa ömürlü token alır; JSON key YOK.
+#
+# Image versiyonu git commit SHA (örn. backend:abc1234) → hangi image hangi koddan
+# geldiği kesin; elle v8/v12 saymaya gerek yok. Ek olarak :latest de güncellenir.
+#
+# Tam otomatiğe geçmek istersen: `deploy` job'ındaki `environment: production`
+# satırını sil (onay kapısı kalkar, push → doğrudan canlı).
+#
+# GEREKLİ GitHub ayarları (tek seferlik, README/kurulum adımlarında):
+#   Secrets:    GCP_WIF_PROVIDER, GCP_SERVICE_ACCOUNT
+#   Variables:  (opsiyonel) hepsi aşağıda env: altında sabit; değişirse buradan güncelle
+#   Environment: "production" (Settings → Environments) + required reviewer = sen
+
+name: CD
+
+on:
+  push:
+    branches: [main]
+  # Elle de tetiklenebilir (Actions sekmesi → CD → Run workflow)
+  workflow_dispatch:
+
+# Aynı anda tek deploy; yenisi gelirse eskisini iptal etme (deploy yarıda kesilmesin)
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  GAR_LOCATION: europe-west1
+  GAR_REPO: europe-west1-docker.pkg.dev/project-f3ab8cbf-895a-47c2-91d/portiva-images
+  GKE_CLUSTER: portiva-cluster
+  GKE_LOCATION: europe-west1
+  K8S_NAMESPACE: portiva
+  # Frontend build'e gömülen cloud Keycloak (verilmezse login localhost'a düşer!)
+  VITE_KEYCLOAK_URL: https://8-233-66-172.nip.io
+  VITE_KEYCLOAK_REALM: finance-portal
+
+permissions:
+  contents: read
+  id-token: write   # Workload Identity Federation için zorunlu (OIDC token)
+
+jobs:
+  build-backend:
+    name: Build & push backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Authenticate to Google Cloud (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev --quiet
+
+      - name: Build & push backend image (git-SHA + latest)
+        run: |
+          IMAGE="${GAR_REPO}/backend"
+          docker build -t "${IMAGE}:${GITHUB_SHA::7}" -t "${IMAGE}:latest" \
+            backend/finance-portal-backend
+          docker push "${IMAGE}:${GITHUB_SHA::7}"
+          docker push "${IMAGE}:latest"
+
+  build-frontend:
+    name: Build & push frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Authenticate to Google Cloud (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev --quiet
+
+      # Cloud Keycloak URL/realm build-arg ile gömülür (yoksa login localhost'a düşer).
+      - name: Build & push frontend image (git-SHA + latest)
+        run: |
+          IMAGE="${GAR_REPO}/frontend"
+          docker build \
+            --build-arg VITE_KEYCLOAK_URL="${VITE_KEYCLOAK_URL}" \
+            --build-arg VITE_KEYCLOAK_REALM="${VITE_KEYCLOAK_REALM}" \
+            -t "${IMAGE}:${GITHUB_SHA::7}" -t "${IMAGE}:latest" \
+            frontend/finance-portal-frontend
+          docker push "${IMAGE}:${GITHUB_SHA::7}"
+          docker push "${IMAGE}:latest"
+
+  deploy:
+    name: Deploy to GKE (manuel onay)
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-frontend]
+    # MANUEL ONAY KAPISI: bu environment'a "required reviewer" eklenince
+    # job, sen onaylayana kadar bekler. (Settings → Environments → production)
+    environment: production
+    steps:
+      - name: Authenticate to Google Cloud (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ env.GKE_CLUSTER }}
+          location: ${{ env.GKE_LOCATION }}
+
+      - name: Roll out new images (git-SHA)
+        run: |
+          TAG="${GITHUB_SHA::7}"
+          kubectl -n "${K8S_NAMESPACE}" set image deployment/backend \
+            backend="${GAR_REPO}/backend:${TAG}"
+          kubectl -n "${K8S_NAMESPACE}" set image deployment/frontend \
+            frontend="${GAR_REPO}/frontend:${TAG}"
+
+      - name: Wait for rollout to finish
+        run: |
+          kubectl -n "${K8S_NAMESPACE}" rollout status deployment/backend --timeout=180s
+          kubectl -n "${K8S_NAMESPACE}" rollout status deployment/frontend --timeout=180s
