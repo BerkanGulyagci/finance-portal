@@ -73,6 +73,8 @@ spec:
             - name: KC_HOSTNAME
               value: "https://8-233-66-172.nip.io"
             # Admin konsolu için de aynı hostname.
+            # NOT: port-forward (localhost:8082) ile admin konsoluna tam path ile erişilir:
+            # http://localhost:8082/admin/master/console/ (kök / nip.io'ya redirect eder).
             - name: KC_HOSTNAME_ADMIN
               value: "https://8-233-66-172.nip.io"
             # --- Tema cache (dev) ---
