@@ -1,10 +1,8 @@
 package com.finance.portal.news.application.scheduler;
 
-import com.finance.portal.common.application.exception.ExternalApiException;
 import com.finance.portal.common.application.logging.CentralIntegrationLogService;
 import com.finance.portal.common.application.logging.IntegrationLogSupport;
 import com.finance.portal.news.application.service.NewsAggregateCache;
-import com.finance.portal.news.application.service.NewsService;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,14 +16,11 @@ public class NewsCacheScheduler {
 
     private static final Logger logger = LoggerFactory.getLogger(NewsCacheScheduler.class);
 
-    private final NewsService newsService;
     private final NewsAggregateCache newsAggregateCache;
     private final CentralIntegrationLogService integrationLogService;
 
-    public NewsCacheScheduler(NewsService newsService,
-                              NewsAggregateCache newsAggregateCache,
+    public NewsCacheScheduler(NewsAggregateCache newsAggregateCache,
                               CentralIntegrationLogService integrationLogService) {
-        this.newsService = newsService;
         this.newsAggregateCache = newsAggregateCache;
         this.integrationLogService = integrationLogService;
     }
@@ -33,17 +28,13 @@ public class NewsCacheScheduler {
     @Scheduled(fixedDelayString = "${news.cache.warmup.fixed-delay-ms}")
     @SchedulerLock(name = "news-cache-warmup", lockAtMostFor = "PT15M", lockAtLeastFor = "PT5M")
     public void warmUpNewsCache() {
-        // Çoklu-kaynak toplu haber listesini tazele (ücretsiz API kotalarını koruyan ana yenileme noktası)
+        // Çoklu-kaynak toplu haber listesini tazele (ücretsiz API kotalarını koruyan ana yenileme noktası).
+        // NewsAPI dahil tüm sağlayıcılar buradan (NewsAggregateCache) çekilir.
         try {
             newsAggregateCache.refresh();
+            logger.debug("News cache warm-up completed successfully");
         } catch (Exception e) {
             logger.warn("News aggregate refresh failed: {}", e.getMessage());
-        }
-        try {
-            newsService.getNews("business", "tr", 1, 10, null);
-            logger.debug("News cache warm-up completed successfully");
-        } catch (ExternalApiException e) {
-            logger.warn("News cache warm-up failed (external API error): {}", e.getMessage());
             integrationLogService.publish(
                     IntegrationLogSupport.EVENT_SCHEDULER_JOB_FAILED,
                     "ERROR",

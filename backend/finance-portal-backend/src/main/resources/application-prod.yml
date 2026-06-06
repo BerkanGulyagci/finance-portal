@@ -61,8 +61,6 @@ assistant:
   api-key: ${ASSISTANT_API_KEY:}
   gemini-api-key: ${GEMINI_API_KEY:}
 news:
-  api:
-    key: ${NEWS_API_KEY:}
   sources:
     finnhub:
       key: ${FINNHUB_API_KEY:}

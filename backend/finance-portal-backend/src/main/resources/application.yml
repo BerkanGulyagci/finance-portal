@@ -179,9 +179,6 @@ assistant:
   chain: "${ASSISTANT_CHAIN:gemini:gemini-2.5-flash,gemini:gemini-2.5-flash-lite,groq:llama-3.3-70b-versatile}"
 
 news:
-  api:
-    url: https://newsapi.org/v2/top-headlines
-    key: ${NEWS_API_KEY:}          # gerçek anahtar .env.local / prod secret'ta (git'e commit edilmez)
   # Çoklu haber kaynakları. RSS anahtarsız her zaman aktif; API'ler anahtar verilince devreye girer.
   sources:
     finnhub:

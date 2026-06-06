@@ -29,12 +29,6 @@ services:
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      # Anahtar SADECE .env.local'den (env_file) gelir; default repoda tutulmaz.
-      - NEWS_API_KEY=${NEWS_API_KEY:-}
-      - NEWS_CACHE_TTL_SECONDS=${NEWS_CACHE_TTL_SECONDS:-300}
-      # Haber cache ısıtması 5 dk yerine 30 dk'da bir (newsapi.org TR boş döndüğü için log gürültüsünü azaltır)
-      - NEWS_CACHE_WARMUP_FIXED_DELAY_MS=${NEWS_CACHE_WARMUP_FIXED_DELAY_MS:-1800000}
-      - EVDS_BASE_URL=${EVDS_BASE_URL:-https://evds3.tcmb.gov.tr/igmevdsms-dis}
       - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/finance_portal
       - SPRING_DATASOURCE_USERNAME=berkan
@@ -356,7 +350,6 @@ services:
         max-size: "10m"
         max-file: "3"
 
- 
   sonarqube:
     image: sonarqube:community
     container_name: finance-portal-sonarqube

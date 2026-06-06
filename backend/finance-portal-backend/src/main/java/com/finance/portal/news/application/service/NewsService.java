@@ -2,10 +2,7 @@ package com.finance.portal.news.application.service;
 
 import com.finance.portal.news.application.model.GoldNewsResult;
 import com.finance.portal.news.application.model.NewsArticle;
-import com.finance.portal.news.application.model.NewsPage;
 import com.finance.portal.news.application.port.BloombergNewsPort;
-import com.finance.portal.news.application.port.NewsApiPort;
-import io.opentelemetry.instrumentation.annotations.SpanAttribute;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -21,22 +18,10 @@ public class NewsService {
             "kuyumcu", "külçe", "sarrafiye", "değerli metal"
     );
 
-    private final NewsApiPort newsApiPort;
     private final BloombergNewsPort bloombergNewsPort;
 
-    public NewsService(NewsApiPort newsApiPort, BloombergNewsPort bloombergNewsPort) {
-        this.newsApiPort = newsApiPort;
+    public NewsService(BloombergNewsPort bloombergNewsPort) {
         this.bloombergNewsPort = bloombergNewsPort;
-    }
-
-    @Cacheable(cacheNames = "newsCache", key = "#category + '_' + #country + '_' + #page + '_' + #pageSize + '_' + (#keyword != null ? #keyword : 'null')")
-    @WithSpan("NewsService.getNews")
-    public NewsPage getNews(@SpanAttribute("news.category") String category,
-                            @SpanAttribute("news.country") String country,
-                            @SpanAttribute("news.page") int page,
-                            int pageSize,
-                            @SpanAttribute("news.keyword") String keyword) {
-        return newsApiPort.fetchNews(category, country, page, pageSize, keyword);
     }
 
     @Cacheable(cacheNames = "newsCache", key = "'bloomberght-v2'")

@@ -111,7 +111,7 @@ class ImageProxyServiceTest {
         when(imageFetchPort.fetchImage(any(URI.class))).thenReturn(payload);
 
         ImageProxyService.ImageProxyResult result =
-                service.fetchAllowedImage("https://newsapi.org/image");
+                service.fetchAllowedImage("https://geoim.bloomberght.com/image");
 
         ImageProxyService.ProxiedImage img =
                 ((ImageProxyService.ImageProxyResult.Success) result).image();

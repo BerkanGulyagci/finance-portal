@@ -14,7 +14,6 @@ public class ImageProxyService {
     private static final Set<String> ALLOWED_HOSTS = Set.of(
             "geoim.bloomberght.com",
             "images.unsplash.com",
-            "newsapi.org",
             "webcdn.getmidas.com",
             "s3-symbol-logo.tradingview.com"
     );
