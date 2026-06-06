@@ -38,6 +38,7 @@ export function AIChatWidget() {
   const { username, isAuthenticated } = useAuth();
   const greeting = () => ({
     id: 1,
+    isGreeting: true,
     text: isAuthenticated && username
       ? t('Merhaba {name}! Ben Porti, Portiva\'nın finans asistanıyım. Fiyatlar, piyasalar, portföyün ve haberler hakkında soru sorabilirsin. Sana nasıl yardımcı olabileceğimi öğrenmek için aşağıdaki "Neler yapabilirsin?" butonuna dokunabilirsin.', { name: username })
       : t('Merhaba! Ben Porti, Portiva\'nın finans asistanıyım. Fiyatlar, piyasalar ve haberler hakkında soru sorabilirsin. Sana nasıl yardımcı olabileceğimi öğrenmek için aşağıdaki "Neler yapabilirsin?" butonuna dokunabilirsin.'),
@@ -122,9 +123,19 @@ export function AIChatWidget() {
     setInput('');
     setLoading(true);
 
-    const history = updated
-      .filter(m => m.id !== 1)
+    // Karşılama mesajını (proaktif bot selamı) geçmişten çıkar — modele gerçek diyalog gitsin.
+    // İŞARETLEME: artık `isGreeting` bayrağı kullanılır (id===1 magic-number yerine). Eski
+    // localStorage kayıtlarında bayrak yoksa id===1 geriye-dönük güvenlik ağı olarak kalır.
+    let history = updated
+      .filter(m => !(m.isGreeting || m.id === 1))
       .map(m => ({ role: m.isBot ? 'assistant' : 'user', content: m.text }));
+
+    // GARANTİ: history hiçbir koşulda boş gitmesin. Filtre/state tutarsızlığı son kullanıcı
+    // mesajını da elerse (eski bundle id çakışması vb.) backend "boş messages" → INVALID döner.
+    // En azından şu an gönderilen kullanıcı mesajını her zaman dahil et.
+    if (history.length === 0) {
+      history = [{ role: 'user', content: text }];
+    }
 
     try {
       const res = await sendAssistantChat(history);
