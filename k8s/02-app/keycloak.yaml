@@ -63,20 +63,23 @@ spec:
             # Keycloak 26'da /health/* varsayılan kapalı; KC_HEALTH_ENABLED ile açılır (port 9000).
             - name: KC_HEALTH_ENABLED
               value: "true"
+            # DİNAMİK hostname (hostname v2): KC_HOSTNAME hiç set EDİLMEZ.
+            # KC_HOSTNAME_STRICT=false + KC_PROXY_HEADERS=xforwarded ile Keycloak
+            # issuer/authorization/admin URL'lerini gelen isteğin Host / X-Forwarded-* header'ından ÜRETİR:
+            #   - nip.io'dan gelen cloud login  → issuer = https://8-233-66-172.nip.io (frontend bunu bekler, LOGIN sürer)
+            #   - localhost:8082'den gelen admin → authServerUrl = localhost:8082 (port-forward admin console TAM çalışır)
             - name: KC_HOSTNAME_STRICT
               value: "false"
             # --- Cloud HTTPS (LB arkasında) ---
-            # Proxy header'larını oku ki üretilen URL'ler https://<nip.io> olsun (internal http değil).
+            # Proxy header'larını oku ki nip.io'dan gelen istekte üretilen URL https://<nip.io> olsun (internal http değil).
             - name: KC_PROXY_HEADERS
               value: "xforwarded"
-            # Dış hostname (frontend bu URL'e yönlendirir).
-            - name: KC_HOSTNAME
-              value: "https://8-233-66-172.nip.io"
-            # Admin konsolu için de aynı hostname.
-            # NOT: port-forward (localhost:8082) ile admin konsoluna tam path ile erişilir:
-            # http://localhost:8082/admin/master/console/ (kök / nip.io'ya redirect eder).
-            - name: KC_HOSTNAME_ADMIN
-              value: "https://8-233-66-172.nip.io"
+            # GERİ ALMA (login bozulursa): aşağıdaki ikisini geri aç → sabit nip.io'ya dön.
+            # NOT: KC_HOSTNAME_ADMIN, KC_HOSTNAME'in tam URL set edilmesini ZORUNLU kılar; ikisi BİRLİKTE açılır/kapanır.
+            # - name: KC_HOSTNAME
+            #   value: "https://8-233-66-172.nip.io"
+            # - name: KC_HOSTNAME_ADMIN
+            #   value: "https://8-233-66-172.nip.io"
             # --- Tema cache (dev) ---
             - name: KC_SPI_THEME_CACHE_THEMES
               value: "false"
