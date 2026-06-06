@@ -96,8 +96,14 @@ export async function getCryptoYahooTryChart(symbol, range) {
   return data.data ?? null;
 }
 
-export async function getCryptoDetail(coinId) {
-  const { data } = await client.get(`/api/v1/market/crypto/${encodeURIComponent(coinId)}/detail`);
+export async function getCryptoDetail(coinId, lang) {
+  // lang=tr iken backend, CoinGecko Türkçe açıklama vermeyen coinler için EN açıklamayı çevirip
+  // description.tr'ye yazar (cache'li). Diğer dillerde param geçilmez (gereksiz çeviri yapılmaz).
+  const params = lang ? { lang } : undefined;
+  const { data } = await client.get(
+    `/api/v1/market/crypto/${encodeURIComponent(coinId)}/detail`,
+    params ? { params } : undefined,
+  );
   return data.data ?? {};
 }
 

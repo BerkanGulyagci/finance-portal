@@ -63,7 +63,7 @@ export default function CryptoDetailPage() {
         const found = items.find(c => c.id === coinId);
         if (found) { setCoin(found); setLoading(false); }
         else {
-          getCryptoDetail(coinId).then(d => {
+          getCryptoDetail(coinId, language).then(d => {
             const md = d?.market_data;
             const cur = currency.toLowerCase();
             if (md) setCoin({
@@ -82,7 +82,7 @@ export default function CryptoDetailPage() {
   }, [coinId, currency]);
 
   useEffect(() => {
-    getCryptoDetail(coinId).then(d => {
+    getCryptoDetail(coinId, language).then(d => {
       setDetail(d);
       // getAllCryptos TÜM coin listesini çektiği için yavaş; tek-coin detail çağrısı genelde
       // daha erken döner ve market_data kartın ihtiyacı olan her şeyi içerir. coin henüz yoksa
@@ -105,9 +105,10 @@ export default function CryptoDetailPage() {
       });
       setLoading(false);
     }).catch(() => {});
-    // currency kasıtlı dışarıda: ilk-yükleme dolumu içindir; para birimi değişimini getAllCryptos yönetir
+    // currency kasıtlı dışarıda: ilk-yükleme dolumu içindir; para birimi değişimini getAllCryptos yönetir.
+    // language eklendi: TR seçildiğinde backend EN açıklamayı çevirip döndürsün diye yeniden çek.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [coinId]);
+  }, [coinId, language]);
 
   // Ana coin chart verisi
   const loadLineChart = useCallback(async () => {

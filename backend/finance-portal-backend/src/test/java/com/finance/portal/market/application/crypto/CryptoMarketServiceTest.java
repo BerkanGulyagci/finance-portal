@@ -50,6 +50,8 @@ class CryptoMarketServiceTest {
     private CentralIntegrationLogService integrationLogService;
     @Mock
     private LastKnownGoodCache lkg;
+    @Mock
+    private CryptoDescriptionTranslationService descriptionTranslationService;
 
     /** LKG sarmalayıcı bu birim testlerde şeffaf olmalı: doğrudan asıl çekimi (Supplier) çalıştır. */
     @BeforeEach
@@ -59,7 +61,8 @@ class CryptoMarketServiceTest {
     }
 
     private CryptoMarketService newService() {
-        return new CryptoMarketService(coinGeckoPort, cacheManager, integrationLogService, lkg);
+        return new CryptoMarketService(coinGeckoPort, cacheManager, integrationLogService, lkg,
+                descriptionTranslationService);
     }
 
     private static CryptoMarketItem item(String id, String symbol, String name, BigDecimal price) {
@@ -281,6 +284,57 @@ class CryptoMarketServiceTest {
 
         assertThat(result).isEqualTo(detail);
         verify(coinGeckoPort).fetchCoinDetail("bitcoin");
+    }
+
+    // ---------- getCoinDetail(coinId, lang) — TR açıklama doldurma ----------
+
+    @Test
+    void getCoinDetail_langTr_blankTr_translatesEnIntoTr() {
+        CryptoMarketService service = newService();
+        java.util.Map<String, Object> description = new java.util.HashMap<>();
+        description.put("tr", "");
+        description.put("en", "RAIN is a token.");
+        java.util.Map<String, Object> detail = new java.util.HashMap<>();
+        detail.put("description", description);
+        when(coinGeckoPort.fetchCoinDetail("rain")).thenReturn(detail);
+        when(descriptionTranslationService.translateToTurkish("rain", "RAIN is a token."))
+                .thenReturn("RAIN bir token'dır.");
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> resultDesc = (Map<String, Object>) service.getCoinDetail("rain", "tr").get("description");
+
+        assertThat(resultDesc.get("tr")).isEqualTo("RAIN bir token'dır.");
+        verify(descriptionTranslationService).translateToTurkish("rain", "RAIN is a token.");
+    }
+
+    @Test
+    void getCoinDetail_langTr_existingTr_doesNotTranslate() {
+        CryptoMarketService service = newService();
+        java.util.Map<String, Object> description = new java.util.HashMap<>();
+        description.put("tr", "Mevcut Türkçe açıklama.");
+        description.put("en", "Existing english.");
+        java.util.Map<String, Object> detail = new java.util.HashMap<>();
+        detail.put("description", description);
+        when(coinGeckoPort.fetchCoinDetail("bitcoin")).thenReturn(detail);
+
+        service.getCoinDetail("bitcoin", "tr");
+
+        verifyNoInteractions(descriptionTranslationService);
+    }
+
+    @Test
+    void getCoinDetail_langEn_neverTranslates() {
+        CryptoMarketService service = newService();
+        java.util.Map<String, Object> description = new java.util.HashMap<>();
+        description.put("tr", "");
+        description.put("en", "Some english.");
+        java.util.Map<String, Object> detail = new java.util.HashMap<>();
+        detail.put("description", description);
+        when(coinGeckoPort.fetchCoinDetail("rain")).thenReturn(detail);
+
+        service.getCoinDetail("rain", "en");
+
+        verifyNoInteractions(descriptionTranslationService);
     }
 
     // ---------- DTO sanity (15-arg @JsonCreator) ----------

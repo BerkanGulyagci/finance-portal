@@ -56,8 +56,11 @@ public class CryptoController {
     }
 
     @GetMapping("/{coinId}/detail")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getCoinDetail(@PathVariable String coinId) {
-        Map<String, Object> data = cryptoMarketService.getCoinDetail(coinId);
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getCoinDetail(
+            @PathVariable String coinId,
+            @RequestParam(required = false) String lang
+    ) {
+        Map<String, Object> data = cryptoMarketService.getCoinDetail(coinId, lang);
         return ResponseEntity.ok(ApiResponse.success(data, "Coin detail retrieved"));
     }
 

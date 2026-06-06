@@ -12,6 +12,7 @@ import TrendBadge from '../../../components/common/TrendBadge';
 import { SkeletonBar } from '../../../components/common/Skeleton';
 import InstrumentActionButtons from '../../../components/instrument/InstrumentActionButtons';
 import { buildTrendItem } from '../../../utils/trendUtils';
+import { currencySymbol } from '../../../utils/numberFormat';
 import FxChart from './components/FxChart';
 import OpenRateCard from './components/OpenRateCard';
 import BankRatesCard from './components/BankRatesCard';
@@ -146,12 +147,15 @@ export default function FxDetailPage() {
   const changePct = firstVal && change != null ? (change / firstVal) * 100 : null;
   const changePositive = (change ?? 0) >= 0;
 
+  // Tüm kur kartları TL karşılığıdır (1 {sym} = X ₺) → değerin sonuna ₺ rozeti.
+  // "Birim" bir adet/çarpan (örn. 100 JPY) → para birimi yok.
+  const tryUnit = currencySymbol('TRY');
   const statCards = [
-    { label: 'Döviz Alış',   en: 'Forex Buying',     value: fmt(buy) },
-    { label: 'Döviz Satış',  en: 'Forex Selling',    value: fmt(sell) },
-    ...(effBuy != null  ? [{ label: 'Efektif Alış',  en: 'Banknote Buying',  value: fmt(effBuy) }]  : []),
-    ...(effSell != null ? [{ label: 'Efektif Satış', en: 'Banknote Selling', value: fmt(effSell) }] : []),
-    { label: 'Birim',        en: 'Unit',             value: unit ?? '-' },
+    { label: 'Döviz Alış',   en: 'Forex Buying',     value: fmt(buy),    unit: tryUnit },
+    { label: 'Döviz Satış',  en: 'Forex Selling',    value: fmt(sell),   unit: tryUnit },
+    ...(effBuy != null  ? [{ label: 'Efektif Alış',  en: 'Banknote Buying',  value: fmt(effBuy),  unit: tryUnit }]  : []),
+    ...(effSell != null ? [{ label: 'Efektif Satış', en: 'Banknote Selling', value: fmt(effSell), unit: tryUnit }] : []),
+    { label: 'Birim',        en: 'Unit',             value: unit ?? '-', unit: null },
   ];
 
   return (
@@ -195,11 +199,15 @@ export default function FxDetailPage() {
                   </div>
                 ) : (
                   <div className="flex items-end gap-3 flex-wrap mt-2">
-                    {sell != null && <span className="text-3xl sm:text-4xl font-black text-[#1a1c1e] tabular-nums tracking-tight">{fmt(sell)}</span>}
+                    {sell != null && (
+                      <span className="text-3xl sm:text-4xl font-black text-[#1a1c1e] tabular-nums tracking-tight">
+                        {fmt(sell)}<span className="text-base sm:text-lg font-bold text-[#9aa6b6] ml-1">{currencySymbol('TRY')}</span>
+                      </span>
+                    )}
                     {change != null && (
                       <span className={`flex items-center gap-1 text-sm font-bold mb-1.5 ${changePositive ? 'text-emerald-600' : 'text-rose-600'}`}>
                         {changePositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                        {changePositive ? '+' : ''}{fmt(change)} ({changePositive ? '+' : ''}{fmt(changePct, 2)}%)
+                        {changePositive ? '+' : ''}{fmt(change)} {currencySymbol('TRY')} ({changePositive ? '+' : ''}{fmt(changePct, 2)}%)
                       </span>
                     )}
                     {trendItem && <span className="mb-1"><TrendBadge item={trendItem} size="sm" /></span>}
@@ -225,7 +233,10 @@ export default function FxDetailPage() {
                   <div key={item.label} className="bg-[#f6f8fc] rounded-2xl p-3 text-center">
                     <p className="text-xs text-[#5a6472] font-semibold leading-tight">{t(item.label)}</p>
                     <p className="text-[10px] text-[#9aa6b6] mb-1.5">{item.en}</p>
-                    <p className="text-sm font-bold text-[#1a1c1e] tabular-nums">{item.value}</p>
+                    <p className="text-sm font-bold text-[#1a1c1e] tabular-nums">
+                      {item.value}
+                      {item.unit && item.value !== '-' && <span className="text-[#9aa6b6] text-xs font-normal"> {item.unit}</span>}
+                    </p>
                   </div>
                 ))}
               </div>

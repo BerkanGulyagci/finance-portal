@@ -8,9 +8,16 @@ import WatchlistStar from '../../../components/instrument/WatchlistStar';
 import { FX_META, FlagImg } from './utils/fxMeta';
 import { useTranslation } from '../../../context/LanguageContext';
 import { SkeletonList } from '../../../components/common/Skeleton';
+import { currencySymbol } from '../../../utils/numberFormat';
 
 function num(v, dec = 4) {
   return v == null ? '-' : parseFloat(v).toLocaleString('tr-TR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
+
+// Birim sembolü (₺): TCMB ve banka kurları daima TL karşılığıdır (1 birim döviz = X ₺).
+// Diğer liste sayfalarıyla TUTARLI: değerin SONUNA, soluk küçük rozet olarak yazılır.
+function Unit({ code = 'TRY' }) {
+  return <span className="text-[#9aa6b6] text-xs font-normal"> {currencySymbol(code)}</span>;
 }
 
 // Değere göre otomatik ondalık basamak — küçük değerler (JPY gibi) için daha fazla basamak
@@ -72,9 +79,9 @@ function PopularCard({ rate, onClick }) {
           <p className="text-[11px] text-[#5a6472] truncate max-w-[110px]">{meta?.ad ?? rate.symbol}</p>
         </div>
       </div>
-      <p className="text-2xl font-black text-[#1a1c1e] tabular-nums tracking-tight">{num(rate.sell)}</p>
+      <p className="text-2xl font-black text-[#1a1c1e] tabular-nums tracking-tight">{num(rate.sell)}<Unit /></p>
       <div className="flex items-center justify-between mt-1">
-        <span className="text-[11px] text-[#5a6472]">{num(rate.buy)}</span>
+        <span className="text-[11px] text-[#5a6472]">{num(rate.buy)}<Unit /></span>
         <ArrowRight className="w-4 h-4 text-[#9aa6b6] group-hover:text-[#093eaa] group-hover:translate-x-0.5 transition-all" />
       </div>
     </button>
@@ -355,10 +362,10 @@ export default function FxPage() {
                       </td>
                       <td className="px-4 py-3 text-sm text-[#5a6472]">{meta?.ad ?? r.symbol}</td>
                       <td className="px-4 py-3 text-sm text-[#9aa6b6] text-right tabular-nums">{r.unit ?? 1}</td>
-                      <td className="px-4 py-3 text-sm font-semibold text-[#1a1c1e] text-right tabular-nums">{num(r.buy)}</td>
-                      <td className="px-4 py-3 text-sm font-semibold text-[#1a1c1e] text-right tabular-nums">{num(r.sell)}</td>
-                      <td className="px-4 py-3 text-sm text-[#5a6472] text-right tabular-nums">{num(r.effectiveBuy)}</td>
-                      <td className="px-4 py-3 text-sm text-[#5a6472] text-right tabular-nums">{num(r.effectiveSell)}</td>
+                      <td className="px-4 py-3 text-sm font-semibold text-[#1a1c1e] text-right tabular-nums">{num(r.buy)}<Unit /></td>
+                      <td className="px-4 py-3 text-sm font-semibold text-[#1a1c1e] text-right tabular-nums">{num(r.sell)}<Unit /></td>
+                      <td className="px-4 py-3 text-sm text-[#5a6472] text-right tabular-nums">{r.effectiveBuy == null ? num(r.effectiveBuy) : <>{num(r.effectiveBuy)}<Unit /></>}</td>
+                      <td className="px-4 py-3 text-sm text-[#5a6472] text-right tabular-nums">{r.effectiveSell == null ? num(r.effectiveSell) : <>{num(r.effectiveSell)}<Unit /></>}</td>
                       <td className="px-2 py-3">
                         <Link
                           to={`/market/fx/compare?symbols=${r.symbol}`}
@@ -471,10 +478,10 @@ export default function FxPage() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-sm font-semibold text-[#1a1c1e] text-right tabular-nums">{numAuto(r.buyRate)}</td>
-                          <td className="px-4 py-3 text-sm font-semibold text-[#1a1c1e] text-right tabular-nums">{numAuto(r.sellRate)}</td>
+                          <td className="px-4 py-3 text-sm font-semibold text-[#1a1c1e] text-right tabular-nums">{numAuto(r.buyRate)}<Unit /></td>
+                          <td className="px-4 py-3 text-sm font-semibold text-[#1a1c1e] text-right tabular-nums">{numAuto(r.sellRate)}<Unit /></td>
                           <td className="px-4 py-3 text-sm text-right tabular-nums leading-tight">
-                            <span className="block text-[#5a6472]">{numAuto(r.spread)}</span>
+                            <span className="block text-[#5a6472]">{numAuto(r.spread)}<Unit /></span>
                             {(() => {
                               const sp = parseFloat(r.spread);
                               const sl = parseFloat(r.sellRate);

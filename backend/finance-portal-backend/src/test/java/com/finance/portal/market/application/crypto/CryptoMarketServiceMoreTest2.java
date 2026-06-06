@@ -63,6 +63,8 @@ class CryptoMarketServiceMoreTest2 {
     private CentralIntegrationLogService integrationLogService;
     @Mock
     private LastKnownGoodCache lkg;
+    @Mock
+    private CryptoDescriptionTranslationService descriptionTranslationService;
 
     /** LKG sarmalayıcı bu birim testlerde şeffaf olmalı: doğrudan asıl çekimi (Supplier) çalıştır. */
     @BeforeEach
@@ -72,7 +74,8 @@ class CryptoMarketServiceMoreTest2 {
     }
 
     private CryptoMarketService newService() {
-        return new CryptoMarketService(coinGeckoPort, cacheManager, integrationLogService, lkg);
+        return new CryptoMarketService(coinGeckoPort, cacheManager, integrationLogService, lkg,
+                descriptionTranslationService);
     }
 
     private static CryptoMarketItem item(String id) {

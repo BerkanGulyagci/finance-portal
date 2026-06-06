@@ -275,6 +275,13 @@ public class CacheConfig {
                                         new GenericJackson2JsonRedisSerializer())))
                 .withCacheConfiguration("market.crypto.chart", cryptoChartCacheConfig)
                 .withCacheConfiguration("market.crypto.ohlc", cryptoChartCacheConfig)
+                // Kripto açıklaması (EN→TR çeviri) — coin başına sabit metin, çeviri maliyetli.
+                // Uzun TTL (7 gün) ki aynı coin tekrar tekrar Google'a çevrilmesin.
+                .withCacheConfiguration("market.crypto.description.translated",
+                        RedisCacheConfiguration.defaultCacheConfig()
+                                .entryTtl(Duration.ofDays(7))
+                                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(
+                                        new GenericJackson2JsonRedisSerializer())))
                 .withCacheConfiguration("market.crypto.binance.candles", cryptoChartCacheConfig)
                 .withCacheConfiguration("market.crypto.yahoo.ohlc", cryptoChartCacheConfig)
                 .withCacheConfiguration("market.crypto.yahoo.chart", cryptoChartCacheConfig)

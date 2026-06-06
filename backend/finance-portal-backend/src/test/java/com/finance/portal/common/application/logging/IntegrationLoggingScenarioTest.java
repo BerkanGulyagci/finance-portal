@@ -59,7 +59,7 @@ class IntegrationLoggingScenarioTest {
                 BigDecimal.TEN, null, null, null, null, null, null, null, null, null, null);
         when(wrapper.get()).thenReturn(List.of(cachedItem));
 
-        CryptoMarketService service = new CryptoMarketService(null, cacheManager, integrationLogService, null);
+        CryptoMarketService service = new CryptoMarketService(null, cacheManager, integrationLogService, null, null);
 
         List<CryptoMarketItem> result = service.getCryptosFallback(1, 10, new RuntimeException("upstream fail"));
 
@@ -77,7 +77,7 @@ class IntegrationLoggingScenarioTest {
         CacheManager cacheManager = mock(CacheManager.class);
         when(cacheManager.getCache("cryptoMarketsCache")).thenReturn(null);
 
-        CryptoMarketService service = new CryptoMarketService(null, cacheManager, integrationLogService, null);
+        CryptoMarketService service = new CryptoMarketService(null, cacheManager, integrationLogService, null, null);
 
         assertThrows(ExternalApiException.class,
                 () -> service.getCryptosFallback(1, 10, new RuntimeException("upstream fail")));

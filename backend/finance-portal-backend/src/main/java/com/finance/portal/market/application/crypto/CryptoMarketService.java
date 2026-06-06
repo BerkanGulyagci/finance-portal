@@ -44,15 +44,18 @@ public class CryptoMarketService {
     private final CacheManager cacheManager;
     private final CentralIntegrationLogService integrationLogService;
     private final LastKnownGoodCache lkg;
+    private final CryptoDescriptionTranslationService descriptionTranslationService;
 
     public CryptoMarketService(CoinGeckoPort coinGeckoPort,
                                  CacheManager cacheManager,
                                  CentralIntegrationLogService integrationLogService,
-                                 LastKnownGoodCache lkg) {
+                                 LastKnownGoodCache lkg,
+                                 CryptoDescriptionTranslationService descriptionTranslationService) {
         this.coinGeckoPort = coinGeckoPort;
         this.cacheManager = cacheManager;
         this.integrationLogService = integrationLogService;
         this.lkg = lkg;
+        this.descriptionTranslationService = descriptionTranslationService;
     }
 
     @Cacheable(cacheNames = CACHE_NAME, key = "'try:p' + #page + ':s' + #size")
@@ -132,6 +135,52 @@ public class CryptoMarketService {
     @WithSpan("CryptoMarketService.getCoinDetail")
     public Map<String, Object> getCoinDetail(@SpanAttribute("crypto.coin_id") String coinId) {
         return coinGeckoPort.fetchCoinDetail(coinId);
+    }
+
+    /**
+     * Coin detayı; {@code lang=tr} istendiğinde ve CoinGecko Türkçe açıklama vermediğinde
+     * (yeni/küçük coinler — örn. RAIN) İngilizce açıklamayı çevirip {@code description.tr}'ye
+     * yazar. Çeviri cache'li (coin başına) ve best-effort'tur; başarısız olursa açıklama
+     * İngilizce kalır (sayfa bozulmaz). Diğer dillerde çeviri YAPILMAZ.
+     */
+    @WithSpan("CryptoMarketService.getCoinDetail")
+    public Map<String, Object> getCoinDetail(@SpanAttribute("crypto.coin_id") String coinId,
+                                             @SpanAttribute("crypto.lang") String lang) {
+        Map<String, Object> detail = coinGeckoPort.fetchCoinDetail(coinId);
+        if (lang != null && "tr".equalsIgnoreCase(lang.trim())) {
+            fillTurkishDescriptionIfMissing(coinId, detail);
+        }
+        return detail;
+    }
+
+    /**
+     * {@code description.tr} boş/null ve {@code description.en} doluysa, EN açıklamayı TR'ye
+     * çevirip yazar (HTML korunur). fetchCoinDetail her çağrıda taze map döndürür (cache'li
+     * değil) → mutasyon güvenli. description map'i immutable olabilir diye yazma try/catch içinde.
+     */
+    @SuppressWarnings("unchecked")
+    private void fillTurkishDescriptionIfMissing(String coinId, Map<String, Object> detail) {
+        Object descObj = detail != null ? detail.get("description") : null;
+        if (!(descObj instanceof Map)) {
+            return;
+        }
+        Map<String, Object> description = (Map<String, Object>) descObj;
+        Object tr = description.get("tr");
+        Object en = description.get("en");
+        boolean trBlank = !(tr instanceof String s) || s.isBlank();
+        boolean enPresent = en instanceof String es && !es.isBlank();
+        if (!trBlank || !enPresent) {
+            return; // TR zaten dolu ya da çevrilecek EN metin yok
+        }
+        try {
+            String translated = descriptionTranslationService.translateToTurkish(coinId, (String) en);
+            if (translated != null && !translated.isBlank()) {
+                description.put("tr", translated);
+            }
+        } catch (Exception e) {
+            log.warn("Türkçe açıklama doldurulamadı (coin={}): {}", coinId, e.getMessage());
+            // best-effort: TR boş kalır, UI İngilizceye düşer
+        }
     }
 
     @Cacheable(cacheNames = "market.crypto.ohlc", key = "#coinId + ':v5:' + #days + ':' + #currency")
