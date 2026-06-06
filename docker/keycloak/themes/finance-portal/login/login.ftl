@@ -5,9 +5,9 @@
 <@layout.registrationLayout displayMessage=!messagesPerField.existsError('username','password') displayInfo=realm.password && realm.registrationAllowed && !registrationDisabled??; section>
 
     <#if section = "header">
-        Hesabınıza Giriş Yapın
+        ${msg("fpLoginTitle")}
     <#elseif section = "form">
-        <p class="fp-card-subtitle">Portföyünüzü yönetmek için güvenli giriş yapın.</p>
+        <p class="fp-card-subtitle">${msg("fpLoginSubtitle")}</p>
         <div id="kc-form">
           <div id="kc-form-wrapper">
             <#if realm.password>

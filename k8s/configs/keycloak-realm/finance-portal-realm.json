@@ -2114,8 +2114,9 @@
       }
     } ]
   },
-  "internationalizationEnabled" : false,
-  "supportedLocales" : [ ],
+  "internationalizationEnabled" : true,
+  "supportedLocales" : [ "tr", "en" ],
+  "defaultLocale" : "tr",
   "authenticationFlows" : [ {
     "id" : "bba2b037-4dc4-4151-a031-c231f10c6461",
     "alias" : "Account verification options",
