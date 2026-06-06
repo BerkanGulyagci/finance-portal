@@ -460,3 +460,42 @@ html.fp-dark .fp-auth-card .pf-v5-c-check__input {
   background-color: #23252c;
   border-color: #3a3d47;
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * KOYU MOD — Logout sayfası ve genel metin elementleri (login dışı sayfalar:
+ * logout, info, error, page-expired). Bu sayfalarda başlık/açıklama/link
+ * elementleri açık-mod hardcoded renkleriyle kalıp koyu zeminde okunmuyordu.
+ * ────────────────────────────────────────────────────────────────────────── */
+/* Sayfa başlığı (#kc-page-title — "Logging out", "Sign in to your account" vb.) */
+html.fp-dark .fp-auth-card #kc-page-title,
+html.fp-dark .fp-auth-card .fp-auth-page-title,
+html.fp-dark .fp-auth-card h1 {
+  color: var(--fp-text) !important;
+}
+/* Açıklama / yönerge metni ("Do you want to log out?", instruction, kc-info) */
+html.fp-dark .fp-auth-card #kc-content-wrapper,
+html.fp-dark .fp-auth-card .instruction,
+html.fp-dark .fp-auth-card .pf-v5-c-login__main-body,
+html.fp-dark .fp-auth-card #kc-info-wrapper,
+html.fp-dark .fp-auth-card #kc-info,
+html.fp-dark .fp-auth-card p {
+  color: var(--fp-text) !important;
+}
+/* Soluk/ikincil metinler (subtitle, muted) */
+html.fp-dark .fp-auth-card .fp-card-subtitle,
+html.fp-dark .fp-auth-card .pf-v5-c-login__main-footer-band-item {
+  color: var(--fp-muted) !important;
+}
+/* Bağlantılar ("Back to Application", "Register" vb.) — marka rengiyle görünür */
+html.fp-dark .fp-auth-card a {
+  color: var(--fp-brand) !important;
+}
+html.fp-dark .fp-auth-card a:hover {
+  color: var(--fp-brand-hover) !important;
+}
+/* Dil seçici (logout/diğer sayfalarda görünür) */
+html.fp-dark .fp-auth-card select {
+  background-color: #23252c !important;
+  color: #e6e7ea !important;
+  border-color: #2c2f38 !important;
+}

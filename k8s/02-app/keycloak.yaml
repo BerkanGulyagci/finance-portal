@@ -35,7 +35,7 @@ spec:
         - name: keycloak
           # Custom image: özel "finance-portal" login teması gömülü (docker/keycloak/Dockerfile).
           # Base quay.io/keycloak/keycloak:26.0 + COPY themes/finance-portal.
-          image: europe-west1-docker.pkg.dev/project-f3ab8cbf-895a-47c2-91d/portiva-images/keycloak:v2
+          image: europe-west1-docker.pkg.dev/project-f3ab8cbf-895a-47c2-91d/portiva-images/keycloak:v3
           imagePullPolicy: Always
           args: ["start-dev", "--import-realm"]
           ports:
