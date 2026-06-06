@@ -32,6 +32,9 @@ public class NewsTool implements AssistantTool {
     @Override
     public String description() {
         return "Güncel finans/ekonomi haber başlıklarını döndürür (özetlemek için). "
+                + "Kullanıcı belirli bir alandan söz ederse UYGUN category'i geç: 'ekonomi' → ECONOMY, "
+                + "'borsa/hisse' → STOCKS, 'döviz/dolar/euro' → FX, 'tahvil/faiz' → BONDS, "
+                + "'kripto/bitcoin' → CRYPTO, 'altın/emtia' → COMMODITIES, 'dünya/global' → WORLD. "
                 + "category (isteğe bağlı): ECONOMY, STOCKS, FX, BONDS, CRYPTO, COMMODITIES, WORLD. "
                 + "query (isteğe bağlı): anahtar kelime (örn 'dolar', 'merkez bankası').";
     }
@@ -64,7 +67,13 @@ public class NewsTool implements AssistantTool {
             if (items == null || items.isEmpty()) {
                 return "Şu an gösterilecek haber bulunamadı.";
             }
-            StringBuilder sb = new StringBuilder("Güncel başlıklar:\n");
+            // Sonucun başına AÇIK bir talimat koy: zayıf modeller (Groq Llama fallback) aksi halde bu
+            // başlıkları yok sayıp "ekonomi dünyasında gelişmeler var" gibi GENEL laf üretiyor. Talimat
+            // veriyle aynı mesajda olunca (sistem promptundan uzakta değil) modelin uyma olasılığı çok artar.
+            StringBuilder sb = new StringBuilder(
+                    "TALİMAT: Aşağıdaki GERÇEK haber başlıklarını kullanıcıya madde madde (•) AYNEN aktar; "
+                            + "her birini istersen 1 cümleyle kısaca özetle. Başlık UYDURMA, GENEL/boş laf etme.\n\n"
+                            + "Güncel başlıklar:\n");
             int n = 0;
             for (NewsArticle a : items) {
                 if (a.getTitle() == null || a.getTitle().isBlank()) {

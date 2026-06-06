@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Clock, TrendingUp, Send } from 'lucide-react';
-import { getNews, proxyImageUrl, DEFAULT_EXCLUDED_NEWS_CATEGORY } from '../../../api/newsApi';
+import { getNews, proxyImageUrl } from '../../../api/newsApi';
 import { useAuth } from '../../../context/AuthContext';
 import { SkeletonHero } from '../../../components/common/Skeleton';
 import { useTranslation } from '../../../context/LanguageContext';
@@ -10,6 +10,40 @@ import NewsletterModal from '../../../components/shared/NewsletterModal';
 
 const SLIDE_COUNT = 10;
 const AUTO_MS = 6000;
+const IMPORTANT_COUNT = 4;
+
+/**
+ * "Öne Çıkan Haberler" için kategori-çeşitliliği: haberleri kategoriye göre gruplar,
+ * round-robin ile her kategoriden birer alarak FARKLI türlerden bir karışım üretir
+ * (kripto/hisse/döviz/ekonomi/emtia/dünya...). Tek kategori baskınsa (ör. hepsi kripto)
+ * yine de listeyi `count` haberle doldurur — yani çeşitlilik en iyi-çaba, kapsama garantili.
+ */
+function diversifyByCategory(items, count) {
+  if (items.length <= count) return items.slice(0, count);
+
+  // Sırayı koru: kategoriler ilk göründükleri sıraya göre, içerdeki haberler de orijinal sırada.
+  const buckets = new Map();
+  for (const item of items) {
+    const key = item.category || item.categoryLabel || '__none__';
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(item);
+  }
+
+  const result = [];
+  const queues = [...buckets.values()];
+  // Round-robin: her turda her kategoriden bir haber çek → türler dönüşümlü dizilir.
+  while (result.length < count) {
+    let pickedThisRound = false;
+    for (const queue of queues) {
+      if (queue.length === 0) continue;
+      result.push(queue.shift());
+      pickedThisRound = true;
+      if (result.length >= count) break;
+    }
+    if (!pickedThisRound) break; // tüm kategoriler tükendi
+  }
+  return result;
+}
 
 function NewsletterCard() {
   const { t } = useTranslation();
@@ -62,15 +96,18 @@ export function HeroSection({ filterSlot }) {
   const timer = useRef(null);
 
   useEffect(() => {
-    // Hero carousel + "Öne Çıkan" hep VARSAYILAN görünüm → genel ekonomi haberlerini dışla.
-    getNews({ region: 'TR', pageSize: 24, lang: language, excludeCategory: DEFAULT_EXCLUDED_NEWS_CATEGORY })
+    // Hero carousel + "Öne Çıkan" HER TÜRDEN haber göstersin (ekonomi DAHİL) → excludeCategory YOK.
+    // (NewsPage ana feed'inde dışlama korunur; burası kasıtlı olarak tüm kategorileri kapsar.)
+    getNews({ region: 'TR', pageSize: 24, lang: language })
       .then(data => setItems(data.items ?? []))
       .catch(() => {});
   }, [language]);
 
-  // Slider'da YALNIZCA gerçek görseli olan haberler
-  const slides = items.filter(i => i.imageUrl && i.imageUrl.startsWith('http')).slice(0, SLIDE_COUNT);
-  const important = items.slice(0, 4);
+  // Slider'da YALNIZCA gerçek görseli olan haberler — kategoriye göre çeşitlendirilmiş.
+  const withImage = items.filter(i => i.imageUrl && i.imageUrl.startsWith('http'));
+  const slides = diversifyByCategory(withImage, SLIDE_COUNT);
+  // "Öne Çıkan": ilk-4 yerine FARKLI kategorilerden seçilmiş 4 haber (kripto/hisse/döviz/ekonomi...).
+  const important = diversifyByCategory(items, IMPORTANT_COUNT);
 
   useEffect(() => {
     if (slides.length <= 1) return undefined;

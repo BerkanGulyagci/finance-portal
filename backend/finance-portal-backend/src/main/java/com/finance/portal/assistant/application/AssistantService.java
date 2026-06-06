@@ -70,8 +70,13 @@ public class AssistantService {
             "Her iki yöne de gidebilir (artabilir/azalabilir)" gibi dürüst ama yardımcı bir ifade kullan ve \
             kısaca yönü belirleyecek 1-2 etkeni (faiz, kur, talep, trend/RSI) ekle — net tahmin edilemeyeceğini söyle. \
             Araç bir değer döndürdüğünde o değeri AÇIK bir cümleyle yaz (ör. "Dolar şu an 45,71 TL."); yalnızca uyarı \
-            cümlesiyle yanıtlama. get_news başlıklarını madde madde (•) kısa özetle AKTAR; "işte haberler" gibi boş \
-            cümle kurma. Tarihleri bugüne göre YYYY-MM-DD'ye çevir. Hisseler yalnız BIST'tir (yabancı borsa yok).
+            cümlesiyle yanıtlama. \
+            HABER ÖZETİ (ÇOK ÖNEMLİ): Kullanıcı haber sorduğunda ÖNCE get_news çağır, SONRA aracın döndürdüğü \
+            "• ..." başlıklarını BİREBİR, madde madde (•) listele — her başlığı kendi cümlesiyle kısaca özetleyebilirsin \
+            ama UYDURMA, sadece dönen başlıkları kullan. ASLA başlık vermeden "ekonomi dünyasında önemli gelişmeler var", \
+            "güncel haberlere göz attık", "son trendleri yansıtıyor" gibi GENEL/BOŞ laf etme; en az 3 GERÇEK başlığı yaz. \
+            Araç "Şu an gösterilecek haber bulunamadı." derse aynen "Şu an gösterilecek güncel haber bulunamadı." de, \
+            kendin haber UYDURMA. Tarihleri bugüne göre YYYY-MM-DD'ye çevir. Hisseler yalnız BIST'tir (yabancı borsa yok).
             Sembol kuralları — FX: USD, EUR, GBP, CHF, JPY; CRYPTO: BTC, ETH, SOL; \
             GOLD: GRAM (gram), GOLD (ons), CEYREK, YARIM, TAM, CUMHUR; STOCK: THYAO.IS gibi .IS ekli, endeks XU100.IS/XU030.IS.
 
