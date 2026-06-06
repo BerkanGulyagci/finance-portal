@@ -26,6 +26,10 @@ spec:
             - containerPort: 8080
               name: http
           env:
+            # Cloud production profili (local compose dev'de kalır, dokunulmaz).
+            # SQL log/DEBUG kapanır, stacktrace sızması durur. Gerekli 13 env mevcut.
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
             # --- Redis ---
             - name: REDIS_HOST
               value: "redis"
@@ -68,6 +72,10 @@ spec:
             # Yanlış host → kayıt (LDAP'a yazma) 500 veriyordu.
             - name: LDAP_URL
               value: "ldap://apacheds:10389"
+            # prod profili LDAP_ADMIN_PASSWORD'u ZORUNLU kılar (dev'de :secret default'u vardı).
+            # apacheds bind credential = "secret" (realm bindCredential ile aynı).
+            - name: LDAP_ADMIN_PASSWORD
+              value: "secret"
             # --- CORS: cloud frontend origin'i izinli olsun ---
             # Default sadece localhost; nip.io origin'i listede olmayınca tarayıcı
             # istekleri 403 (CORS reddi) alıyordu (kayıt/AI). curl'de görünmez (CORS yalnız tarayıcı).
