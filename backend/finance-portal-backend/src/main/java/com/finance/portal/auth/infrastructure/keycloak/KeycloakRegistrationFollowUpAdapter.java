@@ -95,7 +95,14 @@ public class KeycloakRegistrationFollowUpAdapter implements KeycloakRegistration
                     userId
             );
         }
-        requestEmailVerificationForUser(userId);
+        // E-posta doğrulaması KASITLI olarak burada tetiklenmez.
+        // Realm `verifyEmail:true` ayarı, kullanıcı ilk login olduğunda standart
+        // VERIFY_EMAIL akışını çalıştırır ve doğru host'ta (/login-actions) link üreten
+        // "Verify email" e-postasını gönderir. Buradan ayrıca execute-actions-email
+        // çağrısı yapmak; (1) ikinci, gereksiz bir "Update Your Account" e-postası üretir,
+        // (2) admin API host'una (port 8080) göre yanlış action-token linki ürettiğinden
+        // kullanıcıyı kırık bir adrese yönlendirirdi. Bkz. updateEmail akışı:
+        // e-posta DEĞİŞİMİNDE doğrulama hâlâ requestEmailVerificationForUser ile tetiklenir.
     }
 
     private Optional<KeycloakUserRepresentation> findUserWithRetry(String username) {

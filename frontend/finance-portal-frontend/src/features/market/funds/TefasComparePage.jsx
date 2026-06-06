@@ -21,7 +21,7 @@ const MAX_FUNDS = 4;
 const DEFAULT_RANGE = '1Y';
 
 export default function TefasComparePage() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -83,7 +83,8 @@ export default function TefasComparePage() {
 
     await Promise.all(selected.map(async code => {
       try {
-        const detail = await getRasyonetFundDetail(code, 'TMF');
+        // lang geçilir → strateji metni EN modunda backend'de çevrilir (detay endpoint'iyle aynı yol).
+        const detail = await getRasyonetFundDetail(code, 'TMF', language);
         if (!detail) {
           newErrors[code] = t('Fon detayı bulunamadı.');
         } else {
@@ -98,7 +99,15 @@ export default function TefasComparePage() {
     setErrors(newErrors);
     setLoading(false);
     setLoaded(true);
-  }, [selected]);
+  }, [selected, language]);
+
+  // Dil değişince zaten yüklü sonuçları yeniden çek → strateji metni yeni dile çevrilir.
+  // (Strateji TEFAS'tan TR gelir; EN çevirisi backend detay endpoint'inde yapılır.)
+  useEffect(() => {
+    if (loaded && selected.length >= 2) handleCompare();
+    // handleCompare zaten [selected, language]'a bağlı; language değişiminde tetiklenir.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language]);
 
   // Yüklü kodlar — detailMap'te olan seçili kodlar
   const loadedCodes = selected.filter(code => !!detailMap[code]);
