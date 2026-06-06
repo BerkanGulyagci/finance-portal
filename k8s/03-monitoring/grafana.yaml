@@ -45,7 +45,18 @@ spec:
           volumeMounts:
             - name: grafana-data
               mountPath: /var/lib/grafana
-            # TODO: provisioning (datasource + dashboard) ConfigMap ile /etc/grafana/provisioning'e mount.
+            # Provisioning: datasource'lar (Prometheus/Tempo/OpenSearch) — grafana-datasources ConfigMap.
+            - name: grafana-datasources
+              mountPath: /etc/grafana/provisioning/datasources
+              readOnly: true
+            # Provisioning: dashboard provider config (path → /var/lib/grafana/dashboards).
+            - name: grafana-dashboards-provider
+              mountPath: /etc/grafana/provisioning/dashboards
+              readOnly: true
+            # Dashboard JSON'ları — provider'ın baktığı path. PVC alt-klasörüne mount (4 pano).
+            - name: grafana-dashboards
+              mountPath: /var/lib/grafana/dashboards
+              readOnly: true
           readinessProbe:
             httpGet:
               path: /api/health
@@ -71,6 +82,15 @@ spec:
         - name: grafana-data
           persistentVolumeClaim:
             claimName: grafana-data
+        - name: grafana-datasources
+          configMap:
+            name: grafana-datasources
+        - name: grafana-dashboards-provider
+          configMap:
+            name: grafana-dashboards-provider
+        - name: grafana-dashboards
+          configMap:
+            name: grafana-dashboards
 ---
 # Grafana kalıcı veri (dashboard/datasource/kullanıcı) PVC'si.
 apiVersion: v1
