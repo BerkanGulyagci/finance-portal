@@ -1,6 +1,6 @@
 const en = {
   // Brand
-  'FinansPortalı — ana sayfa': 'FinancePortal — home',
+  'Portiva — ana sayfa': 'Portiva — home',
   'Finans': 'Finance',
   'Portalı': 'Portal',
 

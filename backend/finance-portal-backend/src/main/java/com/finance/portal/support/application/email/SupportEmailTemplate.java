@@ -31,7 +31,7 @@ public final class SupportEmailTemplate {
                 + noteBlock
                 + "<p style=\"margin:16px 0 0;font-size:12px;color:#94a3b8\">Talebinizi Profil &rsaquo; "
                 + "\"Bir problem mi yaşıyorsunuz?\" bölümünden takip edebilirsiniz.</p>";
-        return wrapper("🛟 FinansPortalı — Destek Talebi", content);
+        return wrapper("🛟 Portiva — Destek Talebi", content);
     }
 
     /** Admin'e: yeni talep geldi (kim, konu, mesaj). */
@@ -45,7 +45,7 @@ public final class SupportEmailTemplate {
                 + "<div style=\"margin-top:12px;padding:12px;background:#f6f8fc;border-radius:10px;font-size:13px;color:#334155;white-space:pre-wrap\">"
                 + esc(t.getMessage()) + "</div>"
                 + "<p style=\"margin:16px 0 0;font-size:12px;color:#94a3b8\">Admin Panel &rsaquo; kullanıcı detayından durumu güncelleyebilirsiniz.</p>";
-        return wrapper("🆕 FinansPortalı — Yeni Destek Talebi", content);
+        return wrapper("🆕 Portiva — Yeni Destek Talebi", content);
     }
 
     private static String row(String label, String value) {
@@ -67,7 +67,7 @@ public final class SupportEmailTemplate {
         return "<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden\">"
                 + "<div style=\"background:#093eaa;color:#fff;padding:18px 24px;font-size:18px;font-weight:bold\">" + header + "</div>"
                 + "<div style=\"padding:24px;color:#1a1c1e\">" + content + "</div>"
-                + "<div style=\"padding:14px 24px;background:#f6f8fc;color:#94a3b8;font-size:12px\">Bu e-posta FinansPortalı destek sisteminden otomatik gönderilmiştir.</div>"
+                + "<div style=\"padding:14px 24px;background:#f6f8fc;color:#94a3b8;font-size:12px\">Bu e-posta Portiva destek sisteminden otomatik gönderilmiştir.</div>"
                 + "</div>";
     }
 

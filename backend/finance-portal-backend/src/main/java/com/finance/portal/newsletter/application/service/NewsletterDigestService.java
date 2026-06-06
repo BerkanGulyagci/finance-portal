@@ -122,7 +122,7 @@ public class NewsletterDigestService {
     }
 
     private String subject(LocalDate today) {
-        return "FinansPortalı — Panonuzun Özeti (" + DATE_FMT.format(today) + ")";
+        return "Portiva — Panonuzun Özeti (" + DATE_FMT.format(today) + ")";
     }
 
     // ── HTML render (dashboard görünümlü) ─────────────────────────────────────────
@@ -137,7 +137,7 @@ public class NewsletterDigestService {
 
         // Header
         b.append("<div style=\"background:").append(BRAND).append(";padding:20px 24px;border-radius:12px 12px 0 0;\">")
-                .append("<h1 style=\"color:#fff;margin:0;font-size:20px;\">FinansPortalı</h1>")
+                .append("<h1 style=\"color:#fff;margin:0;font-size:20px;\">Portiva</h1>")
                 .append("<p style=\"color:#dbe4f7;margin:4px 0 0;font-size:13px;\">Panonuzun Özeti · ")
                 .append(DATE_FMT.format(today)).append("</p></div>");
 

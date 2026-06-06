@@ -139,7 +139,7 @@ class NewsletterDigestServiceTest {
         verify(emailSender).send(toCap.capture(), subjCap.capture(), bodyCap.capture());
 
         assertThat(toCap.getValue()).isEqualTo("u1@x.com");
-        assertThat(subjCap.getValue()).contains("FinansPortalı");
+        assertThat(subjCap.getValue()).contains("Portiva");
         String html = bodyCap.getValue();
         assertThat(html).contains("Panonuzun Özeti");
         assertThat(html).contains("Portföy Dağılımı");

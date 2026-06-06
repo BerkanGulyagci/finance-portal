@@ -132,7 +132,7 @@ public class BanUserService {
         b.append("<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#1a1b22;\">");
         b.append("<div style=\"background:").append(BRAND)
                 .append(";padding:20px 24px;border-radius:12px 12px 0 0;\">")
-                .append("<h1 style=\"color:#fff;margin:0;font-size:20px;\">FinansPortalı</h1></div>");
+                .append("<h1 style=\"color:#fff;margin:0;font-size:20px;\">Portiva</h1></div>");
         b.append("<div style=\"background:#fff;border:1px solid #ececec;border-top:none;")
                 .append("padding:22px 24px;border-radius:0 0 12px 12px;\">");
         b.append("<h2 style=\"margin:0 0 10px;font-size:17px;color:#b91c1c;\">Hesabınız banlandı</h2>");

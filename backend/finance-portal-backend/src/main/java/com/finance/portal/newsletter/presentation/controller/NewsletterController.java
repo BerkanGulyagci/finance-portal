@@ -65,7 +65,7 @@ public class NewsletterController {
                 + "<title>Bülten Aboneliği</title></head>"
                 + "<body style=\"font-family:Arial,sans-serif;background:#f3f4f6;margin:0;padding:48px 16px;\">"
                 + "<div style=\"max-width:480px;margin:0 auto;background:#fff;border-radius:12px;padding:32px;text-align:center;\">"
-                + "<h1 style=\"color:#093eaa;font-size:20px;margin:0 0 12px;\">FinansPortalı</h1>"
+                + "<h1 style=\"color:#093eaa;font-size:20px;margin:0 0 12px;\">Portiva</h1>"
                 + "<p style=\"color:#374151;font-size:14px;\">" + message + "</p></div></body></html>";
         return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(html);
     }
