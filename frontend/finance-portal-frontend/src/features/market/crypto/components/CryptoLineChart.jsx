@@ -291,17 +291,20 @@ export default function CryptoLineChart({ chartData, currency, compareCoins, com
           isDark ? 'bg-slate-900/90 ring-white/10' : 'bg-white/95 ring-black/10'
         }`}>
           <p className={`mb-2 font-medium ${isDark ? 'text-slate-300' : 'text-gray-500'}`}>{hoverData.date}</p>
-          {hoverData.entries.map(entry => (
-            <div key={entry.symbol} className="flex justify-between gap-4 mb-1">
-              <span style={{ color: entry.color }} className="font-semibold">{entry.symbol}</span>
-              <span className={`font-bold ${
-                entry.value == null ? (isDark ? 'text-slate-400' : 'text-gray-400') :
-                entry.value >= 0 ? 'text-emerald-500' : 'text-rose-500'
-              }`}>
-                {entry.value == null ? '-' : `${entry.value >= 0 ? '+' : ''}${entry.value.toFixed(2)}%`}
-              </span>
-            </div>
-          ))}
+          {hoverData.entries.map(entry => {
+            // İç içe ternary'yi açtık (S3358): null → gri, +/- → yeşil/kırmızı.
+            let valueColor;
+            if (entry.value == null) valueColor = isDark ? 'text-slate-400' : 'text-gray-400';
+            else valueColor = entry.value >= 0 ? 'text-emerald-500' : 'text-rose-500';
+            return (
+              <div key={entry.symbol} className="flex justify-between gap-4 mb-1">
+                <span style={{ color: entry.color }} className="font-semibold">{entry.symbol}</span>
+                <span className={`font-bold ${valueColor}`}>
+                  {entry.value == null ? '-' : `${entry.value >= 0 ? '+' : ''}${entry.value.toFixed(2)}%`}
+                </span>
+              </div>
+            );
+          })}
         </div>
       )}
 

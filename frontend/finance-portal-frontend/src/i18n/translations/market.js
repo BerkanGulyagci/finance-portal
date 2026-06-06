@@ -950,11 +950,10 @@ const en = {
   'Açıklama': 'Description',
   'Ons Altın': 'Ounce Gold',
   'Gram Altın': 'Gram Gold',
-  'Çeyrek Altın': 'Quarter Gold',
-  'Yarım Altın': 'Half Gold',
+  // 'Çeyrek Altın' / 'Yarım Altın' / 'Cumhuriyet Altını' yukarıda "Altın türleri"
+  // bloğunda zaten tanımlı (aynı değerle) — mükerrer anahtarlar kaldırıldı (S1534).
   'Ziynet Altını': 'Ziynet Gold',
   'Ziynet Tam Altın': 'Full Ziynet Gold',
-  'Cumhuriyet Altını': 'Republic Gold',
   '14 Ayar Bilezik': '14K Bracelet',
   '22 Ayar Bilezik': '22K Bracelet',
   'gram referans': 'gram reference',

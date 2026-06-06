@@ -223,13 +223,15 @@ export function Sidebar() {
             {ipos.map((ipo, i) => (
               <div
                 key={i}
+                // title → ad kesik (truncate) olduğunda üzerine gelince tam ad tooltip olarak çıkar
+                title={ipo.name ? `${ipo.ticker} · ${ipo.name}` : ipo.ticker}
                 className={`p-3 flex items-center gap-3 ${i < ipos.length - 1 ? 'border-b border-gray-100' : ''}`}
               >
                 <StockLogo symbol={ipo.ticker} name={ipo.name} size={30} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className="text-xs font-black text-[#093eaa] shrink-0">{ipo.ticker}</span>
-                    <span className="text-xs text-gray-700 font-semibold truncate">{ipo.name}</span>
+                    <span className="text-xs text-gray-700 font-semibold truncate" title={ipo.name}>{ipo.name}</span>
                   </div>
                   <span className="text-[10px] text-gray-400">{ipo.date}</span>
                 </div>

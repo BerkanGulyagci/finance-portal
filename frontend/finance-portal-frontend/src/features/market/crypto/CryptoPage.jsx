@@ -158,7 +158,8 @@ export default function CryptoPage() {
                       <td className="px-4 py-3 text-sm text-right">{pct(c.priceChangePercentage24h)}</td>
                       <td className="px-4 py-3 text-sm text-right">{pct(c.priceChangePercentage7d)}</td>
                       <td className="px-4 py-3 text-sm text-gray-600 text-right">{c.totalVolume != null ? `₺${num(c.totalVolume, 0)}` : '-'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600 text-right">{c.marketCap != null ? `₺${num(c.marketCap, 0)}` : '-'}</td>                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-sm text-gray-600 text-right">{c.marketCap != null ? `₺${num(c.marketCap, 0)}` : '-'}</td>
+                      <td className="px-4 py-3 text-right">
                         <WatchlistStar assetType="CRYPTO" symbol={(c.symbol || '').toUpperCase()} name={c.name} price={c.currentPrice} />
                       </td>
                     </tr>

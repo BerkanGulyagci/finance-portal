@@ -88,7 +88,7 @@ export default function IndexChart({ symbol, label, showSummary = true, height =
       }))
       .sort((a, b) => a.timestamp - b.timestamp);
 
-    const isUp  = klineData[klineData.length - 1].close >= klineData[0].close;
+    const isUp  = klineData.at(-1).close >= klineData[0].close;
     const color = isUp ? '#10b981' : '#ef4444';
 
     chart.setStyles({
