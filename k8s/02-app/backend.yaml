@@ -64,6 +64,12 @@ spec:
             # Yanlış host → kayıt (LDAP'a yazma) 500 veriyordu.
             - name: LDAP_URL
               value: "ldap://apacheds:10389"
+            # --- CORS: cloud frontend origin'i izinli olsun ---
+            # Default sadece localhost; nip.io origin'i listede olmayınca tarayıcı
+            # istekleri 403 (CORS reddi) alıyordu (kayıt/AI). curl'de görünmez (CORS yalnız tarayıcı).
+            # application.yml cors.allowed-origins: ${CORS_ALLOWED_ORIGINS:...} bu env'i okur.
+            - name: CORS_ALLOWED_ORIGINS
+              value: "https://8-233-66-172.nip.io,http://localhost:5173,http://localhost"
             # --- OpenTelemetry Java Agent ---
             - name: OTEL_SERVICE_NAME
               value: "finance-portal-backend"

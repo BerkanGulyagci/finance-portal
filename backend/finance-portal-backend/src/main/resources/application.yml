@@ -118,6 +118,12 @@ management:
 application:
   version: 1.0.0
 
+# CORS izinli origin'ler. CorsConfig @Value bunu okur (@Value relaxed binding
+# YAPMAZ → env'i ancak buradaki köprü ile alır). Cloud'da CORS_ALLOWED_ORIGINS
+# env'i ile gerçek frontend origin'i (https://...) eklenir.
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:80,http://localhost}
+
 app:
   logging:
     kafka:
