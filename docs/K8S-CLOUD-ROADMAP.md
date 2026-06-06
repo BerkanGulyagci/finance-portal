@@ -195,7 +195,10 @@ Acele yok — her şey anlaşılarak ilerler. Local proje hiçbir zaman riske at
   - **k6 KAPASİTE TESTİ (kanıt):** 100 eşzamanlı kullanıcı, 22,780 istek, **%0 hata**, p95=58ms.
     Yük altında HİÇ 502 yok (her ölçümde OK 200). 6 pod bu yükü rahat karşıladı.
   - Haberler/news (/api/v1/news) cloud'da ÇALIŞIYOR (backend sağlıklı olunca geldi).
-- [ ] FAZ 5 — İzleme katmanı + Keycloak realm-import (kota gelince) ⬅️ SONRAKİ
+- [x] FAZ 5 — İzleme katmanı DEPLOY EDİLDİ ✅ (grafana/prometheus/tempo/otel/log-consumer/opensearch
+      cluster'da Running; fsGroup + memory + opensearch-dashboards kaldırma ile sığdırıldı).
+      Grafana'da 4 dashboard provision edildi (cloud canlı veri). Erişim: port-forward (localhost:3001).
+      Keycloak realm-import de tamam (ConfigMap mount). Keycloak admin: dinamik hostname + port-forward 8082.
 - [ ] FAZ 6 — CI/CD (push → otomatik deploy)
 - [ ] FAZ 7 — Sertleştirme (secret/non-root/maliyet)
 
