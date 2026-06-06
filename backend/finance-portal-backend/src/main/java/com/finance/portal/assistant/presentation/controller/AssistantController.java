@@ -1,5 +1,6 @@
 package com.finance.portal.assistant.presentation.controller;
 
+import com.finance.portal.assistant.application.AssistantProperties;
 import com.finance.portal.assistant.application.AssistantService;
 import com.finance.portal.assistant.application.AssistantService.AssistantReply;
 import com.finance.portal.assistant.presentation.dto.AssistantChatRequest;
@@ -24,9 +25,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AssistantController {
 
     private final AssistantService assistantService;
+    private final AssistantProperties props;
 
-    public AssistantController(AssistantService assistantService) {
+    public AssistantController(AssistantService assistantService, AssistantProperties props) {
         this.assistantService = assistantService;
+        this.props = props;
     }
 
     @PostMapping("/chat")
@@ -41,7 +44,7 @@ public class AssistantController {
                 jwt.getClaimAsString("name"),
                 jwt.getClaimAsString("preferred_username")) : null;
         String userEmail = jwt != null ? verifiedEmail(jwt) : null;
-        String clientIp = clientIp(httpRequest);
+        String clientIp = clientIp(httpRequest, props.getTrustedProxyCount());
 
         AssistantReply reply = assistantService.chat(
                 request != null ? request.messages() : null, userId, userName, userEmail, clientIp);
@@ -73,14 +76,35 @@ public class AssistantController {
         return ok ? email : null;
     }
 
-    private static String clientIp(HttpServletRequest req) {
+    /**
+     * Anonim rate-limit için GERÇEK istemci IP'sini çıkarır.
+     *
+     * <p>GCP harici HTTP(S) yük dengeleyici (GKE GCE Ingress) X-Forwarded-For'u KORUR ve sona
+     * {@code <client-ip>,<lb-ip>} EKLER; XFF'in başındaki (leftmost) girdiler istemci tarafından
+     * gönderilmiş olabilir ve LB tarafından DOĞRULANMAZ. Bu yüzden gerçek istemci IP'si XFF'in
+     * SONUNDAN {@code trustedProxyCount} kadar geri sayılan girdidir (LB'nin eklediği LB-IP atlanır).
+     * Eskiden leftmost girdi alınıyordu → istemci her istekte farklı (sahte) bir leftmost IP
+     * göndererek anonim sayacı her seferinde sıfırlayabiliyor, 2-mesaj limitini SINIRSIZ aşabiliyordu.</p>
+     *
+     * @param trustedProxyCount uygulama önündeki güvenilen proxy sayısı (GCLB için 1). XFF girdi
+     *                          sayısından büyükse en soldaki bilinen girdiye düşülür.
+     */
+    static String clientIp(HttpServletRequest req, int trustedProxyCount) {
         if (req == null) {
             return null;
         }
         String xff = req.getHeader("X-Forwarded-For");
         if (xff != null && !xff.isBlank()) {
-            int comma = xff.indexOf(',');
-            return (comma > 0 ? xff.substring(0, comma) : xff).trim();
+            String[] parts = xff.split(",");
+            // Sondan trustedProxyCount kadar geri say (LB/proxy hop'larını atla); negatife düşmesin.
+            int idx = parts.length - 1 - Math.max(0, trustedProxyCount);
+            if (idx < 0) {
+                idx = 0; // beklenenden az hop → en soldaki bilinen IP'ye düş
+            }
+            String ip = parts[idx].trim();
+            if (!ip.isBlank()) {
+                return ip;
+            }
         }
         return req.getRemoteAddr();
     }

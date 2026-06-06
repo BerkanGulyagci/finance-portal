@@ -22,6 +22,15 @@ public class AssistantProperties {
     private double temperature = 0.4;
     private int anonMessageLimit = 2;
     private int userDailyLimit = 50;
+    /**
+     * Anonim rate-limit IP'sini X-Forwarded-For'dan çıkarırken güvenilen (uygulama önündeki) proxy
+     * SAYISI. GCP harici HTTP(S) yük dengeleyici (GKE GCE Ingress) XFF'i KORUR ve sona "client-ip,lb-ip"
+     * EKLER → gerçek istemci IP'si SONDAN 2. (=lb'den hemen önceki) girdidir; leftmost girdi
+     * istemci-kontrollü/sahtelenebilir. trustedProxyCount=1 → sondan 1 hop (lb) atlanır, ondan önceki
+     * (gerçek client) alınır. Doğrudan erişimde (XFF yok) remoteAddr kullanılır. nginx-only/başka
+     * topolojide ortama göre ayarlanır (ASSISTANT_TRUSTED_PROXY_COUNT).
+     */
+    private int trustedProxyCount = 1;
     private int historyLimit = 10;
     private int maxInputChars = 2000;
     /** Araç KULLANMAYAN tek-soru yanıtlarının (terim/nav) Redis cache süresi (sn). 0 = cache kapalı. */
@@ -94,6 +103,9 @@ public class AssistantProperties {
 
     public int getUserDailyLimit()          { return userDailyLimit; }
     public void setUserDailyLimit(int v)    { this.userDailyLimit = v; }
+
+    public int getTrustedProxyCount()       { return trustedProxyCount; }
+    public void setTrustedProxyCount(int v) { this.trustedProxyCount = Math.max(0, v); }
 
     public int getHistoryLimit()            { return historyLimit; }
     public void setHistoryLimit(int v)      { this.historyLimit = v; }

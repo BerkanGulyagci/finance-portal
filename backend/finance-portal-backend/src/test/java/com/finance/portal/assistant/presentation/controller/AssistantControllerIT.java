@@ -123,6 +123,8 @@ class AssistantControllerIT extends AbstractIntegrationTest {
         when(assistantService.chat(any(), any(), any(), any(), any()))
                 .thenReturn(AssistantReply.ok("ok"));
 
+        // GCLB biçimi: "<client-ip>,<lb-ip>". Gerçek istemci IP'si SONDAN 2.'dir (trustedProxyCount=1).
+        // 203.0.113.42 = gerçek istemci, 10.0.0.1 = yük dengeleyici → istemci IP'si seçilmeli.
         mockMvc.perform(post("/api/v1/assistant/chat")
                         .header("X-Forwarded-For", "203.0.113.42, 10.0.0.1")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -132,8 +134,29 @@ class AssistantControllerIT extends AbstractIntegrationTest {
         ArgumentCaptor<String> ipCap = ArgumentCaptor.forClass(String.class);
         verify(assistantService).chat(any(), any(), any(), any(), ipCap.capture());
 
-        // İlk virgül öncesi (gerçek istemci IP'si).
+        // GCLB'nin eklediği LB-IP (sonuncu) atlanır → gerçek istemci IP'si (sondan 2.).
         assertThat(ipCap.getValue()).isEqualTo("203.0.113.42");
+    }
+
+    @Test
+    void chat_xForwardedFor_spoofedLeftmostIgnored_realClientUsed() throws Exception {
+        // GÜVENLİK/REGRESYON: istemci-kontrollü leftmost girdi (spoof) DİKKATE ALINMAZ.
+        // GCLB XFF'i korur+sona "<client>,<lb>" ekler → "spoof, gerçek-client, lb".
+        // trustedProxyCount=1 → lb atlanır, sondan 2. (gerçek client) alınır; spoofa BAKILMAZ.
+        // Bu sayede istemci her istekte farklı leftmost göndererek anonim sayacı sıfırlayamaz.
+        when(assistantService.chat(any(), any(), any(), any(), any()))
+                .thenReturn(AssistantReply.ok("ok"));
+
+        mockMvc.perform(post("/api/v1/assistant/chat")
+                        .header("X-Forwarded-For", "6.6.6.6, 203.0.113.42, 10.0.0.1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(CHAT_PAYLOAD))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<String> ipCap = ArgumentCaptor.forClass(String.class);
+        verify(assistantService).chat(any(), any(), any(), any(), ipCap.capture());
+
+        assertThat(ipCap.getValue()).isEqualTo("203.0.113.42"); // spoof (6.6.6.6) DEĞİL
     }
 
     // =========================================================================

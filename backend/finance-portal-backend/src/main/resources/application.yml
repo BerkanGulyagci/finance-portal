@@ -138,8 +138,8 @@ alarm:
   # Tekrarlı (RECURRING) alarmlarda art arda tetiklenmeyi önlemek için bekleme (dakika)
   recurring-cooldown-minutes: ${ALARM_RECURRING_COOLDOWN_MINUTES:60}
   mail:
-    from: ${SMTP_FROM:${SMTP_USER:noreply@finansportali.local}}
-    from-display-name: ${SMTP_FROM_DISPLAY_NAME:FinansPortalı}
+    from: ${SMTP_FROM:${SMTP_USER:noreply@portiva.local}}
+    from-display-name: ${SMTP_FROM_DISPLAY_NAME:Portiva}
 
 # Bülten: dashboard özetini seçilen sıklıkta (DAILY/WEEKLY/MONTHLY) e-posta ile gönderir
 newsletter:
@@ -162,6 +162,10 @@ assistant:
   temperature: ${ASSISTANT_TEMPERATURE:0.4}
   anon-message-limit: ${ASSISTANT_ANON_LIMIT:2}      # giriş yapmayan kullanıcı için toplam mesaj hakkı
   user-daily-limit: ${ASSISTANT_USER_DAILY_LIMIT:50} # giriş yapan kullanıcı için günlük mesaj hakkı
+  # Anonim rate-limit IP'si X-Forwarded-For'dan SONDAN bu kadar hop geri sayılarak alınır (LB hop'u atlanır).
+  # GCP harici HTTP(S) LB (GKE GCE Ingress) sona "client-ip,lb-ip" ekler → 1 doğru. Leftmost girdi
+  # istemci-kontrollü/sahtelenebilir; bu yüzden leftmost ALINMAZ (aksi halde misafir limiti aşılır).
+  trusted-proxy-count: ${ASSISTANT_TRUSTED_PROXY_COUNT:1}
   history-limit: ${ASSISTANT_HISTORY_LIMIT:10}        # Groq'a gönderilen son mesaj sayısı
   max-input-chars: ${ASSISTANT_MAX_INPUT_CHARS:2000}  # tek mesaj uzunluk sınırı
   cache-ttl-seconds: ${ASSISTANT_CACHE_TTL_SECONDS:21600}  # araçsız tek-soru yanıtları Redis cache (0=kapalı)
