@@ -59,6 +59,10 @@ spec:
             # Doğrulama sonrası cloud frontend'ine yönlendir.
             - name: KEYCLOAK_POST_VERIFY_REDIRECT_URI
               value: "https://8-233-66-172.nip.io/login"
+            # Bülten e-postalarındaki linkler (abonelikten çık vb.) cloud host'a gitsin
+            # (default localhost:8080 → kullanıcı kendi makinesine gidip çıkamıyordu).
+            - name: NEWSLETTER_BASE_URL
+              value: "https://8-233-66-172.nip.io"
             # --- LDAP (apacheds) K8s override ---
             # Default 'finance-portal-apacheds' compose adı; K8s Service adı 'apacheds'.
             # Yanlış host → kayıt (LDAP'a yazma) 500 veriyordu.
