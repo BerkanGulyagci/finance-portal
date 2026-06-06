@@ -1,30 +1,29 @@
-# Finance Portal — Continuous Deployment (manuel onaylı)
+# Finance Portal — Continuous Deployment (private repo: manuel-tetik deploy)
 #
-# Akış (main'e push'ta):
-#   1) build-backend   — backend image'ı git-SHA tag'iyle build edip Artifact Registry'e push
-#   2) build-frontend  — frontend image'ı (cloud Keycloak URL'si build-arg ile gömülü) push
-#   3) deploy          — `production` environment → MANUEL ONAY bekler → kubectl set image
+# Akış:
+#   • main'e PUSH    → build-backend + build-frontend çalışır (image'lar
+#                      Artifact Registry'e git-SHA tag'iyle push edilir). DEPLOY OLMAZ.
+#   • Run workflow   → (Actions → CD → Run workflow) build + DEPLOY çalışır.
+#                      Yani canlıya ancak SEN elle tetikleyince gidilir.
 #
-# Kimlik doğrulama: Workload Identity Federation (anahtarsız). GitHub repo'su
-# google-github-actions/auth ile kısa ömürlü token alır; JSON key YOK.
+# Neden manuel-tetik: private repo + ücretsiz planda "required reviewers" onay
+# kapısı yok. Bunun yerine deploy job'ı sadece workflow_dispatch'te çalışır →
+# aynı güvenlik (sen tetiklemeden canlıya gitmez), repo private kalır.
 #
-# Image versiyonu git commit SHA (örn. backend:abc1234) → hangi image hangi koddan
-# geldiği kesin; elle v8/v12 saymaya gerek yok. Ek olarak :latest de güncellenir.
+# Kimlik doğrulama: Workload Identity Federation (anahtarsız, JSON key YOK).
+# Image versiyonu git commit SHA → hangi image hangi koddan geldiği kesin.
 #
-# Tam otomatiğe geçmek istersen: `deploy` job'ındaki `environment: production`
-# satırını sil (onay kapısı kalkar, push → doğrudan canlı).
+# Tam otomatiğe geçmek istersen: deploy job'ındaki `if:` satırını sil
+# (deploy push'ta da çalışır → push → doğrudan canlı).
 #
-# GEREKLİ GitHub ayarları (tek seferlik, README/kurulum adımlarında):
-#   Secrets:    GCP_WIF_PROVIDER, GCP_SERVICE_ACCOUNT
-#   Variables:  (opsiyonel) hepsi aşağıda env: altında sabit; değişirse buradan güncelle
-#   Environment: "production" (Settings → Environments) + required reviewer = sen
+# GEREKLİ GitHub secrets (tek seferlik): GCP_WIF_PROVIDER, GCP_SERVICE_ACCOUNT
 
 name: CD
 
 on:
   push:
     branches: [main]
-  # Elle de tetiklenebilir (Actions sekmesi → CD → Run workflow)
+  # Deploy SADECE buradan (elle) tetiklenir
   workflow_dispatch:
 
 # Aynı anda tek deploy; yenisi gelirse eskisini iptal etme (deploy yarıda kesilmesin)
@@ -100,12 +99,13 @@ jobs:
           docker push "${IMAGE}:latest"
 
   deploy:
-    name: Deploy to GKE (manuel onay)
+    name: Deploy to GKE (manuel tetik)
     runs-on: ubuntu-latest
     needs: [build-backend, build-frontend]
-    # MANUEL ONAY KAPISI: bu environment'a "required reviewer" eklenince
-    # job, sen onaylayana kadar bekler. (Settings → Environments → production)
-    environment: production
+    # DEPLOY KAPISI: yalnızca Actions → Run workflow ile tetiklenince çalışır.
+    # Normal push'ta image'lar build/push edilir ama bu job ATLANIR → canlıya
+    # ancak sen elle tetikleyince gidilir.
+    if: github.event_name == 'workflow_dispatch'
     steps:
       - name: Authenticate to Google Cloud (WIF)
         uses: google-github-actions/auth@v2
