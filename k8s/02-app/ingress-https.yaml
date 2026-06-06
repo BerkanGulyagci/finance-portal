@@ -44,14 +44,9 @@ spec:
                 name: keycloak
                 port:
                   number: 8080
-          # Keycloak ADMIN konsolu
-          - path: /admin
-            pathType: Prefix
-            backend:
-              service:
-                name: keycloak
-                port:
-                  number: 8080
+          # NOT: /admin Keycloak'a YÖNLENDİRİLMEZ — uygulamanın kendi /admin/users
+          # frontend route'u ile çakışıyordu (Keycloak'a gidip "internal error" veriyordu).
+          # Keycloak admin konsolu güvenlik için internete açılmaz; port-forward ile erişilir.
           # Backend API
           - path: /api
             pathType: Prefix
