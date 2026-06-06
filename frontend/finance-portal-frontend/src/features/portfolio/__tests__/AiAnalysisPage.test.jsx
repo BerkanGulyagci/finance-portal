@@ -318,14 +318,28 @@ describe('AiAnalysisPage (jsdom + testing-library + React 19)', () => {
     expect(screen.getByText('İkinci madde')).toBeInTheDocument();
   });
 
-  it('AI rapor yoksa (available=false) "kullanılamıyor" mesajı gösterilir', async () => {
+  it('AI rapor yoksa ama portföy DOLU (holdingsCount>0) → "model meşgul/kota" mesajı', async () => {
     getPortfolioAiAnalysis.mockResolvedValue(
-      fullAnalysis({ aiReportAvailable: false, aiReport: null })
+      fullAnalysis({ aiReportAvailable: false, aiReport: null }) // holdingsCount=5 (dolu)
     );
     renderPage();
     await screen.findByRole('heading', { name: 'AI Portföy Analizi' });
 
     expect(screen.getByText(/AI yorumu şu an kullanılamıyor/)).toBeInTheDocument();
+    // Boş-portföy mesajı bu durumda ÇIKMAMALI.
+    expect(screen.queryByText(/Portföyünüzde işlem\/pozisyon bulunamadı/)).not.toBeInTheDocument();
+  });
+
+  it('AI rapor yoksa ve portföy BOŞ (holdingsCount=0) → "işlem bulunamadı" mesajı (meşgul/kota DEĞİL)', async () => {
+    getPortfolioAiAnalysis.mockResolvedValue(
+      fullAnalysis({ aiReportAvailable: false, aiReport: null, holdingsCount: 0 })
+    );
+    renderPage();
+    await screen.findByRole('heading', { name: 'AI Portföy Analizi' });
+
+    expect(screen.getByText(/Portföyünüzde işlem\/pozisyon bulunamadı/)).toBeInTheDocument();
+    // Yanlış "model meşgul/kota" mesajı boş portföyde GÖSTERİLMEMELİ.
+    expect(screen.queryByText(/AI yorumu şu an kullanılamıyor/)).not.toBeInTheDocument();
   });
 
   it('notlar (disclaimer) listesi render edilir', async () => {

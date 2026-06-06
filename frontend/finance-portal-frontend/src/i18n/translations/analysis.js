@@ -89,6 +89,8 @@ const en = {
   'AI Yorum Raporu': 'AI Commentary Report',
   'AI yorumu şu an kullanılamıyor (model meşgul/kota). Yukarıdaki tüm metrikler ve grafikler geçerlidir.':
     'AI commentary is currently unavailable (model busy/quota). All metrics and charts above remain valid.',
+  'Portföyünüzde işlem/pozisyon bulunamadı. Analiz için önce alım-satım işlemi ekleyin.':
+    'No transactions/positions found in your portfolio. Add a buy/sell transaction first to run the analysis.',
 
   // ── RebalanceCard ───────────────────────────────────────────────
   'Risk Profili Testi': 'Risk Profile Test',

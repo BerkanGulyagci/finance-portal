@@ -401,7 +401,10 @@ export default function AiAnalysisPage() {
           <AiReport text={data.aiReport} />
         ) : (
           <p className="text-sm text-gray-500">
-            {t('AI yorumu şu an kullanılamıyor (model meşgul/kota). Yukarıdaki tüm metrikler ve grafikler geçerlidir.')}
+            {/* Boş portföy (pozisyon yok) → AI değil, veri yokluğu mesajı. Dolu ama AI başarısızsa → model meşgul/kota. */}
+            {data.holdingsCount > 0
+              ? t('AI yorumu şu an kullanılamıyor (model meşgul/kota). Yukarıdaki tüm metrikler ve grafikler geçerlidir.')
+              : t('Portföyünüzde işlem/pozisyon bulunamadı. Analiz için önce alım-satım işlemi ekleyin.')}
           </p>
         )}
       </Card>
