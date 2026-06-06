@@ -55,7 +55,8 @@ class NewsToolTest {
         String r = tool.execute(node("{}"), null);
 
         assertThat(r)
-                .startsWith("Güncel başlıklar:")
+                .startsWith("TALİMAT:")
+                .contains("Güncel başlıklar:")
                 .contains("• Merkez bankası")
                 .contains("(BloombergHT)")
                 .contains("• BIST 100")

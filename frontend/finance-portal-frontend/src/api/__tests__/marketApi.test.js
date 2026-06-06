@@ -221,7 +221,8 @@ describe('Yahoo kripto grafik fonksiyonları', () => {
   it('getCryptoDetail coinId encode + boş nesne fallback', async () => {
     resolveGet({});
     const r = await api.getCryptoDetail('btc usd');
-    expect(client.get).toHaveBeenCalledWith('/api/v1/market/crypto/btc%20usd/detail');
+    // lang verilmediğinde 2. arg undefined geçilir (gereksiz çeviri param'ı yok)
+    expect(client.get).toHaveBeenCalledWith('/api/v1/market/crypto/btc%20usd/detail', undefined);
     expect(r).toEqual({});
   });
 });
