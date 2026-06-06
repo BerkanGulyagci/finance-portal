@@ -658,8 +658,8 @@ export default function CryptoDetailPage() {
             </div>
           </div>
 
-          {/* Korku & Açgözlülük (Fear & Greed) — coin fiyatı vs piyasa F&G (çift eksen) */}
-          <FearGreedChart priceData={chartData} coinName={coin?.name} days={90} />
+          {/* Korku ve Hırs Endeksi — gauge + geçmiş kıyas + fiyat/F&G grafiği (90 gün, kendi çeker). */}
+          <FearGreedChart coinId={coinId} coinName={coin?.name} currency={currency} days={90} />
 
           {shortDesc && (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-5">

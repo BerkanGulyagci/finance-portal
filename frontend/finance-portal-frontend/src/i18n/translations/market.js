@@ -1128,17 +1128,23 @@ const en = {
   'ABD mallarının TL fiyatıdır (ABD enflasyonu × USD/TRY) — "dolar alım gücünü korudun mu" ölçüsü. Çizginin yüksekliği ABD enflasyonundan değil, ağırlıkla TL\'nin dolara karşı değer kaybından (USD/TRY artışından) gelir.':
     'is the TL price of US goods (US inflation × USD/TRY) — a "did you keep your dollar purchasing power" yardstick. Its height comes mostly not from US inflation but from the lira losing value against the dollar (USD/TRY rising).',
 
-  // ── Korku & Açgözlülük (Fear & Greed) ─────────────────────────────────────
-  'Korku & Açgözlülük': 'Fear & Greed',
-  'Fiyatı vs Korku & Açgözlülük': 'Price vs Fear & Greed',
-  'Güncel Korku & Açgözlülük endeksi': 'Current Fear & Greed index',
+  // ── Korku ve Hırs (Fear & Greed) ──────────────────────────────────────────
+  'Korku ve Hırs Endeksi': 'Fear and Greed Index',
+  'Korku ve Hırs Endeksi Grafiği': 'Fear and Greed Index Chart',
+  'Güncel Korku ve Hırs endeksi': 'Current Fear and Greed index',
+  'Geçmiş Veriler': 'Historical Values',
+  'Dün': 'Yesterday',
+  'Geçen Hafta': 'Last Week',
+  'Geçen Ay': 'Last Month',
+  'Yıllık En Yüksek': 'Yearly High',
+  'Yıllık En Düşük': 'Yearly Low',
   'Piyasa geneli · son {n} gün': 'Market-wide · last {n} days',
   // Fear & Greed sınıflandırmaları (backend EN sabit → TR/EN etiket)
   'Aşırı Korku': 'Extreme Fear',
   'Korku': 'Fear',
   'Nötr': 'Neutral',
-  'Açgözlülük': 'Greed',
-  'Aşırı Açgözlülük': 'Extreme Greed',
+  'Hırs': 'Greed',
+  'Aşırı Hırs': 'Extreme Greed',
 
 };
 

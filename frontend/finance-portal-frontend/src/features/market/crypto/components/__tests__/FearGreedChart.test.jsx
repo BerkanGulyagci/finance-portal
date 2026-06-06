@@ -2,18 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { LanguageProvider } from '../../../../../context/LanguageContext';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MOCK STRATEJİSİ
-// 1) marketApi.getCryptoFearGreed: ağ yok → stub (her test kendi verisini verir).
-// 2) recharts: jsdom SVG ölçemediğinden gerçek grafik throw eder/0 boyut verir.
-//    Test ettiğimiz şey grafik İÇİ değil; rozet, başlık, loading/empty DÜZ DOM ve
-//    merge'in çizgilere doğru `dataKey` verdiği. Bu yüzden recharts passthrough stub.
-//    <Line> stub'ı dataKey/name'i data-testid'e yansıtır → merge sonucunu doğrulayabiliriz.
-// 3) LanguageContext: GERÇEK (tr varsayılan → t(key) anahtarı döndürür) → TR etiket araması.
-// ─────────────────────────────────────────────────────────────────────────────
+// getCryptoFearGreedSummary + getCryptoChart stub; recharts passthrough (jsdom SVG ölçemez).
+// Gauge raw-SVG'dir (recharts değil) → sayı/etiket düz DOM olarak doğrulanabilir.
 
 vi.mock('../../../../../api/marketApi', () => ({
-  getCryptoFearGreed: vi.fn(),
+  getCryptoFearGreedSummary: vi.fn(),
+  getCryptoChart: vi.fn(),
 }));
 
 vi.mock('recharts', () => {
@@ -31,19 +25,17 @@ vi.mock('recharts', () => {
     ),
     CartesianGrid: Noop,
     Tooltip: Noop,
+    ReferenceArea: Noop,
   };
 });
 
-import { getCryptoFearGreed } from '../../../../../api/marketApi';
+import { getCryptoFearGreedSummary, getCryptoChart } from '../../../../../api/marketApi';
 import FearGreedChart from '../FearGreedChart';
 
-// ── Test verisi ──────────────────────────────────────────────────────────────
 const DAY = 86400000;
-// 5 ardışık gün, UTC gün başlangıçları.
 const D0 = Date.UTC(2026, 4, 1); // 2026-05-01
 
-/** F&G satırları: backend formatı { timestamp(ms), value, classification }. */
-function fngRows() {
+function series() {
   return [
     { timestamp: D0 + 0 * DAY, value: 12, classification: 'Extreme Fear' },
     { timestamp: D0 + 1 * DAY, value: 40, classification: 'Fear' },
@@ -53,21 +45,34 @@ function fngRows() {
   ];
 }
 
-/** Fiyat serisi (chartData şekli): { ts(ms), price }. Gün-ortası timestamp → gün eşleşmesi sınanır. */
-function priceData() {
-  return [
-    { ts: D0 + 0 * DAY + 3600_000, price: 2_400_000 },
-    { ts: D0 + 1 * DAY + 3600_000, price: 2_450_000 },
-    // 3. gün (D0+2) için fiyat YOK → o noktada price null kalmalı (connectNulls)
-    { ts: D0 + 3 * DAY + 3600_000, price: 2_600_000 },
-    { ts: D0 + 4 * DAY + 3600_000, price: 2_700_000 },
-  ];
+function summary() {
+  return {
+    current: { value: 13, classification: 'Extreme Fear', timestamp: D0 + 4 * DAY },
+    yesterday: { value: 16, classification: 'Extreme Fear', timestamp: null },
+    lastWeek: { value: 35, classification: 'Fear', timestamp: null },
+    lastMonth: { value: 50, classification: 'Neutral', timestamp: null },
+    yearlyHigh: { value: 71, classification: 'Greed', timestamp: D0 - 100 * DAY },
+    yearlyLow: { value: 5, classification: 'Extreme Fear', timestamp: D0 - 60 * DAY },
+    series: series(),
+  };
+}
+
+function priceChart() {
+  return {
+    prices: [
+      [D0 + 0 * DAY + 3600_000, 2_400_000],
+      [D0 + 1 * DAY + 3600_000, 2_450_000],
+      // 3. gün (D0+2) fiyat YOK → o noktada price null (connectNulls)
+      [D0 + 3 * DAY + 3600_000, 2_600_000],
+      [D0 + 4 * DAY + 3600_000, 2_700_000],
+    ],
+  };
 }
 
 function renderChart(props = {}) {
   return render(
     <LanguageProvider>
-      <FearGreedChart priceData={priceData()} coinName="Bitcoin" days={90} {...props} />
+      <FearGreedChart coinId="bitcoin" coinName="Bitcoin" currency="try" days={90} {...props} />
     </LanguageProvider>,
   );
 }
@@ -75,29 +80,50 @@ function renderChart(props = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
   localStorage.clear();
+  getCryptoChart.mockResolvedValue(priceChart());
 });
 
 describe('FearGreedChart', () => {
-  it('mount edilince getCryptoFearGreed verilen `days` ile çağrılır', async () => {
-    getCryptoFearGreed.mockResolvedValue(fngRows());
+  it('mount edilince getCryptoFearGreedSummary verilen `days` ile çağrılır', async () => {
+    getCryptoFearGreedSummary.mockResolvedValue(summary());
     renderChart({ days: 90 });
-    await waitFor(() => expect(getCryptoFearGreed).toHaveBeenCalledWith(90));
+    await waitFor(() => expect(getCryptoFearGreedSummary).toHaveBeenCalledWith(90));
   });
 
-  it('başlık coin adıyla "Fiyatı vs Korku & Açgözlülük" gösterir', async () => {
-    getCryptoFearGreed.mockResolvedValue(fngRows());
+  it('sağ panel başlığı "Korku ve Hırs Endeksi Grafiği" gösterir', async () => {
+    getCryptoFearGreedSummary.mockResolvedValue(summary());
     renderChart();
-    expect(await screen.findByText(/Bitcoin Fiyatı vs Korku & Açgözlülük/)).toBeInTheDocument();
+    expect(await screen.findByText('Korku ve Hırs Endeksi Grafiği')).toBeInTheDocument();
   });
 
-  it('güncel (en yeni) F&G rozeti değer + TR sınıflandırma gösterir (88 — Aşırı Açgözlülük)', async () => {
-    getCryptoFearGreed.mockResolvedValue(fngRows());
+  it('gauge güncel değeri (13) + TR sınıflandırma (Aşırı Korku) gösterir', async () => {
+    getCryptoFearGreedSummary.mockResolvedValue(summary());
     renderChart();
-    expect(await screen.findByText(/88 — Aşırı Açgözlülük/)).toBeInTheDocument();
+    expect(await screen.findByText('13')).toBeInTheDocument();
+    expect(screen.getAllByText('Aşırı Korku').length).toBeGreaterThan(0);
+  });
+
+  it('geçmiş rozetler Dün/Geçen Hafta/Geçen Ay değerlerini gösterir', async () => {
+    getCryptoFearGreedSummary.mockResolvedValue(summary());
+    renderChart();
+    expect(await screen.findByText('Dün')).toBeInTheDocument();
+    expect(screen.getByText('Geçen Hafta')).toBeInTheDocument();
+    expect(screen.getByText('Geçen Ay')).toBeInTheDocument();
+    expect(screen.getByText(/16 · Aşırı Korku/)).toBeInTheDocument();
+    expect(screen.getByText(/35 · Korku/)).toBeInTheDocument();
+  });
+
+  it('yıllık en yüksek/düşük rozetleri gösterir (71 Hırs, 5 Aşırı Korku)', async () => {
+    getCryptoFearGreedSummary.mockResolvedValue(summary());
+    renderChart();
+    expect(await screen.findByText('Yıllık En Yüksek')).toBeInTheDocument();
+    expect(screen.getByText('Yıllık En Düşük')).toBeInTheDocument();
+    expect(screen.getByText(/71 · Hırs/)).toBeInTheDocument();
+    expect(screen.getByText(/5 · Aşırı Korku/)).toBeInTheDocument();
   });
 
   it('çift eksen kurulur: sol "price" + sağ "fng" (domain 0-100, orientation right)', async () => {
-    getCryptoFearGreed.mockResolvedValue(fngRows());
+    getCryptoFearGreedSummary.mockResolvedValue(summary());
     renderChart();
     await screen.findByTestId('composed-chart');
     expect(screen.getByTestId('yaxis-price')).toBeInTheDocument();
@@ -107,30 +133,29 @@ describe('FearGreedChart', () => {
   });
 
   it('iki çizgi de (price + value) render edilir', async () => {
-    getCryptoFearGreed.mockResolvedValue(fngRows());
+    getCryptoFearGreedSummary.mockResolvedValue(summary());
     renderChart();
     await screen.findByTestId('composed-chart');
     expect(screen.getByTestId('line-price')).toBeInTheDocument();
     expect(screen.getByTestId('line-value')).toBeInTheDocument();
   });
 
-  it('merge gün-bazında yapılır: F&G nokta sayısı = grafik nokta sayısı (5), fiyatsız gün null kalır', async () => {
-    getCryptoFearGreed.mockResolvedValue(fngRows());
+  it('merge gün-bazında yapılır: seri nokta sayısı = grafik nokta sayısı (5)', async () => {
+    getCryptoFearGreedSummary.mockResolvedValue(summary());
     renderChart();
     const chart = await screen.findByTestId('composed-chart');
-    // 5 F&G günü taban → 5 nokta (fiyatı eksik 3. gün de noktada kalır, price=null).
     expect(chart).toHaveAttribute('data-points', '5');
   });
 
-  it('boş F&G verisinde "Veri bulunamadı" fallback gösterir', async () => {
-    getCryptoFearGreed.mockResolvedValue([]);
+  it('summary null gelince "Veri bulunamadı" fallback gösterir', async () => {
+    getCryptoFearGreedSummary.mockResolvedValue(null);
     renderChart();
     expect(await screen.findByText('Veri bulunamadı')).toBeInTheDocument();
     expect(screen.queryByTestId('composed-chart')).not.toBeInTheDocument();
   });
 
   it('API hatasında "Veri bulunamadı" fallback gösterir (throw etmez)', async () => {
-    getCryptoFearGreed.mockRejectedValue(new Error('network'));
+    getCryptoFearGreedSummary.mockRejectedValue(new Error('network'));
     renderChart();
     expect(await screen.findByText('Veri bulunamadı')).toBeInTheDocument();
   });

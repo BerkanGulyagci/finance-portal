@@ -67,6 +67,15 @@ export async function getCryptoFearGreed(days = 90) {
   return data.data ?? [];
 }
 
+/**
+ * Korku ve Hırs endeksi özeti — gauge + geçmiş kıyas (dün/hafta/ay) + yıllık min/max + seri.
+ * Dönüş: { current, yesterday, lastWeek, lastMonth, yearlyHigh, yearlyLow, series:[{timestamp,value,classification}] }
+ */
+export async function getCryptoFearGreedSummary(days = 90) {
+  const { data } = await client.get('/api/v1/market/crypto/fear-greed/summary', { params: { days } });
+  return data.data ?? null;
+}
+
 /** TRY 5Y / Tüm — Binance Spot klines (boşsa Yahoo fallback) */
 export async function getCryptoBinanceCandles(symbol, range, currency = 'try') {
   const { data } = await client.get(

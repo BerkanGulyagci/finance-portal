@@ -9,6 +9,7 @@ import com.finance.portal.market.application.stock.StockChartResponse;
 import com.finance.portal.market.application.crypto.model.CryptoChartCandle;
 import com.finance.portal.market.application.crypto.model.CryptoMarketItem;
 import com.finance.portal.market.application.crypto.model.FearGreedPoint;
+import com.finance.portal.market.application.crypto.model.FearGreedSummary;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.http.ResponseEntity;
@@ -155,6 +156,20 @@ public class CryptoController {
     ) {
         List<FearGreedPoint> points = fearGreedService.getFearGreed(days);
         return ResponseEntity.ok(ApiResponse.success(points, "Fear & Greed index retrieved"));
+    }
+
+    /**
+     * CoinMarketCap tarzı ZENGİN Fear &amp; Greed özeti (gauge sol paneli için):
+     * anlık değer + geçmiş kıyaslar (dün/geçen hafta/geçen ay) + yıllık min/max +
+     * grafik için son {@code days} günlük seri. Kıyas/min-max daima tam yıldan; {@code days}
+     * yalnız seri uzunluğunu belirler. Kaynak alternative.me (LKG ile dayanıklı).
+     */
+    @GetMapping("/fear-greed/summary")
+    public ResponseEntity<ApiResponse<FearGreedSummary>> getFearGreedSummary(
+            @RequestParam(defaultValue = "90") @Min(1) @Max(365) int days
+    ) {
+        FearGreedSummary summary = fearGreedService.getSummary(days);
+        return ResponseEntity.ok(ApiResponse.success(summary, "Fear & Greed summary retrieved"));
     }
 
     @GetMapping("/{coinId}/chart")
