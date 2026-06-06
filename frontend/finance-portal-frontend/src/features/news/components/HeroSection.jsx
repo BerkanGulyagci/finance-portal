@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Clock, TrendingUp, Send } from 'lucide-react';
-import { getNews, proxyImageUrl } from '../../../api/newsApi';
+import { getNews, proxyImageUrl, DEFAULT_EXCLUDED_NEWS_CATEGORY } from '../../../api/newsApi';
 import { useAuth } from '../../../context/AuthContext';
 import { SkeletonHero } from '../../../components/common/Skeleton';
 import { useTranslation } from '../../../context/LanguageContext';
@@ -62,7 +62,8 @@ export function HeroSection({ filterSlot }) {
   const timer = useRef(null);
 
   useEffect(() => {
-    getNews({ region: 'TR', pageSize: 24, lang: language })
+    // Hero carousel + "Öne Çıkan" hep VARSAYILAN görünüm → genel ekonomi haberlerini dışla.
+    getNews({ region: 'TR', pageSize: 24, lang: language, excludeCategory: DEFAULT_EXCLUDED_NEWS_CATEGORY })
       .then(data => setItems(data.items ?? []))
       .catch(() => {});
   }, [language]);

@@ -3,6 +3,10 @@ import client from '../lib/http';
 // Relative path kullanılır (BASE_URL hardcoded localhost DEĞİL) → prod'da nginx proxy,
 // dev'de vite proxy üzerinden backend'e gider. Hem local hem cloud'da çalışır.
 
+// Varsayılan haber görünümünde DIŞLANAN kategori: "Genel Ekonomi" (ECONOMY) haberleri
+// default'ta kalabalık yapıyor → kullanıcı tür filtresinden ECONOMY'yi açıkça seçerse gelir.
+export const DEFAULT_EXCLUDED_NEWS_CATEGORY = 'ECONOMY';
+
 export function proxyImageUrl(url) {
   if (!url) return null;
   // Only proxy bloomberght images, others load directly
@@ -14,12 +18,15 @@ export function proxyImageUrl(url) {
 
 /**
  * Çoklu-kaynak, filtreli + sayfalı haber listesi (aggregator).
- * @param {{ category?: string, source?: string, q?: string, range?: string, page?: number, pageSize?: number }} filters
+ * @param {{ category?: string, excludeCategory?: string, source?: string, q?: string, range?: string, page?: number, pageSize?: number }} filters
  * @returns {Promise<{ items, categories, sources, page, pageSize, totalElements, totalPages }>}
  */
 export async function getNews(filters = {}) {
   const params = { page: filters.page ?? 1, pageSize: filters.pageSize ?? 12 };
   if (filters.category) params.category = filters.category;
+  // excludeCategory backend'de YALNIZ kullanıcı bir kategori SEÇMEMİŞSE uygulanır
+  // (ECONOMY açıkça seçilirse dışlama geçersiz olur) — yine de seçimi olanda göndermeyelim.
+  if (filters.excludeCategory && !filters.category) params.excludeCategory = filters.excludeCategory;
   if (filters.source) params.source = filters.source;
   if (filters.q) params.q = filters.q;
   if (filters.range) params.range = filters.range;

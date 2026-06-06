@@ -60,6 +60,18 @@ public class NewsAggregatorService {
     @WithSpan("NewsAggregatorService.query")
     public NewsQueryResult query(String category, String source, String keyword, String region,
                                  Long fromMillis, Long toMillis, int page, int pageSize, String lang) {
+        return query(category, null, source, keyword, region, fromMillis, toMillis, page, pageSize, lang);
+    }
+
+    /**
+     * {@code excludeCategory} parametreli aşırı yükleme: belirli bir kategori VARSAYILAN görünümden
+     * dışlanır (ör. "ECONOMY" — genel ekonomi haberleri default'ta kalabalık yapıyor). Kullanıcı bu
+     * kategoriyi {@code category} ile açıkça seçerse dışlama uygulanmaz; facet/kategori sayıları
+     * dışlamadan ETKİLENMEZ (kategori dropdown'da görünmeye devam eder).
+     */
+    @WithSpan("NewsAggregatorService.query")
+    public NewsQueryResult query(String category, String excludeCategory, String source, String keyword, String region,
+                                 Long fromMillis, Long toMillis, int page, int pageSize, String lang) {
         // Bölge (Türkiye/Global) filtresi — facet'ler bunun ÜZERİNDEN hesaplanır,
         // böylece "Türkiye" seçiliyken kategori/kaynak sayıları yalnız TR haberlerini yansıtır.
         List<NewsArticle> base = cache.getAll().stream()
@@ -81,11 +93,15 @@ public class NewsAggregatorService {
         }
 
         NewsCategory cat = NewsCategory.fromString(category);
+        // Dışlama YALNIZ kullanıcı belirli bir kategori seçmediğinde uygulanır → ECONOMY'yi
+        // açıkça seçerse (cat != null) dışlama geçersiz olur ve ekonomi haberleri gelir.
+        NewsCategory excluded = cat == null ? NewsCategory.fromString(excludeCategory) : null;
         String kw = keyword != null && !keyword.isBlank()
                 ? keyword.trim().toLowerCase(Locale.forLanguageTag("tr")) : null;
 
         List<NewsArticle> filtered = base.stream()
                 .filter(a -> cat == null || cat.name().equals(a.getCategory()))
+                .filter(a -> excluded == null || !excluded.name().equals(a.getCategory()))
                 .filter(a -> source == null || source.isBlank() || matchesSource(a, source))
                 .filter(a -> kw == null || matchesKeyword(a, kw))
                 .filter(a -> withinRange(a, fromMillis, toMillis))

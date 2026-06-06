@@ -6,14 +6,18 @@ import { NewsFilterBar } from './components/NewsFilterBar';
 import { PersonalNewsStrip } from './components/PersonalNewsStrip';
 import { Sidebar } from './components/Sidebar';
 import { useTranslation } from '../../context/LanguageContext';
+import { DEFAULT_EXCLUDED_NEWS_CATEGORY } from '../../api/newsApi';
 
 const FILTERS_KEY = 'news_filters_v1';
-const DEFAULT_FILTERS = { category: '', source: '', q: '', region: 'TR' };
+// excludeCategory hep var → varsayılan görünümde ECONOMI dışlanır; kullanıcı tür filtresinden
+// ECONOMI'yi SEÇERSE (category dolar) getNews dışlamayı GÖNDERMEZ ve ekonomi haberleri gelir.
+const DEFAULT_FILTERS = { category: '', excludeCategory: DEFAULT_EXCLUDED_NEWS_CATEGORY, source: '', q: '', region: 'TR' };
 
 function loadFilters() {
   try {
     const s = sessionStorage.getItem(FILTERS_KEY);
-    if (s) return { ...DEFAULT_FILTERS, ...JSON.parse(s) };
+    // excludeCategory kod tarafından zorlanır (saklanan eski filtrede olmasa da hep eklenir).
+    if (s) return { ...DEFAULT_FILTERS, ...JSON.parse(s), excludeCategory: DEFAULT_EXCLUDED_NEWS_CATEGORY };
   } catch { /* yok say */ }
   return { ...DEFAULT_FILTERS };
 }

@@ -130,6 +130,46 @@ class NewsAggregatorServiceTest {
     }
 
     @Test
+    @DisplayName("query: excludeCategory varsayılan görünümde kategoriyi dışlar; facet'te KALIR")
+    void queryExcludeCategoryDefault() {
+        List<NewsArticle> list = new ArrayList<>(sampleArticles());
+        list.add(article("Genel ekonomi", "TÜFE", "https://e.com/5",
+                "2026-05-21T12:00:00Z", "Hürriyet", NewsCategory.ECONOMY.name(), "tr"));
+        when(cache.getAll()).thenReturn(list);
+
+        // Kullanıcı kategori seçmedi (category=null) → ECONOMY dışlanır
+        NewsQueryResult r = service.query(null, "ECONOMY", null, null, "ALL", null, null, 1, 20, null);
+
+        assertThat(r.items()).noneMatch(a -> NewsCategory.ECONOMY.name().equals(a.getCategory()));
+        // facet/dropdown'da ECONOMY KALIR (sayım base üzerinden, dışlamadan etkilenmez)
+        assertThat(r.categoryCounts()).containsEntry(NewsCategory.ECONOMY.name(), 1L);
+    }
+
+    @Test
+    @DisplayName("query: ECONOMY açıkça seçilirse excludeCategory geçersiz → ekonomi haberleri gelir")
+    void queryExcludeCategoryOverriddenBySelection() {
+        List<NewsArticle> list = new ArrayList<>(sampleArticles());
+        list.add(article("Genel ekonomi", "TÜFE", "https://e.com/5",
+                "2026-05-21T12:00:00Z", "Hürriyet", NewsCategory.ECONOMY.name(), "tr"));
+        when(cache.getAll()).thenReturn(list);
+
+        // category=ECONOMY seçili + excludeCategory=ECONOMY → seçim kazanır, ekonomi gelir
+        NewsQueryResult r = service.query("ECONOMY", "ECONOMY", null, null, "ALL", null, null, 1, 20, null);
+
+        assertThat(r.totalElements()).isEqualTo(1);
+        assertThat(r.items()).allMatch(a -> NewsCategory.ECONOMY.name().equals(a.getCategory()));
+    }
+
+    @Test
+    @DisplayName("query: excludeCategory null → eski davranış (3-arg overload, hiçbir şey dışlanmaz)")
+    void queryNoExclude() {
+        when(cache.getAll()).thenReturn(sampleArticles());
+
+        NewsQueryResult r = service.query(null, null, null, "ALL", null, null, 1, 20, null);
+        assertThat(r.totalElements()).isEqualTo(4);
+    }
+
+    @Test
     @DisplayName("query: bilinmeyen kategori → filtre uygulanmaz (tümü)")
     void queryUnknownCategory() {
         when(cache.getAll()).thenReturn(sampleArticles());

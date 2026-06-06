@@ -50,10 +50,13 @@ public class NewsController {
     /**
      * Tüm sağlayıcılardan toplanmış, filtreli + sayfalı haber listesi.
      * Filtreler: category (NewsCategory), source (kaynak adı), q (arama), range (24h/7d/30d).
+     * excludeCategory: varsayılan görünümde bir kategoriyi dışlar (ör. ECONOMY); kullanıcı o
+     * kategoriyi category ile açıkça seçtiğinde geçersiz olur (kategori dropdown'da kalır).
      */
     @GetMapping("/news")
     public ResponseEntity<ApiResponse<NewsListResponse>> getNews(
             @RequestParam(required = false) String category,
+            @RequestParam(required = false) String excludeCategory,
             @RequestParam(required = false) String source,
             @RequestParam(required = false) String q,
             @RequestParam(required = false) String range,
@@ -63,7 +66,7 @@ public class NewsController {
             @RequestParam(defaultValue = "12") @Min(1) @Max(60) int pageSize
     ) {
         Long fromMillis = rangeToFromMillis(range);
-        NewsQueryResult result = aggregatorService.query(category, source, q, region, fromMillis, null, page, pageSize, lang);
+        NewsQueryResult result = aggregatorService.query(category, excludeCategory, source, q, region, fromMillis, null, page, pageSize, lang);
         NewsListResponse body = newsMapper.toListResponse(result);
         return ResponseEntity.ok(ApiResponse.success(body, "Haberler getirildi"));
     }
