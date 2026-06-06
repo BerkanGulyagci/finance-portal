@@ -1,0 +1,96 @@
+# OpenSearch — log depolama (StatefulSet + PVC). log-consumer Kafka'dan okuyup buraya yazar,
+# OpenSearch Dashboards & Grafana buradan sorgular. single-node, güvenlik plugin'i KAPALI.
+# Service adı (headless): "opensearch", port 9200 → http://opensearch:9200
+# İNTERNETE KAPALI (ClusterIP) — sadece kubectl port-forward ile erişilir.
+# kubectl apply -f k8s/03-monitoring/opensearch.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: opensearch
+  namespace: portiva
+  labels:
+    app: opensearch
+    tier: monitoring
+spec:
+  serviceName: opensearch
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opensearch
+  template:
+    metadata:
+      labels:
+        app: opensearch
+        tier: monitoring
+    spec:
+      containers:
+        - name: opensearch
+          image: opensearchproject/opensearch:2.11.0
+          ports:
+            - name: http
+              containerPort: 9200
+          env:
+            - name: discovery.type
+              value: single-node
+            - name: OPENSEARCH_JAVA_OPTS
+              value: "-Xms512m -Xmx512m"
+            - name: plugins.security.disabled
+              value: "true"
+            - name: DISABLE_INSTALL_DEMO_CONFIG
+              value: "true"
+          volumeMounts:
+            - name: opensearch-data
+              mountPath: /usr/share/opensearch/data
+          # OpenSearch açılışı yavaş — başlangıç probe'u cömert tutulur.
+          readinessProbe:
+            tcpSocket:
+              port: 9200
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            tcpSocket:
+              port: 9200
+            initialDelaySeconds: 90
+            periodSeconds: 20
+          # requests: Xmx 512m + JVM/OS overhead. Autopilot için requests ZORUNLU.
+          resources:
+            requests:
+              cpu: 500m
+              memory: 768Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+  volumeClaimTemplates:
+    - metadata:
+        name: opensearch-data
+        labels:
+          app: opensearch
+          tier: monitoring
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: standard-rwo
+        resources:
+          requests:
+            storage: 3Gi
+---
+# Headless Service — StatefulSet için stabil DNS (opensearch.portiva.svc.cluster.local).
+apiVersion: v1
+kind: Service
+metadata:
+  name: opensearch
+  namespace: portiva
+  labels:
+    app: opensearch
+    tier: monitoring
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app: opensearch
+  ports:
+    - name: http
+      port: 9200
+      targetPort: 9200

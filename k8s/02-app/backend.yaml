@@ -1,0 +1,155 @@
+# =============================================================================
+# Backend (Spring Boot) — finance-portal-backend
+# Docker Compose 'backend' servisinden uyarlandı.
+# Image: <registry>/backend:v1
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: portiva
+  labels:
+    app: backend
+    tier: app
+spec:
+  replicas: 2 # HPA bu Deployment'a takılacak
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+        tier: app
+    spec:
+      containers:
+        - name: backend
+          image: europe-west1-docker.pkg.dev/project-f3ab8cbf-895a-47c2-91d/portiva-images/backend:v1
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            # --- Redis ---
+            - name: REDIS_HOST
+              value: "redis"
+            - name: REDIS_PORT
+              value: "6379"
+            # --- Kafka ---
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka:29092"
+            # --- PostgreSQL ---
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres:5432/finance_portal"
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: POSTGRES_USER
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: POSTGRES_PASSWORD
+            # --- EVDS (TCMB) ---
+            - name: EVDS_BASE_URL
+              value: "https://evds3.tcmb.gov.tr/igmevdsms-dis"
+            # --- Keycloak K8s override'ları ---
+            # backend-secrets içindeki KEYCLOAK_ADMIN_URL=http://finance-portal-keycloak:8080
+            # COMPOSE container adı → K8s'te YANLIŞ (Service adı "keycloak"). Explicit env
+            # envFrom secret'ı EZER → backend doğru Service'e bağlanır. (Aksi halde admin token
+            # alınamıyor → portföy/profil/kripto 500.)
+            - name: KEYCLOAK_ADMIN_URL
+              value: "http://keycloak:8080"
+            - name: KEYCLOAK_JWK_SET_URI
+              value: "http://keycloak:8080/realms/finance-portal/protocol/openid-connect/certs"
+            # Doğrulama sonrası kullanıcıyı cloud frontend'ine yönlendir (compose localhost değil).
+            - name: KEYCLOAK_POST_VERIFY_REDIRECT_URI
+              value: "https://8-233-66-172.nip.io/login"
+            # --- OpenTelemetry Java Agent ---
+            - name: OTEL_SERVICE_NAME
+              value: "finance-portal-backend"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector:4317"
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "grpc"
+            - name: OTEL_TRACES_EXPORTER
+              value: "otlp"
+            - name: OTEL_METRICS_EXPORTER
+              value: "otlp"
+            - name: OTEL_LOGS_EXPORTER
+              value: "none"
+            - name: OTEL_PROPAGATORS
+              value: "tracecontext,baggage"
+            - name: OTEL_INSTRUMENTATION_LOG4J_APPENDER_ENABLED
+              value: "false"
+            # --- JVM / TEFAS proxy bypass (compose satır 53 aynen) ---
+            - name: JAVA_TOOL_OPTIONS
+              value: '-Djdk.http.auth.tunneling.disabledSchemes="" -Djava.net.useSystemProxies=false'
+          # backend-secrets içindeki 26 değerin TAMAMI toplu yüklenir
+          # (EVDS_API_KEY, FINNHUB_API_KEY, ASSISTANT_API_KEY, SMTP_*, KEYCLOAK_ADMIN_* vb.)
+          envFrom:
+            - secretRef:
+                name: backend-secrets
+          # ÖNEMLİ: probe'lar AGGREGATE /actuator/health KULLANMAZ. application.yml health
+          # grupları tanımlı (liveness=livenessState, readiness=readinessState,db,redis). Aggregate
+          # health, MailHealthIndicator (Gmail SMTP "Too many login attempts") yüzünden kalıcı 503
+          # dönüyordu → pod hiç READY olamıyor → endpoint boş → Ingress 502. Mail non-kritik bir
+          # bileşen, ama aggregate'i DOWN yapıp tüm sistemi düşürüyordu. Çözüm: probe'ları sadece
+          # KRİTİK bileşenleri içeren gruplara yönlendir (mail probe'a girmez).
+          # startupProbe: Spring Boot başlangıç toleransı.
+          startupProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 18
+          # readiness: trafik almaya hazır mı (db+redis UP mı). Mail DAHİL DEĞİL.
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 6
+          # liveness: süreç canlı mı (livenessState). Dış bağımlılıklara BAKMAZ → yük/mail
+          # sorunu pod'u öldürmez. Restart fırtınasını bu çözer.
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            periodSeconds: 20
+            timeoutSeconds: 15
+            failureThreshold: 12
+          resources:
+            requests:
+              memory: "768Mi"
+              cpu: "500m"
+            # CPU limiti 1→2: yük altında throttle olup boğulmasın, daha fazla istek işlesin.
+            limits:
+              memory: "1.5Gi"
+              cpu: "2"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: portiva
+  labels:
+    app: backend
+    tier: app
+  annotations:
+    # GCLB health check'ini BackendConfig ile /actuator/health/readiness'e yönlendir
+    # (aggregate /actuator/health mail yüzünden 503 dönüp backend'i UNHEALTHY yapıyordu → 502).
+    cloud.google.com/backend-config: '{"default": "backend-bconfig"}'
+spec:
+  type: ClusterIP # Ingress dışa açar
+  selector:
+    app: backend
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP

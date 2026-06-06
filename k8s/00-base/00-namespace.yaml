@@ -1,0 +1,8 @@
+# Portiva — tüm servisler bu namespace altında izole çalışır.
+# kubectl apply -f k8s/00-base/00-namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: portiva
+  labels:
+    app.kubernetes.io/part-of: portiva

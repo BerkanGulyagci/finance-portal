@@ -1,0 +1,154 @@
+# Kafka (KRaft mode, tek node broker+controller) — StatefulSet + PVC (log dizini kalıcı).
+# Service adı: "kafka"
+#   → iç servisler (backend, log-consumer): kafka:29092  (KAFKA_BOOTSTRAP_SERVERS)
+#   → controller quorum: kafka:29093 (1@kafka:29093)
+# env'ler docker-compose.yml (satır 92-109) ile BİREBİR aynı; advertised listener "kafka"
+# service adıyla küme içi DNS üzerinden çözülür.
+# kubectl apply -f k8s/01-data/kafka.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kafka
+  namespace: portiva
+  labels:
+    app: kafka
+    tier: data
+spec:
+  serviceName: kafka
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka
+  template:
+    metadata:
+      labels:
+        app: kafka
+        tier: data
+    spec:
+      # PVC root'u root'a ait olur; kafka container appuser(1000) olarak çalışır → yazamaz
+      # (AccessDeniedException /var/lib/kafka/data). fsGroup volume'u grup 1000'e devreder.
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsGroup: 1000
+      containers:
+        - name: kafka
+          image: apache/kafka:4.1.1
+          ports:
+            - name: internal
+              containerPort: 29092
+            - name: controller
+              containerPort: 29093
+            - name: host
+              containerPort: 9092
+          env:
+            - name: KAFKA_NODE_ID
+              value: "1"
+            - name: KAFKA_PROCESS_ROLES
+              value: broker,controller
+            # PLAINTEXT 0.0.0.0'a bind — pod içi tüm arayüzlerden erişilebilir
+            - name: KAFKA_LISTENERS
+              value: PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093,PLAINTEXT_HOST://0.0.0.0:9092
+            # Advertised: K8s'te StatefulSet pod'unun STABLE DNS adi (kafka-0.kafka) kullanilir.
+            # Düz "kafka" ClusterIP controller portuna (29093) düzgün route etmiyordu →
+            # controller kendine baglanamiyor, "channel manager timed out". Headless service +
+            # pod DNS ile çözülür. Diger servisler "kafka:29092" service adiyla erisir (PLAINTEXT).
+            - name: KAFKA_ADVERTISED_LISTENERS
+              value: PLAINTEXT://kafka-0.kafka.portiva.svc.cluster.local:29092,PLAINTEXT_HOST://localhost:9092
+            - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+              value: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+            - name: KAFKA_INTER_BROKER_LISTENER_NAME
+              value: PLAINTEXT
+            # Controller quorum: pod'un kendi stable DNS'i (headless service uzerinden).
+            - name: KAFKA_CONTROLLER_QUORUM_VOTERS
+              value: 1@kafka-0.kafka.portiva.svc.cluster.local:29093
+            - name: KAFKA_CONTROLLER_LISTENER_NAMES
+              value: CONTROLLER
+            - name: KAFKA_LOG_DIRS
+              # PVC root'unda ext4'ün otomatik 'lost+found' klasörü var; Kafka onu topic sanıp
+              # çöküyordu. Alt-klasör kullan → lost+found'u görmez (postgres PGDATA ile aynı pattern).
+              value: /var/lib/kafka/data/logs
+            - name: CLUSTER_ID
+              value: MkU3OEVBNTcwNTJENDM2Qk
+            # Consumer group coordinator için gerekli
+            - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+              value: "1"
+            - name: KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS
+              value: "0"
+            - name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
+              value: "1"
+            - name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR
+              value: "1"
+            # JVM heap'i 768Mi limit altında tut (Xmx limiti aşmasın → OOMKill riski).
+            - name: KAFKA_HEAP_OPTS
+              value: -Xms256m -Xmx512m
+          volumeMounts:
+            - name: kafka-data
+              mountPath: /var/lib/kafka/data
+          # startupProbe: Kafka KRaft mode'da controller quorum + log recovery ile başlaması
+          # cloud'da yavaş. startupProbe başarana kadar liveness DEVRE DIŞI → erken öldürülmez.
+          # 30 × 10s = 5 dk tolerans.
+          startupProbe:
+            tcpSocket:
+              port: 9092
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            tcpSocket:
+              port: 9092
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: 9092
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: 500m
+              memory: 768Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+  volumeClaimTemplates:
+    - metadata:
+        name: kafka-data
+        labels:
+          app: kafka
+          tier: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: standard-rwo
+        resources:
+          requests:
+            storage: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+  namespace: portiva
+  labels:
+    app: kafka
+    tier: data
+spec:
+  # Headless (clusterIP: None) → StatefulSet pod'una stable DNS verir (kafka-0.kafka...).
+  # KRaft controller'in kendine baglanmasi için ŞART. "kafka:29092" yine çözülür (DNS pod'a gider).
+  clusterIP: None
+  selector:
+    app: kafka
+  ports:
+    - name: internal
+      port: 29092
+      targetPort: 29092
+    - name: host
+      port: 9092
+      targetPort: 9092
+    - name: controller
+      port: 29093
+      targetPort: 29093

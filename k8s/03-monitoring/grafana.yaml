@@ -1,0 +1,106 @@
+# Grafana — gözlemlenebilirlik panosu (Deployment + PVC). Prometheus (metrik), Tempo (trace)
+# ve OpenSearch (log) datasource'larını birleştirir. OpenSearch için resmi eklenti otomatik kurulur.
+# Admin şifresi HARDCODE EDİLMEZ — "db-secrets" Secret'ından (GRAFANA_ADMIN_PASSWORD) gelir.
+# Service adı: "grafana", port 3000.
+# İNTERNETE KAPALI (ClusterIP) — erişim: kubectl port-forward svc/grafana 3000:3000
+# kubectl apply -f k8s/03-monitoring/grafana.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: portiva
+  labels:
+    app: grafana
+    tier: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+        tier: monitoring
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:10.4.0
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              value: admin
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: GRAFANA_ADMIN_PASSWORD
+            # Resmi OpenSearch datasource eklentisi (gereksinim: OpenSearch — Elasticsearch değil).
+            - name: GF_INSTALL_PLUGINS
+              value: grafana-opensearch-datasource
+          volumeMounts:
+            - name: grafana-data
+              mountPath: /var/lib/grafana
+            # TODO: provisioning (datasource + dashboard) ConfigMap ile eklenecek
+            #       → mount /etc/grafana/provisioning. Compose'daki ./docker/grafana/provisioning karşılığı.
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 20
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: grafana-data
+          persistentVolumeClaim:
+            claimName: grafana-data
+---
+# Grafana kalıcı veri (dashboard/datasource/kullanıcı) — Deployment ile ayrı PVC kullanılır.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-data
+  namespace: portiva
+  labels:
+    app: grafana
+    tier: monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: standard-rwo
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: portiva
+  labels:
+    app: grafana
+    tier: monitoring
+spec:
+  type: ClusterIP
+  selector:
+    app: grafana
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000

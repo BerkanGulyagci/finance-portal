@@ -1,0 +1,116 @@
+# PostgreSQL — kalıcı veri (StatefulSet + PVC). finance_portal + keycloak DB'lerini barındırır.
+# Service adı (headless): "postgres", port 5432
+#   → backend  : jdbc:postgresql://postgres:5432/finance_portal
+#   → keycloak : jdbc:postgresql://postgres:5432/keycloak
+# User/şifre HARDCODE EDİLMEZ — "db-secrets" Secret'ından gelir.
+# Init: "postgres-init" ConfigMap (01-create-keycloak-db.sql) ilk boş data dizininde keycloak DB'sini yaratır.
+# kubectl apply -f k8s/01-data/postgres.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: portiva
+  labels:
+    app: postgres
+    tier: data
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+        tier: data
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: finance_portal
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secrets
+                  key: POSTGRES_PASSWORD
+            - name: TZ
+              value: Europe/Istanbul
+            # postgres:17 imajında data dizini volume mount'un kökünde değil alt-klasörde
+            # olmalı (lost+found çatışmasını önler).
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+            - name: init-scripts
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - 'pg_isready -U "$POSTGRES_USER" -d finance_portal'
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 20
+          livenessProbe:
+            tcpSocket:
+              port: 5432
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+      volumes:
+        - name: init-scripts
+          configMap:
+            name: postgres-init
+  volumeClaimTemplates:
+    - metadata:
+        name: pgdata
+        labels:
+          app: postgres
+          tier: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: standard-rwo
+        resources:
+          requests:
+            storage: 5Gi
+---
+# Headless Service — StatefulSet için stabil DNS (postgres.portiva.svc.cluster.local).
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: portiva
+  labels:
+    app: postgres
+    tier: data
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432

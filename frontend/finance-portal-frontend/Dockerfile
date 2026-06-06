@@ -7,6 +7,14 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
+
+# Build-time Vite env (taşınabilir): cloud deploy'da Keycloak HTTPS hostname'i geçilir.
+# Verilmezse boş kalır → kod içindeki default'lar (localhost) devreye girer (local build bozulmaz).
+ARG VITE_KEYCLOAK_URL=""
+ARG VITE_KEYCLOAK_REALM=""
+ENV VITE_KEYCLOAK_URL=$VITE_KEYCLOAK_URL
+ENV VITE_KEYCLOAK_REALM=$VITE_KEYCLOAK_REALM
+
 RUN npm run build
 
 # ── Stage 2: Serve with Nginx ─────────────────────────────────────────────────

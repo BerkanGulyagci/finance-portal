@@ -10,3 +10,10 @@ README.md
 .idea/
 .vscode/
 *.iml
+
+# Ortam/secret dosyaları — build context'e GİRMESİN (secret sızması + gereksiz context).
+# Spring config zaten env var ile gelir; .env dosyalarının image'a aktarılmasına gerek yok.
+.env
+.env.local
+.env.*
+*.example

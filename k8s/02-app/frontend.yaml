@@ -1,0 +1,74 @@
+# =============================================================================
+# Frontend (nginx + React build) — finance-portal-frontend
+# Docker Compose 'frontend' servisinden uyarlandı.
+# Image: <registry>/frontend:v1
+# NOT: nginx.conf'taki API proxy "backend:8080" hedefi K8s 'backend' Service
+#      adıyla birebir eşleşir — değişiklik gerekmez.
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: portiva
+  labels:
+    app: frontend
+    tier: app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+        tier: app
+    spec:
+      containers:
+        - name: frontend
+          image: europe-west1-docker.pkg.dev/project-f3ab8cbf-895a-47c2-91d/portiva-images/frontend:v1
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+              name: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "128Mi"
+              cpu: "250m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: portiva
+  labels:
+    app: frontend
+    tier: app
+spec:
+  type: ClusterIP # Ingress dışa açar
+  selector:
+    app: frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP

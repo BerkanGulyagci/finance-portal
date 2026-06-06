@@ -1,0 +1,82 @@
+# =============================================================================
+# HTTPS Ingress — nip.io hostname + GKE ManagedCertificate (otomatik Let's Encrypt).
+#
+# Neden HTTPS: Frontend login PKCE için crypto.subtle.digest kullanır; tarayıcılar
+# bunu SADECE secure context'te (HTTPS) sağlar. HTTP'de undefined → login patlıyordu.
+#
+# Hostname: 8-233-66-172.nip.io → 8.233.66.172'ye çözülür (DNS kurulumu GEREKMEZ).
+# ManagedCertificate ham IP'ye verilemez, hostname şart → nip.io çözümü.
+#
+# Path routing (same-origin — frontend Keycloak'a aynı host'tan erişir):
+#   /realms/*    → keycloak:8080  (OAuth auth/token/logout endpoint'leri)
+#   /resources/* → keycloak:8080  (Keycloak login teması CSS/JS)
+#   /api/*       → backend:8080
+#   /*           → frontend:80
+#
+# ⚠️ ManagedCertificate provizyonu 15-60 dk sürebilir (Let's Encrypt doğrulama).
+# =============================================================================
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: portiva-cert
+  namespace: portiva
+spec:
+  domains:
+    - 8-233-66-172.nip.io
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: portiva-ingress
+  namespace: portiva
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    # ManagedCertificate'i bu Ingress'e bağla (HTTPS).
+    networking.gke.io/managed-certificates: "portiva-cert"
+    # HTTP'yi de açık tut (HTTPS hazır olana kadar erişim + nip.io HTTP fallback).
+    kubernetes.io/ingress.allow-http: "true"
+spec:
+  rules:
+    - host: 8-233-66-172.nip.io
+      http:
+        paths:
+          # Keycloak OAuth endpoint'leri (same-origin — frontend buradan login yapar)
+          - path: /realms
+            pathType: Prefix
+            backend:
+              service:
+                name: keycloak
+                port:
+                  number: 8080
+          # Keycloak login teması statik dosyaları
+          - path: /resources
+            pathType: Prefix
+            backend:
+              service:
+                name: keycloak
+                port:
+                  number: 8080
+          # Keycloak ADMIN konsolu (https://.../admin/master/console/)
+          - path: /admin
+            pathType: Prefix
+            backend:
+              service:
+                name: keycloak
+                port:
+                  number: 8080
+          # Backend API
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8080
+          # Frontend SPA
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

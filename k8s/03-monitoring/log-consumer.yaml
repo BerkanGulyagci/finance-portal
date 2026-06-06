@@ -1,0 +1,42 @@
+# log-consumer — Kafka'dan log mesajlarını okuyup OpenSearch'e yazan tüketici (custom image).
+# Sadece tüketicidir, port DİNLEMEZ → Service GEREKMEZ (yalnızca Deployment).
+# Bağlantılar: Kafka (kafka:29092) → OpenSearch (opensearch:9200).
+# Image custom registry'den çekilir; her deploy'da güncel tag için imagePullPolicy: Always.
+# kubectl apply -f k8s/03-monitoring/log-consumer.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: log-consumer
+  namespace: portiva
+  labels:
+    app: log-consumer
+    tier: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: log-consumer
+  template:
+    metadata:
+      labels:
+        app: log-consumer
+        tier: monitoring
+    spec:
+      containers:
+        - name: log-consumer
+          image: europe-west1-docker.pkg.dev/project-f3ab8cbf-895a-47c2-91d/portiva-images/log-consumer:v1
+          imagePullPolicy: Always
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: kafka:29092
+            - name: OPENSEARCH_HOST
+              value: opensearch
+            - name: OPENSEARCH_PORT
+              value: "9200"
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

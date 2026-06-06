@@ -1,0 +1,101 @@
+# Prometheus — metrik toplama ve depolama (StatefulSet + PVC). otel-collector'ın 8889 exporter'ı
+# ve diğer hedefleri scrape eder; Grafana Prometheus datasource'u buradan sorgular. Retention 7g.
+# Config "prometheus-config" ConfigMap'inden (key: prometheus.yml) /etc/prometheus/prometheus.yml mount edilir.
+# Service adı (headless): "prometheus", port 9090 → http://prometheus:9090
+# İNTERNETE KAPALI (ClusterIP).
+# kubectl apply -f k8s/03-monitoring/prometheus.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: prometheus
+  namespace: portiva
+  labels:
+    app: prometheus
+    tier: monitoring
+spec:
+  serviceName: prometheus
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+        tier: monitoring
+    spec:
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.51.0
+          args:
+            - "--config.file=/etc/prometheus/prometheus.yml"
+            - "--storage.tsdb.retention.time=7d"
+          ports:
+            - name: http
+              containerPort: 9090
+          volumeMounts:
+            - name: prometheus-config
+              mountPath: /etc/prometheus
+              readOnly: true
+            - name: prometheus-data
+              mountPath: /prometheus
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: 9090
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 15
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: 9090
+            initialDelaySeconds: 45
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: prometheus-config
+          configMap:
+            name: prometheus-config
+            items:
+              - key: prometheus.yml
+                path: prometheus.yml
+  volumeClaimTemplates:
+    - metadata:
+        name: prometheus-data
+        labels:
+          app: prometheus
+          tier: monitoring
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: standard-rwo
+        resources:
+          requests:
+            storage: 2Gi
+---
+# Headless Service — StatefulSet için stabil DNS (prometheus.portiva.svc.cluster.local).
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: portiva
+  labels:
+    app: prometheus
+    tier: monitoring
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app: prometheus
+  ports:
+    - name: http
+      port: 9090
+      targetPort: 9090

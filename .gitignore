@@ -61,3 +61,10 @@ docker/apacheds/data/
 ### Bunlar kullanıcı verisi/şifre/secret içerir; yeni sunucuya scp ile elle taşınır. ###
 backup/
 docker/keycloak/import/*.json
+
+# K8s gerçek secret'ları (local değerler, git'e girmez)
+k8s/**/secret*.local.yaml
+k8s/**/*-secret-local.yaml
+
+# Cloud migration geçici dosyaları (DB dump + LDAP export — SECRET, git'e girmez)
+tmp-migration/

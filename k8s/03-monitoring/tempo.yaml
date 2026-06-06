@@ -1,0 +1,100 @@
+# Tempo — dağıtık trace depolama (StatefulSet + PVC). otel-collector trace'leri buraya yazar,
+# Grafana Tempo datasource'u buradan sorgular.
+# Config "tempo-config" ConfigMap'inden (key: tempo.yml) /etc/tempo/tempo.yml olarak mount edilir.
+# Service adı (headless): "tempo", port 3200 → http://tempo:3200
+# İNTERNETE KAPALI (ClusterIP).
+# kubectl apply -f k8s/03-monitoring/tempo.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: tempo
+  namespace: portiva
+  labels:
+    app: tempo
+    tier: monitoring
+spec:
+  serviceName: tempo
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tempo
+  template:
+    metadata:
+      labels:
+        app: tempo
+        tier: monitoring
+    spec:
+      containers:
+        - name: tempo
+          image: grafana/tempo:2.4.1
+          args:
+            - "-config.file=/etc/tempo/tempo.yml"
+          ports:
+            - name: http
+              containerPort: 3200
+          volumeMounts:
+            - name: tempo-config
+              mountPath: /etc/tempo
+              readOnly: true
+            - name: tempo-data
+              mountPath: /var/tempo
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3200
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 15
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 3200
+            initialDelaySeconds: 45
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+      volumes:
+        - name: tempo-config
+          configMap:
+            name: tempo-config
+            items:
+              - key: tempo.yml
+                path: tempo.yml
+  volumeClaimTemplates:
+    - metadata:
+        name: tempo-data
+        labels:
+          app: tempo
+          tier: monitoring
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: standard-rwo
+        resources:
+          requests:
+            storage: 2Gi
+---
+# Headless Service — StatefulSet için stabil DNS (tempo.portiva.svc.cluster.local).
+apiVersion: v1
+kind: Service
+metadata:
+  name: tempo
+  namespace: portiva
+  labels:
+    app: tempo
+    tier: monitoring
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app: tempo
+  ports:
+    - name: http
+      port: 3200
+      targetPort: 3200

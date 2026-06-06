@@ -1,0 +1,81 @@
+# OpenTelemetry Collector (contrib) — backend'in OTLP trace/metric verisini toplar.
+# Backend OTLP gRPC ile 4317'ye gönderir; Collector trace'leri Tempo'ya iletir,
+# metrikleri 8889 Prometheus-exporter portundan sunar (Prometheus scrape eder).
+# Config "otel-config" ConfigMap'inden (key: otel-collector-config.yaml) /etc/otel altına mount edilir.
+# Service adı: "otel-collector", portlar 4317 (OTLP gRPC), 4318 (OTLP HTTP), 8889 (Prometheus exporter).
+# İNTERNETE KAPALI (ClusterIP).
+# kubectl apply -f k8s/03-monitoring/otel-collector.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-collector
+  namespace: portiva
+  labels:
+    app: otel-collector
+    tier: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: otel-collector
+  template:
+    metadata:
+      labels:
+        app: otel-collector
+        tier: monitoring
+    spec:
+      containers:
+        - name: otel-collector
+          image: otel/opentelemetry-collector-contrib:0.96.0
+          args:
+            - "--config=/etc/otel/otel-collector-config.yaml"
+          ports:
+            - name: otlp-grpc
+              containerPort: 4317
+            - name: otlp-http
+              containerPort: 4318
+            - name: self-metrics
+              containerPort: 8888
+            - name: prom-export
+              containerPort: 8889
+          volumeMounts:
+            - name: otel-config
+              mountPath: /etc/otel
+              readOnly: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+      volumes:
+        - name: otel-config
+          configMap:
+            name: otel-config
+            items:
+              - key: otel-collector-config.yaml
+                path: otel-collector-config.yaml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector
+  namespace: portiva
+  labels:
+    app: otel-collector
+    tier: monitoring
+spec:
+  type: ClusterIP
+  selector:
+    app: otel-collector
+  ports:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+    - name: prom-export
+      port: 8889
+      targetPort: 8889
