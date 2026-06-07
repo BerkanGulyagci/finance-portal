@@ -93,10 +93,45 @@ The system consists of three main layers:
 
 The system is designed as a **modular monolith**: a single deployable backend application containing 12 domains cleanly separated by functional area (each layered with Clean Architecture). All components run as **containers**; they are orchestrated with **Docker Compose** in development and **Kubernetes (GKE)** in production. External access comes through a single entry point (reverse proxy / Ingress); the backend connects to external data sources via a port/adapter abstraction.
 
-<!-- TODO: add assets/architecture.png here -->
-<p align="center">
-  <img src="assets/architecture.png" alt="System Architecture" width="900"/>
-</p>
+```mermaid
+graph TD
+    Browser([User / Browser])
+
+    subgraph stack["Docker Compose (development) / Kubernetes-GKE (production)"]
+        FE["Frontend<br/>React + Nginx"]
+        BE["Backend — Spring Boot<br/>Modular Monolith · 12 domains"]
+        PG[(PostgreSQL)]
+        RD[(Redis cache)]
+        KC["Keycloak — OIDC + 2FA"]
+        LDAP["OpenLDAP / ApacheDS"]
+        KAFKA["Kafka"]
+        LC["Log Consumer"]
+        OS[(OpenSearch)]
+        OTEL["OTel Collector"]
+        PROM[(Prometheus)]
+        TEMPO[(Tempo)]
+        GRAF["Grafana"]
+    end
+
+    EXT["External Data Sources<br/>Yahoo · Binance · TCMB · TEFAS<br/>FRED · Finnhub · CoinGecko<br/>Groq/Gemini · SMTP"]
+
+    Browser --> FE
+    FE -->|REST /api/v1| BE
+    BE --> PG
+    BE --> RD
+    BE -->|OIDC / JWT| KC
+    KC --- LDAP
+    BE -->|HTTPS| EXT
+    BE -->|log4j2 JSON| KAFKA
+    KAFKA --> LC
+    LC --> OS
+    BE -->|OTLP| OTEL
+    OTEL --> PROM
+    OTEL --> TEMPO
+    PROM --> GRAF
+    TEMPO --> GRAF
+    OS --> GRAF
+```
 
 **Main components:**
 

@@ -93,10 +93,45 @@ Sistem üç ana katmandan oluşur:
 
 Sistem, **modüler monolit** mimarisiyle tasarlanmıştır: tek bir dağıtılabilir backend uygulaması içinde, işlevsel alanlara göre net biçimde ayrılmış 12 domain (her biri Clean Architecture katmanlı). Tüm bileşenler **konteyner** olarak çalışır; geliştirmede **Docker Compose**, üretimde **Kubernetes (GKE)** ile orkestre edilir. Dış erişim tek bir giriş noktası (reverse proxy / Ingress) üzerinden gelir; backend, dış veri kaynaklarına port/adapter soyutlamasıyla bağlanır.
 
-<!-- TODO: assets/architecture.png buraya eklenecek -->
-<p align="center">
-  <img src="assets/architecture.png" alt="Sistem Mimarisi" width="900"/>
-</p>
+```mermaid
+graph TD
+    Browser([Kullanıcı / Tarayıcı])
+
+    subgraph stack["Docker Compose (geliştirme) / Kubernetes-GKE (üretim)"]
+        FE["Frontend<br/>React + Nginx"]
+        BE["Backend — Spring Boot<br/>Modüler Monolit · 12 domain"]
+        PG[(PostgreSQL)]
+        RD[(Redis cache)]
+        KC["Keycloak — OIDC + 2FA"]
+        LDAP["OpenLDAP / ApacheDS"]
+        KAFKA["Kafka"]
+        LC["Log Consumer"]
+        OS[(OpenSearch)]
+        OTEL["OTel Collector"]
+        PROM[(Prometheus)]
+        TEMPO[(Tempo)]
+        GRAF["Grafana"]
+    end
+
+    EXT["Dış Veri Kaynakları<br/>Yahoo · Binance · TCMB · TEFAS<br/>FRED · Finnhub · CoinGecko<br/>Groq/Gemini · SMTP"]
+
+    Browser --> FE
+    FE -->|REST /api/v1| BE
+    BE --> PG
+    BE --> RD
+    BE -->|OIDC / JWT| KC
+    KC --- LDAP
+    BE -->|HTTPS| EXT
+    BE -->|log4j2 JSON| KAFKA
+    KAFKA --> LC
+    LC --> OS
+    BE -->|OTLP| OTEL
+    OTEL --> PROM
+    OTEL --> TEMPO
+    PROM --> GRAF
+    TEMPO --> GRAF
+    OS --> GRAF
+```
 
 **Başlıca bileşenler:**
 
