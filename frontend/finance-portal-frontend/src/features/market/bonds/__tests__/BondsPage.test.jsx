@@ -202,7 +202,7 @@ describe('BondsPage (Tahvil / Bono) — jsdom + testing-library', () => {
   it('aynı kolona ikinci tıklama sıralama yönünü desc yapar', async () => {
     renderPage();
     await waitFor(() => expect(getEvdsBonds).toHaveBeenCalledTimes(1));
-    const header = screen.getByText('Vade Tarihi'); // varsayılan sortBy='maturityDate'/asc
+    const header = await screen.findByText('Vade Tarihi'); // varsayılan sortBy='maturityDate'/asc
     fireEvent.click(header); // toggle → desc
     await waitFor(() =>
       expect(getEvdsBonds).toHaveBeenLastCalledWith(
