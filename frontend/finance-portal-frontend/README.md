@@ -1,10 +1,10 @@
 # Finance Portal — Frontend
 
-**English** · [Türkçe](README.md)
+**English** · [Türkçe](README.tr.md)
 
 A **feature-based** single-page application (SPA) built on React 19 + Vite.
 
-> This document covers frontend-specific technical details. For the project overview, setup and running, see the [main README](../../README.en.md).
+> This document covers frontend-specific technical details. For the project overview, setup and running, see the [main README](../../README.md).
 
 ## Architectural Approach
 
@@ -49,7 +49,7 @@ React 19, Vite, React Router 7, Tailwind CSS, Axios; klinecharts, ECharts, Recha
 
 ## Local Development
 
-> Prerequisite: **Node.js 20+**. The backend must be running (via Docker or separately). For the full stack, see the [main README](../../README.en.md).
+> Prerequisite: **Node.js 20+**. The backend must be running (via Docker or separately). For the full stack, see the [main README](../../README.md).
 
 ```bash
 # Install dependencies

@@ -1,6 +1,6 @@
 # Finans Portalı — Backend
 
-[English](README.en.md) · **Türkçe**
+[English](README.md) · **Türkçe**
 
 Java 21 + Spring Boot 3.2.1 üzerine kurulu, **modüler monolit + Clean Architecture** mimarisinde REST API.
 

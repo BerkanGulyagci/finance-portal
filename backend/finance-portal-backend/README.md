@@ -1,10 +1,10 @@
 # Finance Portal — Backend
 
-**English** · [Türkçe](README.md)
+**English** · [Türkçe](README.tr.md)
 
 A REST API built on Java 21 + Spring Boot 3.2.1 in a **modular monolith + Clean Architecture** design.
 
-> This document covers backend-specific technical details. For the project overview, setup and running, see the [main README](../../README.en.md).
+> This document covers backend-specific technical details. For the project overview, setup and running, see the [main README](../../README.md).
 
 ## Architectural Approach
 
@@ -51,7 +51,7 @@ Spring Boot (Web, Security / OAuth2 Resource Server, Data JPA, Data Redis, Kafka
 
 ## Local Run (Without Docker)
 
-> To run the whole stack with Docker, follow the setup steps in the [main README](../../README.en.md). The following is only for running the backend on its own (PostgreSQL, Redis and Keycloak must be running separately).
+> To run the whole stack with Docker, follow the setup steps in the [main README](../../README.md). The following is only for running the backend on its own (PostgreSQL, Redis and Keycloak must be running separately).
 
 ```bash
 # Download dependencies + build
