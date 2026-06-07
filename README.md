@@ -485,6 +485,22 @@ docker compose down -v && docker compose up -d
 
 ## Detaylı Dökümantasyon
 
+### API Standartları ve Dokümantasyon
+
+- **Sürümleme (Versioning):** Tüm REST uç noktaları `/api/v1/**` öneki ile sürümlenmiştir; ileride geriye dönük uyumluluğu bozmadan `/api/v2/**` eklenebilir.
+- **OpenAPI / Swagger:** API, **springdoc-openapi** ile otomatik belgelenir (etkileşimli, çalışan sistemde anında erişilebilir).
+- **Javadoc:** Kaynak kod Javadoc yorumlarıyla belgelenmiştir; tek komutla gezilebilir HTML üretilir.
+
+Sistem ayaktayken (yerelde) erişim adresleri:
+
+| Belge | Adres / Komut |
+|---|---|
+| **Swagger UI** (etkileşimli) | [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html) |
+| **OpenAPI 3 şeması** (JSON) | [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs) |
+| **Javadoc** (HTML) | `cd backend/finance-portal-backend && ./mvnw javadoc:javadoc` → `target/site/apidocs/index.html` dosyasını tarayıcıda açın |
+
+### Proje Dökümanları
+
 Bu README genel bir bakış sunar. Ayrıntılı dökümantasyon:
 
 | Döküman | İçerik |
