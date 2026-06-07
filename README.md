@@ -9,7 +9,7 @@
 
 **Toyota 32Bit · Multi-asset portfolio tracking and market monitoring platform**
 
-**English** · [Türkçe](README.md) &nbsp;·&nbsp; [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+**English** · [Türkçe](README.tr.md) &nbsp;·&nbsp; [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 </td>
 </tr>
@@ -46,23 +46,23 @@ The system consists of three main layers:
 
 ## Table of Contents
 
-- ▸ [Features](#features)
-- ▸ [System Architecture](#system-architecture)
-- ▸ [Installation & Running](#installation--running)
-- ▸ [Technology Stack](#technology-stack)
-- ▸ [Directory & Code Structure](#directory--code-structure)
-- ▸ [Services & Access Details](#services--access-details)
-- ▸ [Server Side (Backend)](#server-side-backend)
-- ▸ [Client Side (Frontend)](#client-side-frontend)
-- ▸ [Monitoring & Observability](#monitoring--observability)
-- ▸ [Security Architecture](#security-architecture)
-- ▸ [Continuous Integration & Deployment](#continuous-integration--deployment)
-- ▸ [Testing & Code Quality](#testing--code-quality)
-- ▸ [Things to Note](#things-to-note)
-- ▸ [Troubleshooting](#troubleshooting)
-- ▸ [Detailed Documentation](#detailed-documentation)
-- ▸ [Contact](#contact)
-- ▸ [License](#license)
+1. [Features](#features)
+2. [System Architecture](#system-architecture)
+3. [Installation & Running](#installation--running)
+4. [Technology Stack](#technology-stack)
+5. [Directory & Code Structure](#directory--code-structure)
+6. [Services & Access Details](#services--access-details)
+7. [Server Side (Backend)](#server-side-backend)
+8. [Client Side (Frontend)](#client-side-frontend)
+9. [Monitoring & Observability](#monitoring--observability)
+10. [Security Architecture](#security-architecture)
+11. [Continuous Integration & Deployment](#continuous-integration--deployment)
+12. [Testing & Code Quality](#testing--code-quality)
+13. [Things to Note](#things-to-note)
+14. [Troubleshooting](#troubleshooting)
+15. [Detailed Documentation](#detailed-documentation)
+16. [Contact](#contact)
+17. [License](#license)
 
 ## Features
 

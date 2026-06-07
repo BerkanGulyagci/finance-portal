@@ -9,7 +9,7 @@
 
 **Toyota 32Bit · Çok varlıklı portföy takip ve piyasa izleme platformu**
 
-[English](README.en.md) · **Türkçe** &nbsp;·&nbsp; [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[English](README.md) · **Türkçe** &nbsp;·&nbsp; [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 </td>
 </tr>
@@ -46,23 +46,23 @@ Sistem üç ana katmandan oluşur:
 
 ## İçindekiler
 
-- ▸ [Neler Yapabilir?](#neler-yapabilir)
-- ▸ [Sistem Mimarisi](#sistem-mimarisi)
-- ▸ [Kurulum ve Çalıştırma](#kurulum-ve-çalıştırma)
-- ▸ [Kullanılan Teknolojiler](#kullanılan-teknolojiler)
-- ▸ [Dizin ve Kod Yapısı](#dizin-ve-kod-yapısı)
-- ▸ [Servisler ve Erişim Bilgileri](#servisler-ve-erişim-bilgileri)
-- ▸ [Sunucu Tarafı (Backend)](#sunucu-tarafı-backend)
-- ▸ [İstemci Tarafı (Frontend)](#istemci-tarafı-frontend)
-- ▸ [İzleme ve Gözlemlenebilirlik](#izleme-ve-gözlemlenebilirlik)
-- ▸ [Güvenlik Mimarisi](#güvenlik-mimarisi)
-- ▸ [Sürekli Entegrasyon ve Dağıtım](#sürekli-entegrasyon-ve-dağıtım)
-- ▸ [Test ve Kod Kalitesi](#test-ve-kod-kalitesi)
-- ▸ [Dikkat Edilmesi Gerekenler](#dikkat-edilmesi-gerekenler)
-- ▸ [Sık Karşılaşılan Sorunlar](#sık-karşılaşılan-sorunlar)
-- ▸ [Detaylı Dökümantasyon](#detaylı-dökümantasyon)
-- ▸ [İletişim](#i̇letişim)
-- ▸ [Lisans](#lisans)
+1. [Neler Yapabilir?](#neler-yapabilir)
+2. [Sistem Mimarisi](#sistem-mimarisi)
+3. [Kurulum ve Çalıştırma](#kurulum-ve-çalıştırma)
+4. [Kullanılan Teknolojiler](#kullanılan-teknolojiler)
+5. [Dizin ve Kod Yapısı](#dizin-ve-kod-yapısı)
+6. [Servisler ve Erişim Bilgileri](#servisler-ve-erişim-bilgileri)
+7. [Sunucu Tarafı (Backend)](#sunucu-tarafı-backend)
+8. [İstemci Tarafı (Frontend)](#istemci-tarafı-frontend)
+9. [İzleme ve Gözlemlenebilirlik](#izleme-ve-gözlemlenebilirlik)
+10. [Güvenlik Mimarisi](#güvenlik-mimarisi)
+11. [Sürekli Entegrasyon ve Dağıtım](#sürekli-entegrasyon-ve-dağıtım)
+12. [Test ve Kod Kalitesi](#test-ve-kod-kalitesi)
+13. [Dikkat Edilmesi Gerekenler](#dikkat-edilmesi-gerekenler)
+14. [Sık Karşılaşılan Sorunlar](#sık-karşılaşılan-sorunlar)
+15. [Detaylı Dökümantasyon](#detaylı-dökümantasyon)
+16. [İletişim](#i̇letişim)
+17. [Lisans](#lisans)
 
 ## Neler Yapabilir?
 
