@@ -68,3 +68,4 @@ k8s/**/*-secret-local.yaml
 
 # Cloud migration geçici dosyaları (DB dump + LDAP export — SECRET, git'e girmez)
 tmp-migration/
+node_modules/
