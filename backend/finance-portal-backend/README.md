@@ -1,138 +1,91 @@
-# Finance Portal Backend
+# Finans Portalı — Backend
 
-Spring Boot backend application implementing Clean Architecture principles for the Finance Portal system.
+Java 21 + Spring Boot 3.2.1 üzerine kurulu, **modüler monolit + Clean Architecture** mimarisinde REST API.
 
-## Overview
+> Bu döküman backend'e özel teknik detayları içerir. Projenin geneli, kurulum ve çalıştırma için [ana README](../../README.md)'ye bakınız.
 
-This backend service provides RESTful APIs for the Finance Portal application. It is built with a focus on maintainability, scalability, and adherence to enterprise software development standards.
+## Mimari Yaklaşım
 
-## Architecture
-
-The application follows **Clean Architecture** (also known as Hexagonal Architecture or Ports and Adapters), organizing code into distinct layers:
-
-### Layer Structure
+Backend, **modüler monolit** olarak tasarlanmıştır: tek bir dağıtılabilir uygulama içinde, işlevsel alanlara (domain) göre net biçimde ayrılmış 12 modül. Her modül, **Clean Architecture** katmanlarına bölünmüştür.
 
 ```
-com.finance.portal/
-├── presentation/       # Controllers, DTOs, API layer
-│   └── controller/     # REST controllers
-├── application/        # Use cases, business logic orchestration
-│   └── service/        # Application services
-├── domain/            # Business entities, domain logic
-└── infrastructure/    # External integrations, configurations
-    └── config/        # Spring configurations
+com/finance/portal/
+├── market/          # Piyasa verileri (hisse, kripto, döviz, fon, tahvil, VİOP, emtia, endeks, ekonomi)
+├── portfolio/       # Portföy, işlem, izleme listesi, değerleme, what-if, AI analiz
+├── alarm/           # Fiyat / değişim / hacim alarmları
+├── notification/    # Uygulama içi bildirim + e-posta
+├── news/            # Çok kaynaklı haber toplama + kişiselleştirme
+├── assistant/       # Yapay zekâ sohbet asistanı (tool-calling)
+├── newsletter/      # Bülten aboneliği + dijest
+├── support/         # Destek talepleri
+├── preferences/     # Kullanıcı tercihleri (cihazlar arası senkron)
+├── admin/           # Kullanıcı yönetimi, ban (Keycloak)
+├── auth/            # Kimlik doğrulama yardımcıları, kayıt
+└── common/          # Çapraz kesen: güvenlik, loglama, önbellek, hata, config
 ```
 
-### Layer Responsibilities
+Her domain modülü 4 katmandan oluşur:
 
-- **Presentation Layer**: Handles HTTP requests/responses, input validation, and API contracts
-- **Application Layer**: Orchestrates business workflows, coordinates between domain and infrastructure
-- **Domain Layer**: Contains core business logic, entities, and domain rules (framework-independent)
-- **Infrastructure Layer**: Manages external dependencies (databases, message queues, external APIs)
+| Katman | İçerik | Bağımlılık |
+|---|---|---|
+| `presentation` | REST denetleyiciler (`controller`), DTO'lar | Application'a |
+| `application` | İş akışı servisleri, `port` arayüzleri | Domain'e |
+| `domain` | İş varlıkları (entity), kurallar | (en içte — bağımsız) |
+| `infrastructure` | Port gerçekleştirimleri: adapter, repository, dış servis istemcisi | Application + Domain'e |
 
-## Current Features
+**Bağımlılık kuralı:** Bağımlılıklar daima dıştan içe akar. Dış bağımlılıklar (veritabanı, dış API) `port` arayüzleriyle soyutlanır; infrastructure bunları gerçekleştirir (Dependency Inversion). Domain katmanı çerçeveden tamamen bağımsızdır.
 
-### Health Check Endpoint
+## Başlıca Bileşenler
 
-- **Endpoint**: `GET /api/health`
-- **Response**: `Finance Portal Backend is running`
-- **Purpose**: Verify application status and readiness
+- **36 REST denetleyici, 124 uç nokta** — tümü `/api/v1/**` altında, `ApiResponse<T>` zarfıyla.
+- **22 zamanlanmış görev** — alarm değerlendirme, önbellek ısıtma, vade kapatma, bülten dijesti (ShedLock ile dağıtık kilit).
+- **29 dış servis istemcisi** — port/adapter ile soyutlanmış (Yahoo, Binance, TCMB, TEFAS, İş Yatırım vb.).
+- **Dayanıklılık:** Last Known Good (LKG) + Resilience4j (retry / circuit breaker) + 50+ Redis önbellek ad alanı.
+- **10 JPA entity, 17 Flyway migration** (V1–V17).
 
-### Crypto Market API (Powered by CoinGecko)
+## Teknolojiler
 
-- **Endpoint**: `GET /api/market/crypto?page=0&size=20`
-- **Description**: Returns paginated crypto market list in TRY. Data is provided by [CoinGecko](https://www.coingecko.com/) (Demo API).
-- **Query params**: `page` (0-based, default 0), `size` (1–100, default 20)
+Spring Boot (Web, Security / OAuth2 Resource Server, Data JPA, Data Redis, Kafka, Mail, Cache, Validation, Actuator), Flyway, Lombok, Resilience4j, ShedLock, OpenTelemetry, Micrometer / Prometheus, log4j2 (JSON), springdoc-openapi (Swagger), Jsoup, Apache POI.
 
-## Technology Stack
+## Yerel Çalıştırma (Docker'sız)
 
-- **Framework**: Spring Boot 3.2.1
-- **Java Version**: 17
-- **Build Tool**: Maven
-- **Web**: Spring Web (REST APIs)
-
-## Getting Started
-
-### Prerequisites
-
-- Java 17 or higher
-- Maven 3.6+ (or use included Maven wrapper)
-
-### Build the Application
+> Tüm yığını Docker ile çalıştırmak için [ana README](../../README.md)'deki kurulum adımlarını izleyin. Aşağıdaki yalnızca backend'i tek başına çalıştırmak içindir (PostgreSQL, Redis, Keycloak'ın ayrıca ayakta olması gerekir).
 
 ```bash
-./mvnw clean install
-```
+# Bağımlılıkları indir + derle
+./mvnw clean package
 
-### Run the Application
-
-```bash
+# Çalıştır (varsayılan: localhost'taki PostgreSQL / Redis / Keycloak)
 ./mvnw spring-boot:run
+
+# Veya jar olarak
+java -jar target/*.jar
 ```
 
-The application starts on port `8080` by default.
+Uygulama `http://localhost:8080` üzerinde başlar. Swagger UI: `http://localhost:8080/swagger-ui.html`.
 
-### Configuration
-
-Configuration is managed through `src/main/resources/application.yml`.
-
-**Gizli anahtarlar (EVDS vb.):** `backend/finance-portal-backend/.env.local` dosyasına yazın (git'e girmez). İlk kurulum:
+## Test
 
 ```bash
-cp .env.local.example .env.local
-# .env.local içinde EVDS_API_KEY değerini doldurun
+./mvnw test          # birim + entegrasyon testleri (Testcontainers) + JaCoCo
+./mvnw verify        # CI'da çalışan tam doğrulama
 ```
 
-`mvn spring-boot:run` bu dosyayı otomatik okur. Docker Compose da aynı dosyayı `env_file` ile backend konteynerine aktarır.
+- **~2.700 test** (JUnit 5, Spring Boot Test, Testcontainers, WireMock).
+- Kapsama raporu: `target/site/jacoco/index.html`.
 
-## Testing
+## Veritabanı Migration
 
-```bash
-./mvnw test
+Şema, **Flyway** ile yönetilir (`src/main/resources/db/migration/`). Yeni değişiklik için yeni bir migration eklenir:
+
+```
+V18__yeni_degisiklik.sql
 ```
 
-## Extensibility
+Migration'lar uygulama açılışında otomatik çalışır. Mevcut şema 10 tablodan oluşur (portfolio, alarm, notification, watchlist_item vb.).
 
-The current architecture is designed to easily accommodate future enhancements:
+## Yapılandırma
 
-- **Database Integration**: Add repositories in infrastructure layer
-- **Security**: Implement authentication/authorization in presentation layer
-- **Message Queue**: Add Kafka producers/consumers in infrastructure layer
-- **Caching**: Integrate Redis in infrastructure layer
-- **External APIs**: Add clients in infrastructure layer
+Ayarlar `application.yml` (+ profil dosyaları) ile yönetilir; ortam değişkenleriyle (`${ENV_VAR:varsayılan}`) geçersiz kılınabilir. Hassas değerler `.env.local` (gitignore) içindedir. Üretim profili (`prod`), kritik sır eksikse başlatmayı durdurur (fail-loud).
 
-Each addition can be made without affecting the core business logic in the domain layer.
-
-## API Documentation
-
-API documentation will be available via Swagger UI once OpenAPI integration is added. For Crypto Market API, see "Testing the Crypto API" below. **Crypto market data: Powered by CoinGecko.**
-
-### Testing the Crypto API (local)
-
-Our API (defaults: page=0, size=20):
-
-```bash
-curl -s "http://localhost:8080/api/market/crypto?page=0&size=20"
-```
-
-**Cache check:** Call the same URL twice. The first request logs `Calling CoinGecko /coins/markets ...` (cache miss); the second request within TTL (45s) does not call CoinGecko (cache hit, no such log).
-
-```bash
-curl -s "http://localhost:8080/api/market/crypto?page=0&size=20" | jq .
-curl -s "http://localhost:8080/api/market/crypto?page=0&size=20" | jq .
-```
-
-Direct CoinGecko Demo API check (same parameters: `vs_currency=try`, `per_page=20`, `page=1`):
-
-```bash
-curl -s -H "x-cg-demo-api-key: CG-B1V3coqfjBN6Q5Ff8j6AnpZf" \
-  "https://api.coingecko.com/api/v3/coins/markets?vs_currency=try&order=market_cap_desc&per_page=20&page=1&sparkline=false&price_change_percentage=24h"
-```
-
-## Development Guidelines
-
-- Follow Clean Architecture principles
-- Keep domain layer framework-independent
-- Use dependency injection for loose coupling
-- Write unit tests for each layer
-- Document public APIs and complex business logic
+> Ayrıntılı tasarım (Clean Architecture, port/adapter, dayanıklılık, gözlemlenebilirlik) için **Teknik Analiz Dökümanına** bakınız.
