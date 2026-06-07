@@ -1,93 +1,93 @@
-# Finans Portalı — Backend
+# Finance Portal — Backend
 
-[English](README.en.md) · **Türkçe**
+**English** · [Türkçe](README.md)
 
-Java 21 + Spring Boot 3.2.1 üzerine kurulu, **modüler monolit + Clean Architecture** mimarisinde REST API.
+A REST API built on Java 21 + Spring Boot 3.2.1 in a **modular monolith + Clean Architecture** design.
 
-> Bu döküman backend'e özel teknik detayları içerir. Projenin geneli, kurulum ve çalıştırma için [ana README](../../README.md)'ye bakınız.
+> This document covers backend-specific technical details. For the project overview, setup and running, see the [main README](../../README.en.md).
 
-## Mimari Yaklaşım
+## Architectural Approach
 
-Backend, **modüler monolit** olarak tasarlanmıştır: tek bir dağıtılabilir uygulama içinde, işlevsel alanlara (domain) göre net biçimde ayrılmış 12 modül. Her modül, **Clean Architecture** katmanlarına bölünmüştür.
+The backend is designed as a **modular monolith**: a single deployable application containing 12 modules cleanly separated by functional area (domain). Each module is split into **Clean Architecture** layers.
 
 ```
 com/finance/portal/
-├── market/          # Piyasa verileri (hisse, kripto, döviz, fon, tahvil, VİOP, emtia, endeks, ekonomi)
-├── portfolio/       # Portföy, işlem, izleme listesi, değerleme, what-if, AI analiz
-├── alarm/           # Fiyat / değişim / hacim alarmları
-├── notification/    # Uygulama içi bildirim + e-posta
-├── news/            # Çok kaynaklı haber toplama + kişiselleştirme
-├── assistant/       # Yapay zekâ sohbet asistanı (tool-calling)
-├── newsletter/      # Bülten aboneliği + dijest
-├── support/         # Destek talepleri
-├── preferences/     # Kullanıcı tercihleri (cihazlar arası senkron)
-├── admin/           # Kullanıcı yönetimi, ban (Keycloak)
-├── auth/            # Kimlik doğrulama yardımcıları, kayıt
-└── common/          # Çapraz kesen: güvenlik, loglama, önbellek, hata, config
+├── market/          # Market data (stocks, crypto, FX, funds, bonds, VIOP, commodities, indices, economy)
+├── portfolio/       # Portfolio, transactions, watchlist, valuation, what-if, AI analysis
+├── alarm/           # Price / change / volume alerts
+├── notification/    # In-app notification + email
+├── news/            # Multi-source news aggregation + personalization
+├── assistant/       # AI chat assistant (tool-calling)
+├── newsletter/      # Newsletter subscription + digest
+├── support/         # Support tickets
+├── preferences/     # User preferences (cross-device sync)
+├── admin/           # User management, ban (Keycloak)
+├── auth/            # Authentication helpers, registration
+└── common/          # Cross-cutting: security, logging, caching, errors, config
 ```
 
-Her domain modülü 4 katmandan oluşur:
+Each domain module consists of 4 layers:
 
-| Katman | İçerik | Bağımlılık |
+| Layer | Content | Depends on |
 |---|---|---|
-| `presentation` | REST denetleyiciler (`controller`), DTO'lar | Application'a |
-| `application` | İş akışı servisleri, `port` arayüzleri | Domain'e |
-| `domain` | İş varlıkları (entity), kurallar | (en içte — bağımsız) |
-| `infrastructure` | Port gerçekleştirimleri: adapter, repository, dış servis istemcisi | Application + Domain'e |
+| `presentation` | REST controllers (`controller`), DTOs | Application |
+| `application` | Workflow services, `port` interfaces | Domain |
+| `domain` | Business entities, rules | (innermost — independent) |
+| `infrastructure` | Port implementations: adapters, repositories, external service clients | Application + Domain |
 
-**Bağımlılık kuralı:** Bağımlılıklar daima dıştan içe akar. Dış bağımlılıklar (veritabanı, dış API) `port` arayüzleriyle soyutlanır; infrastructure bunları gerçekleştirir (Dependency Inversion). Domain katmanı çerçeveden tamamen bağımsızdır.
+**Dependency rule:** Dependencies always flow from the outside in. External dependencies (database, external APIs) are abstracted via `port` interfaces; infrastructure implements them (Dependency Inversion). The domain layer is fully framework-independent.
 
-## Başlıca Bileşenler
+## Main Components
 
-- **36 REST denetleyici, 124 uç nokta** — tümü `/api/v1/**` altında, `ApiResponse<T>` zarfıyla.
-- **22 zamanlanmış görev** — alarm değerlendirme, önbellek ısıtma, vade kapatma, bülten dijesti (ShedLock ile dağıtık kilit).
-- **29 dış servis istemcisi** — port/adapter ile soyutlanmış (Yahoo, Binance, TCMB, TEFAS, İş Yatırım vb.).
-- **Dayanıklılık:** Last Known Good (LKG) + Resilience4j (retry / circuit breaker) + 50+ Redis önbellek ad alanı.
-- **10 JPA entity, 17 Flyway migration** (V1–V17).
+- **36 REST controllers, 124 endpoints** — all under `/api/v1/**`, wrapped in `ApiResponse<T>`.
+- **22 scheduled tasks** — alarm evaluation, cache warm-up, maturity settlement, newsletter digest (distributed lock via ShedLock).
+- **29 external service clients** — abstracted via port/adapter (Yahoo, Binance, TCMB, TEFAS, İş Yatırım, etc.).
+- **Resilience:** Last Known Good (LKG) + Resilience4j (retry / circuit breaker) + 50+ Redis cache namespaces.
+- **10 JPA entities, 17 Flyway migrations** (V1–V17).
 
-## Teknolojiler
+## Technologies
 
 Spring Boot (Web, Security / OAuth2 Resource Server, Data JPA, Data Redis, Kafka, Mail, Cache, Validation, Actuator), Flyway, Lombok, Resilience4j, ShedLock, OpenTelemetry, Micrometer / Prometheus, log4j2 (JSON), springdoc-openapi (Swagger), Jsoup, Apache POI.
 
-## Yerel Çalıştırma (Docker'sız)
+## Local Run (Without Docker)
 
-> Tüm yığını Docker ile çalıştırmak için [ana README](../../README.md)'deki kurulum adımlarını izleyin. Aşağıdaki yalnızca backend'i tek başına çalıştırmak içindir (PostgreSQL, Redis, Keycloak'ın ayrıca ayakta olması gerekir).
+> To run the whole stack with Docker, follow the setup steps in the [main README](../../README.en.md). The following is only for running the backend on its own (PostgreSQL, Redis and Keycloak must be running separately).
 
 ```bash
-# Bağımlılıkları indir + derle
+# Download dependencies + build
 ./mvnw clean package
 
-# Çalıştır (varsayılan: localhost'taki PostgreSQL / Redis / Keycloak)
+# Run (default: PostgreSQL / Redis / Keycloak on localhost)
 ./mvnw spring-boot:run
 
-# Veya jar olarak
+# Or as a jar
 java -jar target/*.jar
 ```
 
-Uygulama `http://localhost:8080` üzerinde başlar. Swagger UI: `http://localhost:8080/swagger-ui.html`.
+The application starts on `http://localhost:8080`. Swagger UI: `http://localhost:8080/swagger-ui.html`.
 
-## Test
+## Testing
 
 ```bash
-./mvnw test          # birim + entegrasyon testleri (Testcontainers) + JaCoCo
-./mvnw verify        # CI'da çalışan tam doğrulama
+./mvnw test          # unit + integration tests (Testcontainers) + JaCoCo
+./mvnw verify        # full verification run, as in CI
 ```
 
-- **~2.700 test** (JUnit 5, Spring Boot Test, Testcontainers, WireMock).
-- Kapsama raporu: `target/site/jacoco/index.html`.
+- **~2,700 tests** (JUnit 5, Spring Boot Test, Testcontainers, WireMock).
+- Coverage report: `target/site/jacoco/index.html`.
 
-## Veritabanı Migration
+## Database Migration
 
-Şema, **Flyway** ile yönetilir (`src/main/resources/db/migration/`). Yeni değişiklik için yeni bir migration eklenir:
+The schema is managed with **Flyway** (`src/main/resources/db/migration/`). For a new change, add a new migration:
 
 ```
-V18__yeni_degisiklik.sql
+V18__new_change.sql
 ```
 
-Migration'lar uygulama açılışında otomatik çalışır. Mevcut şema 10 tablodan oluşur (portfolio, alarm, notification, watchlist_item vb.).
+Migrations run automatically on application startup. The current schema consists of 10 tables (portfolio, alarm, notification, watchlist_item, etc.).
 
-## Yapılandırma
+## Configuration
 
-Ayarlar `application.yml` (+ profil dosyaları) ile yönetilir; ortam değişkenleriyle (`${ENV_VAR:varsayılan}`) geçersiz kılınabilir. Hassas değerler `.env.local` (gitignore) içindedir. Üretim profili (`prod`), kritik sır eksikse başlatmayı durdurur (fail-loud).
+Settings are managed via `application.yml` (+ profile files); they can be overridden with environment variables (`${ENV_VAR:default}`). Sensitive values live in `.env.local` (gitignored). The production profile (`prod`) halts startup if a critical secret is missing (fail-loud).
 
-> Ayrıntılı tasarım (Clean Architecture, port/adapter, dayanıklılık, gözlemlenebilirlik) için **Teknik Analiz Dökümanına** bakınız.
+> For detailed design (Clean Architecture, port/adapter, resilience, observability), see the **Technical Design Document**.

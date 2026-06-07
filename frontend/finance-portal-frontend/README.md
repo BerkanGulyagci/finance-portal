@@ -1,90 +1,90 @@
-# Finans Portalı — Frontend
+# Finance Portal — Frontend
 
-[English](README.en.md) · **Türkçe**
+**English** · [Türkçe](README.md)
 
-React 19 + Vite üzerine kurulu, **özellik tabanlı (feature-based)** tek sayfa uygulaması (SPA).
+A **feature-based** single-page application (SPA) built on React 19 + Vite.
 
-> Bu döküman frontend'e özel teknik detayları içerir. Projenin geneli, kurulum ve çalıştırma için [ana README](../../README.md)'ye bakınız.
+> This document covers frontend-specific technical details. For the project overview, setup and running, see the [main README](../../README.en.md).
 
-## Mimari Yaklaşım
+## Architectural Approach
 
-Uygulama, teknik türe göre değil, işlevsel **özellik alanlarına (feature)** göre organize edilmiştir. Tüm veri backend'den `/api/v1/*` ile alınır.
+The application is organized by functional **feature areas**, not by technical type. All data is fetched from the backend via `/api/v1/*`.
 
 ```
 src/
-├── features/        # Özellik alanları (9 alan, 47 sayfa)
-│   ├── dashboard/   # Özelleştirilebilir kontrol paneli (sürükle-bırak)
-│   ├── market/      # 10 varlık türü (hisse, kripto, fx, fon, tahvil, viop, emtia, altın, endeks, ekonomi)
-│   ├── portfolio/   # Portföy, holdings, AI analiz
-│   ├── alarms/      # Alarm yönetimi
-│   ├── news/        # Haber listesi/detay
-│   ├── notifications/ # Bildirim merkezi
-│   ├── profile/     # Profil ve tercihler
-│   ├── admin/       # Yönetim panelleri
-│   └── auth/        # Giriş, kayıt, e-posta doğrulama
-├── app/             # Uygulama kabuğu (AppLayout, Header, Footer, ProtectedRoute)
-├── components/      # Paylaşılan UI bileşenleri
-├── context/         # Global durum (7 React Context)
-├── api/             # Backend REST çağrı katmanı (Axios)
-├── router/          # Sayfa yönlendirme (ProtectedRoute / AdminRoute)
-├── hooks/           # Özel React kancaları
-├── i18n/            # Çok dilli metin (TR / EN, 14 namespace)
-├── lib/             # HTTP istemcisi (token interceptor)
-└── utils/           # Yardımcı fonksiyonlar, biçimlendiriciler
+├── features/        # Feature areas (9 areas, 47 pages)
+│   ├── dashboard/   # Customizable dashboard (drag-and-drop)
+│   ├── market/      # 10 asset types (stocks, crypto, FX, funds, bonds, VIOP, commodities, gold, indices, economy)
+│   ├── portfolio/   # Portfolio, holdings, AI analysis
+│   ├── alarms/      # Alarm management
+│   ├── news/        # News list/detail
+│   ├── notifications/ # Notification center
+│   ├── profile/     # Profile and preferences
+│   ├── admin/       # Admin panels
+│   └── auth/        # Login, registration, email verification
+├── app/             # Application shell (AppLayout, Header, Footer, ProtectedRoute)
+├── components/      # Shared UI components
+├── context/         # Global state (7 React Contexts)
+├── api/             # Backend REST call layer (Axios)
+├── router/          # Page routing (ProtectedRoute / AdminRoute)
+├── hooks/           # Custom React hooks
+├── i18n/            # Multilingual text (TR / EN, 14 namespaces)
+├── lib/             # HTTP client (token interceptor)
+└── utils/           # Helper functions, formatters
 ```
 
-## Başlıca Özellikler
+## Main Features
 
-- **3 erişim katmanı** — Genel (misafir), Korumalı (kayıtlı kullanıcı), Admin — `ProtectedRoute` / `AdminRoute` ile.
-- **Durum yönetimi** — 7 React Context (kimlik, tema, dil, tercihler, izleme listesi, bildirim, onay). Redux yoktur.
-- **Kimlik** — Keycloak OIDC (PKCE / S256), proaktif + tek-uçuşan (single-flight) token yenileme.
-- **Grafikler** — klinecharts (detay mum + MA/RSI/MACD/Bollinger + çizim), ECharts (kıyaslama), Recharts (analiz / dağılım).
-- **Tema & dil** — Açık / koyu tema (CSS değişkenleri, FOUC önleme), TR / EN i18n, çoklu para birimi gösterimi.
-- **Dışa aktarma** — Excel (xlsx), PDF (jsPDF), grafik görseli (PNG / html-to-image).
-- **Cihazlar arası senkron** — Kullanıcı tercihleri (kontrol paneli düzeni, tema, dil, grafik çizimleri) sunucuda saklanır.
+- **3 access tiers** — Public (guest), Protected (registered user), Admin — via `ProtectedRoute` / `AdminRoute`.
+- **State management** — 7 React Contexts (identity, theme, language, preferences, watchlist, notifications, confirmation). No Redux.
+- **Identity** — Keycloak OIDC (PKCE / S256), proactive + single-flight token refresh.
+- **Charts** — klinecharts (detail candlesticks + MA/RSI/MACD/Bollinger + drawing), ECharts (comparison), Recharts (analysis / allocation).
+- **Theme & language** — Light / dark theme (CSS variables, FOUC prevention), TR / EN i18n, multi-currency display.
+- **Export** — Excel (xlsx), PDF (jsPDF), chart image (PNG / html-to-image).
+- **Cross-device sync** — User preferences (dashboard layout, theme, language, chart drawings) are stored on the server.
 
-## Teknolojiler
+## Technologies
 
-React 19, Vite, React Router 7, Tailwind CSS, Axios; klinecharts, ECharts, Recharts; react-grid-layout (sürükle-bırak); html-to-image, jsPDF, xlsx (dışa aktarma); lucide-react (ikonlar).
+React 19, Vite, React Router 7, Tailwind CSS, Axios; klinecharts, ECharts, Recharts; react-grid-layout (drag-and-drop); html-to-image, jsPDF, xlsx (export); lucide-react (icons).
 
-## Yerel Geliştirme
+## Local Development
 
-> Önkoşul: **Node.js 20+**. Backend'in çalışıyor olması gerekir (Docker ile veya ayrıca). Tüm yığın için [ana README](../../README.md)'ye bakınız.
+> Prerequisite: **Node.js 20+**. The backend must be running (via Docker or separately). For the full stack, see the [main README](../../README.en.md).
 
 ```bash
-# Bağımlılıkları kur
+# Install dependencies
 npm install
 
-# Geliştirme sunucusu (HMR) — http://localhost:5173
+# Development server (HMR) — http://localhost:5173
 npm run dev
 
-# Üretim derlemesi — dist/ klasörüne
+# Production build — to the dist/ folder
 npm run build
 
-# Derlemeyi önizle
+# Preview the build
 npm run preview
 ```
 
-## Test ve Kalite
+## Testing & Quality
 
 ```bash
-npm run test            # Vitest testleri (tek seferlik)
-npm run test:watch      # izleme modunda
-npm run test:coverage   # kapsama raporu (v8)
+npm run test            # Vitest tests (one-shot)
+npm run test:watch      # in watch mode
+npm run test:coverage   # coverage report (v8)
 npm run lint            # ESLint
 ```
 
-- **~2.500 test** (Vitest + React Testing Library + jsdom).
+- **~2,500 tests** (Vitest + React Testing Library + jsdom).
 
-## Yapılandırma
+## Configuration
 
-Ortam değişkenleri `.env` dosyasında (`.env.example`'dan kopyalanır). Önemli değişkenler:
+Environment variables are in the `.env` file (copied from `.env.example`). Key variables:
 
-| Değişken | Amaç |
+| Variable | Purpose |
 |---|---|
-| `VITE_KEYCLOAK_URL` | Keycloak sunucu adresi (OIDC) |
-| `VITE_KEYCLOAK_REALM` | Keycloak realm adı |
+| `VITE_KEYCLOAK_URL` | Keycloak server address (OIDC) |
+| `VITE_KEYCLOAK_REALM` | Keycloak realm name |
 
-> Bu değerler üretim derlemesinde imaja gömülür (build-arg). Verilmezse koddaki yerel varsayılanlar kullanılır.
+> These values are embedded into the image at production build time (build-arg). If not provided, the local defaults in the code are used.
 
-> Ayrıntılı tasarım (bileşen mimarisi, durum yönetimi, grafik stratejisi, i18n) için **Teknik Analiz Dökümanına** bakınız.
+> For detailed design (component architecture, state management, chart strategy, i18n), see the **Technical Design Document**.
