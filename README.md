@@ -9,7 +9,7 @@
 
 **Toyota 32Bit · Çok varlıklı portföy takip ve piyasa izleme platformu**
 
-**English** · **Türkçe** &nbsp;·&nbsp; [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[English](README.en.md) · **Türkçe** &nbsp;·&nbsp; [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 </td>
 </tr>
@@ -32,35 +32,37 @@
 
 ---
 
-> **Finans Portalı**, Türkiye finans piyasalarına odaklanan, çok varlıklı bir **portföy takip ve piyasa izleme** platformudur. Hisse senedi, kripto para, döviz, yatırım fonu, tahvil/bono, VİOP vadeli işlemleri, emtia, kıymetli metaller, borsa endeksleri, ekonomik göstergeler ve finansal haberleri tek bir arayüzde toplar; üzerine portföy takibi, fiyat alarmları, teknik analiz, yapay zekâ sohbet asistanı ve kişiselleştirilmiş haber akışı ekler.
+> **Finans Portalı**, Türkiye finans piyasalarına odaklanan, çok varlıklı bir **portföy takip ve piyasa izleme** platformudur. Hisse senedi, kripto para, döviz, yatırım fonu, tahvil/bono, Eurobond, VİOP vadeli işlemleri, emtia, kıymetli metaller, borsa endeksleri, ekonomik göstergeler ve finansal haberleri tek bir arayüzde toplar; üzerine portföy takibi, fiyat alarmları, teknik analiz, yapay zekâ sohbet asistanı ve kişiselleştirilmiş haber akışı ekler.
 
 ## Proje Hakkında
 
 Sistem üç ana katmandan oluşur:
 
-- **Backend** — Java 21 + Spring Boot 3.2.1. `/api/v1/**` altında 36 REST denetleyici (124 uç nokta), 12 işlevsel domain. **Modüler monolit + Clean Architecture** (port/adapter deseni). PostgreSQL + Flyway migration, Redis önbellek (50+ ad alanı), OAuth2 Resource Server (Keycloak JWT). 20'den fazla dış veri kaynağı port/adapter ile entegre; **Last Known Good (LKG)** dayanıklılık deseni ve zamanlanmış görevlerle (ShedLock) periyodik tazeleme.
-- **Frontend** — React 19 + Vite tek sayfa uygulaması (SPA). Keycloak OIDC (PKCE/S256), TR/EN i18n, açık/koyu tema, çoklu para birimi gösterimi; klinecharts / ECharts / Recharts ile finansal grafikler, sürükle-bırak kontrol paneli, grafik çizim araçları.
-- **Altyapı** — Docker Compose ile tam yığın: Keycloak + LDAP (kimlik), Kafka (log akışı), OpenSearch + OpenSearch Dashboards (log), Prometheus + Grafana (metrik), Tempo + OpenTelemetry (dağıtık izleme). Kubernetes (GKE) manifest'leri ve GitHub Actions CI/CD ile birlikte gelir.
+- **Backend** — Java 21 + Spring Boot 3.2.1. Modüler monolit + Clean Architecture; 12 işlevsel domain, REST API, çoklu dış veri entegrasyonu ve dayanıklılık desenleri. → [Backend README](backend/finance-portal-backend/README.md)
+- **Frontend** — React 19 + Vite tek sayfa uygulaması (SPA). Keycloak OIDC, TR/EN i18n, açık/koyu tema, finansal grafikler ve özelleştirilebilir kontrol paneli. → [Frontend README](frontend/finance-portal-frontend/README.md)
+- **Altyapı** — Docker Compose ile tam yığın: kimlik (Keycloak + LDAP), mesajlaşma (Kafka), gözlemlenebilirlik (OpenSearch, Prometheus + Grafana, Tempo + OpenTelemetry). Kubernetes (GKE) manifest'leri ve GitHub Actions CI/CD ile birlikte gelir.
+
+> Teknoloji detayları için [Kullanılan Teknolojiler](#kullanılan-teknolojiler), mimari için [Sistem Mimarisi](#sistem-mimarisi) bölümüne bakınız.
 
 ## İçindekiler
 
-▸ [Neler Yapabilir?](#neler-yapabilir)
-▸ [Sistem Mimarisi](#sistem-mimarisi)
-▸ [Kurulum ve Çalıştırma](#kurulum-ve-çalıştırma)
-▸ [Kullanılan Teknolojiler](#kullanılan-teknolojiler)
-▸ [Dizin ve Kod Yapısı](#dizin-ve-kod-yapısı)
-▸ [Servisler ve Erişim Bilgileri](#servisler-ve-erişim-bilgileri)
-▸ [Sunucu Tarafı (Backend)](#sunucu-tarafı-backend)
-▸ [İstemci Tarafı (Frontend)](#istemci-tarafı-frontend)
-▸ [İzleme ve Gözlemlenebilirlik](#izleme-ve-gözlemlenebilirlik)
-▸ [Güvenlik Mimarisi](#güvenlik-mimarisi)
-▸ [Sürekli Entegrasyon ve Dağıtım](#sürekli-entegrasyon-ve-dağıtım)
-▸ [Test ve Kod Kalitesi](#test-ve-kod-kalitesi)
-▸ [Dikkat Edilmesi Gerekenler](#dikkat-edilmesi-gerekenler)
-▸ [Sık Karşılaşılan Sorunlar](#sık-karşılaşılan-sorunlar)
-▸ [Detaylı Dökümantasyon](#detaylı-dökümantasyon)
-▸ [İletişim](#i̇letişim)
-▸ [Lisans](#lisans)
+- ▸ [Neler Yapabilir?](#neler-yapabilir)
+- ▸ [Sistem Mimarisi](#sistem-mimarisi)
+- ▸ [Kurulum ve Çalıştırma](#kurulum-ve-çalıştırma)
+- ▸ [Kullanılan Teknolojiler](#kullanılan-teknolojiler)
+- ▸ [Dizin ve Kod Yapısı](#dizin-ve-kod-yapısı)
+- ▸ [Servisler ve Erişim Bilgileri](#servisler-ve-erişim-bilgileri)
+- ▸ [Sunucu Tarafı (Backend)](#sunucu-tarafı-backend)
+- ▸ [İstemci Tarafı (Frontend)](#istemci-tarafı-frontend)
+- ▸ [İzleme ve Gözlemlenebilirlik](#izleme-ve-gözlemlenebilirlik)
+- ▸ [Güvenlik Mimarisi](#güvenlik-mimarisi)
+- ▸ [Sürekli Entegrasyon ve Dağıtım](#sürekli-entegrasyon-ve-dağıtım)
+- ▸ [Test ve Kod Kalitesi](#test-ve-kod-kalitesi)
+- ▸ [Dikkat Edilmesi Gerekenler](#dikkat-edilmesi-gerekenler)
+- ▸ [Sık Karşılaşılan Sorunlar](#sık-karşılaşılan-sorunlar)
+- ▸ [Detaylı Dökümantasyon](#detaylı-dökümantasyon)
+- ▸ [İletişim](#i̇letişim)
+- ▸ [Lisans](#lisans)
 
 ## Neler Yapabilir?
 
@@ -89,7 +91,7 @@ Sistem üç ana katmandan oluşur:
 
 ## Sistem Mimarisi
 
-Sistem, **modüler monolit** mimarisiyle tasarlanmıştır: tek bir dağıtılabilir backend uygulaması içinde, işlevsel alanlara göre net biçimde ayrılmış 12 domain (her biri Clean Architecture katmanlı). Tüm dış erişim tek bir Ingress üzerinden gelir; backend, dış veri kaynaklarına port/adapter soyutlamasıyla bağlanır.
+Sistem, **modüler monolit** mimarisiyle tasarlanmıştır: tek bir dağıtılabilir backend uygulaması içinde, işlevsel alanlara göre net biçimde ayrılmış 12 domain (her biri Clean Architecture katmanlı). Tüm bileşenler **konteyner** olarak çalışır; geliştirmede **Docker Compose**, üretimde **Kubernetes (GKE)** ile orkestre edilir. Dış erişim tek bir giriş noktası (reverse proxy / Ingress) üzerinden gelir; backend, dış veri kaynaklarına port/adapter soyutlamasıyla bağlanır.
 
 <!-- TODO: assets/architecture.png buraya eklenecek -->
 <p align="center">
@@ -103,7 +105,9 @@ Sistem, **modüler monolit** mimarisiyle tasarlanmıştır: tek bir dağıtılab
 - **Keycloak + LDAP** — Kimlik doğrulama, yetkilendirme, 2FA; LDAP federasyonu.
 - **PostgreSQL** — Kullanıcıya ait kalıcı veri (portföy, alarm, bildirim vb.).
 - **Redis** — Önbellek ve dağıtık kilit (ShedLock).
-- **Kafka → Log Consumer → OpenSearch** — Asenkron log akış hattı.
+- **Kafka** — Asenkron log akış hattı (backend logları ana iş akışını bloke etmeden taşınır).
+- **Log Consumer** — Backend'den **bağımsız, ayrı bir Java servisi**: Kafka'daki log konusunu (topic) dinler ve gelen JSON log kayıtlarını OpenSearch'e yazar (indexler). Loglama ve uygulama mantığının ayrıştırılmasını sağlar.
+- **OpenSearch** — Logların depolandığı ve arandığı yer (OpenSearch Dashboards ile sorgulanır).
 - **OpenTelemetry → Tempo / Prometheus → Grafana** — Dağıtık izleme, metrik ve panolar.
 
 > Ayrıntılı mimari (C4 modeli, bileşen diyagramları, etkileşim senaryoları) için [Teknik Analiz Dökümanına](#detaylı-dökümantasyon) bakınız.
@@ -361,7 +365,7 @@ Sistem, üretim ortamında uçtan uca izlenebilirlik için **üç sütun** (metr
 | **İzler (Traces)** | OTel Java Agent → OTel Collector | Tempo | Grafana |
 | **Loglar** | log4j2 (JSON) → Kafka → Log Consumer | OpenSearch | OpenSearch Dashboards / Grafana |
 
-**Grafana panoları (4 hazır pano):**
+**Grafana panoları (4 hazır pano)** — Açılışta **otomatik** yüklenir (provisioning), ek bir işlem gerekmez:
 
 - **APM Panosu** — istek hacmi, yanıt süresi, hata oranı, p95 gecikme, JVM/GC, CPU, HikariCP, devre kesici durumu, önbellek isabet oranı.
 - **Dış Veri Kaynakları Panosu** — her dış kaynak için istek/hata/gecikme; **sessiz hata (silent failure)** tespiti (PARSE/EMPTY/RATE_LIMITED) ve scrape kaynaklarında **ban riski (403/429)** izleme. Sistemin 20+ dış kaynağa bağımlılığının doğurduğu riski yönetmek için tasarlanmıştır.
@@ -371,6 +375,8 @@ Sistem, üretim ortamında uçtan uca izlenebilirlik için **üç sütun** (metr
 Ek olarak, kritik kullanıcı/yönetici eylemleri **AUDIT logları** (`CentralBusinessLogService`) ve dış servis çağrıları **entegrasyon logları** (`CentralIntegrationLogService`) olarak yapılandırılmış (JSON) biçimde OpenSearch'e akar.
 
 > Trace ↔ log korelasyonu: Grafana'da bir iz (trace) span'inden doğrudan o isteğin OpenSearch loglarına geçilebilir.
+
+> **Not:** Hazır log panoları **Grafana**'dadır (yukarıdaki "Loglar Panosu") ve açılışta otomatik gelir. **OpenSearch Dashboards** (`http://localhost:5601`) ise ham log üzerinde serbest arama/sorgulama (ad-hoc keşif) için kullanılır; ayrıca pano içeri aktarmaya gerek yoktur.
 
 ## Güvenlik Mimarisi
 
@@ -382,7 +388,7 @@ Ek olarak, kritik kullanıcı/yönetici eylemleri **AUDIT logları** (`CentralBu
 - **Diğer önlemler:** CORS yapılandırması, girdi doğrulama (Bean Validation), log sanitizasyonu (CRLF / log injection önleme), anonim kullanıcı için rate limiting (X-Forwarded-For güvenli IP), durumsuz oturum (CSRF saldırı yüzeyi yok), sır yönetimi (`.env.local` / Kubernetes Secret, fail-loud).
 - **Ban mekanizması:** Yönetici banı, tek eylemle birden çok modülü etkileyen cascade akışı tetikler (Keycloak hesabı devre dışı + alarm / bülten kapatma + bildirim); süreli ban otomatik geri alınır.
 
-> Güvenlik tasarımı, STRIDE tehdit modeli ve OWASP ASVS referans alınarak yapılmıştır. Ayrıntı için Teknik Analiz Dökümanının Güvenlik bölümüne bakınız.
+> Güvenlik tasarımı, STRIDE tehdit modeli ve OWASP ASVS referans alınarak yapılmıştır. Ayrıntı için [Teknik Analiz Dökümanının](#detaylı-dökümantasyon) Güvenlik bölümüne bakınız.
 
 ## Sürekli Entegrasyon ve Dağıtım
 

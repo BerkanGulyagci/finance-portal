@@ -1,5 +1,7 @@
 # Finans Portalı — Backend
 
+[English](README.en.md) · **Türkçe**
+
 Java 21 + Spring Boot 3.2.1 üzerine kurulu, **modüler monolit + Clean Architecture** mimarisinde REST API.
 
 > Bu döküman backend'e özel teknik detayları içerir. Projenin geneli, kurulum ve çalıştırma için [ana README](../../README.md)'ye bakınız.

@@ -1,5 +1,7 @@
 # Finans Portalı — Frontend
 
+[English](README.en.md) · **Türkçe**
+
 React 19 + Vite üzerine kurulu, **özellik tabanlı (feature-based)** tek sayfa uygulaması (SPA).
 
 > Bu döküman frontend'e özel teknik detayları içerir. Projenin geneli, kurulum ve çalıştırma için [ana README](../../README.md)'ye bakınız.
