@@ -60,7 +60,9 @@ docker/apacheds/data/
 ### Deployment backups & secrets — ASLA commit edilmez (GitHub'a gitmez). ###
 ### Bunlar kullanıcı verisi/şifre/secret içerir; yeni sunucuya scp ile elle taşınır. ###
 backup/
-docker/keycloak/import/*.json
+# Keycloak realm: sanitized (placeholder secret + 0 kullanıcı) commit edilir;
+# gerçek sır/kullanıcı içeren local realm export'u (*.local.json) ASLA commit edilmez.
+docker/keycloak/import/*.local.json
 
 # K8s gerçek secret'ları (local değerler, git'e girmez)
 k8s/**/secret*.local.yaml

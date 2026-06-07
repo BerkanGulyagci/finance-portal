@@ -118,12 +118,16 @@ Bu bölüm, projeyi **hiç bilmeyen birinin** sıfırdan çalıştırabilmesi i�
 
 ### 1. Gereksinimler
 
-Bilgisayarınızda yalnızca şunlar kurulu olmalıdır:
+Bilgisayarınızda yalnızca **Docker** (Compose v2 ile) ve **Git** kurulu olmalıdır. **8 GB+ RAM** önerilir (15+ servis aynı anda çalışır).
 
-- **[Docker Desktop](https://www.docker.com/products/docker-desktop/)** (Docker Compose v2 dahil gelir) — **8 GB+ RAM** önerilir (17 servis aynı anda çalışır).
-- **Git** (depoyu klonlamak için).
+| İşletim Sistemi | Docker kurulumu |
+|---|---|
+| **Windows / macOS** | [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Compose v2 dahil gelir) |
+| **Linux** | [Docker Engine](https://docs.docker.com/engine/install/) + Compose plugin — veya tek komut: `curl -fsSL https://get.docker.com \| sudo sh` |
 
 > Java, Node.js veya başka bir şey kurmanıza **gerek yoktur** — her şey Docker konteynerleri içinde çalışır. (Sadece Docker'sız yerel geliştirme yapacaksanız JDK 21 + Node.js 20 gerekir.)
+>
+> **Linux'ta:** Docker komutlarını `sudo` olmadan çalıştırmak için kullanıcınızı docker grubuna ekleyin (`sudo usermod -aG docker $USER`) ve oturumu yenileyin.
 
 ### 2. Kurulum (3 Adımda)
 

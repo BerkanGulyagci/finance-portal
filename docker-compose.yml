@@ -171,10 +171,13 @@ services:
     networks:
       - finance-portal-network
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O- http://localhost:8080/health/ready || exit 1"]
+      # Aggregate /actuator/health (mail/SMTP dahil) SMTP boşken DOWN döner;
+      # readiness grubu yalnız kritik bileşenleri (db, redis) kontrol eder (k8s probe'larıyla aynı).
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8080/actuator/health/readiness || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 20
+      start_period: 90s
     logging:
       driver: "json-file"
       options:
