@@ -26,7 +26,7 @@ com/finance/portal/
 └── common/          # Çapraz kesen: güvenlik, loglama, önbellek, hata, config
 ```
 
-Her domain modülü 4 katmandan oluşur:
+Klasik **Controller → Service → Repository** katmanlı yapısının üzerine, her domain modülü dört Clean Architecture katmanına ayrılmıştır:
 
 | Katman | İçerik | Bağımlılık |
 |---|---|---|

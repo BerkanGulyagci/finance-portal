@@ -26,7 +26,7 @@ com/finance/portal/
 └── common/          # Cross-cutting: security, logging, caching, errors, config
 ```
 
-Each domain module consists of 4 layers:
+On top of the classic **Controller → Service → Repository** layered structure, each domain module is organized into four Clean Architecture layers:
 
 | Layer | Content | Depends on |
 |---|---|---|
