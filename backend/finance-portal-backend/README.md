@@ -35,19 +35,19 @@ Each domain module consists of 4 layers:
 | `domain` | Business entities, rules | (innermost — independent) |
 | `infrastructure` | Port implementations: adapters, repositories, external service clients | Application + Domain |
 
-**Dependency rule:** Dependencies always flow from the outside in. External dependencies (database, external APIs) are abstracted via `port` interfaces; infrastructure implements them (Dependency Inversion). The domain layer is fully framework-independent.
+**Dependency rule:** Dependencies always flow from the outside in. External dependencies (database, external APIs) are abstracted via `port` interfaces; infrastructure implements them (Dependency Inversion).
 
 ## Main Components
 
 - **36 REST controllers, 124 endpoints** — all under `/api/v1/**`, wrapped in `ApiResponse<T>`.
-- **22 scheduled tasks** — alarm evaluation, cache warm-up, maturity settlement, newsletter digest (distributed lock via ShedLock).
+- **31 scheduled tasks** (across 22 classes) — alarm evaluation, cache warm-up, maturity settlement, newsletter digest (distributed lock via ShedLock).
 - **29 external service clients** — abstracted via port/adapter (Yahoo, Binance, TCMB, TEFAS, İş Yatırım, etc.).
 - **Resilience:** Last Known Good (LKG) + Resilience4j (retry / circuit breaker) + 50+ Redis cache namespaces.
-- **10 JPA entities, 17 Flyway migrations** (V1–V17).
+- **10 JPA entities, 17 Flyway migrations** (`V1`–`V12`, then date-based `V20260525_01`+).
 
 ## Technologies
 
-Spring Boot (Web, Security / OAuth2 Resource Server, Data JPA, Data Redis, Kafka, Mail, Cache, Validation, Actuator), Flyway, Lombok, Resilience4j, ShedLock, OpenTelemetry, Micrometer / Prometheus, log4j2 (JSON), springdoc-openapi (Swagger), Jsoup, Apache POI.
+Spring Boot (Web, Security / OAuth2 Resource Server, Data JPA, Data Redis, Kafka, Mail, Cache, Validation, Actuator), Flyway, Lombok, Resilience4j, ShedLock, OpenTelemetry, Micrometer / Prometheus, log4j2 (JSON), springdoc-openapi (Swagger), Jsoup.
 
 ## Local Run (Without Docker)
 
@@ -78,10 +78,10 @@ The application starts on `http://localhost:8080`. Swagger UI: `http://localhost
 
 ## Database Migration
 
-The schema is managed with **Flyway** (`src/main/resources/db/migration/`). For a new change, add a new migration:
+The schema is managed with **Flyway** (`src/main/resources/db/migration/`). For a new change, add a new migration (date-based naming avoids version clashes during concurrent work):
 
 ```
-V18__new_change.sql
+V20260615_01__new_change.sql
 ```
 
 Migrations run automatically on application startup. The current schema consists of 10 tables (portfolio, alarm, notification, watchlist_item, etc.).

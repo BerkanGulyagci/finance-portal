@@ -35,19 +35,19 @@ Her domain modülü 4 katmandan oluşur:
 | `domain` | İş varlıkları (entity), kurallar | (en içte — bağımsız) |
 | `infrastructure` | Port gerçekleştirimleri: adapter, repository, dış servis istemcisi | Application + Domain'e |
 
-**Bağımlılık kuralı:** Bağımlılıklar daima dıştan içe akar. Dış bağımlılıklar (veritabanı, dış API) `port` arayüzleriyle soyutlanır; infrastructure bunları gerçekleştirir (Dependency Inversion). Domain katmanı çerçeveden tamamen bağımsızdır.
+**Bağımlılık kuralı:** Bağımlılıklar daima dıştan içe akar. Dış bağımlılıklar (veritabanı, dış API) `port` arayüzleriyle soyutlanır; infrastructure bunları gerçekleştirir (Dependency Inversion).
 
 ## Başlıca Bileşenler
 
 - **36 REST denetleyici, 124 uç nokta** — tümü `/api/v1/**` altında, `ApiResponse<T>` zarfıyla.
-- **22 zamanlanmış görev** — alarm değerlendirme, önbellek ısıtma, vade kapatma, bülten dijesti (ShedLock ile dağıtık kilit).
+- **31 zamanlanmış görev** (22 sınıfa dağılmış) — alarm değerlendirme, önbellek ısıtma, vade kapatma, bülten dijesti (ShedLock ile dağıtık kilit).
 - **29 dış servis istemcisi** — port/adapter ile soyutlanmış (Yahoo, Binance, TCMB, TEFAS, İş Yatırım vb.).
 - **Dayanıklılık:** Last Known Good (LKG) + Resilience4j (retry / circuit breaker) + 50+ Redis önbellek ad alanı.
-- **10 JPA entity, 17 Flyway migration** (V1–V17).
+- **10 JPA entity, 17 Flyway migration** (`V1`–`V12`, sonrası tarih-bazlı `V20260525_01`+).
 
 ## Teknolojiler
 
-Spring Boot (Web, Security / OAuth2 Resource Server, Data JPA, Data Redis, Kafka, Mail, Cache, Validation, Actuator), Flyway, Lombok, Resilience4j, ShedLock, OpenTelemetry, Micrometer / Prometheus, log4j2 (JSON), springdoc-openapi (Swagger), Jsoup, Apache POI.
+Spring Boot (Web, Security / OAuth2 Resource Server, Data JPA, Data Redis, Kafka, Mail, Cache, Validation, Actuator), Flyway, Lombok, Resilience4j, ShedLock, OpenTelemetry, Micrometer / Prometheus, log4j2 (JSON), springdoc-openapi (Swagger), Jsoup.
 
 ## Yerel Çalıştırma (Docker'sız)
 
@@ -78,10 +78,10 @@ Uygulama `http://localhost:8080` üzerinde başlar. Swagger UI: `http://localhos
 
 ## Veritabanı Migration
 
-Şema, **Flyway** ile yönetilir (`src/main/resources/db/migration/`). Yeni değişiklik için yeni bir migration eklenir:
+Şema, **Flyway** ile yönetilir (`src/main/resources/db/migration/`). Yeni değişiklik için yeni bir migration eklenir (tarih-bazlı adlandırma, eşzamanlı çalışmada sürüm çakışmasını önler):
 
 ```
-V18__yeni_degisiklik.sql
+V20260615_01__yeni_degisiklik.sql
 ```
 
 Migration'lar uygulama açılışında otomatik çalışır. Mevcut şema 10 tablodan oluşur (portfolio, alarm, notification, watchlist_item vb.).
