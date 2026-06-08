@@ -32,7 +32,7 @@ Each domain module consists of 4 layers:
 |---|---|---|
 | `presentation` | REST controllers (`controller`), DTOs | Application |
 | `application` | Workflow services, `port` interfaces | Domain |
-| `domain` | Business entities, rules | (innermost — independent) |
+| `domain` | Business entities, rules | (innermost — no dependencies) |
 | `infrastructure` | Port implementations: adapters, repositories, external service clients | Application + Domain |
 
 **Dependency rule:** Dependencies always flow from the outside in. External dependencies (database, external APIs) are abstracted via `port` interfaces; infrastructure implements them (Dependency Inversion).

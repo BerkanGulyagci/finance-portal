@@ -32,7 +32,7 @@ Her domain modülü 4 katmandan oluşur:
 |---|---|---|
 | `presentation` | REST denetleyiciler (`controller`), DTO'lar | Application'a |
 | `application` | İş akışı servisleri, `port` arayüzleri | Domain'e |
-| `domain` | İş varlıkları (entity), kurallar | (en içte — bağımsız) |
+| `domain` | İş varlıkları (entity), kurallar | (en içte — başka katmana bağımlı değil) |
 | `infrastructure` | Port gerçekleştirimleri: adapter, repository, dış servis istemcisi | Application + Domain'e |
 
 **Bağımlılık kuralı:** Bağımlılıklar daima dıştan içe akar. Dış bağımlılıklar (veritabanı, dış API) `port` arayüzleriyle soyutlanır; infrastructure bunları gerçekleştirir (Dependency Inversion).
