@@ -153,7 +153,7 @@ Bu bölüm, projeyi **hiç bilmeyen birinin** sıfırdan çalıştırabilmesi i�
 
 ### 1. Gereksinimler
 
-Bilgisayarınızda yalnızca **Docker** (Compose v2 ile) ve **Git** kurulu olmalıdır. **8 GB+ RAM** önerilir (15+ servis aynı anda çalışır).
+Bilgisayarınızda yalnızca **Docker** (Compose v2 ile) ve **Git** kurulu olmalıdır. **8 GB+ RAM** önerilir (~15 servis aynı anda çalışır).
 
 | İşletim Sistemi | Docker kurulumu |
 |---|---|
@@ -257,7 +257,7 @@ Sistem anahtarsız çalışır; ancak bazı dış veri kaynaklarını ve özelli
 │       ├── admin/         # Kullanıcı yönetimi, ban (Keycloak)
 │       ├── auth/          # Kimlik doğrulama yardımcıları, kayıt
 │       └── common/        # Çapraz kesen: güvenlik, loglama, önbellek, hata, config
-│   └── src/main/resources/{application*.yml, db/migration/V1..V17, log4j2-*}
+│   └── src/main/resources/{application*.yml, db/migration/ (17 betik), log4j2-*}
 │
 ├── frontend/finance-portal-frontend/  # React 19 + Vite SPA
 │   └── src/{features, app, components, context, api, router, hooks, i18n, lib, utils}
@@ -305,7 +305,7 @@ Backend, Spring Boot 3.2.1 (Java 21) üzerine kurulu **modüler monolit**tir. T�
 - **36 REST denetleyici, 124 uç nokta** — 12 işlevsel domain'e dağılmış.
 - **Erişim seviyeleri:** Genel (misafir dahil — piyasa, haber), Kimlikli (portföy, alarm, bildirim), Admin (kullanıcı yönetimi).
 - **Standart yanıt:** Tüm yanıtlar `ApiResponse<T>` zarfında (success, message, data, timestamp).
-- **22 zamanlanmış görev** — alarm değerlendirme (60 sn), piyasa / fon / tahvil önbellek ısıtma, vade kapatma, bülten dijesti (ShedLock ile dağıtık kilitli).
+- **31 zamanlanmış görev (22 sınıfa dağılmış)** — alarm değerlendirme (60 sn), piyasa / fon / tahvil önbellek ısıtma, vade kapatma, bülten dijesti (ShedLock ile dağıtık kilitli).
 - **Dayanıklılık:** Last Known Good (LKG) deseni + Resilience4j (retry / circuit breaker) + 50+ Redis önbellek ad alanı.
 
 **Başlıca uç nokta grupları:**
@@ -366,7 +366,7 @@ Aşağıda öne çıkan domain'lerin uç noktaları listelenmiştir. Tam liste i
 
 ### Zamanlanmış İşler (Schedulers)
 
-Sistem, dış verileri tazelemek ve periyodik işleri yürütmek için **22 zamanlanmış görev** kullanır. Çoklu kopya ortamında 🔒 işaretliler ShedLock ile yalnızca tek kopyada çalışır.
+Sistem, dış verileri tazelemek ve periyodik işleri yürütmek için **31 zamanlanmış görev (22 sınıfa dağılmış)** kullanır. Çoklu kopya ortamında 🔒 işaretliler ShedLock ile yalnızca tek kopyada çalışır.
 
 | Görev | Zamanlama | İşlev |
 |---|---|---|
@@ -442,7 +442,7 @@ Proje, GitHub Actions tabanlı bir CI/CD hattıyla otomatikleştirilmiştir.
 
 | Yol | Komut | Açıklama |
 |---|---|---|
-| **Docker Compose** (geliştirme) | `docker compose up -d` | Tek makinede tam yığın (15 servis) |
+| **Docker Compose** (geliştirme) | `docker compose up -d` | Tek makinede tam yığın (14 servis; `sonar` profilinde +SonarQube) |
 | **Kubernetes (GKE)** | `kubectl apply -k k8s/...` | Katmanlı manifest (00-base → 01-data → 02-app → 03-monitoring); HPA (2–6 kopya), PDB, ManagedCertificate TLS |
 | **CI/CD** | GitHub Actions | Her push'ta CI; CD elle tetikle ile GKE'ye |
 

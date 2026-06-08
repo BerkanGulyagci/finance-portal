@@ -155,7 +155,7 @@ This section contains **all the steps** needed for **someone with no prior knowl
 
 You only need the following installed on your machine:
 
-- **[Docker Desktop](https://www.docker.com/products/docker-desktop/)** (includes Docker Compose v2) — **8 GB+ RAM** recommended (17 services run simultaneously).
+- **[Docker Desktop](https://www.docker.com/products/docker-desktop/)** (includes Docker Compose v2) — **8 GB+ RAM** recommended (~15 services run simultaneously).
 - **Git** (to clone the repository).
 
 > You do **not** need to install Java, Node.js or anything else — everything runs inside Docker containers. (Only for non-Docker local development do you need JDK 21 + Node.js 20.)
@@ -253,7 +253,7 @@ The system runs without keys; however, to enable certain external data sources a
 │       ├── admin/         # User management, ban (Keycloak)
 │       ├── auth/          # Authentication helpers, registration
 │       └── common/        # Cross-cutting: security, logging, caching, errors, config
-│   └── src/main/resources/{application*.yml, db/migration/V1..V17, log4j2-*}
+│   └── src/main/resources/{application*.yml, db/migration/ (17 scripts), log4j2-*}
 │
 ├── frontend/finance-portal-frontend/  # React 19 + Vite SPA
 │   └── src/{features, app, components, context, api, router, hooks, i18n, lib, utils}
@@ -301,7 +301,7 @@ The backend is a **modular monolith** built on Spring Boot 3.2.1 (Java 21). All 
 - **36 REST controllers, 124 endpoints** — spread across 12 functional domains.
 - **Access levels:** Public (incl. guests — market, news), Authenticated (portfolio, alarms, notifications), Admin (user management).
 - **Standard response:** All responses are wrapped in `ApiResponse<T>` (success, message, data, timestamp).
-- **22 scheduled tasks** — alarm evaluation (60 s), market / fund / bond cache warm-up, maturity settlement, newsletter digest (distributed-locked with ShedLock).
+- **31 scheduled tasks (across 22 classes)** — alarm evaluation (60 s), market / fund / bond cache warm-up, maturity settlement, newsletter digest (distributed-locked with ShedLock).
 - **Resilience:** Last Known Good (LKG) pattern + Resilience4j (retry / circuit breaker) + 50+ Redis cache namespaces.
 
 **Main endpoint groups:**
@@ -362,7 +362,7 @@ Endpoints of selected prominent domains are listed below. For the full list, use
 
 ### Scheduled Tasks (Schedulers)
 
-The system uses **22 scheduled tasks** to refresh external data and run periodic jobs. In a multi-replica environment, the ones marked 🔒 run on a single replica only via ShedLock.
+The system uses **31 scheduled tasks (across 22 classes)** to refresh external data and run periodic jobs. In a multi-replica environment, the ones marked 🔒 run on a single replica only via ShedLock.
 
 | Task | Schedule | Function |
 |---|---|---|
@@ -438,7 +438,7 @@ The project is automated with a GitHub Actions-based CI/CD pipeline.
 
 | Path | Command | Description |
 |---|---|---|
-| **Docker Compose** (development) | `docker compose up -d` | Full stack on a single host (15 services) |
+| **Docker Compose** (development) | `docker compose up -d` | Full stack on a single host (14 services; +SonarQube under the `sonar` profile) |
 | **Kubernetes (GKE)** | `kubectl apply -k k8s/...` | Layered manifests (00-base → 01-data → 02-app → 03-monitoring); HPA (2–6 replicas), PDB, ManagedCertificate TLS |
 | **CI/CD** | GitHub Actions | CI on every push; CD to GKE via manual trigger |
 
