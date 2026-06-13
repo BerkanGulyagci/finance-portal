@@ -1,9 +1,4 @@
-<table border="0" cellspacing="0" cellpadding="0">
-<tr>
-<td width="200" align="center" valign="middle">
-<img src="assets/32bit-logo.png" alt="Toyota 32Bit" width="170"/>
-</td>
-<td valign="middle">
+<img src="assets/32bit-logo.png" alt="Toyota 32Bit" width="150" align="left" hspace="20"/>
 
 # Finans Portalı
 
@@ -11,9 +6,7 @@
 
 [English](README.md) · **Türkçe** &nbsp;·&nbsp; [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-</td>
-</tr>
-</table>
+<br clear="left"/>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Java-21-007396?logo=openjdk&logoColor=white"/>
@@ -38,7 +31,7 @@
 
 Sistem üç ana katmandan oluşur:
 
-- **Backend** — Java 21 + Spring Boot 3.2.1. Modüler monolit + Clean Architecture; 12 işlevsel domain, REST API, çoklu dış veri entegrasyonu ve dayanıklılık desenleri. → [Backend README](backend/finance-portal-backend/README.md)
+- **Backend** — Java 21 + Spring Boot 3.2.1. Modüler monolit + katmanlı (Controller/Service/Repository) + Clean Architecture; 12 işlevsel domain, REST API, çoklu dış veri entegrasyonu ve dayanıklılık desenleri. → [Backend README](backend/finance-portal-backend/README.md)
 - **Frontend** — React 19 + Vite tek sayfa uygulaması (SPA). Keycloak OIDC, TR/EN i18n, açık/koyu tema, finansal grafikler ve özelleştirilebilir kontrol paneli. → [Frontend README](frontend/finance-portal-frontend/README.md)
 - **Altyapı** — Docker Compose ile tam yığın: kimlik (Keycloak + LDAP), mesajlaşma (Kafka), gözlemlenebilirlik (OpenSearch, Prometheus + Grafana, Tempo + OpenTelemetry). Kubernetes (GKE) manifest'leri ve GitHub Actions CI/CD ile birlikte gelir.
 
@@ -181,7 +174,7 @@ Sistem anahtarsız çalışır; ancak bazı dış veri kaynaklarını ve özelli
 | `ASSISTANT_API_KEY` | Groq | Yapay zekâ sohbet asistanı | [console.groq.com/keys](https://console.groq.com/keys) (ücretsiz) |
 | `GEMINI_API_KEY` | Gemini | Yapay zekâ (yedek) | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) (ücretsiz) |
 | `FINNHUB_API_KEY` | Finnhub | Ekonomik takvim / haber | [finnhub.io](https://finnhub.io/register) (ücretsiz) |
-| `COINGECKO_API_KEY` | CoinGecko | Kripto (yedek kaynak) | [coingecko.com/api](https://www.coingecko.com/en/api) (anahtarsız da çalışır) |
+| `COINGECKO_API_KEY` | CoinGecko | Kripto piyasa verisi | [coingecko.com/api](https://www.coingecko.com/en/api) (anahtarsız da çalışır) |
 | `TEFAS_BEARER_TOKEN` | TEFAS | Yatırım fonları | (anonim varsayılan vardır) |
 | `KEYCLOAK_ADMIN_CLIENT_SECRET` | Keycloak | Admin kullanıcı yönetimi | Keycloak konsolu → Clients → `finance-portal-admin-service` → Credentials |
 | `SMTP_*` | E-posta | Alarm / bülten e-postaları | Gmail App Password (e-posta göndermek için) |

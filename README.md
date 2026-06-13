@@ -1,9 +1,4 @@
-<table border="0" cellspacing="0" cellpadding="0">
-<tr>
-<td width="200" align="center" valign="middle">
-<img src="assets/32bit-logo.png" alt="Toyota 32Bit" width="170"/>
-</td>
-<td valign="middle">
+<img src="assets/32bit-logo.png" alt="Toyota 32Bit" width="150" align="left" hspace="20"/>
 
 # Finance Portal
 
@@ -11,9 +6,7 @@
 
 **English** · [Türkçe](README.tr.md) &nbsp;·&nbsp; [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-</td>
-</tr>
-</table>
+<br clear="left"/>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Java-21-007396?logo=openjdk&logoColor=white"/>
@@ -38,7 +31,7 @@
 
 The system consists of three main layers:
 
-- **Backend** — Java 21 + Spring Boot 3.2.1. Modular monolith + Clean Architecture; 12 functional domains, a REST API, multiple external data integrations and resilience patterns. → [Backend README](backend/finance-portal-backend/README.md)
+- **Backend** — Java 21 + Spring Boot 3.2.1. Modular monolith + layered (Controller/Service/Repository) + Clean Architecture; 12 functional domains, a REST API, multiple external data integrations and resilience patterns. → [Backend README](backend/finance-portal-backend/README.md)
 - **Frontend** — React 19 + Vite single-page application (SPA). Keycloak OIDC, TR/EN i18n, light/dark theme, financial charts and a customizable dashboard. → [Frontend README](frontend/finance-portal-frontend/README.md)
 - **Infrastructure** — Full stack via Docker Compose: identity (Keycloak + LDAP), messaging (Kafka), observability (OpenSearch, Prometheus + Grafana, Tempo + OpenTelemetry). Ships with Kubernetes (GKE) manifests and a GitHub Actions CI/CD pipeline.
 
@@ -177,7 +170,7 @@ The system runs without keys; however, to enable certain external data sources a
 | `ASSISTANT_API_KEY` | Groq | AI chat assistant | [console.groq.com/keys](https://console.groq.com/keys) (free) |
 | `GEMINI_API_KEY` | Gemini | AI (fallback) | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) (free) |
 | `FINNHUB_API_KEY` | Finnhub | Economic calendar / news | [finnhub.io](https://finnhub.io/register) (free) |
-| `COINGECKO_API_KEY` | CoinGecko | Crypto (fallback source) | [coingecko.com/api](https://www.coingecko.com/en/api) (works without a key too) |
+| `COINGECKO_API_KEY` | CoinGecko | Crypto market data | [coingecko.com/api](https://www.coingecko.com/en/api) (works without a key too) |
 | `TEFAS_BEARER_TOKEN` | TEFAS | Mutual funds | (an anonymous default exists) |
 | `KEYCLOAK_ADMIN_CLIENT_SECRET` | Keycloak | Admin user management | Keycloak console → Clients → `finance-portal-admin-service` → Credentials |
 | `SMTP_*` | Email | Alarm / newsletter emails | Gmail App Password (to send email) |
