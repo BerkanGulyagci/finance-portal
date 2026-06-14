@@ -310,16 +310,24 @@ describe('DashboardPage (jsdom + testing-library + React 19)', () => {
     expect(screen.getByText('Henüz işlem yapmadınız.')).toBeInTheDocument();
   });
 
-  it('ekonomi göstergeleri: indicators (enflasyon/politika faizi) ve fx (USD) değerleri EconomyCard\'a yansır', async () => {
+  it('ekonomi göstergeleri: TÜFE/politika faizi (indicators) + çekirdek/ABD CPI (economy yoy) EconomyCard\'a yansır', async () => {
     getEconomicIndicators.mockResolvedValue({ inflation: 38.1, policyRate: 45 });
-    getFxTcmb.mockResolvedValue({ rates: [{ symbol: 'USD', sell: 32.25, changePercent: 0.5 }] });
+    getEconomy.mockResolvedValue({
+      groups: [{
+        indicators: [
+          { key: 'cekirdek', yoyChangePercent: 30.44 },
+          { key: 'abdCpi', yoyChangePercent: 4.25 },
+        ],
+      }],
+    });
     renderPage();
 
-    // EconomyCard: enflasyon %38.10, politika faizi %45.00 (toFixed(2)).
+    // EconomyCard: TÜFE %38.10, politika faizi %45.00 (toFixed(2)).
     expect(await screen.findByText('%38.10')).toBeInTheDocument();
     expect(screen.getByText('%45.00')).toBeInTheDocument();
-    // USD/TL fx fallback'ten: ₺32,2500 (min/max 4 hane).
-    expect(screen.getByText('₺32,2500')).toBeInTheDocument();
+    // Çekirdek Enflasyon ve ABD CPI economy yoyChangePercent'ten gelir.
+    expect(screen.getByText('%30.44')).toBeInTheDocument();
+    expect(screen.getByText('%4.25')).toBeInTheDocument();
   });
 
   it('"Grafik Ekle" → arama modalı açılır (allowIndices=true); seçim grafiği GridBoard\'a ekler ve kaldırılır', async () => {

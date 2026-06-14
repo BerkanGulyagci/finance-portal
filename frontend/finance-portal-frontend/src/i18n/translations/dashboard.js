@@ -80,6 +80,8 @@ const en = {
   'Politika Faizi': 'Policy Rate',
   'Dolar/TL': 'USD/TRY',
   'BIST 100': 'BIST 100',
+  'Çekirdek Enflasyon': 'Core Inflation',
+  'ABD Enflasyonu (CPI)': 'US Inflation (CPI)',
 
   // Favoriler
   'Favoriler': 'Favorites',

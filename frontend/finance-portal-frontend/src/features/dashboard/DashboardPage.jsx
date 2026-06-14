@@ -173,18 +173,13 @@ export default function DashboardPage() {
   }, [assetPortfolios]);
 
   const eco = useMemo(() => {
-    const usd = findEco(economy, 'usdTry');
-    const bist = findEco(economy, 'bist100');
-    const fxUsd = fx?.rates?.find(r => r.symbol === 'USD');
     return {
       inflation: indicators?.inflation ?? findEco(economy, 'tufe')?.yoyChangePercent ?? null,
       policyRate: indicators?.policyRate ?? findEco(economy, 'politikaFaizi')?.value ?? null,
-      usdTry: usd?.value ?? fxUsd?.sell ?? null,
-      usdChange: usd?.changePercent ?? fxUsd?.changePercent ?? null,
-      bist100: bist?.value ?? null,
-      bistChange: bist?.changePercent ?? null,
+      coreInflation: findEco(economy, 'cekirdek')?.yoyChangePercent ?? null,
+      usCpi: findEco(economy, 'abdCpi')?.yoyChangePercent ?? null,
     };
-  }, [economy, indicators, fx]);
+  }, [economy, indicators]);
 
   const visiblePortfolios = useMemo(
     () => assetPortfolios.filter(p => !hiddenPids.has(p.id)),

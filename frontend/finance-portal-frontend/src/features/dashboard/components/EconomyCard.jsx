@@ -1,6 +1,6 @@
-import { Activity, Percent, DollarSign, BarChart3 } from 'lucide-react';
+import { Activity, Percent } from 'lucide-react';
 import DashCard, { CardLink } from './DashCard';
-import { fmtMoney, fmtPct, pctClass, num } from '../utils/dashUtils';
+import { fmtPct, pctClass, num } from '../utils/dashUtils';
 import { useTranslation } from '../../../context/LanguageContext';
 
 function IndicatorRow({ icon: Icon, tone, label, value, changePct }) {
@@ -20,12 +20,10 @@ function IndicatorRow({ icon: Icon, tone, label, value, changePct }) {
   );
 }
 
-const bistFmt = v => num(v).toLocaleString('tr-TR', { maximumFractionDigits: 0 });
 
 /**
- * Ekonomi göstergeleri — Enflasyon (TÜFE yıllık), Politika Faizi, Dolar/TL, BIST 100/30/50.
- * `eco`: { inflation, policyRate, usdTry, usdChange, bist100, bistChange,
- *          bist30, bist30Change, bist50, bist50Change }
+ * Ekonomi göstergeleri — Enflasyon (TÜFE yıllık), Çekirdek Enflasyon, Politika Faizi, ABD CPI.
+ * `eco`: { inflation, coreInflation, policyRate, usCpi }
  */
 export default function EconomyCard({ eco }) {
   const { t } = useTranslation();
@@ -38,25 +36,15 @@ export default function EconomyCard({ eco }) {
         <IndicatorRow icon={Activity} tone="bg-rose-50 text-rose-600"
           label={t('Enflasyon (TÜFE, yıllık)')}
           value={has(eco?.inflation) ? `%${num(eco.inflation).toFixed(2)}` : '—'} />
+        <IndicatorRow icon={Activity} tone="bg-orange-50 text-orange-600"
+          label={t('Çekirdek Enflasyon')}
+          value={has(eco?.coreInflation) ? `%${num(eco.coreInflation).toFixed(2)}` : '—'} />
         <IndicatorRow icon={Percent} tone="bg-amber-50 text-amber-600"
           label={t('Politika Faizi')}
           value={has(eco?.policyRate) ? `%${num(eco.policyRate).toFixed(2)}` : '—'} />
-        <IndicatorRow icon={DollarSign} tone="bg-emerald-50 text-emerald-600"
-          label={t('Dolar/TL')}
-          value={has(eco?.usdTry) ? `₺${fmtMoney(eco.usdTry, { min: 4, max: 4 })}` : '—'}
-          changePct={has(eco?.usdChange) ? num(eco.usdChange) : null} />
-        <IndicatorRow icon={BarChart3} tone="bg-[#093eaa]/10 text-[#093eaa]"
-          label={t('BIST 100')}
-          value={has(eco?.bist100) ? bistFmt(eco.bist100) : '—'}
-          changePct={has(eco?.bistChange) ? num(eco.bistChange) : null} />
-        <IndicatorRow icon={BarChart3} tone="bg-[#093eaa]/10 text-[#093eaa]"
-          label={t('BIST 30')}
-          value={has(eco?.bist30) ? bistFmt(eco.bist30) : '—'}
-          changePct={has(eco?.bist30Change) ? num(eco.bist30Change) : null} />
-        <IndicatorRow icon={BarChart3} tone="bg-[#093eaa]/10 text-[#093eaa]"
-          label={t('BIST 50')}
-          value={has(eco?.bist50) ? bistFmt(eco.bist50) : '—'}
-          changePct={has(eco?.bist50Change) ? num(eco.bist50Change) : null} />
+        <IndicatorRow icon={Activity} tone="bg-blue-50 text-blue-600"
+          label={t('ABD Enflasyonu (CPI)')}
+          value={has(eco?.usCpi) ? `%${num(eco.usCpi).toFixed(2)}` : '—'} />
       </div>
     </DashCard>
   );
