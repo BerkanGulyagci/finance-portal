@@ -414,9 +414,11 @@ class PortfolioWhatIfServiceMoreTest {
         assertThat(r.getScope()).isEqualTo("SIM");
         assertThat(r.getLabel()).isEqualTo("BTC");
         assertThat(r.getPoints()).isNotEmpty();
-        // amount=5000 invested; today spotTodayMv = amountTl(5000) since marketValue==amount
+        // SIM'de marketValue artık set EDİLMEZ → "bugün" noktası tarihsel seriden hesaplanır:
+        // 5000 yatırım, BTC serisi 1000→1500 (×1.5) → bugünkü gerçek değer = 5000 × 1500/1000 = 7500.
+        // (Eski bug: marketValue=amount olduğundan spotTodayMv bugünü maliyete eşitliyordu → 5000/%0.)
         WhatIfSeriesPoint last = r.getPoints().get(r.getPoints().size() - 1);
-        assertThat(last.getActual()).isEqualByComparingTo("5000.00");
+        assertThat(last.getActual()).isEqualByComparingTo("7500.00");
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

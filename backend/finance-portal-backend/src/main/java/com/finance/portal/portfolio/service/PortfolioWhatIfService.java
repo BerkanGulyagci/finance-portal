@@ -265,7 +265,11 @@ public class PortfolioWhatIfService {
         h.setAssetType(type);
         h.setSymbol(symbol.trim());
         h.setTotalCost(amountTl);
-        h.setMarketValue(amountTl);
+        // SIM'de "bugünkü gerçek piyasa değeri" YOK (kullanıcı sadece "o tarihte şu kadar TL'lik
+        // aldım" diyor). marketValue'yu girilen tutara set ETMEYİZ: aksi halde computeSeries
+        // "bugün" noktasında spotTodayMv'i (= girilen tutar) gerçek değer sanıp actual'ı maliyete
+        // EŞİTLER → bugünkü getiri hep %0 görünür (geçmiş noktalar doğru, yalnız son nokta bozulurdu).
+        // Null bırakınca bugün noktası da tarihsel seriden (assetSeries) hesaplanır → doğru getiri.
         h.setCurrency("TRY");
         h.setFirstBuyDate(date.atStartOfDay());
 
