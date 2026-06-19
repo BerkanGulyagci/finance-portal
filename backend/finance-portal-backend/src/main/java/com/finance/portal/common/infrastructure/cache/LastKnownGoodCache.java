@@ -76,6 +76,20 @@ public class LastKnownGoodCache {
         }
     }
 
+    /**
+     * Son başarılı (LKG) değeri <b>dış kaynağa gitmeden</b> doğrudan Redis'ten okur.
+     *
+     * <p>{@link #resilient} her zaman önce {@code fetch} çağırır; bu metot ise yalnızca saklı
+     * {@code lkg:} değerini döndürür. Resilience4j fallback metodları gibi, kaynağın zaten
+     * erişilemez olduğu (devre açık) durumlarda kullanılır: tekrar dış kaynağı denemeden
+     * son geçerli veriyi servis etmek için.
+     *
+     * @return saklı LKG değeri; yoksa boş {@link Optional}
+     */
+    public <T> Optional<T> peek(String key, TypeReference<T> typeRef) {
+        return read(key, typeRef);
+    }
+
     /** Sonuç "kullanılabilir" mi: null / boş koleksiyon / boş map / boş Optional → değil. */
     private boolean isUsable(Object v) {
         if (v == null) {

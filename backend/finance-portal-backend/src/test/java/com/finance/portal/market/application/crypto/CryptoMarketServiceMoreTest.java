@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -360,6 +361,42 @@ class CryptoMarketServiceMoreTest {
 
         assertThatThrownBy(() -> service.getCryptosFallback(0, 20, new RuntimeException("cb open")))
                 .isInstanceOf(ExternalApiException.class);
+    }
+
+    @Test
+    void getCryptosFallback_cacheMiss_butLkgHit_servesStaleData() {
+        CryptoMarketService service = newService();
+        // Spring cache boş (devre uzun süredir açık → TTL düştü).
+        Cache cache = mock(Cache.class);
+        when(cacheManager.getCache("cryptoMarketsCache")).thenReturn(cache);
+        when(cache.get("try:p0:s20")).thenReturn(null);
+        // LKG'de son geçerli sayfa var (key: getCryptos ile aynı format → page+1).
+        List<CryptoMarketItem> stale = List.of(item("bitcoin"));
+        when(lkg.peek(eq("crypto.coingecko.markets:try:p1:s20"), any()))
+                .thenReturn(Optional.of(stale));
+
+        List<CryptoMarketItem> result = service.getCryptosFallback(0, 20, new RuntimeException("cb open"));
+
+        assertThat(result).isSameAs(stale);
+        verify(integrationLogService).publish(
+                anyString(), eq("WARN"), anyString(), anyString(), anyString(),
+                isNull(), isNull(), eq(true), isNull(), any(Map.class), anyString());
+    }
+
+    @Test
+    void getCryptosByCurrencyFallback_cacheMiss_butLkgHit_servesStaleData() {
+        CryptoMarketService service = newService();
+        Cache cache = mock(Cache.class);
+        when(cacheManager.getCache("cryptoMarketsCache")).thenReturn(cache);
+        when(cache.get("usd:p1:s50")).thenReturn(null);
+        List<CryptoMarketItem> stale = List.of(item("ethereum"));
+        when(lkg.peek(eq("crypto.coingecko.markets:usd:p2:s50"), any()))
+                .thenReturn(Optional.of(stale));
+
+        List<CryptoMarketItem> result =
+                service.getCryptosByCurrencyFallback(1, 50, "USD", new RuntimeException("cb"));
+
+        assertThat(result).isSameAs(stale);
     }
 
     @Test

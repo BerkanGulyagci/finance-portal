@@ -496,58 +496,53 @@ public class CryptoMarketService {
 
     @SuppressWarnings("unused")
     public List<CryptoMarketItem> getCryptosFallback(int page, int size, Throwable t) {
-        log.error("CoinGecko fallback page={} size={}: {}", page, size, t.getMessage());
-        Cache cache = cacheManager.getCache(CACHE_NAME);
-        if (cache != null) {
-            Cache.ValueWrapper w = cache.get("try:p" + page + ":s" + size);
-            if (w != null && w.get() != null) {
-                @SuppressWarnings("unchecked")
-                List<CryptoMarketItem> cached = (List<CryptoMarketItem>) w.get();
-                integrationLogService.publish(
-                        IntegrationLogSupport.EVENT_EXTERNAL_API_FALLBACK_USED,
-                        "WARN",
-                        "CoinGecko stale cache fallback used",
-                        IntegrationLogSupport.PROVIDER_COINGECKO,
-                        "markets",
-                        null,
-                        null,
-                        true,
-                        null,
-                        Map.of("cacheHit", true, "page", page, "size", size),
-                        CryptoMarketService.class.getName()
-                );
-                return cached;
-            }
-        }
-        throw new ExternalApiException("Crypto market data is temporarily unavailable.", t);
+        return getCryptosByCurrencyFallback(page, size, "try", t);
     }
 
     @SuppressWarnings("unused")
     public List<CryptoMarketItem> getCryptosByCurrencyFallback(int page, int size, String currency, Throwable t) {
         log.error("CoinGecko fallback currency={} page={} size={}: {}", currency, page, size, t.getMessage());
+        String cur = (currency == null || currency.isBlank()) ? "try" : currency.trim().toLowerCase();
+
+        // 1) Önce kısa-TTL Spring cache (en taze, devre açılmadan hemen önceki sayfa).
         Cache cache = cacheManager.getCache(CACHE_NAME);
         if (cache != null) {
-            String cur = (currency == null || currency.isBlank()) ? "try" : currency.trim().toLowerCase();
             Cache.ValueWrapper w = cache.get(cur + ":p" + page + ":s" + size);
             if (w != null && w.get() != null) {
                 @SuppressWarnings("unchecked")
                 List<CryptoMarketItem> cached = (List<CryptoMarketItem>) w.get();
-                integrationLogService.publish(
-                        IntegrationLogSupport.EVENT_EXTERNAL_API_FALLBACK_USED,
-                        "WARN",
-                        "CoinGecko stale cache fallback used",
-                        IntegrationLogSupport.PROVIDER_COINGECKO,
-                        "markets",
-                        null,
-                        null,
-                        true,
-                        null,
-                        Map.of("cacheHit", true, "currency", cur, "page", page, "size", size),
-                        CryptoMarketService.class.getName()
-                );
+                publishFallbackUsed("spring-cache", cur, page, size);
                 return cached;
             }
         }
+
+        // 2) Spring cache boşsa (devre uzun süredir açık → TTL düştü) LKG'den son geçerli sayfayı dene.
+        //    Key formatı getCryptos(...) ile birebir aynı olmalı: page+1, "crypto.coingecko.markets:" öneki.
+        String lkgKey = "crypto.coingecko.markets:" + cur + ":p" + (page + 1) + ":s" + size;
+        Optional<List<CryptoMarketItem>> lkgVal =
+                lkg.peek(lkgKey, new TypeReference<List<CryptoMarketItem>>() {});
+        if (lkgVal.isPresent() && !lkgVal.get().isEmpty()) {
+            publishFallbackUsed("lkg", cur, page, size);
+            return lkgVal.get();
+        }
+
         throw new ExternalApiException("Crypto market data is temporarily unavailable.", t);
+    }
+
+    /** Fallback kullanımını entegrasyon loguna yazar (kaynak: spring-cache | lkg). */
+    private void publishFallbackUsed(String source, String currency, int page, int size) {
+        integrationLogService.publish(
+                IntegrationLogSupport.EVENT_EXTERNAL_API_FALLBACK_USED,
+                "WARN",
+                "CoinGecko stale fallback used (" + source + ")",
+                IntegrationLogSupport.PROVIDER_COINGECKO,
+                "markets",
+                null,
+                null,
+                true,
+                null,
+                Map.of("source", source, "currency", currency, "page", page, "size", size),
+                CryptoMarketService.class.getName()
+        );
     }
 }
