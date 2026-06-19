@@ -71,11 +71,20 @@ export default function WhatIfComparison({ portfolioId, holdings = [], valuesHid
   // Özel/simülasyon modu
   const [mode, setMode] = useState('PORTFOLIO'); // 'PORTFOLIO' | 'SIM'
   const [simInstrument, setSimInstrument] = useState(null); // {assetType, symbol, name}
-  const [simAmount, setSimAmount] = useState('10000');
+  const [simAmount, setSimAmount] = useState('10000'); // input'a yazılan (anlık)
+  // Tutar her tuş vuruşunda değişiyor; seri çağrısını DEBOUNCE et (yoksa "100" yazarken 1/10/100
+  // için 3 ayrı istek gider, grafik her rakamda yeniden yüklenip titrer). Input anlık güncellenir,
+  // backend isteği yalnız yazım durduktan ~400ms sonra debouncedAmount üzerinden tetiklenir.
+  const [debouncedAmount, setDebouncedAmount] = useState('10000');
   const [simDate, setSimDate] = useState(() => {
     const d = new Date(); d.setFullYear(d.getFullYear() - 1);
     return d.toISOString().slice(0, 10);
   });
+
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedAmount(simAmount), 400);
+    return () => clearTimeout(id);
+  }, [simAmount]);
 
   function toggleSeries(key) {
     if (key === 'actual') return;
@@ -116,7 +125,9 @@ export default function WhatIfComparison({ portfolioId, holdings = [], valuesHid
   }, [holdings, t]);
 
   const customIds = custom.map(c => c.id).join(',');
-  const simReady = mode === 'SIM' && simInstrument && Number(simAmount) > 0 && simDate;
+  // simReady DEBOUNCED tutara bağlı: istek de debounced değeri gönderir → ikisi tutarlı,
+  // yazım sırasında ara değerlerle (1, 10...) istek atılmaz.
+  const simReady = mode === 'SIM' && simInstrument && Number(debouncedAmount) > 0 && simDate;
 
   function onPick(sel) {
     if (searchFor === 'sim') {
@@ -137,7 +148,7 @@ export default function WhatIfComparison({ portfolioId, holdings = [], valuesHid
     const req = mode === 'SIM'
       ? getPortfolioWhatIfSeries(portfolioId, null, null, benchIds, {
           assetType: simInstrument.assetType, symbol: simInstrument.symbol,
-          amount: Number(simAmount), date: simDate,
+          amount: Number(debouncedAmount), date: simDate,
         })
       : (() => {
           const sel = assetOptions.find(o => o.value === scope) ?? assetOptions[0];
@@ -150,7 +161,7 @@ export default function WhatIfComparison({ portfolioId, holdings = [], valuesHid
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [portfolioId, mode, scope, assetOptions, customIds, simReady,
-      simInstrument, simAmount, simDate, t]);
+      simInstrument, debouncedAmount, simDate, t]);
 
   const points = data?.points ?? [];
   const available = data?.availableScenarios ?? [];
