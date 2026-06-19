@@ -24,7 +24,8 @@ spec:
       containers:
         - name: keycloak
           # Custom image: base keycloak:26.0 + gömülü "finance-portal" login teması.
-          image: europe-west1-docker.pkg.dev/project-f3ab8cbf-895a-47c2-91d/portiva-images/keycloak:v3
+          # v4: "Kayıt Ol" linki redirect_uri origin'inden türetilir (cluster'da nip.io'ya gider).
+          image: europe-west1-docker.pkg.dev/project-f3ab8cbf-895a-47c2-91d/portiva-images/keycloak:v4
           imagePullPolicy: Always
           args: ["start-dev", "--import-realm"]
           ports:
