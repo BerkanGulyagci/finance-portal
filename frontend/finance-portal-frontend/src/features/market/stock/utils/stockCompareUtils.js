@@ -110,6 +110,41 @@ export function interpolateSeries(rows, keys) {
   return rows;
 }
 
+/**
+ * Seyrek (aylık) serileri — enflasyon/mevduat — BASAMAK (step) olarak doldurur: bilinen iki nokta
+ * arasını DOĞRUSAL bağlamak yerine, ÖNCEKİ ayın değerinde SABİT tutar; değer ancak BİR SONRAKİ
+ * gerçek noktada (ay sonunda) zıplar. Mantık: bir ayın enflasyonu ancak o ay BİTTİĞİNDE bellidir
+ * (TÜİK ay sonu açıklar) → ay içinde geleceği "bilmiş gibi" tırmandırmak yerine düz tutulur.
+ * Son bilinen noktadan SONRASI ileri-doldurulur (yayımlanmamış ay/gelecek bilinemez).
+ * İlk bilinen noktadan ÖNCESİ null kalır (ortak başlangıçta zaten %0 seed'lendi).
+ *
+ * <p>{@link #interpolateSeries} (doğrusal) yerine kullanılır; grafik bu seriyi {@code step:'end'}
+ * ile çizer → veri de görsel de "ay sonunda zıplayan" gerçek basamak olur (tooltip ara günde
+ * önceki ayın değerini gösterir, tutarlı).</p>
+ */
+export function stepFillSeries(rows, keys) {
+  keys.forEach(k => {
+    const known = [];
+    for (let i = 0; i < rows.length; i++) if (rows[i][k] != null) known.push(i);
+    if (known.length === 0) return;
+    // Her bilinen nokta, BİR SONRAKİ bilinen noktaya kadar değerini KORUR (basamak — düz tut).
+    for (let s = 0; s < known.length - 1; s++) {
+      const a = known[s], b = known[s + 1];
+      for (let i = a + 1; i < b; i++) {
+        rows[i][k] = rows[a][k];
+        rows[i][`__price_${k}`] = rows[a][`__price_${k}`];
+      }
+    }
+    // Son bilinen noktadan sonrası → ileri-doldur (gelecek/yayımlanmamış ay bilinemez).
+    const last = known[known.length - 1];
+    for (let i = last + 1; i < rows.length; i++) {
+      rows[i][k] = rows[last][k];
+      rows[i][`__price_${k}`] = rows[last][`__price_${k}`];
+    }
+  });
+  return rows;
+}
+
 /** Yahoo aralığını genel price-history endpoint aralığına çevir. */
 export function toGenericRange(yahooRange) {
   switch (yahooRange) {

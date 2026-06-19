@@ -31,23 +31,29 @@ export default function EChartsCompareChart({ chartData, seriesDefs }) {
 
       const labels = chartData.map(d => d.label);
 
-      const series = seriesDefs.map(def => ({
-        name: def.name,
-        type: 'line',
-        data: chartData.map(d => ({
-          value: d[def.key] ?? null,
-          price: d[`__price_${def.key}`] ?? null,
-        })),
-        smooth: false,
-        symbol: 'none',
-        lineStyle: { width: 2.5, color: def.color },
-        itemStyle: { color: def.color },
-        connectNulls: true,
-      }));
-
       // Yalnız enflasyon/faiz benchmark'ları fiyat değil soyut endekstir → tooltip'te ₺ gösterme.
       // BIST endeksleri (INDICATOR|XBANK …) GERÇEK ₺ değeri taşır → onlarda ₺ göster.
       const BENCHMARK_KEYS = new Set(['INDICATOR|TUFE', 'INDICATOR|USCPI_TRY', 'INDICATOR|DEPOSIT']);
+
+      const series = seriesDefs.map(def => {
+        // Benchmark (enflasyon/mevduat) aylık veridir ve BASAMAK doldurulur → çizgisi de ay sonunda
+        // zıplayan merdiven olsun (step:'end'). Hisse/endeks günlüktür → düz çizgi (step yok).
+        const isBenchmark = BENCHMARK_KEYS.has(String(def.key));
+        return {
+          name: def.name,
+          type: 'line',
+          ...(isBenchmark ? { step: 'end' } : {}),
+          data: chartData.map(d => ({
+            value: d[def.key] ?? null,
+            price: d[`__price_${def.key}`] ?? null,
+          })),
+          smooth: false,
+          symbol: 'none',
+          lineStyle: { width: 2.5, color: def.color },
+          itemStyle: { color: def.color },
+          connectNulls: true,
+        };
+      });
       const noPriceNames = new Set(
         (seriesDefs || []).filter(d => BENCHMARK_KEYS.has(String(d.key))).map(d => d.name),
       );

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getStockChart, getStockMidasDetail, getAllStocks, getMarketPriceHistory, getFundCompareHistory } from '../../../../api/marketApi';
 import { STOCK_CHART_RANGES } from '../utils/stockChartRanges';
-import { INDEX_SHORTCUTS, COLORS, MAX_STOCKS, rebaseToCommonStart, interpolateSeries, toGenericRange } from '../utils/stockCompareUtils';
+import { INDEX_SHORTCUTS, COLORS, MAX_STOCKS, rebaseToCommonStart, interpolateSeries, stepFillSeries, toGenericRange } from '../utils/stockCompareUtils';
 
 const RANGES = STOCK_CHART_RANGES;
 
@@ -174,9 +174,16 @@ export function useStockCompare() {
       }));
       // Adil kıyas: tümünü ortak başlangıç tarihinden %0'a sabitle
       formatted = rebaseToCommonStart(formatted, defs.map(d => d.key));
-      // Aylık göstergeler (enflasyon/mevduat) bilinen noktaları arası DOĞRUSAL bağlanır → ilk günden
-      // sürekli yükselir (basamak değil), günlük BIST'e karşı adil. Son noktadan sonrası ileri-doldur.
-      formatted = interpolateSeries(formatted, defs.map(d => d.key));
+      // Aylık göstergeleri (enflasyon/mevduat) iki şekilde dolduruyoruz:
+      //  • BENCHMARK (TÜFE/ABD CPI/Mevduat) → BASAMAK: bir ayın enflasyonu o ay BİTİNCE bellidir
+      //    (TÜİK ay sonu açıklar) → ay içinde düz tut, sonraki gerçek noktada (ay sonu) zıpla. Grafik
+      //    bunları step:'end' çizer → "ay sonunda zıplayan merdiven", geleceği bilmiş gibi tırmanmaz.
+      //  • Diğerleri (hisse/fon/endeks — zaten günlük) → DOĞRUSAL (boşluk doldurma; günlük seri etkilenmez).
+      const BENCHMARK_SYMBOLS = new Set(['TUFE', 'USCPI_TRY', 'DEPOSIT']);
+      const benchKeys = defs.filter(d => BENCHMARK_SYMBOLS.has(d.symbol)).map(d => d.key);
+      const otherKeys = defs.filter(d => !BENCHMARK_SYMBOLS.has(d.symbol)).map(d => d.key);
+      if (benchKeys.length) formatted = stepFillSeries(formatted, benchKeys);
+      if (otherKeys.length) formatted = interpolateSeries(formatted, otherKeys);
       setChartData(formatted);
       setChartSeriesDefs(defs.map(d => ({ key: d.key, name: d.label, color: d.color })));
       setChartLoading(false);

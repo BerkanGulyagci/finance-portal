@@ -7,6 +7,7 @@ import {
   MAX_STOCKS,
   rebaseToCommonStart,
   interpolateSeries,
+  stepFillSeries,
   toGenericRange,
   calcMetrics,
 } from '../stockCompareUtils';
@@ -215,6 +216,62 @@ describe('interpolateSeries', () => {
     expect(rows[1].K).toBeCloseTo(2, 3); // (0+4)*0.5
     // __price_K interpolasyonu atlandı (prA null) → undefined kalır.
     expect(rows[1].__price_K).toBeUndefined();
+  });
+});
+
+describe('stepFillSeries', () => {
+  it('bilinen iki nokta arasını ÖNCEKİ değerle SABİT doldurur (doğrusal DEĞİL — basamak)', () => {
+    const rows = [
+      { K: 0, __price_K: 100 },
+      { K: null, __price_K: null },
+      { K: null, __price_K: null },
+      { K: 10, __price_K: 120 },
+    ];
+    const out = stepFillSeries(rows, ['K']);
+    expect(out).toBe(rows); // yerinde mutasyon
+    // Aradaki noktalar ÖNCEKİ ayın değerinde sabit kalır (doğrusal olsaydı ~3.3, ~6.6 olurdu).
+    expect(rows[1].K).toBe(0);
+    expect(rows[1].__price_K).toBe(100);
+    expect(rows[2].K).toBe(0);
+    expect(rows[2].__price_K).toBe(100);
+    // Sonraki gerçek noktada (ay sonu) zıplar.
+    expect(rows[3].K).toBe(10);
+    expect(rows[3].__price_K).toBe(120);
+  });
+
+  it('son bilinen noktadan SONRASINI ileri-doldurur', () => {
+    const rows = [
+      { K: 0, __price_K: 100 },
+      { K: 8, __price_K: 116 },
+      { K: null, __price_K: null },
+      { K: null, __price_K: null },
+    ];
+    stepFillSeries(rows, ['K']);
+    expect(rows[2].K).toBe(8);
+    expect(rows[2].__price_K).toBe(116);
+    expect(rows[3].K).toBe(8);
+    expect(rows[3].__price_K).toBe(116);
+  });
+
+  it('ilk bilinen noktadan ÖNCESİ null kalır (geriye doldurma yok)', () => {
+    const rows = [
+      { K: null, __price_K: null },
+      { K: 5, __price_K: 105 },
+      { K: 7, __price_K: 107 },
+    ];
+    stepFillSeries(rows, ['K']);
+    expect(rows[0].K).toBeNull();
+    expect(rows[0].__price_K).toBeNull();
+  });
+
+  it('hiç bilinen nokta yoksa seriye dokunmaz', () => {
+    const rows = [
+      { K: null, __price_K: null },
+      { K: null, __price_K: null },
+    ];
+    stepFillSeries(rows, ['K']);
+    expect(rows[0].K).toBeNull();
+    expect(rows[1].K).toBeNull();
   });
 });
 
