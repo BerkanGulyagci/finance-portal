@@ -518,12 +518,14 @@ public class CryptoMarketService {
 
         // 2) Spring cache boşsa (devre uzun süredir açık → TTL düştü) LKG'den son geçerli sayfayı dene.
         //    Key formatı getCryptos(...) ile birebir aynı olmalı: page+1, "crypto.coingecko.markets:" öneki.
-        String lkgKey = "crypto.coingecko.markets:" + cur + ":p" + (page + 1) + ":s" + size;
-        Optional<List<CryptoMarketItem>> lkgVal =
-                lkg.peek(lkgKey, new TypeReference<List<CryptoMarketItem>>() {});
-        if (lkgVal.isPresent() && !lkgVal.get().isEmpty()) {
-            publishFallbackUsed("lkg", cur, page, size);
-            return lkgVal.get();
+        if (lkg != null) {
+            String lkgKey = "crypto.coingecko.markets:" + cur + ":p" + (page + 1) + ":s" + size;
+            Optional<List<CryptoMarketItem>> lkgVal =
+                    lkg.peek(lkgKey, new TypeReference<List<CryptoMarketItem>>() {});
+            if (lkgVal.isPresent() && !lkgVal.get().isEmpty()) {
+                publishFallbackUsed("lkg", cur, page, size);
+                return lkgVal.get();
+            }
         }
 
         throw new ExternalApiException("Crypto market data is temporarily unavailable.", t);
