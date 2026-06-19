@@ -37,9 +37,25 @@
         <#if realm.password && realm.registrationAllowed && !registrationDisabled??>
             <div id="kc-registration-container" class="${properties.kcLoginFooterBand!}">
                 <div id="kc-registration" class="${properties.kcLoginFooterBandItem!}">
-                    <span>${msg("noAccount")} <a href="${(properties['fpExternalRegisterUrl'])!'http://localhost:5173/register'}">${msg("doRegister")}</a></span>
+                    <span>${msg("noAccount")} <a id="fp-register-link" href="${(properties['fpExternalRegisterUrl'])!'http://localhost:5173/register'}">${msg("doRegister")}</a></span>
                 </div>
             </div>
+            <#-- "Kayıt Ol" linkini ortama göre düzelt: giriş URL'indeki redirect_uri zaten
+                 frontend origin'ini taşır (lokal: localhost:5173, cloud: nip.io). Böylece link
+                 her ortamda doğru frontend /register sayfasına gider. JS çalışmazsa yukarıdaki
+                 sabit href fallback olarak kalır (lokal davranışı bozulmaz). -->
+            <script>
+                (function () {
+                    try {
+                        var link = document.getElementById('fp-register-link');
+                        if (!link) return;
+                        var ru = new URLSearchParams(window.location.search).get('redirect_uri');
+                        if (!ru) return;
+                        var origin = new URL(ru).origin;
+                        if (origin) link.href = origin + '/register';
+                    } catch (e) { /* fallback href kalır */ }
+                })();
+            </script>
         </#if>
     <#elseif section = "socialProviders" >
         <#if realm.password && social.providers?? && social.providers?has_content>
