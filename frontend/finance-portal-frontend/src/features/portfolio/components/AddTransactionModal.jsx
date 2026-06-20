@@ -231,11 +231,23 @@ export default function AddTransactionModal({
     const today = new Date().toISOString().slice(0, 10);
     const isPast = txDate && txDate < today;
 
+    // Geçmiş işlem tarihi için USD/TRY tarihsel serisi: pencere SEÇİLEN TARİHE yetecek kadar geniş
+    // olmalı. Sabit '3M' iken, 3 aydan eski seçilen tarih seride bulunamayıp en güncel (bugünkü)
+    // kura düşüyordu → eski tarihte yanlış (bugünkü) kur. Tarih ne kadar eskiyse o kadar geniş aralık.
+    const fxRange = (() => {
+      if (!isPast) return null;
+      const days = Math.round((new Date(today) - new Date(txDate)) / 86400000);
+      if (days <= 80) return '3M';
+      if (days <= 170) return '6M';
+      if (days <= 350) return '1Y';
+      return '5Y';
+    })();
+
     const fxPromise = !usd
       ? Promise.resolve(null)
       : (isPast
-          ? getFxHistory('USD', '3M').catch(() => null)   // geçmiş tarih → tarihsel seri
-          : getFxTcmb().catch(() => null));                // bugün → anlık
+          ? getFxHistory('USD', fxRange).catch(() => null)   // geçmiş tarih → tarihe yetecek tarihsel seri
+          : getFxTcmb().catch(() => null));                   // bugün → anlık
 
     Promise.all([getViopContractSpec(instrument.symbol), fxPromise])
       .then(([s, fx]) => {
