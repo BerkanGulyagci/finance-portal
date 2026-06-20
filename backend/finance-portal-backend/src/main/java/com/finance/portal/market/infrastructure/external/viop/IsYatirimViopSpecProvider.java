@@ -84,7 +84,11 @@ public class IsYatirimViopSpecProvider {
         // o yüzden tipik oranı koy; ASIL hesap marginAmount üzerinden gider (ViopValuationService).
         BigDecimal marginRate = ViopContractSpec.typicalMarginRate(assetClass);
         SettlementType settlement = raw.physical() ? SettlementType.PHYSICAL : SettlementType.CASH;
-        String currency = raw.currency() != null ? raw.currency() : "TRY";
+        // Scrape currency'yi çözemezse koddan tahmin et — koşulsuz "TRY" USD-kote'yi (örn. XAUUSD)
+        // gizleyip FX'i atlatıyordu (~kur katı eksik değer, sessizce). guessCurrencyFromCode
+        // "…USD ile biten ama TRY ile bitmeyen" kodları USD sayar.
+        String currency = raw.currency() != null ? raw.currency()
+                : ViopContractSpec.guessCurrencyFromCode(code);
 
         return Optional.of(new ViopContractSpec(
                 code,

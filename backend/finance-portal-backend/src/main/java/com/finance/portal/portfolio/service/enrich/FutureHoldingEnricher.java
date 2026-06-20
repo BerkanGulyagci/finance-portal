@@ -114,6 +114,18 @@ public class FutureHoldingEnricher {
         BigDecimal avgEntry = holding.getAverageCost() != null ? holding.getAverageCost()
                 : (qty.signum() > 0 ? totalCost.divide(qty, PRICE_SCALE, RoundingMode.HALF_UP) : BigDecimal.ZERO);
 
+        // İDEMPOTENCY: Enricher bu holding üzerinde detay yolunda 2 KEZ çağrılabilir (builder inline +
+        // PortfolioServiceImpl parallel). USD-kote'de önceki çağrı averageCost'u (ve totalCost'u) TL'ye
+        // ÇEVİRMİŞ olabilir → currency "TRY"ye set edilmiştir. Bu durumda avgEntry zaten TL'dir; aşağıdaki
+        // hesaplar onu tekrar ×fx yaparsa entry×fx² (çifte-FX) üretir. Ham USD'ye GERİ döndürerek her
+        // çağrıyı aynı sonuca sabitleriz (idempotent). İlk çağrıda currency "USD"/null → ham, dokunulmaz.
+        boolean alreadyTlConverted = "USD".equalsIgnoreCase(spec.currency())
+                && "TRY".equalsIgnoreCase(holding.getCurrency())
+                && fxRate.signum() > 0;
+        if (alreadyTlConverted) {
+            avgEntry = avgEntry.divide(fxRate, PRICE_SCALE, RoundingMode.HALF_UP);
+        }
+
         // Notional (risk göstergesi) = qty × (güncel fiyat × fx) × multiplier  → TL
         BigDecimal notional = valuationService.notional(qty, current, spec, fxRate);
         // Margin posted (gerçek bağlı sermaye) = qty × (giriş × fx) × multiplier × marginRate → TL
@@ -135,8 +147,12 @@ public class FutureHoldingEnricher {
         holding.setCurrentPrice(currentTl);
         // Ortalama alış (giriş fiyatı) da USD → TL (tablodaki "Ortalama Alış" sütunu tutarlı).
         // NOT: ideal per-date giriş kuru; şimdilik anlık kur (mv/pnl ile aynı konvansiyon).
+        // İDEMPOTENT: lokal {@code avgEntry} (yukarıda holding'den BİR kez okunan HAM USD değer)
+        // üzerinden hesaplanır — {@code holding.getAverageCost()×fx} (read-modify-write) DEĞİL.
+        // Aksi halde enricher detay yolunda 2 kez çağrıldığında değer her seferinde ×fx birikip
+        // entry×fx² (çifte-FX) üretiyordu → USD-kote kontratta "Ortalama Alış" kat kat şişiyordu.
         if (isUsdQuote && holding.getAverageCost() != null) {
-            holding.setAverageCost(holding.getAverageCost().multiply(fxRate));
+            holding.setAverageCost(avgEntry.multiply(fxRate));
         }
         holding.setMarketValue(mv);
         holding.setProfitLoss(pnl);

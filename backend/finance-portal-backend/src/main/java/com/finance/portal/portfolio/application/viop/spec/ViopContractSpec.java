@@ -54,9 +54,27 @@ public record ViopContractSpec(
     }
 
     /**
+     * Dayanak kodundan kotasyon para birimini tahmin eder (spec hiç yokken fallback için).
+     * USD-kote VİOP kontratları {@code …USD} ile biter (EURUSD, XAUUSD, GBPUSD, XAGUSD, XPTUSD,
+     * XPDUSD, XCUUSD) — AMA {@code USDTRY} TL-kote'dir (TRY ile biter). Bu yüzden "USD ile bitiyor
+     * ve TRY ile bitmiyor" kontrolü. Tahmin edilemezse güvenli varsayılan "TRY".
+     *
+     * <p>Neden gerekli: eski fallback'ler currency'yi koşulsuz "TRY" hardcode ediyordu. YAML'da
+     * olmayan bir USD-kote vade + scrape çökerse, USD fiyat (örn. XAUUSD ~3300) TL sanılıp FX
+     * atlanıyordu → ~kur katı (×34) eksik değer, sessizce. Bu helper o tuzağı kapatır.
+     */
+    public static String guessCurrencyFromCode(String code) {
+        if (code == null) {
+            return "TRY";
+        }
+        String up = code.trim().toUpperCase(java.util.Locale.ROOT);
+        return (up.endsWith("USD") && !up.endsWith("TRY")) ? "USD" : "TRY";
+    }
+
+    /**
      * Sembol için bulunamayan spec yerine güvenli fallback — multiplier=1, margin=%15
      * (single-stock orta tahmini). Hesap "yanlış" değil "yaklaşık" olur; loglardan
-     * fark edilebilir.
+     * fark edilebilir. Currency koddan tahmin edilir (USD-kote'yi TRY sanma tuzağına karşı).
      */
     public static ViopContractSpec fallback(String code) {
         return new ViopContractSpec(
@@ -64,7 +82,7 @@ public record ViopContractSpec(
                 AssetClass.SINGLE_STOCK,
                 BigDecimal.ONE,
                 new BigDecimal("0.15"),
-                "TRY",
+                guessCurrencyFromCode(code),
                 SettlementType.PHYSICAL
         );
     }
@@ -87,7 +105,7 @@ public record ViopContractSpec(
                 ac,
                 BigDecimal.ONE,
                 typicalMarginRate(ac),
-                "TRY",
+                guessCurrencyFromCode(code), // USD-kote'yi TRY sanma tuzağına karşı (örn. F_XAUUSD…)
                 ac == AssetClass.SINGLE_STOCK ? SettlementType.PHYSICAL : SettlementType.CASH
         );
     }

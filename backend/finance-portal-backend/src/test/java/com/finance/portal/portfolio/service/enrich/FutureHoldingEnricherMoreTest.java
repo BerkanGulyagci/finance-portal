@@ -116,6 +116,53 @@ class FutureHoldingEnricherMoreTest {
         return pts;
     }
 
+    // ── USD-kote IDEMPOTENCY: enricher 2 kez çağrılınca averageCost ×fx² OLMAZ (çifte-FX bug fix) ──
+
+    @Test
+    @DisplayName("enrich: USD-kote — 2 kez çağrılınca averageCost ×fx² OLMAZ (idempotent, çifte-FX yok)")
+    void enrich_usdQuoted_idempotent_noDoubleFx() {
+        when(viopChartService.getChart(any(), any())).thenReturn(List.of());
+        // USD-kote spec (EURUSD): multiplier=1, marginRate=0.04, currency=USD
+        when(specRegistry.resolveOrFallback(anyString())).thenReturn(spec("EURUSD", "1", "0.04", "USD"));
+        // USD/TRY satış kuru = 40 (deterministik)
+        when(marketFxService.getTcmbLatestRates("USD")).thenReturn(
+                new com.finance.portal.market.application.fx.model.FxLatestRates(null, null, null, "2026-06-01",
+                        List.of(new com.finance.portal.market.application.fx.model.FxRateItem(
+                                "USD", new BigDecimal("39.9"), new BigDecimal("40"), 0))));
+
+        ViopContract c = new ViopContract();
+        when(viopService.findMatchingContract("F_EURUSD0625")).thenReturn(Optional.of(c));
+        // güncel=1.20, settle=1.18, prevSettle=1.18 (ham USD)
+        when(viopService.buildDetailDto(c))
+                .thenReturn(det(new BigDecimal("1.20"), new BigDecimal("1.18"), new BigDecimal("1.18"), "F_EURUSD0625"));
+
+        PortfolioHoldingResponse h = pos("F_EURUSD0625", new BigDecimal("1"), new BigDecimal("999"));
+        h.setAverageCost(new BigDecimal("1.10"));  // ham USD giriş fiyatı
+        h.setViopDirection("LONG");
+
+        // İLK enrich: tüm USD-kote alanlar TL'ye çevrilir.
+        enricher.enrich(h);
+        // averageCost = 1.10 × 40 = 44.00
+        assertThat(h.getAverageCost()).isEqualByComparingTo("44.00");
+        // marginPosted = 1 × (1.10×40) × 1 × 0.04 = 1.76
+        BigDecimal margin1 = h.getViopMarginPosted();
+        assertThat(margin1).isEqualByComparingTo("1.76");
+        // pnl = (1.20−1.10) × 40 × 1 × 1 = 4.00
+        BigDecimal pnl1 = h.getProfitLoss();
+        assertThat(pnl1).isEqualByComparingTo("4.00");
+
+        // İKİNCİ enrich (detay yolundaki double-enrich simülasyonu): AYNI nesne tekrar.
+        // BUG olsaydı: averageCost 44×40=1760, marginPosted 44×40×0.04=70.4, pnl (1.20−44)×40=KORKUNÇ.
+        // FIX ile: avgEntry ham USD'ye (÷fx) geri döner → HER alan İLK çağrıyla AYNI (idempotent).
+        enricher.enrich(h);
+        assertThat(h.getAverageCost())
+                .as("averageCost ×fx² olmamalı (idempotent)").isEqualByComparingTo("44.00");
+        assertThat(h.getViopMarginPosted())
+                .as("marginPosted ikinci enrich'te DEĞİŞMEMELİ").isEqualByComparingTo(margin1);
+        assertThat(h.getProfitLoss())
+                .as("pnl ikinci enrich'te DEĞİŞMEMELİ").isEqualByComparingTo(pnl1);
+    }
+
     // ── SHORT yön + viopDirection non-null + averageCost mevcut + custom spec ──
 
     @Test
