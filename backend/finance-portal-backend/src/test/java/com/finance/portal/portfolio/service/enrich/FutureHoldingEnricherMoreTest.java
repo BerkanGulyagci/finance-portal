@@ -207,6 +207,11 @@ class FutureHoldingEnricherMoreTest {
         // K/Z% pay-payda KUR TUTARLI: payda teminat GÜNCEL kurla (fxNow) → pnl(fxNow)/margin(fxNow).
         // = 4600 / (1.10×46×1000×0.04 = 2024.00) = 227.27%  (eski tutarsız olsaydı 4600/1760=261%).
         assertThat(h.getProfitLossPercent()).isEqualByComparingTo("227.27");
+        // TEMİNAT DURUMU (marginRatio) da GÜNCEL-kur teminat referansıyla (marginAtNow) → aynı taban:
+        // (marginAtNow 2024 + pnl 4600) / 2024 = 3.2727 = 1 + K/Z%(2.2727). Margin call aynı-an kıyası.
+        // (Eski giriş-kuru payda olsaydı: (1760+4600)/1760 = 3.6136 — K/Z% ile tutarsız olurdu.)
+        assertThat(h.getMarginRatio()).isEqualByComparingTo("3.2727");
+        assertThat(h.getMarginStatus()).isEqualTo("HEALTHY");
 
         // İKİNCİ enrich (double-enrich): averageCost TL(50.60), currency "TRY" → fxNow(46) ile geri-böl, AYNI sonuç.
         enricher.enrich(h);

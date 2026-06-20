@@ -235,11 +235,31 @@ public class FutureHoldingEnricher {
             holding.setViopDirection("LONG"); // geriye uyumluluk
         }
 
-        // Teminat sağlığı: (margin + pnl) / margin = equity / initialMargin.
+        // Teminat sağlığı (margin call kontrolü): equity / initialMargin.
         // 1.0 = tam, 0.5 = yarısı yendi, 0 = tükendi, negatif = margin call (alarmı tetikler).
-        // mv burada zaten portfolioContribution = marginPosted + pnl (equity) olarak hesaplandı.
-        BigDecimal marginRatio = (marginPosted != null && marginPosted.signum() > 0)
-                ? mv.divide(marginPosted, 4, RoundingMode.HALF_UP) : null;
+        //
+        // KUR TUTARLILIĞI: Gerçek VİOP'ta margin call DAİMA aynı-an kıyasıdır — equity ve teminat
+        // referansı AYNI günün (bugünün) değerleridir. equity = teminat + K/Z; K/Z mark-to-market ile
+        // GÜNCEL kurda (fxNow). Eğer payda fxEntry (giriş kuru) teminatı olsaydı, pay(fxNow)/payda(fxEntry)
+        // → iki farklı kur tabanı karışır, oran kur oranı kadar kayardı (K/Z% ile de tutarsız olurdu).
+        // Bu yüzden USD-kote'de oranı GÜNCEL-kur teminat referansıyla (marginAtNow) hesaplarız:
+        //   marginRatio = (marginAtNow + pnl) / marginAtNow  = 1 + K/Z%(fxNow)
+        // Böylece teminat durumu ile K/Z% AYNI tabanda olur ve margin-call eşiği gerçek-an kıyasıdır.
+        // GÖSTERİLEN teminat (totalCost/viopMarginPosted) per-date GİRİŞ kuruyla kalır (sabit referans,
+        // resmi örnek) — yalnız oranın PAYDASI güncel kura hizalanır. TRY kontratta fxNow=1 →
+        // marginAtNow == marginPosted → davranış AYNEN korunur. scrape marginAmount yolunda da
+        // marginPosted kur-bağımsız (zaten TL) → marginAtNow == marginPosted, değişmez.
+        BigDecimal marginBase = marginPosted;
+        if (isUsdQuote) {
+            BigDecimal marginAtNow = valuationService.marginPosted(qty, avgEntry, spec, fxNow);
+            if (marginAtNow != null && marginAtNow.signum() > 0) {
+                marginBase = marginAtNow;
+            }
+        }
+        BigDecimal marginRatio = (marginBase != null && marginBase.signum() > 0)
+                ? marginBase.add(pnl != null ? pnl : BigDecimal.ZERO)
+                        .divide(marginBase, 4, RoundingMode.HALF_UP)
+                : null;
         holding.setMarginRatio(marginRatio);
         holding.setMarginStatus(classifyMarginStatus(marginRatio));
 
