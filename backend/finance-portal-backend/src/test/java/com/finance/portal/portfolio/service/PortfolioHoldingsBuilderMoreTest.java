@@ -42,6 +42,7 @@ class PortfolioHoldingsBuilderMoreTest {
     private HoldingMarketEnrichmentPort enrichmentPort;
     private EvdsBondService evdsBondService;
     private ViopContractSpecRegistry specRegistry;
+    private PortfolioCurrencyConverter currencyConverter;
     private PortfolioHoldingsBuilder builder;
 
     @BeforeEach
@@ -49,7 +50,8 @@ class PortfolioHoldingsBuilderMoreTest {
         enrichmentPort = mock(HoldingMarketEnrichmentPort.class);
         evdsBondService = mock(EvdsBondService.class);
         specRegistry = mock(ViopContractSpecRegistry.class);
-        builder = new PortfolioHoldingsBuilder(enrichmentPort, evdsBondService, specRegistry);
+        currencyConverter = mock(PortfolioCurrencyConverter.class);
+        builder = new PortfolioHoldingsBuilder(enrichmentPort, evdsBondService, specRegistry, currencyConverter);
     }
 
     // ----------------------------------------------------------------------
@@ -298,6 +300,55 @@ class PortfolioHoldingsBuilderMoreTest {
     // ----------------------------------------------------------------------
     // FUTURE: direction + multiplier/dirSign on realized (open & closed)
     // ----------------------------------------------------------------------
+
+    @Test
+    @DisplayName("FUTURE USD-kote (XAUUSD) kapalı: realized × multiplier × dir × USD/TRY kuru ile TL'ye çevrilir")
+    void future_usdQuoted_closedRealized_convertedToTry() {
+        // XAUUSD: USD-kote, multiplier=1. SELL ile tam kapanır.
+        ViopContractSpec spec = new ViopContractSpec("XAUUSD",
+                ViopContractSpec.AssetClass.PRECIOUS_METAL,
+                new BigDecimal("1"), new BigDecimal("0.10"),
+                "USD", ViopContractSpec.SettlementType.CASH);
+        lenient().when(specRegistry.resolveOrFallback(anyString())).thenReturn(spec);
+        // Canlı USD/TRY satış kuru = 40 (sabit, deterministik test).
+        lenient().when(currencyConverter.rateToTry("USD")).thenReturn(new BigDecimal("40"));
+
+        // BUY 1 @ 2000, SELL 1 @ 2100 → spot realized 1*(2100-2000) = 100 (USD)
+        PortfolioTransaction buy = makeFuture(TransactionType.BUY, "F_XAUUSD0625", "LONG",
+                "1", "2000", "0", "2026-01-01T10:00:00");
+        PortfolioTransaction sell = makeFuture(TransactionType.SELL, "F_XAUUSD0625", "LONG",
+                "1", "2100", "0", "2026-02-01T10:00:00");
+
+        PortfolioHoldingsBuilder.BuildResult res = builder.buildWithClosed(List.of(buy, sell));
+
+        assertThat(res.closedRealized()).hasSize(1);
+        // realized = 100 (USD spot) × multiplier 1 × dirSign +1 × fx 40 = 4000 TL
+        assertThat(res.closedRealized().get(0).realizedGainLoss()).isEqualByComparingTo("4000");
+    }
+
+    @Test
+    @DisplayName("FUTURE TL-kote (XU030) kapalı: USD/TRY kuru UYGULANMAZ (fx=1, davranış değişmez)")
+    void future_tryQuoted_closedRealized_noFxApplied() {
+        ViopContractSpec spec = new ViopContractSpec("XU030",
+                ViopContractSpec.AssetClass.INDEX,
+                new BigDecimal("10"), new BigDecimal("0.20"),
+                "TRY", ViopContractSpec.SettlementType.CASH);
+        lenient().when(specRegistry.resolveOrFallback(anyString())).thenReturn(spec);
+        // Kur stub'lansa bile TL-kote'de çağrılmamalı; çağrılsa bile sonuç değişmemeli.
+        lenient().when(currencyConverter.rateToTry("USD")).thenReturn(new BigDecimal("40"));
+
+        // BUY 10 @ 100, SELL 10 @ 110 → spot realized 10*(110-100)=100
+        PortfolioTransaction buy = makeFuture(TransactionType.BUY, "F_XU0300625", "LONG",
+                "10", "100", "0", "2026-01-01T10:00:00");
+        PortfolioTransaction sell = makeFuture(TransactionType.SELL, "F_XU0300625", "LONG",
+                "10", "110", "0", "2026-02-01T10:00:00");
+
+        PortfolioHoldingsBuilder.BuildResult res = builder.buildWithClosed(List.of(buy, sell));
+
+        assertThat(res.closedRealized()).hasSize(1);
+        // realized = 100 × multiplier 10 × dirSign +1 × fx 1 (TL-kote) = 1000 (40 UYGULANMAZ)
+        assertThat(res.closedRealized().get(0).realizedGainLoss()).isEqualByComparingTo("1000");
+    }
 
     @Test
     @DisplayName("FUTURE LONG açık + kısmi SELL: realized × multiplier, pct ÷ marginRate, viopDirection=LONG")

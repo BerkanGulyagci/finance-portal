@@ -31,7 +31,9 @@ class PortfolioHoldingsBuilderCouponIncomeTest {
                 org.mockito.Mockito.mock(com.finance.portal.market.application.bond.evds.EvdsBondService.class);
         var specMock = org.mockito.Mockito.mock(
                 com.finance.portal.portfolio.application.viop.spec.ViopContractSpecRegistry.class);
-        builder = new PortfolioHoldingsBuilder(noopEnrichment, evdsMock, specMock);
+        var ccMock = org.mockito.Mockito.mock(
+                com.finance.portal.portfolio.service.PortfolioCurrencyConverter.class);
+        builder = new PortfolioHoldingsBuilder(noopEnrichment, evdsMock, specMock, ccMock);
     }
 
     private static PortfolioTransaction tx(TransactionType type, BigDecimal qty, BigDecimal price,

@@ -46,13 +46,31 @@ public class PortfolioHoldingsBuilder {
     private final HoldingMarketEnrichmentPort holdingMarketEnrichment;
     private final EvdsBondService evdsBondService;
     private final ViopContractSpecRegistry viopSpecRegistry;
+    private final PortfolioCurrencyConverter currencyConverter;
 
     public PortfolioHoldingsBuilder(HoldingMarketEnrichmentPort holdingMarketEnrichment,
                                     EvdsBondService evdsBondService,
-                                    ViopContractSpecRegistry viopSpecRegistry) {
+                                    ViopContractSpecRegistry viopSpecRegistry,
+                                    PortfolioCurrencyConverter currencyConverter) {
         this.holdingMarketEnrichment = holdingMarketEnrichment;
         this.evdsBondService = evdsBondService;
         this.viopSpecRegistry = viopSpecRegistry;
+        this.currencyConverter = currencyConverter;
+    }
+
+    /**
+     * USD-kote VİOP kontratının (spec.currency()=="USD"; ör. XAUUSD, EURUSD) realize K/Z'sini
+     * TL'ye çeviren çarpan. TRY-kote kontratlarda (USDTRY, XAUTRY, endeks, tek-hisse vb.) 1 döner
+     * → davranış DEĞİŞMEZ. Canlı USD/TRY (TCMB satış) bulunamazsa güvenli fallback 1 (ham değer;
+     * çökmez). Açık-pozisyon yolu (FutureHoldingEnricher) ile aynı konvansiyon — realize anında
+     * USD değerin TL'ye çevrilmemesi bug'ını kapatır.
+     */
+    private BigDecimal viopRealizedFx(ViopContractSpec spec) {
+        if (spec == null || !"USD".equalsIgnoreCase(spec.currency())) {
+            return BigDecimal.ONE; // TRY-kote → çevrim yok (değişmez)
+        }
+        BigDecimal rate = currencyConverter.rateToTry("USD");
+        return (rate != null && rate.signum() > 0) ? rate : BigDecimal.ONE;
     }
 
     /**
@@ -171,7 +189,9 @@ public class PortfolioHoldingsBuilder {
                                 ? txs.get(0).getDirection().trim().toUpperCase() : "LONG";
                         BigDecimal dirSign = "SHORT".equals(dir)
                                 ? BigDecimal.ONE.negate() : BigDecimal.ONE;
-                        realized = realized.multiply(spec.multiplier()).multiply(dirSign);
+                        // USD-kote kontratta realize'ı TL'ye çevir (TRY-kote'de fx=1 → değişmez).
+                        realized = realized.multiply(spec.multiplier()).multiply(dirSign)
+                                .multiply(viopRealizedFx(spec));
                     }
                     closed.add(new ClosedPositionRealized(
                             acc.symbol, acc.assetType,
@@ -259,7 +279,10 @@ public class PortfolioHoldingsBuilder {
                             ? txs.get(0).getDirection().trim().toUpperCase() : "LONG";
                     BigDecimal dirSign = "SHORT".equals(dir)
                             ? BigDecimal.ONE.negate() : BigDecimal.ONE;
-                    realizedFinal = realizedFinal.multiply(spec.multiplier()).multiply(dirSign);
+                    // USD-kote kontratta realize tutarını TL'ye çevir (TRY-kote'de fx=1 → değişmez).
+                    // Yüzde margin oranına göre boyutsuz hesaplandığından FX'ten ETKİLENMEZ.
+                    realizedFinal = realizedFinal.multiply(spec.multiplier()).multiply(dirSign)
+                            .multiply(viopRealizedFx(spec));
                     if (pctSpot != null && spec.marginRate().signum() > 0) {
                         pctFinal = pctSpot.multiply(dirSign)
                                 .divide(spec.marginRate(), 4, RoundingMode.HALF_UP);

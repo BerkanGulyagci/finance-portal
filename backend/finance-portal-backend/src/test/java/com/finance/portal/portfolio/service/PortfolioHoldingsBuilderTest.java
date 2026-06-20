@@ -36,7 +36,8 @@ class PortfolioHoldingsBuilderTest {
                 .when(specRegistry.resolveOrFallback(org.mockito.ArgumentMatchers.anyString()))
                 .thenAnswer(inv -> com.finance.portal.portfolio.application.viop.spec.ViopContractSpec
                         .fallback(inv.getArgument(0)));
-        builder = new PortfolioHoldingsBuilder(enrichmentPort, evdsBondService, specRegistry);
+        var currencyConverter = mock(com.finance.portal.portfolio.service.PortfolioCurrencyConverter.class);
+        builder = new PortfolioHoldingsBuilder(enrichmentPort, evdsBondService, specRegistry, currencyConverter);
     }
 
     // ------------------------------ boş / null girdi ------------------------------
