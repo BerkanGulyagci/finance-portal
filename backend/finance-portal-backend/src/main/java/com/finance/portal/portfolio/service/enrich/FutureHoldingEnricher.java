@@ -22,6 +22,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import com.finance.portal.market.application.fx.model.FxHistoryPoint;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -55,17 +56,20 @@ public class FutureHoldingEnricher {
     private final ViopContractSpecRegistry specRegistry;
     private final ViopValuationService valuationService;
     private final MarketFxService marketFxService;
+    private final com.finance.portal.market.application.fx.port.TcmbFxHistoryPort tcmbFxHistoryPort;
 
     public FutureHoldingEnricher(ViopService viopService,
                                  ViopChartService viopChartService,
                                  ViopContractSpecRegistry specRegistry,
                                  ViopValuationService valuationService,
-                                 MarketFxService marketFxService) {
+                                 MarketFxService marketFxService,
+                                 com.finance.portal.market.application.fx.port.TcmbFxHistoryPort tcmbFxHistoryPort) {
         this.viopService = viopService;
         this.viopChartService = viopChartService;
         this.specRegistry = specRegistry;
         this.valuationService = valuationService;
         this.marketFxService = marketFxService;
+        this.tcmbFxHistoryPort = tcmbFxHistoryPort;
     }
 
     public void enrich(PortfolioHoldingResponse holding) {
@@ -104,10 +108,23 @@ public class FutureHoldingEnricher {
         String direction = holding.getViopDirection(); // null = LONG (geriye uyum)
 
         // USD-kote kontratta ham fiyat USD'dir; portföy TL-bazlı olduğu için fiyatı USD/TRY ile
-        // çarparız. TRY kontratta (66 tane) fxRate=1 → eski davranış AYNEN (etkilenmez).
-        // Basitleştirme: hem giriş hem güncel için ANLIK kur (per-date giriş kuru ileride
-        // geliştirilebilir — eurobond Model 1 de canlı kur kullanıyor). Kur çekilemezse fxRate=1.
-        BigDecimal fxRate = resolveFxRate(spec);
+        // çarparız. TRY kontratta (66 tane) fxNow=fxEntry=1 → eski davranış AYNEN (etkilenmez).
+        //
+        // K/Z KONVANSİYONU = resmi VİOP mark-to-market (Borsa İstanbul standardı):
+        //   K/Z = (current − entry) × multiplier × adet × yön × GÜNCEL kur (fxNow)
+        // yani giriş bacağı da GÜNCEL kurla TL'leşir → K/Z saf parite (EUR/USD) hareketidir,
+        // tek bir kurla TL'ye çevrilir. (Resmi örnek: 800 USD × 6,84 kapanış-kuru = 5.472 TL;
+        // giriş kuru K/Z'ye GİRMEZ.) Bu, eurobond Model-1'in total-return mantığından KASITLI
+        // olarak FARKLIDIR — VİOP gerçek hayatta günlük nakit-uzlaşmayla bu şekilde netleşir.
+        //
+        // TEMİNAT İSTİSNASI: başlangıç teminatı (marginPosted) per-date'tir — ALIŞ GÜNÜNÜN kuru
+        // (fxEntry) ile bağlanır. Resmi örnek de teminatı açılış kurundan hesaplar (350 USD ×
+        // 6,67 açılış-kuru). Yani fxEntry yalnız TEMİNAT için; K/Z ve fiyat gösterimi fxNow.
+        // Tarihsel kur bulunamazsa fxEntry, fxNow'a düşer (güvenli).
+        BigDecimal fxNow = resolveFxRate(spec);
+        LocalDate buyDate = holding.getFirstBuyDate() != null
+                ? holding.getFirstBuyDate().toLocalDate() : null;
+        BigDecimal fxEntry = resolveEntryFxRate(spec, buyDate, fxNow);
 
         BigDecimal qty = holding.getTotalQuantity() != null ? holding.getTotalQuantity() : BigDecimal.ZERO;
         BigDecimal totalCost = holding.getTotalCost() != null ? holding.getTotalCost() : BigDecimal.ZERO;
@@ -115,23 +132,28 @@ public class FutureHoldingEnricher {
                 : (qty.signum() > 0 ? totalCost.divide(qty, PRICE_SCALE, RoundingMode.HALF_UP) : BigDecimal.ZERO);
 
         // İDEMPOTENCY: Enricher bu holding üzerinde detay yolunda 2 KEZ çağrılabilir (builder inline +
-        // PortfolioServiceImpl parallel). USD-kote'de önceki çağrı averageCost'u (ve totalCost'u) TL'ye
-        // ÇEVİRMİŞ olabilir → currency "TRY"ye set edilmiştir. Bu durumda avgEntry zaten TL'dir; aşağıdaki
-        // hesaplar onu tekrar ×fx yaparsa entry×fx² (çifte-FX) üretir. Ham USD'ye GERİ döndürerek her
-        // çağrıyı aynı sonuca sabitleriz (idempotent). İlk çağrıda currency "USD"/null → ham, dokunulmaz.
+        // PortfolioServiceImpl parallel). USD-kote'de önceki çağrı averageCost'u GÜNCEL kur (fxNow) ile
+        // TL'ye çevirmiş + currency "TRY"ye set etmiş olabilir → avgEntry zaten TL'dir. Aşağıdaki hesaplar
+        // (marginPosted) onu tekrar ×fxEntry yaparsa çifte-FX üretir. Ham USD'ye GERİ döndürürken
+        // BÖLEN, gösterimi çeviren kurla AYNI olmalı = fxNow (averageCost gösterimi ×fxNow yapılıyor —
+        // resmi mark-to-market: maliyet de güncel kurla TL'leşir ki K/Z = current_TL − avg_TL tutsun).
+        // İlk çağrıda currency "USD"/null → ham, dokunulmaz.
         boolean alreadyTlConverted = "USD".equalsIgnoreCase(spec.currency())
                 && "TRY".equalsIgnoreCase(holding.getCurrency())
-                && fxRate.signum() > 0;
+                && fxNow.signum() > 0;
         if (alreadyTlConverted) {
-            avgEntry = avgEntry.divide(fxRate, PRICE_SCALE, RoundingMode.HALF_UP);
+            avgEntry = avgEntry.divide(fxNow, PRICE_SCALE, RoundingMode.HALF_UP);
         }
 
-        // Notional (risk göstergesi) = qty × (güncel fiyat × fx) × multiplier  → TL
-        BigDecimal notional = valuationService.notional(qty, current, spec, fxRate);
-        // Margin posted (gerçek bağlı sermaye) = qty × (giriş × fx) × multiplier × marginRate → TL
-        BigDecimal marginPosted = valuationService.marginPosted(qty, avgEntry, spec, fxRate);
-        // P&L = ((güncel − giriş) × fx) × qty × multiplier × yön  → TL
-        BigDecimal pnl = valuationService.pnl(qty, avgEntry, current, spec, direction, fxRate);
+        // Notional (risk göstergesi) = qty × (GÜNCEL fiyat × fxNow) × multiplier  → TL
+        BigDecimal notional = valuationService.notional(qty, current, spec, fxNow);
+        // Margin posted (bağlı sermaye) = qty × (giriş × fxEntry) × multiplier × marginRate → TL
+        // (teminat alış anında bağlanır → o GÜNÜN kuru; resmi örnek de açılış kurundan hesaplar)
+        BigDecimal marginPosted = valuationService.marginPostedPerDate(qty, avgEntry, spec, fxEntry);
+        // P&L = qty × ((current − avgEntry) × fxNow) × multiplier × yön → TL
+        // RESMİ MARK-TO-MARKET: giriş de GÜNCEL kurla TL'leşir → saf parite hareketi, tek kur.
+        // (K/Z kur kazancını taşımaz; o teminat/maliyet tarafında zaten per-date yansır.)
+        BigDecimal pnl = valuationService.pnl(qty, avgEntry, current, spec, direction, fxNow);
         BigDecimal leverage = valuationService.leverage(notional, marginPosted);
 
         // Market value PORTFÖY TOPLAMINA = margin + cumulative pnl (notional değil!)
@@ -143,16 +165,16 @@ public class FutureHoldingEnricher {
         // currency'yi "TRY" yaparız → tabloda tutarlı TL (USD karışmaz). Modal ayrı: orada
         // kontrat fiyatı "$" gösterilir (kullanıcı kotasyon birimini görsün diye).
         boolean isUsdQuote = "USD".equalsIgnoreCase(spec.currency());
-        BigDecimal currentTl = isUsdQuote ? current.multiply(fxRate) : current;
+        // Güncel fiyat gösterimi → BUGÜNÜN kuru (fxNow).
+        BigDecimal currentTl = isUsdQuote ? current.multiply(fxNow) : current;
         holding.setCurrentPrice(currentTl);
-        // Ortalama alış (giriş fiyatı) da USD → TL (tablodaki "Ortalama Alış" sütunu tutarlı).
-        // NOT: ideal per-date giriş kuru; şimdilik anlık kur (mv/pnl ile aynı konvansiyon).
-        // İDEMPOTENT: lokal {@code avgEntry} (yukarıda holding'den BİR kez okunan HAM USD değer)
-        // üzerinden hesaplanır — {@code holding.getAverageCost()×fx} (read-modify-write) DEĞİL.
-        // Aksi halde enricher detay yolunda 2 kez çağrıldığında değer her seferinde ×fx birikip
-        // entry×fx² (çifte-FX) üretiyordu → USD-kote kontratta "Ortalama Alış" kat kat şişiyordu.
+        // Ortalama alış (giriş fiyatı) gösterimi → BUGÜNÜN kuru (fxNow) ile TL. Resmi mark-to-market:
+        // maliyet de güncel kurla TL'leşir → tablo iç-tutarlı: K/Z = (mevcut_TL − ortalama_TL) × mult.
+        // (Per-date giriş kuru SADECE teminat tarafında; gösterim/K-Z güncel kur.) İDEMPOTENT: lokal
+        // HAM USD {@code avgEntry}'den hesaplanır (read-modify-write DEĞİL) → 2 kez çağrılsa bile
+        // ×fxNow² (çifte-FX) olmaz (divide-back yukarıda fxNow ile yapıldı).
         if (isUsdQuote && holding.getAverageCost() != null) {
-            holding.setAverageCost(avgEntry.multiply(fxRate));
+            holding.setAverageCost(avgEntry.multiply(fxNow));
         }
         holding.setMarketValue(mv);
         holding.setProfitLoss(pnl);
@@ -183,8 +205,8 @@ public class FutureHoldingEnricher {
         // Gün yüksek/düşük de fiyat → USD kontratta TL'ye çevir (tablo tutarlı TL).
         BigDecimal high = d.getHigh();
         BigDecimal low  = d.getLow();
-        holding.setDayHigh(isUsdQuote && high != null ? high.multiply(fxRate) : high);
-        holding.setDayLow(isUsdQuote && low != null ? low.multiply(fxRate) : low);
+        holding.setDayHigh(isUsdQuote && high != null ? high.multiply(fxNow) : high);
+        holding.setDayLow(isUsdQuote && low != null ? low.multiply(fxNow) : low);
 
         // VİOP-spesifik alanlar — frontend HoldingsTable + StockDetailPage burada okur
         holding.setViopMultiplier(multiplier);
@@ -212,10 +234,11 @@ public class FutureHoldingEnricher {
         //   LONG : (current − prevSettle) × fx × multiplier        — fiyat ↑ = kar
         //   SHORT: (current − prevSettle) × fx × multiplier × −1   — fiyat ↓ = kar (= LONG'un tersi)
         // Frontend bu değeri qty ile çarpıp günlük K/Z'yi hesaplar; direction'ı tekrar uygulamaz.
-        // fxRate TRY kontratta 1 → değişmez; USD'de mv/pnl ile tutarlı TL üretir.
+        // fxNow TRY kontratta 1 → değişmez; USD'de mv/pnl ile tutarlı TL üretir. (Günlük değişim →
+        // bugünün kuru; giriş-tarihi kuru burada uygun değil, change tek-günlük fiyat hareketidir.)
         BigDecimal prevSet = d.getPrevSettlementPrice();
         if (prevSet != null) {
-            holding.setChange(current.subtract(prevSet).multiply(fxRate).multiply(multiplier).multiply(dirSign)
+            holding.setChange(current.subtract(prevSet).multiply(fxNow).multiply(multiplier).multiply(dirSign)
                     .setScale(MONEY_SCALE, RoundingMode.HALF_UP));
         }
 
@@ -315,6 +338,55 @@ public class FutureHoldingEnricher {
             return BigDecimal.ONE;
         }
         return rate;
+    }
+
+    /**
+     * GİRİŞ (alış günü) USD/TRY kuru — per-date FX. USD-kote kontratta, pozisyonun alış maliyeti
+     * O GÜNÜN kuruyla TL'leşmelidir (kur kazancı/kaybı K/Z'ye yansısın; eurobond Model 1 ile aynı
+     * konvansiyon). TCMB tarihsel serisinden {@code buyDate}'e ≤ en yakın (forward-fill) kapanış.
+     *
+     * <p>TRY kontratta 1 döner (etkisiz). buyDate null ya da tarihsel kur bulunamazsa GÜVENLİ
+     * fallback: {@code fxNow} (anlık kur) — yani en kötü durumda eski (anlık-kur) davranışına döner,
+     * hata/çökme üretmez. unit USD'de 1.
+     */
+    private BigDecimal resolveEntryFxRate(ViopContractSpec spec, LocalDate buyDate, BigDecimal fxNow) {
+        if (spec == null || !"USD".equalsIgnoreCase(spec.currency())) {
+            return BigDecimal.ONE; // TRY kontrat → çevrim yok
+        }
+        if (buyDate == null) {
+            return fxNow; // tarih yok → anlık kura düş (eski davranış)
+        }
+        try {
+            // buyDate'i kapsayacak küçük pencere (±10 gün): hafta sonu/tatilde en yakın iş günü.
+            List<FxHistoryPoint> pts = tcmbFxHistoryPort.fetchHistory(
+                    "USD", buyDate.minusDays(10), buyDate.plusDays(2));
+            BigDecimal best = null;
+            LocalDate bestDay = null;
+            for (FxHistoryPoint p : pts) {
+                if (p.getDate() == null || p.getClose() == null || p.getClose().signum() <= 0) {
+                    continue;
+                }
+                LocalDate day;
+                try {
+                    day = LocalDate.parse(p.getDate().substring(0, 10));
+                } catch (Exception e) {
+                    continue;
+                }
+                if (day.isAfter(buyDate)) {
+                    continue; // alış gününden SONRAKİ kuru kullanma
+                }
+                if (bestDay == null || day.isAfter(bestDay)) {
+                    bestDay = day;
+                    best = p.getClose(); // buyDate'e ≤ en yakın (forward-fill)
+                }
+            }
+            if (best != null && best.signum() > 0) {
+                return best;
+            }
+        } catch (Exception e) {
+            log.debug("VIOP giriş kuru (per-date) alınamadı buyDate={}: {}", buyDate, e.getMessage());
+        }
+        return fxNow; // tarihsel kur yok → anlık kura düş (güvenli)
     }
 
     /**

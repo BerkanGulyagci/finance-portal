@@ -55,6 +55,7 @@ class FutureHoldingEnricherMoreTest {
     @Mock ViopContractSpecRegistry specRegistry;
     // USD-kote kontrat FX çevirimi için (TRY fallback spec'te çağrılmaz → bu testlerde stub'sız mock yeter).
     @Mock com.finance.portal.market.application.service.MarketFxService marketFxService;
+    @Mock com.finance.portal.market.application.fx.port.TcmbFxHistoryPort tcmbFxHistoryPort;
 
     // Gerçek valuation service — saf math (mocklamaya değmez).
     private final ViopValuationService valuationService = new ViopValuationService();
@@ -66,7 +67,8 @@ class FutureHoldingEnricherMoreTest {
         // Varsayılan: fallback spec (multiplier=1, marginRate=0.15). Testler gerekirse override eder.
         when(specRegistry.resolveOrFallback(anyString()))
                 .thenAnswer(inv -> ViopContractSpec.fallback(inv.getArgument(0)));
-        enricher = new FutureHoldingEnricher(viopService, viopChartService, specRegistry, valuationService, marketFxService);
+        enricher = new FutureHoldingEnricher(viopService, viopChartService, specRegistry, valuationService,
+                marketFxService, tcmbFxHistoryPort);
     }
 
     // ── helpers (Mockito matcher isimlerini GÖLGELEMEMEK için pos/mk/det adları) ──
@@ -161,6 +163,79 @@ class FutureHoldingEnricherMoreTest {
                 .as("marginPosted ikinci enrich'te DEĞİŞMEMELİ").isEqualByComparingTo(margin1);
         assertThat(h.getProfitLoss())
                 .as("pnl ikinci enrich'te DEĞİŞMEMELİ").isEqualByComparingTo(pnl1);
+    }
+
+    // ── MARK-TO-MARKET FX: teminat per-date (giriş kuru), K/Z + gösterim güncel kur + idempotent ──
+
+    @Test
+    @DisplayName("enrich: USD-kote mark-to-market — teminat giriş kuru (40), K/Z+gösterim bugün kuru (46); idempotent")
+    void enrich_usdQuoted_perDateFx_andIdempotent() {
+        when(viopChartService.getChart(any(), any())).thenReturn(List.of());
+        when(specRegistry.resolveOrFallback(anyString())).thenReturn(spec("EURUSD", "1000", "0.04", "USD"));
+        // GÜNCEL kur = 46 (marketFxService anlık)
+        when(marketFxService.getTcmbLatestRates("USD")).thenReturn(
+                new com.finance.portal.market.application.fx.model.FxLatestRates(null, null, null, "2026-06-20",
+                        List.of(new com.finance.portal.market.application.fx.model.FxRateItem(
+                                "USD", new BigDecimal("45.9"), new BigDecimal("46"), 0))));
+        // ALIŞ GÜNÜ (2026-03-15) kuru = 40 (tcmbFxHistoryPort tarihsel) — SADECE teminata uygulanır.
+        when(tcmbFxHistoryPort.fetchHistory(eq("USD"), any(), any())).thenReturn(List.of(
+                new com.finance.portal.market.application.fx.model.FxHistoryPoint("2026-03-15", new BigDecimal("40"))));
+
+        ViopContract c = new ViopContract();
+        when(viopService.findMatchingContract("F_EURUSD0625")).thenReturn(Optional.of(c));
+        // güncel 1.20 (USD), settle/prev 1.18
+        when(viopService.buildDetailDto(c))
+                .thenReturn(det(new BigDecimal("1.20"), new BigDecimal("1.18"), new BigDecimal("1.18"), "F_EURUSD0625"));
+
+        PortfolioHoldingResponse h = pos("F_EURUSD0625", new BigDecimal("1"), new BigDecimal("999"));
+        h.setAverageCost(new BigDecimal("1.10"));  // ham USD giriş
+        h.setViopDirection("LONG");
+        h.setFirstBuyDate(java.time.LocalDateTime.of(2026, 3, 15, 10, 0));
+
+        enricher.enrich(h);
+        // averageCost = 1.10 × fxNow(46) = 50.60  (RESMİ mark-to-market: maliyet güncel kurla TL,
+        // tablo iç-tutarlı: K/Z = (mevcut_TL − ortalama_TL) × mult)
+        assertThat(h.getAverageCost()).isEqualByComparingTo("50.60");
+        // marginPosted = 1 × (1.10×fxEntry40) × 1000 × 0.04 = 1760.00  (TEMİNAT per-date: giriş kuru,
+        // resmi örnek de açılış kurundan hesaplar)
+        BigDecimal margin1 = h.getViopMarginPosted();
+        assertThat(margin1).isEqualByComparingTo("1760.00");
+        // pnl = (1.20−1.10) × fxNow(46) × 1000 × +1 = 4600.00  (mark-to-market: saf parite × güncel kur;
+        // giriş kuru K/Z'ye GİRMEZ → kur kazancı şişirmesi YOK)
+        BigDecimal pnl1 = h.getProfitLoss();
+        assertThat(pnl1).isEqualByComparingTo("4600.00");
+
+        // İKİNCİ enrich (double-enrich): averageCost TL(50.60), currency "TRY" → fxNow(46) ile geri-böl, AYNI sonuç.
+        enricher.enrich(h);
+        assertThat(h.getAverageCost()).as("idempotent — ×fxNow² olmamalı").isEqualByComparingTo("50.60");
+        assertThat(h.getViopMarginPosted()).as("marginPosted değişmemeli").isEqualByComparingTo(margin1);
+        assertThat(h.getProfitLoss()).as("pnl değişmemeli").isEqualByComparingTo(pnl1);
+    }
+
+    @Test
+    @DisplayName("enrich: TL-kote per-date kuru GÖRMEZDEN gelir (firstBuyDate olsa bile) — değişmez")
+    void enrich_tryQuoted_perDateIgnored() {
+        when(viopChartService.getChart(any(), any())).thenReturn(List.of());
+        when(specRegistry.resolveOrFallback(anyString())).thenReturn(spec("AKBNK", "100", "0.146", "TRY"));
+        // Kur stub'lansa bile TRY-kote'de etkisiz olmalı.
+        when(tcmbFxHistoryPort.fetchHistory(eq("USD"), any(), any())).thenReturn(List.of(
+                new com.finance.portal.market.application.fx.model.FxHistoryPoint("2026-03-15", new BigDecimal("40"))));
+
+        ViopContract c = new ViopContract();
+        when(viopService.findMatchingContract("F_AKBNK0625")).thenReturn(Optional.of(c));
+        when(viopService.buildDetailDto(c))
+                .thenReturn(det(new BigDecimal("83"), new BigDecimal("83"), new BigDecimal("82"), "F_AKBNK0625"));
+
+        PortfolioHoldingResponse h = pos("F_AKBNK0625", new BigDecimal("1"), new BigDecimal("8200"));
+        h.setAverageCost(new BigDecimal("82"));
+        h.setViopDirection("LONG");
+        h.setFirstBuyDate(java.time.LocalDateTime.of(2026, 3, 15, 10, 0));
+
+        enricher.enrich(h);
+        // TRY-kote: fx UYGULANMAZ. averageCost ham TL 82 kalır, pnl = 100 × (83−82) = 100.
+        assertThat(h.getAverageCost()).isEqualByComparingTo("82");
+        assertThat(h.getProfitLoss()).isEqualByComparingTo("100.00");
+        assertThat(h.getViopMarginPosted()).isEqualByComparingTo("1197.20"); // 1×82×100×0.146
     }
 
     // ── SHORT yön + viopDirection non-null + averageCost mevcut + custom spec ──

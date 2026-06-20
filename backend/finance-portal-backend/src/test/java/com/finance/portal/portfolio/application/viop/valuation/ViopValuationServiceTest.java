@@ -23,6 +23,52 @@ class ViopValuationServiceTest {
                 new BigDecimal("100"), new BigDecimal("0.146"), "TRY", SettlementType.PHYSICAL);
     }
 
+    /** USD-kote spec: multiplier=1000, marginRate=0.04, currency=USD (örn. EURUSD). */
+    private static ViopContractSpec usdSpec() {
+        return new ViopContractSpec("EURUSD", AssetClass.FX,
+                new BigDecimal("1000"), new BigDecimal("0.04"), "USD", SettlementType.CASH);
+    }
+
+    // ---------------------------------------------------------------- pnlPerDate (per-date FX)
+
+    @Test
+    @DisplayName("pnlPerDate USD-kote: giriş alış-günü kuru, güncel bugün kuru — kur kazancı yansır")
+    void pnlPerDate_usd_perDateFx() {
+        // giriş 1.10 @ fxEntry 40 = 44 TL ; güncel 1.20 @ fxNow 46 = 55.2 TL ; LONG 1 lot, mult 1000
+        // pnl = 1000 × 1 × +1 × (1.20×46 − 1.10×40) = 1000 × (55.2 − 44) = 11200
+        BigDecimal pnl = service.pnlPerDate(new BigDecimal("1"), new BigDecimal("1.10"),
+                new BigDecimal("1.20"), usdSpec(), "LONG", new BigDecimal("40"), new BigDecimal("46"));
+        assertThat(pnl).isEqualByComparingTo("11200.00");
+    }
+
+    @Test
+    @DisplayName("pnlPerDate USD-kote: fxEntry=fxNow → eski tek-FX pnl ile EŞDEĞER (geriye uyum)")
+    void pnlPerDate_usd_sameFx_equalsLegacy() {
+        BigDecimal perDate = service.pnlPerDate(new BigDecimal("1"), new BigDecimal("1.10"),
+                new BigDecimal("1.20"), usdSpec(), "LONG", new BigDecimal("46"), new BigDecimal("46"));
+        BigDecimal legacy = service.pnl(new BigDecimal("1"), new BigDecimal("1.10"),
+                new BigDecimal("1.20"), usdSpec(), "LONG", new BigDecimal("46"));
+        assertThat(perDate).isEqualByComparingTo(legacy);
+    }
+
+    @Test
+    @DisplayName("pnlPerDate TRY-kote: fxEntry/fxNow GÖRMEZDEN gelinir (effectiveFx=1) — TL kontrat değişmez")
+    void pnlPerDate_try_ignoresFx() {
+        // TRY-kote: 100 mult, giriş 82, güncel 83 → pnl = 100 × (83−82) × 1 = 100 (fx UYGULANMAZ)
+        BigDecimal pnl = service.pnlPerDate(new BigDecimal("1"), new BigDecimal("82"),
+                new BigDecimal("83"), stockSpec(), "LONG", new BigDecimal("40"), new BigDecimal("46"));
+        assertThat(pnl).isEqualByComparingTo("100.00");
+    }
+
+    @Test
+    @DisplayName("marginPostedPerDate USD-kote: giriş alış-günü kuruyla, oran-bazlı")
+    void marginPostedPerDate_usd() {
+        // 1 × (1.10 × 40) × 1000 × 0.04 = 1760
+        BigDecimal m = service.marginPostedPerDate(new BigDecimal("1"), new BigDecimal("1.10"),
+                usdSpec(), new BigDecimal("40"));
+        assertThat(m).isEqualByComparingTo("1760.00");
+    }
+
     // ---------------------------------------------------------------- directionSign
 
     @Test

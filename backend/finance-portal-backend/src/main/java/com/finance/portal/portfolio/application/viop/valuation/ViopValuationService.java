@@ -111,6 +111,19 @@ public class ViopValuationService {
     }
 
     /**
+     * Başlangıç teminatı — per-date FX: USD-kote kontratta giriş fiyatı ALIŞ GÜNÜNÜN kuru
+     * ({@code fxEntry}) ile TL'ye çevrilir (teminat alış anında bağlanan tutardır → o günün kuru).
+     * {@code spec.marginAmount} (scrape, zaten TL) yolu FX'ten muaftır (değişmez). TRY kontratta
+     * {@code effectiveFx}=1 → davranış {@link #marginPosted(BigDecimal, BigDecimal, ViopContractSpec, BigDecimal)}
+     * ile AYNI. Tek-FX imzayla geriye tam uyumlu (fxEntry=fxNow geçilirse eşdeğer).
+     */
+    public BigDecimal marginPostedPerDate(BigDecimal qty, BigDecimal avgEntryPrice,
+                                          ViopContractSpec spec, BigDecimal fxEntry) {
+        // marginPosted zaten yalnız GİRİŞ fiyatına FX uygular → fxEntry'yi olduğu gibi geçmek yeterli.
+        return marginPosted(qty, avgEntryPrice, spec, fxEntry);
+    }
+
+    /**
      * Kâr/zarar = fiyat farkı × çarpan × adet × yön. Long için yükselişte +, düşüşte −.
      * Short tam tersi.
      */
@@ -132,6 +145,29 @@ public class ViopValuationService {
         if (anyNull(qty, avgEntryPrice, currentPrice, spec)) return BigDecimal.ZERO;
         return currentPrice.subtract(avgEntryPrice)
                 .multiply(effectiveFx(spec, fxRate))
+                .multiply(qty)
+                .multiply(spec.multiplier())
+                .multiply(directionSign(direction))
+                .setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Kâr/zarar — PER-DATE FX: USD-kote kontratta giriş fiyatı ALIŞ GÜNÜNÜN kuru ({@code fxEntry}),
+     * güncel fiyat BUGÜNÜN kuru ({@code fxNow}) ile TL'ye çevrilir → kur hareketinin K/Z'ye katkısı
+     * da yansır:
+     * <pre>{@code pnl = qty × multiplier × yön × (current×fxNow − avgEntry×fxEntry)}</pre>
+     * <p>Tek-FX {@link #pnl(BigDecimal, BigDecimal, BigDecimal, ViopContractSpec, String, BigDecimal)}
+     * yalnız fiyat farkını çevirir (kur kazancı kaybolur). TRY kontratta {@code effectiveFx}=1 →
+     * {@code (current−avgEntry)} ile tek-FX'le AYNI sonuç (davranış değişmez). fxEntry=fxNow geçilirse
+     * eski tek-FX davranışına EŞDEĞER (geriye uyumlu).
+     */
+    public BigDecimal pnlPerDate(BigDecimal qty, BigDecimal avgEntryPrice, BigDecimal currentPrice,
+                                 ViopContractSpec spec, String direction,
+                                 BigDecimal fxEntry, BigDecimal fxNow) {
+        if (anyNull(qty, avgEntryPrice, currentPrice, spec)) return BigDecimal.ZERO;
+        BigDecimal currentTl = currentPrice.multiply(effectiveFx(spec, fxNow));
+        BigDecimal entryTl = avgEntryPrice.multiply(effectiveFx(spec, fxEntry));
+        return currentTl.subtract(entryTl)
                 .multiply(qty)
                 .multiply(spec.multiplier())
                 .multiply(directionSign(direction))
