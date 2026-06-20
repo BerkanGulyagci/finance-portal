@@ -321,6 +321,9 @@ export function renderCellForExport(key, h) {
     case 'totalCost':    return numProp('totalCost');
     case 'unrealizedPnl': return unrealizedGainLoss(h);
     case 'unrealizedPct': {
+      // Backend tutarlı % verdiyse (VİOP USD-kote: kur-tutarlı; bond: mv/cost) onu kullan; yoksa pl/cost.
+      const direct = numProp('profitLossPercent');
+      if (direct != null) return direct;
       const pl = unrealizedGainLoss(h);
       const cost = numProp('totalCost');
       return cost && pl != null ? (pl / cost) * 100 : null;

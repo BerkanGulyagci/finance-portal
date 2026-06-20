@@ -179,6 +179,23 @@ public class FutureHoldingEnricher {
         holding.setMarketValue(mv);
         holding.setProfitLoss(pnl);
 
+        // K/Z YÜZDESİ — pay/payda KUR TUTARLILIĞI. K/Z (pnl) GÜNCEL kurla (fxNow, mark-to-market)
+        // hesaplanır; ama gösterilen teminat (totalCost) per-date GİRİŞ kuruyla (fxEntry) bağlıdır.
+        // Frontend % = pnl / totalCost yapsaydı pay(fxNow)/payda(fxEntry) → USD-kote'de % kur oranı
+        // kadar şişerdi. Burada paydayı pnl ile AYNI kura (fxNow) hizalayıp doğrudan set ederiz:
+        //   % = pnl / (avgEntry × fxNow × mult × marginRate)   [teminatın güncel-kur karşılığı]
+        // Böylece kaldıraçlı gerçek getiri korunur, sadece kur uyuşmazlığı giderilir. TRY kontratta
+        // fxNow=1 → payda = totalCost ile aynı → davranış DEĞİŞMEZ (eski % korunur). marginAmount
+        // (scrape, zaten TL) yolunda fxNow uygulanmaz → o zaten kur-bağımsız, tutarsızlık yok.
+        if (isUsdQuote && pnl != null) {
+            BigDecimal marginAtNow = valuationService.marginPosted(qty, avgEntry, spec, fxNow);
+            if (marginAtNow != null && marginAtNow.signum() > 0) {
+                holding.setProfitLossPercent(pnl.divide(marginAtNow, 10, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100))
+                        .setScale(2, RoundingMode.HALF_UP));
+            }
+        }
+
         // VİOP "Toplam Maliyet" semantiği = YATIRILAN TEMİNAT (kullanıcının cebinden çıkan para),
         // NOT qty × entry (spot mantığı — VİOP'ta tam fiyatı ödemezsin, sadece teminatı bağlarsın).
         // Builder qty × entry'i öncelikli set ediyor; burada override ediyoruz. Bu sayede:
@@ -341,13 +358,22 @@ public class FutureHoldingEnricher {
     }
 
     /**
-     * GİRİŞ (alış günü) USD/TRY kuru — per-date FX. USD-kote kontratta, pozisyonun alış maliyeti
-     * O GÜNÜN kuruyla TL'leşmelidir (kur kazancı/kaybı K/Z'ye yansısın; eurobond Model 1 ile aynı
-     * konvansiyon). TCMB tarihsel serisinden {@code buyDate}'e ≤ en yakın (forward-fill) kapanış.
+     * GİRİŞ (alış günü) USD/TRY kuru — per-date FX (TEMİNAT için). USD-kote kontratta, başlangıç
+     * teminatı O GÜNÜN kuruyla bağlanır (resmi VİOP örneği de açılış kurundan hesaplar). TCMB
+     * tarihsel serisinden {@code buyDate}'e ≤ en yakın (forward-fill) kapanış.
      *
      * <p>TRY kontratta 1 döner (etkisiz). buyDate null ya da tarihsel kur bulunamazsa GÜVENLİ
      * fallback: {@code fxNow} (anlık kur) — yani en kötü durumda eski (anlık-kur) davranışına döner,
      * hata/çökme üretmez. unit USD'de 1.
+     *
+     * <p><b>BİLİNEN KISIT (TODO — düşük öncelik, ~%5 etki):</b> {@code buyDate} olarak pozisyonun
+     * {@code firstBuyDate}'i (İLK alımın tarihi) geçiliyor. Aynı kontrattan FARKLI tarihlerde +
+     * FARKLI kurlarda ÇOKLU alım yapılırsa, teminatın TAMAMI ilk alımın kuruyla bağlanır; oysa
+     * resmi VİOP'ta her lot kendi alış-günü kuruyla bağlanmalı. {@code PortfolioHoldingsBuilder}
+     * her lot'un (tarih, cost, qty)'sini {@code lots[]} listesinde TUTUYOR → ileride enricher'a
+     * per-lot tarih akıtıp her lot'u kendi kuruyla toplayarak düzeltilebilir. Etki SADECE: USD-kote
+     * + çoklu-alım + farklı kurlar + YAML-oran yolu (scrape marginAmount yoksa) kesişiminde; tek-alım
+     * pozisyonlarda (yaygın durum) ETKİ YOK. K/Z (mark-to-market, fxNow) bundan ETKİLENMEZ.
      */
     private BigDecimal resolveEntryFxRate(ViopContractSpec spec, LocalDate buyDate, BigDecimal fxNow) {
         if (spec == null || !"USD".equalsIgnoreCase(spec.currency())) {

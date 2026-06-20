@@ -204,6 +204,9 @@ class FutureHoldingEnricherMoreTest {
         // giriş kuru K/Z'ye GİRMEZ → kur kazancı şişirmesi YOK)
         BigDecimal pnl1 = h.getProfitLoss();
         assertThat(pnl1).isEqualByComparingTo("4600.00");
+        // K/Z% pay-payda KUR TUTARLI: payda teminat GÜNCEL kurla (fxNow) → pnl(fxNow)/margin(fxNow).
+        // = 4600 / (1.10×46×1000×0.04 = 2024.00) = 227.27%  (eski tutarsız olsaydı 4600/1760=261%).
+        assertThat(h.getProfitLossPercent()).isEqualByComparingTo("227.27");
 
         // İKİNCİ enrich (double-enrich): averageCost TL(50.60), currency "TRY" → fxNow(46) ile geri-böl, AYNI sonuç.
         enricher.enrich(h);
@@ -236,6 +239,9 @@ class FutureHoldingEnricherMoreTest {
         assertThat(h.getAverageCost()).isEqualByComparingTo("82");
         assertThat(h.getProfitLoss()).isEqualByComparingTo("100.00");
         assertThat(h.getViopMarginPosted()).isEqualByComparingTo("1197.20"); // 1×82×100×0.146
+        // TRY-kote: K/Z% override edilmez (isUsdQuote false) → profitLossPercent NULL kalır,
+        // frontend eski pl/totalCost hesabına düşer (TL kontrat davranışı DEĞİŞMEZ).
+        assertThat(h.getProfitLossPercent()).isNull();
     }
 
     // ── SHORT yön + viopDirection non-null + averageCost mevcut + custom spec ──

@@ -267,9 +267,16 @@ export function renderCell(key, h, commoditySpots, valuesHidden, t) {
     }
 
     case 'unrealizedPct': {
-      const pnl  = unrealizedGainLoss(h);
-      const cost = num(h, 'totalCost');
-      const pct  = cost != null && cost > 0 && pnl != null ? (pnl / cost) * 100 : null;
+      // Backend tutarlı bir % verdiyse (VİOP USD-kote: pnl/payda aynı kurda; bond: mv/cost) onu kullan.
+      // Yoksa pl/totalCost. VİOP'ta totalCost=teminat(giriş kuru) iken pnl güncel kurla → ham bölme
+      // kur oranı kadar şişerdi; backend profitLossPercent bunu giderir (diğer tipler değişmez).
+      const direct = num(h, 'profitLossPercent');
+      let pct = direct;
+      if (pct == null) {
+        const pnl  = unrealizedGainLoss(h);
+        const cost = num(h, 'totalCost');
+        pct = cost != null && cost > 0 && pnl != null ? (pnl / cost) * 100 : null;
+      }
       return <PnlPct value={pct} valuesHidden={valuesHidden} />;
     }
 

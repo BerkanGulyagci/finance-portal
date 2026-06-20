@@ -211,6 +211,15 @@ describe('renderCellForExport', () => {
     expect(renderCellForExport('unrealizedPct', { profitLoss: '50', totalCost: '200' })).toBe(25);
   });
 
+  it('unrealizedPct → backend profitLossPercent öncelikli (VİOP kur-tutarlı %)', () => {
+    // VİOP USD-kote: backend pnl/payda'yı aynı kurda hesaplayıp profitLossPercent veriyor.
+    // Ham pl/totalCost (50/200=25) DEĞİL, backend'in verdiği 227.27 kullanılmalı.
+    expect(renderCellForExport('unrealizedPct',
+      { profitLoss: '50', totalCost: '200', profitLossPercent: '227.27' })).toBe(227.27);
+    // profitLossPercent yoksa eski hesaba düşer (TL kontrat / diğer tipler değişmez).
+    expect(renderCellForExport('unrealizedPct', { profitLoss: '50', totalCost: '200' })).toBe(25);
+  });
+
   it('beatInflation → Yendi/Yenildi', () => {
     expect(renderCellForExport('beatInflation', { realProfitLossPercent: '5' })).toBe('Enflasyonu Yendi');
     expect(renderCellForExport('beatInflation', { realProfitLossPercent: '-3' })).toBe('Enflasyona Yenildi');
