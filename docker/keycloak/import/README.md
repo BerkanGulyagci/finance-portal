@@ -1,26 +1,31 @@
 # Keycloak realm auto-import
 
-Bu klasör `docker compose up`'ta Keycloak'a `/opt/keycloak/data/import` olarak mount edilir
-ve `--import-realm` ile **boş bir Keycloak'a** otomatik yüklenir (mevcut realm varsa ATLANIR,
-ezilmez).
+On `docker compose up` this folder is mounted into Keycloak as
+`/opt/keycloak/data/import` and loaded automatically via `--import-realm` into
+an **empty Keycloak** (if a realm already exists it is SKIPPED, not overwritten).
 
-## Yeni makine/sunucu kurulumu
+## What is committed vs. kept local
 
-Realm export'u (kullanıcılar + roller + ADMIN + LDAP federation dahil) **şifre/secret içerir**,
-bu yüzden `.gitignore`'ludur (`*.json` git'e gitmez — GitHub'a yüklenmez). Yeni makineye **elle**
-taşınır:
+A **sanitized** `finance-portal-realm.json` (placeholder/empty secrets, no real
+users) is committed so the stack boots on a fresh clone. The **real** export —
+which contains live passwords/secrets and real users — must never be committed:
+keep it as `*.local.json`, which is gitignored.
+
+## New machine / server setup
+
+Move the real realm export to a new machine **by hand** (NOT via GitHub):
 
 ```bash
-# Mevcut makinede export al (çalışan Keycloak'a dokunmaz, salt-okunur):
+# On the current machine, take an export (read-only, doesn't touch the running Keycloak):
 docker exec finance-portal-keycloak /opt/keycloak/bin/kc.sh export \
   --file /tmp/finance-portal-realm.json --realm finance-portal --users same_file
 docker cp finance-portal-keycloak:/tmp/finance-portal-realm.json \
-  docker/keycloak/import/finance-portal-realm.json
+  docker/keycloak/import/finance-portal-realm.local.json
 
-# Yeni makineye kopyala (GitHub üzerinden DEĞİL):
-scp docker/keycloak/import/finance-portal-realm.json \
-  kullanici@sunucu:~/finance-portal/docker/keycloak/import/
+# Copy to the new machine (NOT via GitHub):
+scp docker/keycloak/import/finance-portal-realm.local.json \
+  user@server:~/finance-portal/docker/keycloak/import/
 ```
 
-LDAP kullanıcılarının şifreleri ApacheDS'tedir; `backup/apacheds-export.ldif`'i de taşıyıp
-ApacheDS'e import et (yoksa federated kullanıcılar giriş yapamaz).
+LDAP user passwords live in ApacheDS; also move `backup/apacheds-export.ldif`
+and import it into ApacheDS (otherwise federated users cannot log in).
