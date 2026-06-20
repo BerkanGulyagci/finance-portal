@@ -56,6 +56,7 @@ dashpage.diff.txt
 ### ApacheDS runtime instance data (bind-mounted; the container regenerates ###
 ### it on first run and rewrites the DB/logs/locks constantly — not source). ###
 docker/apacheds/data/
+docker/apacheds/data.backup-*/
 
 ### Deployment backups & secrets — ASLA commit edilmez (GitHub'a gitmez). ###
 ### Bunlar kullanıcı verisi/şifre/secret içerir; yeni sunucuya scp ile elle taşınır. ###
