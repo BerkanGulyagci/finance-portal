@@ -375,6 +375,109 @@ const en = {
   'Şu anki fiyat:': 'Current price:',
   'şu an': 'now',
   '— Alarmı Düzenle': '— Edit Alert',
+
+  // Auto-added (2nd pass): missing EN translations found across transactions table,
+  // alarm/notification badges, dashboard chart menus, analytics cards, compare/market
+  // pages, bonds categories and deposit presets. Keys are already wrapped with t()/tr()
+  // at their call sites — this only supplies the missing English values.
+
+  // Transactions table (TransactionsTable.jsx)
+  'Tüm işlemler': 'All transactions',
+  'Sadece Alış': 'Buys only',
+  'Sadece Satış': 'Sells only',
+  'Sadece Kupon': 'Coupons only',
+  'KUPON': 'COUPON',
+  'Sembol ya da tür ara': 'Search by symbol or type',
+  'Bu filtreyle eşleşen işlem yok.': 'No transactions match this filter.',
+  'VİOP toplam = teminat (qty × fiyat × çarpan × marjin)':
+    'Futures total = margin (qty × price × multiplier × margin rate)',
+  'Birim Fiyat': 'Unit Price',
+  'Fiyat / Birim Fiyat': 'Price / Unit Price',
+  'Tarih:': 'Date:',
+
+  // Alarm status badges (AlarmsManager.jsx)
+  'Tetiklendi': 'Triggered',
+  'Duraklatıldı': 'Paused',
+
+  // Notification status badges (NotificationsPage.jsx)
+  'E-posta gönderildi': 'Email sent',
+  'E-posta gönderilemedi': 'Email failed',
+  'E-posta gönderilmedi': 'Email not sent',
+  'Beklemede': 'Pending',
+
+  // Add-chart-to-dashboard menus (AddChartToDashboardMenu / AddWatchlistChartsToDashboardMenu)
+  "Bir grafiği Dashboard'a ekle": 'Add a chart to the Dashboard',
+  "Dashboard'a Ekle": 'Add to Dashboard',
+  "Dashboard'dan kaldırıldı.": 'Removed from the Dashboard.',
+  "Dashboard'a eklendi.": 'Added to the Dashboard.',
+
+  // Analytics registry cards (analyticsRegistry.js)
+  'Risk Skoru (AI)': 'Risk Score (AI)',
+  'Sağlık Skoru (AI)': 'Health Score (AI)',
+  'En Çok Kazandıran / Kaybettiren': 'Top Gainer / Loser',
+  'Portföy Kimliği (AI)': 'Portfolio Profile (AI)',
+  'Monte Carlo Projeksiyon (AI)': 'Monte Carlo Projection (AI)',
+
+  // What-If comparison series (WhatIfComparison.jsx)
+  'Altın (gram)': 'Gold (gram)',
+  'Dolar (USD)': 'Dollar (USD)',
+  'Mevduat': 'Deposit',
+
+  // Portfolio / holdings
+  'Portföyü Sil': 'Delete Portfolio',
+  'Yabancı para cinsli — piyasa değeri TCMB satış kuruyla TL\'ye çevrilir':
+    'Foreign-currency denominated — market value is converted to TL at the CBRT selling rate',
+
+  // Stock compare empty state (StockComparePage.jsx)
+  'Yeterli veri bulunamadı': 'Not enough data',
+  'Seçili varlıkların bu aralıkta ortak/yeterli geçmişi yok. Daha kısa bir aralık (ör. 6A) deneyin ya da farklı varlık seçin.':
+    'The selected assets do not have enough common history in this range. Try a shorter range (e.g. 6M) or pick different assets.',
+
+  // Silver page stat labels (SilverPage.jsx)
+  'Güncel Fiyat (Kapanış)': 'Current Price (Close)',
+  'TL/Kg Kapanış': 'TL/Kg Close',
+  'TL/Gram': 'TL/Gram',
+  'USD/Ons': 'USD/Oz',
+
+  // News filter (NewsFilterBar.jsx)
+  'Türkiye': 'Türkiye',
+  'Global': 'Global',
+
+  // Deposit calculator presets (DepositCalculatorPage.jsx)
+  '1 ay': '1 month',
+  '3 ay': '3 months',
+  '6 ay': '6 months',
+  '1 yıl': '1 year',
+  '2 yıl': '2 years',
+
+  // Market ticker tooltip (MarketTicker.jsx)
+  'detayına git': 'go to details',
+
+  // Economic calendar (EconomicCalendarPage.jsx)
+  'Küresel makro veri açıklamaları — enflasyon, faiz kararları, istihdam, GSYİH ve daha fazlası.':
+    'Global macro data releases — inflation, rate decisions, employment, GDP and more.',
+
+  // Add transaction modal (AddTransactionModal.jsx)
+  "VİOP\'ta 1 kontratın temsil ettiği büyüklük ürüne göre değişir. Bu ekrandaki değerler basitleştirilmiş portföy takibi içindir.":
+    'The size represented by one futures contract varies by product. The values on this screen are for simplified portfolio tracking.',
+
+  // Bond category labels (BondsPage.jsx CATEGORY_LABELS)
+  'Hazine Bonosu (Kuponsuz)': 'Treasury Bill (Zero-coupon)',
+  'Devlet Tahvili (Kuponsuz)': 'Government Bond (Zero-coupon)',
+  'Kuponlu Devlet Tahvili': 'Coupon Government Bond',
+  'Ana Para Stripi': 'Principal Strip',
+  'Kupon Stripi': 'Coupon Strip',
+  'TLREF-Endeksli': 'TLREF-Indexed',
+  'TÜFE-Endeksli (Tam Bond)': 'CPI-Indexed (Full Bond)',
+  'TÜFE-Endeksli Ana Para Stripi': 'CPI-Indexed Principal Strip',
+  'TÜFE-Endeksli Kupon Stripi': 'CPI-Indexed Coupon Strip',
+  'Altına Dayalı Senet': 'Gold-Backed Note',
+  'Yabancı Para Cinsli (EUR/USD)': 'Foreign-Currency Denominated (EUR/USD)',
+  'Kira Sertifikası': 'Lease Certificate',
+  'TÜFE-Endeksli Kira Sertifikası': 'CPI-Indexed Lease Certificate',
+  'Altına Dayalı Kira Sertifikası': 'Gold-Backed Lease Certificate',
+  'Yabancı Para Cinsli Kira Sertifikası': 'Foreign-Currency Lease Certificate',
+  'Sınıflandırılmamış': 'Unclassified',
 };
 
 export default { en };
