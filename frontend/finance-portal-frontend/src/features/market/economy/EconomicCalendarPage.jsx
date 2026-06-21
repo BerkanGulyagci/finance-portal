@@ -43,6 +43,20 @@ export default function EconomicCalendarPage() {
   const [quickRange, setQuickRange] = useState('week'); // 'yesterday'|'today'|'tomorrow'|'week'|'custom'
   const [page, setPage] = useState(0);
 
+  // Sıralama: hangi sütun + yön. 'time' (varsayılan, artan), 'impact', 'currency'.
+  // Gün grupları korunur; sıralama her günün İÇİNDE uygulanır (zaman sıralamasında zaten kronolojik).
+  const [sortKey, setSortKey] = useState('time'); // 'time' | 'impact' | 'currency'
+  const [sortDir, setSortDir] = useState('asc');   // 'asc' | 'desc'
+
+  function toggleSort(key) {
+    if (sortKey === key) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  }
+
   // ── Data fetching ──────────────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
@@ -92,11 +106,42 @@ export default function EconomicCalendarPage() {
     return true;
   }), [events, quickWindow, impactFilter, currencyFilter, hideHolidays]);
 
-  const sorted = useMemo(() => [...filtered].sort((a, b) => {
-    const da = parseEventTime(a.time)?.getTime() ?? 0;
-    const db = parseEventTime(b.time)?.getTime() ?? 0;
-    return da - db;
-  }), [filtered]);
+  const sorted = useMemo(() => {
+    const dir = sortDir === 'desc' ? -1 : 1;
+    // Önem sırası: high > medium > low > (diğer/tatil). Sayısal skor ile karşılaştırılır.
+    const impactRank = (imp) => {
+      const v = (imp || '').toLowerCase();
+      return v === 'high' ? 3 : v === 'medium' ? 2 : v === 'low' ? 1 : 0;
+    };
+    return [...filtered].sort((a, b) => {
+      const dA = parseEventTime(a.time);
+      const dB = parseEventTime(b.time);
+      const dayA = dA ? dateKey(dA) : '';
+      const dayB = dB ? dateKey(dB) : '';
+
+      if (sortKey === 'time') {
+        // ZAMAN = GÜN bazlı sıralama: yön toggle GÜNLERE uygulanır (en eski gün üstte ↔ en yeni
+        // gün üstte). Gün-içi saat ikincil ve HER ZAMAN artan (kronolojik okunur).
+        if (dayA !== dayB) return (dayA < dayB ? -1 : 1) * dir;
+        return (dA?.getTime() ?? 0) - (dB?.getTime() ?? 0);
+      }
+
+      // ÖNEM / DÖVİZ = gün grupları KORUNUR (tarih başlıkları anlamlı kalsın): günler her zaman
+      // kronolojik artan, sıralama her günün İÇİNDE uygulanır.
+      if (dayA !== dayB) return dayA < dayB ? -1 : 1;
+      let cmp;
+      if (sortKey === 'impact') {
+        cmp = impactRank(a.impact) - impactRank(b.impact);
+      } else { // 'currency'
+        cmp = (a.currency || a.country || '').localeCompare(b.currency || b.country || '', 'tr');
+      }
+      // Eşitlikte ikincil olarak zamana göre (kararlı görünüm).
+      if (cmp === 0) {
+        cmp = (dA?.getTime() ?? 0) - (dB?.getTime() ?? 0);
+      }
+      return cmp * dir;
+    });
+  }, [filtered, sortKey, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const pageRows   = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -114,8 +159,8 @@ export default function EconomicCalendarPage() {
     return groups;
   }, [pageRows]);
 
-  // Reset page on filter/range changes
-  useEffect(() => { setPage(0); }, [quickRange, impactFilter, currencyFilter, hideHolidays, fromDate, toDate]);
+  // Reset page on filter/range/sort changes
+  useEffect(() => { setPage(0); }, [quickRange, impactFilter, currencyFilter, hideHolidays, fromDate, toDate, sortKey, sortDir]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   function toggleSet(setter) {
@@ -183,7 +228,12 @@ export default function EconomicCalendarPage() {
           ) : sorted.length === 0 ? (
             <div className="p-8 text-center text-gray-400 text-sm">{t('Bu kriterler için sonuç yok.')}</div>
           ) : (
-            <CalendarTable groupedRows={groupedRows} />
+            <CalendarTable
+              groupedRows={groupedRows}
+              sortKey={sortKey}
+              sortDir={sortDir}
+              onSort={toggleSort}
+            />
           )}
         </div>
 
