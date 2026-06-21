@@ -1,21 +1,27 @@
 package com.finance.portal.market.application.calendar;
 
+import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.calendar.model.EconomicCalendarEvent;
 import com.finance.portal.market.application.calendar.port.EconomicCalendarPort;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -26,8 +32,16 @@ class EconomicCalendarServiceTest {
     @Mock
     private EconomicCalendarPort port;
 
-    @InjectMocks
     private EconomicCalendarService service;
+
+    @BeforeEach
+    void setUp() {
+        // LKG pass-through: resilient(...) sadece supplier'ı çağırır (port verify sayıları korunur).
+        LastKnownGoodCache lkg = mock(LastKnownGoodCache.class);
+        lenient().when(lkg.resilient(anyString(), any(Duration.class), any(), any()))
+                .thenAnswer(inv -> ((Supplier<?>) inv.getArgument(3)).get());
+        service = new EconomicCalendarService(port, lkg);
+    }
 
     private static EconomicCalendarEvent event(String time, String country, String evt, String currency) {
         EconomicCalendarEvent e = new EconomicCalendarEvent();

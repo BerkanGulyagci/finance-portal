@@ -1,5 +1,7 @@
 package com.finance.portal.market.application.calendar;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.calendar.model.EconomicCalendarEvent;
 import com.finance.portal.market.application.calendar.port.EconomicCalendarPort;
 import org.slf4j.Logger;
@@ -7,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -17,18 +20,32 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Ekonomik takvim verilerini sağlar (Finnhub backed).
+ * Ekonomik takvim verilerini sağlar (TradingView backed).
  * Cache: {@code market.calendar} — TTL CacheConfig'de tanımlı (varsayılan 1 saat).
  *
- * <p><b>Chunking:</b> Finnhub {@code /calendar/economic} tek istekte ~3000 olay döner
- * (sessiz cap). 1 yıllık aralık olduğu gibi istendiğinde yalnız ilk ~33 günü görünür.
- * Bu yüzden {@link #CHUNK_DAYS} günlük (90 gün) parçalara böl, sırayla çek,
- * (time, country, event, currency) tuple'ı ile dedup edip zamana göre sırala.
+ * <p><b>Dayanıklılık (LKG):</b> Kaynak (TradingView) çökerse/erişilemezse, {@link LastKnownGoodCache}
+ * son başarılı takvim verisini servis eder (stale-if-error). Bu, dokümante olmayan bir endpoint'e
+ * dayanmanın kırılganlığını telafi eder — TradingView değişse/kapansa bile UI boş kalmaz, entegrasyon
+ * logu uyarı düşer (yönetici Grafana'dan görür). {@code @Cacheable} HIT'te LKG çağrılmaz (Redis hızlı
+ * yol); yalnız cache MISS'te LKG fetch + backup yapar → ikinci savunma hattı.
+ *
+ * <p><b>Chunking:</b> Kaynak tek istekte sınırlı sayıda olay döner (cap). Geniş aralık (1 yıl) olduğu
+ * gibi istendiğinde son kısım kesik gelebilir. Bu yüzden {@link #CHUNK_DAYS} günlük parçalara böl,
+ * sırayla çek, (time, country, event, currency) tuple'ı ile dedup edip zamana göre sırala.
  */
 @Service
 public class EconomicCalendarService {
 
     private static final Logger log = LoggerFactory.getLogger(EconomicCalendarService.class);
+
+    /** LKG anahtar öneki — namespace + tarih aralığı ile benzersiz. */
+    private static final String LKG_PREFIX = "market.calendar:";
+
+    /** LKG TTL — kaynak uzun süre çökse bile son veri 3 gün servis edilir (hızlı-değişmez veri). */
+    private static final Duration LKG_TTL = Duration.ofDays(3);
+
+    private static final TypeReference<List<EconomicCalendarEvent>> EVENT_LIST_TYPE =
+            new TypeReference<>() {};
 
     /**
      * Tek chunk için maksimum gün sayısı.
@@ -45,15 +62,20 @@ public class EconomicCalendarService {
     private static final long MAX_RANGE_DAYS = 400;
 
     private final EconomicCalendarPort port;
+    private final LastKnownGoodCache lkg;
 
-    public EconomicCalendarService(EconomicCalendarPort port) {
+    public EconomicCalendarService(EconomicCalendarPort port, LastKnownGoodCache lkg) {
         this.port = port;
+        this.lkg = lkg;
     }
 
     /**
      * Verilen aralıktaki tüm olayları döner.
      * {@code from} {@code to}'dan büyükse swap edilir; aralık {@link #MAX_RANGE_DAYS} ile sınırlanır.
      * &gt; {@link #CHUNK_DAYS} ise chunk'lara bölünerek çekilir; sonuçlar dedup + sırala.
+     *
+     * <p>Redis {@code @Cacheable} HIT → anında döner (LKG'ye uğramaz). MISS → {@link LastKnownGoodCache}
+     * fetch'i sarar: kaynak çökerse son başarılı veri ({@code lkg:} anahtarı) servis edilir.
      */
     @Cacheable(cacheNames = "market.calendar", key = "#from.toString() + '_' + #to.toString()")
     public List<EconomicCalendarEvent> getEvents(LocalDate from, LocalDate to) {
@@ -70,13 +92,16 @@ public class EconomicCalendarService {
             days = MAX_RANGE_DAYS;
         }
 
-        // ≤ 90 gün: tek çağrı (geriye uyum + en az gecikme).
-        if (days <= CHUNK_DAYS) {
-            return port.fetch(start, end);
-        }
-
-        // > 90 gün: chunk'la.
-        return fetchInChunks(start, end);
+        final LocalDate fStart = start;
+        final LocalDate fEnd = end;
+        final long fDays = days;
+        // LKG: kaynak çökerse son başarılı veriyi servis et (stale-if-error). Boş sonuç
+        // (kaynak erişildi ama hiç olay yok) LKG'de saklanmaz → gerçek veri gelince güncellenir.
+        return lkg.resilient(
+                LKG_PREFIX + fStart + "_" + fEnd,
+                LKG_TTL,
+                EVENT_LIST_TYPE,
+                () -> (fDays <= CHUNK_DAYS) ? port.fetch(fStart, fEnd) : fetchInChunks(fStart, fEnd));
     }
 
     private List<EconomicCalendarEvent> fetchInChunks(LocalDate start, LocalDate end) {

@@ -507,6 +507,14 @@ binance:
 feargreed:
   base-url: ${FEARGREED_BASE_URL:https://api.alternative.me}
 
+# Ekonomik takvim — TradingView (anahtarsız, ücretsiz; Türkiye dahil 103 ülke).
+# Finnhub ücretsiz planda ekonomik takvimi kaldırdığı için onun yerine geçer.
+# Origin header CORS doğrulaması için zorunludur (kimlik doğrulama değil).
+tradingview:
+  calendar:
+    url: ${TRADINGVIEW_CALENDAR_URL:https://economic-calendar.tradingview.com/events}
+    origin: ${TRADINGVIEW_CALENDAR_ORIGIN:https://www.tradingview.com}
+
 resilience4j:
   circuitbreaker:
     instances:

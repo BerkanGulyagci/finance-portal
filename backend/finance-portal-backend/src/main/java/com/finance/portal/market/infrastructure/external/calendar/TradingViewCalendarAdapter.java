@@ -8,14 +8,16 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * {@link EconomicCalendarPort} için Finnhub adaptörü.
+ * {@link EconomicCalendarPort} için TradingView adaptörü.
+ * Finnhub'ın yerini alır (ücretsiz planda ekonomik takvim kaldırıldı). API anahtarı gerektirmez,
+ * Türkiye dahil 103 ülke kapsar. Dayanıklılık {@code EconomicCalendarService}'in LKG cache'i ile.
  */
 @Component
-public class FinnhubCalendarAdapter implements EconomicCalendarPort {
+public class TradingViewCalendarAdapter implements EconomicCalendarPort {
 
-    private final FinnhubCalendarClient client;
+    private final TradingViewCalendarClient client;
 
-    public FinnhubCalendarAdapter(FinnhubCalendarClient client) {
+    public TradingViewCalendarAdapter(TradingViewCalendarClient client) {
         this.client = client;
     }
 

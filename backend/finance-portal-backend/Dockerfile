@@ -23,5 +23,9 @@ COPY --from=build /app/target/*.jar app.jar
 # Expose port
 EXPOSE 8080
 
-# OTel agent JVM'e eklenir; tüm config env var ile docker-compose'dan gelir
-ENTRYPOINT ["java", "-javaagent:/app/opentelemetry-javaagent.jar", "-jar", "app.jar"]
+# OTel agent JVM'e eklenir; tüm config env var ile docker-compose'dan gelir.
+# -Dsun.net.http.allowRestrictedHeaders=true: HttpURLConnection'ın "Origin" gibi kısıtlı
+# header'ları sessizce düşürmesini engeller (ekonomik takvim — TradingView Origin header'ı
+# zorunlu kılar; bu flag olmadan 403 döner). JVM başlangıcında set EDİLMELİDİR; runtime
+# System.setProperty geç kalır (restricted liste önce initialize olur).
+ENTRYPOINT ["java", "-Dsun.net.http.allowRestrictedHeaders=true", "-javaagent:/app/opentelemetry-javaagent.jar", "-jar", "app.jar"]
