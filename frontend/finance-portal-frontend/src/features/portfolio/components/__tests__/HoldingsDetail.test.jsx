@@ -190,12 +190,13 @@ describe('HoldingsDetail — özet kartı ve render (smoke)', () => {
     expect(screen.queryByText('Reel K/Z')).not.toBeInTheDocument();
   });
 
-  it('tüm özet satır etiketleri (Maliyet / Günlük / Açık / Gerçekleşen K/Z) görünür', () => {
+  it('tüm özet satır etiketleri (Maliyet / Günlük / Gerçekleşmemiş / Gerçekleşmiş K/Z) görünür', () => {
     renderDetail();
     expect(screen.getByText('Toplam Maliyet')).toBeInTheDocument();
     expect(screen.getByText('Günlük K/Z')).toBeInTheDocument();
-    expect(screen.getByText('Açık K/Z')).toBeInTheDocument();
-    expect(screen.getByText('Gerçekleşen K/Z')).toBeInTheDocument();
+    // Grafik solu etiketleri tablo sütun terimleriyle birleştirildi (Açık→Gerçekleşmemiş, Gerçekleşen→Gerçekleşmiş)
+    expect(screen.getByText('Gerçekleşmemiş K/Z')).toBeInTheDocument();
+    expect(screen.getByText('Gerçekleşmiş K/Z')).toBeInTheDocument();
   });
 });
 

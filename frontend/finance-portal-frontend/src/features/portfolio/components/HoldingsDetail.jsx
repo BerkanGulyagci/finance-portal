@@ -387,7 +387,7 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
               positive={dailyPnl != null ? dailyPos : undefined}
             />
             <SummaryRow
-              label={t('Açık K/Z')}
+              label={t('Gerçekleşmemiş K/Z')}
               tooltip={t('Satılmamış pozisyonlardaki anlık kar/zarar (nominal — enflasyon hariç).')}
               value={`${isPos && !valuesHidden ? '+' : ''}${formatMoney(pnl, currency, valuesHidden)}`}
               subValue={pnlPct != null ? formatPercent(pnlPct, valuesHidden, { signed: true }) : null}
@@ -403,7 +403,7 @@ export default function HoldingsDetail({ portfolio, onPortfolioUpdate, initialIn
               />
             )}
             <SummaryRow
-              label={t('Gerçekleşen K/Z')}
+              label={t('Gerçekleşmiş K/Z')}
               tooltip={t('Satılan pozisyonlardan oluşan kesinleşmiş kar/zarar.')}
               value={formatMoney(realizedPnl, currency, valuesHidden)}
               positive={realizedPnl > 0 ? true : realizedPnl < 0 ? false : undefined}

@@ -409,8 +409,8 @@ function buildPdfHtml(portfolio, holdings, txs, visibleCols = null) {
       <div style="padding:0 24px 16px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
         ${summaryCard('Toplam Maliyet',    fmtTr(portfolio.totalCost),         '#111827')}
         ${summaryCard('Piyasa Değeri',     fmtTr(portfolio.totalMarketValue),  '#111827')}
-        ${summaryCard('Açık Kâr / Zarar',  fmtTr(portfolio.totalProfitLoss),   plColor)}
-        ${summaryCard('Gerçekleşen K/Z',   fmtTr(portfolio.totalRealizedProfitLoss), rplColor)}
+        ${summaryCard('Gerçekleşmemiş K/Z', fmtTr(portfolio.totalProfitLoss),   plColor)}
+        ${summaryCard('Gerçekleşmiş K/Z',   fmtTr(portfolio.totalRealizedProfitLoss), rplColor)}
       </div>
     `;
   }

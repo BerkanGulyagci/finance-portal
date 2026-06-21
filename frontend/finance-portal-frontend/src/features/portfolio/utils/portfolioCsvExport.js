@@ -74,7 +74,7 @@ function buildHoldingsCsv(portfolio) {
   lines.push(csvRow(['Para Birimi', portfolio.currency ?? '']));
   lines.push(csvRow(['Toplam Maliyet', numTr(portfolio.totalCost, 2)]));
   lines.push(csvRow(['Piyasa Değeri', numTr(portfolio.totalMarketValue, 2)]));
-  lines.push(csvRow(['Açık Kâr/Zarar', numTr(portfolio.totalProfitLoss, 2)]));
+  lines.push(csvRow(['Gerçekleşmemiş K/Z', numTr(portfolio.totalProfitLoss, 2)]));
   lines.push('');
   lines.push(csvRow(['VARLIKLAR']));
   lines.push(

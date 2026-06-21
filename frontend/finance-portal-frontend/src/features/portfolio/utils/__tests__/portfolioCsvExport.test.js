@@ -178,7 +178,7 @@ describe('downloadPortfolioCsv', () => {
     // numTr → ondalık virgül, binlik nokta
     expect(body).toContain('Toplam Maliyet;1.000,5');
     expect(body).toContain('Piyasa Değeri;1.234.567,89');
-    expect(body).toContain('Açık Kâr/Zarar;-250,25');
+    expect(body).toContain('Gerçekleşmemiş K/Z;-250,25');
     // Bölüm başlıkları
     expect(body).toContain('VARLIKLAR');
     expect(body).toContain('İŞLEMLER');
