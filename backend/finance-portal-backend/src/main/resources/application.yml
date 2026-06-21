@@ -20,8 +20,15 @@ spring:
   lifecycle:
     timeout-per-shutdown-phase: 30s
   config:
-    # Yerel gizli anahtarlar: backend/finance-portal-backend/.env.local (gitignore)
-    import: optional:file:.env.local[.properties]
+    # Ek config dosyaları (sırayla yüklenir):
+    #  - news-sources.yml: haber kaynakları (RSS listesi + Finnhub + cache) — büyük statik veri,
+    #    application.yml'den ayrıldı (viop-contract-specs.yml deseni). classpath'te, zorunlu.
+    #  - .env.local: yerel gizli anahtarlar (gitignore), opsiyonel.
+    import:
+      # optional: dosya beklenmedik şekilde yoksa uygulama YİNE başlar (haberler boş kalır, çökmez).
+      # Dosya jar'a gömülü olduğundan normalde her zaman vardır; bu yalnız ek güvenlik.
+      - optional:classpath:news-sources.yml
+      - optional:file:.env.local[.properties]
   mvc:
     contentnegotiation:
       default-content-type: application/json
@@ -177,166 +184,6 @@ assistant:
   # Model zinciri: "saglayici:model" adımları, sırayla denenir; biri kota/hata verince sonrakine düşülür.
   # saglayici = groq | gemini. Anahtarı olmayan sağlayıcı adımı atlanır. Boş bırakılırsa: Groq → Gemini.
   chain: "${ASSISTANT_CHAIN:gemini:gemini-2.5-flash,gemini:gemini-2.5-flash-lite,groq:llama-3.3-70b-versatile}"
-
-news:
-  # Çoklu haber kaynakları. RSS anahtarsız her zaman aktif; API'ler anahtar verilince devreye girer.
-  sources:
-    finnhub:
-      url: ${FINNHUB_API_URL:https://finnhub.io/api/v1/news}
-      key: ${FINNHUB_API_KEY:}
-    rss:
-      # NOT: BloombergHT genel /rss'i kaldırıldı — son dakika/siyaset ağırlıklı, ekonomi az;
-      # kategori-özel ekonomi uçları (/rss/ekonomi, /rss/piyasalar) 404 veriyor.
-      - name: AA Ekonomi
-        url: https://www.aa.com.tr/tr/rss/default?cat=ekonomi
-        category: ECONOMY
-        language: tr
-      - name: Dünya
-        url: https://www.dunya.com/rss/ekonomi.xml
-        category: ECONOMY
-        language: tr
-      - name: NTV Ekonomi
-        url: https://www.ntv.com.tr/ekonomi.rss
-        category: ECONOMY
-        language: tr
-      - name: Hürriyet Ekonomi
-        url: https://www.hurriyet.com.tr/rss/ekonomi
-        category: ECONOMY
-        language: tr
-      - name: Sabah Ekonomi
-        url: https://www.sabah.com.tr/rss/ekonomi.xml
-        category: ECONOMY
-        language: tr
-      - name: TRT Ekonomi
-        url: https://www.trthaber.com/ekonomi_articles.rss
-        category: ECONOMY
-        language: tr
-      # NOT: Investing.com (6 feed) kaldırıldı (2026-05) — RSS yalnız başlık+link+jenerik görsel
-      # veriyor (açıklama/içerik yok) ve makale sayfası Cloudflare ile Java istemcimizi engelliyor;
-      # FX/Emtia/Tahvil/Hisse kapsamı classifier + ekonomimtv + kriptofoni ile zaten karşılanıyor.
-      # ekonomimtv — geniş feed'ler ECONOMY bırakıldı (classifier alt kategoriye ayırır),
-      # şirket haberleri STOCKS. Tümünde <enclosure> görsel + <content:encoded> tam içerik var.
-      - name: ekonomim Ekonomi
-        url: https://www.ekonomimtv.com/rss/ekonomi-5
-        category: ECONOMY
-        language: tr
-      - name: ekonomim Piyasa
-        url: https://www.ekonomimtv.com/rss/piyasa-9
-        category: ECONOMY
-        language: tr
-      - name: ekonomim Yatırım
-        url: https://www.ekonomimtv.com/rss/yatirim-4
-        category: ECONOMY
-        language: tr
-      - name: ekonomim Şirket
-        url: https://www.ekonomimtv.com/rss/sirket-7
-        category: STOCKS
-        language: tr
-      # kriptofoni — kripto-özel feed'ler (kategoriye güvenilir, CRYPTO). enclosure görsel YOK
-      # (görsel content:encoded içindeki ilk <img>'dan alınır), <content:encoded> tam içerik var.
-      - name: Kriptofoni
-        url: https://www.kriptofoni.com/kripto-para-haberleri/feed/
-        category: CRYPTO
-        language: tr
-      - name: Kriptofoni Bitcoin
-        url: https://www.kriptofoni.com/bitcoin-haberleri/feed/
-        category: CRYPTO
-        language: tr
-      - name: Kriptofoni Altcoin
-        url: https://www.kriptofoni.com/altcoin-haberleri/feed/
-        category: CRYPTO
-        language: tr
-      - name: Kriptofoni Ethereum
-        url: https://www.kriptofoni.com/ethereum-haberleri/feed/
-        category: CRYPTO
-        language: tr
-      - name: Kriptofoni XRP
-        url: https://www.kriptofoni.com/xrp-haberleri/feed/
-        category: CRYPTO
-        language: tr
-      - name: Kriptofoni Solana
-        url: https://www.kriptofoni.com/solana-haberleri/feed/
-        category: CRYPTO
-        language: tr
-      - name: Kriptofoni Cardano
-        url: https://www.kriptofoni.com/cardano-haberleri/feed/
-        category: CRYPTO
-        language: tr
-      - name: Kriptofoni Avalanche
-        url: https://www.kriptofoni.com/avalanche-haberleri/feed/
-        category: CRYPTO
-        language: tr
-      - name: Kriptofoni Litecoin
-        url: https://www.kriptofoni.com/litecoin-haberleri/feed/
-        category: CRYPTO
-        language: tr
-      - name: Kriptofoni Dogecoin
-        url: https://www.kriptofoni.com/dogecoin-haberleri/feed/
-        category: CRYPTO
-        language: tr
-      - name: Kriptofoni Hedera
-        url: https://www.kriptofoni.com/hedera-haberleri/feed/
-        category: CRYPTO
-        language: tr
-      - name: Kriptofoni Polkadot
-        url: https://www.kriptofoni.com/polkadot-haberleri/feed/
-        category: CRYPTO
-        language: tr
-      - name: Kriptofoni Sui
-        url: https://www.kriptofoni.com/sui-haberleri/feed/
-        category: CRYPTO
-        language: tr
-      - name: Kriptofoni Tron
-        url: https://www.kriptofoni.com/tron-haberleri/feed/
-        category: CRYPTO
-        language: tr
-      - name: Kriptofoni Memecoin
-        url: https://www.kriptofoni.com/memecoin-haberleri/feed/
-        category: CRYPTO
-        language: tr
-      - name: Kriptofoni Stablecoin
-        url: https://www.kriptofoni.com/stablecoin-haberleri/feed/
-        category: CRYPTO
-        language: tr
-      - name: Kriptofoni DeFi
-        url: https://www.kriptofoni.com/defi-haberleri/feed/
-        category: CRYPTO
-        language: tr
-      - name: Kriptofoni NFT
-        url: https://www.kriptofoni.com/nft-haberleri/feed/
-        category: CRYPTO
-        language: tr
-      - name: Kriptofoni Metaverse
-        url: https://www.kriptofoni.com/metaverse-haberleri/feed/
-        category: CRYPTO
-        language: tr
-      - name: Kriptofoni Blockchain
-        url: https://www.kriptofoni.com/blockchain-haberleri/feed/
-        category: CRYPTO
-        language: tr
-      - name: Kriptofoni Finans
-        url: https://www.kriptofoni.com/finans-ve-ekonomi-haberleri/feed/
-        category: ECONOMY
-        language: tr
-      # Patronlar Dünyası — media:content gerçek görsel + content:encoded tam içerik var.
-      # Borsa feed'i STOCKS (tip-güven); Finans karışık → ECONOMY (classifier dağıtır).
-      - name: Patronlar Dünyası Borsa
-        url: https://www.patronlardunyasi.com/rss/borsa
-        category: STOCKS
-        language: tr
-      - name: Patronlar Dünyası Finans
-        url: https://www.patronlardunyasi.com/rss/finans
-        category: ECONOMY
-        language: tr
-      # Koin Bülteni — RSS'te görsel yok (og:image enrichment ile gelir, kriptofoni gibi),
-      # content:encoded tam içerik var.
-      - name: Koin Bülteni
-        url: https://koinbulteni.com/feed
-        category: CRYPTO
-        language: tr
-  cache:
-    warmup:
-      fixed-delay-ms: ${NEWS_CACHE_WARMUP_FIXED_DELAY_MS:300000}
 
 # @Scheduled görev thread havuzu — tek-thread blocking'i önler (uzun warm-up'lar alarm gibi
 # zaman-kritik job'ları geciktirmesin). Bkz. SchedulerConfig.
