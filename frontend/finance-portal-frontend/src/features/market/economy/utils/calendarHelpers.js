@@ -3,9 +3,18 @@
  * No React, no I/O — easy to unit-test.
  */
 
-/** YYYY-MM-DD (UTC) */
+/**
+ * YYYY-MM-DD — YEREL takvim gününden (UTC DEĞİL).
+ * toISOString() tarihi UTC'ye çevirir → TR (UTC+3) gibi pozitif ofsette, gece yarısından
+ * sonraki yerel gün UTC'de hâlâ önceki gün olduğu için tarih BİR GÜN GERİ kayardı
+ * (örn. 21 Haziran Pazar 00:00 TR → "2026-06-20"). Yerel yıl/ay/gün bileşenlerinden üreterek
+ * quick-filtreler (bugün/yarın/hafta) doğru günü gönderir.
+ */
 export function isoDate(d) {
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 /** Monday-start week boundary. */
@@ -37,8 +46,13 @@ export function isAllDay(timeStr) {
   return timeStr.endsWith(' 00:00:00') || timeStr.endsWith('T00:00:00') || timeStr.length <= 10;
 }
 
+/**
+ * Olayın ait olduğu YEREL gün (YYYY-MM-DD). isoDate ile aynı — UTC kayması olmadan,
+ * kullanıcının gördüğü yerel günle eşleşir (olay zamanı parseEventTime ile yerel Date'tir).
+ * Eskiden toISOString() (UTC) kullanıyordu → gün gruplaması/filtresi TR'de bir gün kayabiliyordu.
+ */
 export function dateKey(d) {
-  return d.toISOString().slice(0, 10);
+  return isoDate(d);
 }
 
 export function fmtTime(d, lang) {

@@ -12,21 +12,27 @@ import {
 } from '../calendarHelpers';
 
 describe('isoDate', () => {
-  it('Date nesnesini UTC YYYY-MM-DD stringine çevirir', () => {
-    const d = new Date(Date.UTC(2026, 5, 4, 13, 45, 0)); // 2026-06-04 UTC
+  it('Date nesnesini YEREL YYYY-MM-DD stringine çevirir (UTC kayması yok)', () => {
+    // Yerel bileşenlerle oluştur → TZ'den bağımsız aynı yerel gün beklenir.
+    const d = new Date(2026, 5, 4, 13, 45, 0); // yerel 2026-06-04
     expect(isoDate(d)).toBe('2026-06-04');
   });
 
-  it('UTC bazlı keser: gece yarısı sonrası bile aynı UTC günü verir', () => {
-    // 23:59 UTC hâlâ aynı UTC günü.
-    const d = new Date(Date.UTC(2026, 0, 1, 23, 59, 59));
+  it('YEREL günü verir: gece yarısından hemen sonra bile doğru yerel gün', () => {
+    // Yerel 00:01 — toISOString() olsaydı UTC+ ofset ülkelerde önceki güne kayardı (bug).
+    const d = new Date(2026, 0, 1, 0, 1, 0); // yerel 2026-01-01 00:01
     expect(isoDate(d)).toBe('2026-01-01');
+  });
+
+  it('tek haneli ay/günü sıfırla doldurur', () => {
+    const d = new Date(2026, 2, 5, 9, 0, 0); // yerel 2026-03-05
+    expect(isoDate(d)).toBe('2026-03-05');
   });
 });
 
 describe('dateKey', () => {
-  it('isoDate ile aynı çıktıyı (UTC YYYY-MM-DD) verir', () => {
-    const d = new Date(Date.UTC(2026, 11, 31, 10, 0, 0));
+  it('isoDate ile aynı çıktıyı (yerel YYYY-MM-DD) verir', () => {
+    const d = new Date(2026, 11, 31, 10, 0, 0); // yerel 2026-12-31
     expect(dateKey(d)).toBe('2026-12-31');
     expect(dateKey(d)).toBe(isoDate(d));
   });
