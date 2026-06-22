@@ -320,19 +320,16 @@ evds:
   base-url: ${EVDS_BASE_URL:https://evds3.tcmb.gov.tr/igmevdsms-dis}
   api-key: ${EVDS_API_KEY:}
   data-group: bie_pydibs
-  use-whitelist: false          # true → sadece bond-instruments çalışır; false → aktif tüm seriler
+  # false → aktif tüm DİBS Değer serileri çekilir (varsayılan, ~537 enstrüman).
+  # true → yalnız evds.bond-instruments listesi (kod ${evds.bond-instruments:} okur); o liste
+  # buradan kaldırıldı, bu yüzden whitelist moduna geçilecekse listenin de eklenmesi gerekir.
+  use-whitelist: false
   active-bonds-limit: 0         # 0 = limitsiz (tüm aktif DİBS Değer serileri — ~537 enstrüman)
   # Kira Sertifikası data group'u (Sukuk) — ek olarak DİBS yanında çekilir
   lease-cert-data-group: bie_pyks
   include-lease-certs: true     # false → kira sertifikaları yüklenmez
   # EVDS liste toplu çekiminde eşzamanlı HTTP sayısı (TCMB'yi aşırı yüklememek için 4–16 arası önerilir)
   bond-fetch-parallelism: 8
-  bond-instruments:
-    - TRD070727K10
-    - TRB170626T13
-    - TRT180237T13
-    - TRT210235T10
-    - TRT270934T18
 
 # TL mevduat stopaj oranları (yıllık %) — Cumhurbaşkanı kararıyla belirlenir, canlı API yok.
 # Mevzuat değiştiğinde bu değerleri güncelle. Güncel (2026): 6 aya kadar 17.5 / 1 yıla kadar 15 / 1 yıldan uzun 10.
@@ -376,28 +373,6 @@ resilience4j:
         ignoreExceptions:
           - com.finance.portal.common.application.exception.ExternalApiException
           - org.springframework.web.client.HttpClientErrorException
-      yahooFundsApi:
-        slidingWindowSize: 10
-        minimumNumberOfCalls: 5
-        failureRateThreshold: 70
-        waitDurationInOpenState: 20s
-        recordExceptions:
-          - org.springframework.web.client.ResourceAccessException
-          - org.springframework.web.client.HttpServerErrorException
-        ignoreExceptions:
-          - com.finance.portal.common.application.exception.ExternalApiException
-          - org.springframework.web.client.HttpClientErrorException
-      yahooFuturesApi:
-        slidingWindowSize: 10
-        minimumNumberOfCalls: 5
-        failureRateThreshold: 70
-        waitDurationInOpenState: 20s
-        recordExceptions:
-          - org.springframework.web.client.ResourceAccessException
-          - org.springframework.web.client.HttpServerErrorException
-        ignoreExceptions:
-          - com.finance.portal.common.application.exception.ExternalApiException
-          - org.springframework.web.client.HttpClientErrorException
       coinGeckoApi:
         slidingWindowSize: 10
         minimumNumberOfCalls: 3
@@ -414,12 +389,6 @@ resilience4j:
         ignoreExceptions:
           - com.finance.portal.common.application.exception.ExternalApiException
           - org.springframework.web.client.HttpClientErrorException
-      yahooFundsApi:
-        maxAttempts: 2
-        waitDuration: 500ms
-      yahooFuturesApi:
-        maxAttempts: 2
-        waitDuration: 500ms
       coinGeckoApi:
         maxAttempts: 3
         waitDuration: 1s
