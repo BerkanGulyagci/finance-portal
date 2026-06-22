@@ -176,11 +176,18 @@ public class PortfolioHoldingResponse {
     private BigDecimal sumCouponIncome;
 
     /**
-     * BOND için: yıllık kupon faiz oranı (%). Kupon ödeme modalındaki "tahmini yıllık kupon"
-     * referansı için holdings'e taşınır (detayda var ama portföy satırında eksikti). Kuponsuz
-     * kıymetlerde (bono, strip) ve diğer asset tiplerinde null.
+     * BOND için: yıllık kupon faiz oranı (%). Detayda var; holdings'e taşınır. Kuponsuz kıymetlerde
+     * (bono, strip) ve diğer asset tiplerinde null.
      */
     private BigDecimal couponRate;
+
+    /**
+     * BOND için: periyodik kupon ödemesi yapan bir kıymet mi ({@link
+     * com.finance.portal.market.application.bond.evds.model.BondCategory#paysCoupon()})? Frontend
+     * "Kupon Ekle" butonunu yalnız bu true ise gösterir — kuponsuz bono/stripler ve kupon stripleri
+     * (tek-seferlik, periyodik değil) için false. Eurobond kuponluysa true. Diğer tiplerde false.
+     */
+    private boolean paysCoupon;
 
     /**
      * BOND için: kupon ödeme olayları (tarih + TL tutar). What-if "Gerçek" çizgisi her olayın

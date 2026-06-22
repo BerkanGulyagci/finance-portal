@@ -156,12 +156,11 @@ export default function HoldingsTable({
               const isBond = String(h.assetType ?? '').toUpperCase() === 'BOND';
               const isClosed = !!h.closed;
               const coupons = isBond ? (couponsBySymbol.get(h.symbol) || []) : [];
-              // Kupon Ekle butonu: tüm açık BOND pozisyonlarında (DİBS + Eurobond) görünür.
-              // Eurobond kategorisi backend'de set edilmediği için kategori filtresi kaldırıldı;
-              // kuponsuz bonolarda kullanıcı zaten butona basmaz. Quantity > 0 koşulu pozisyon
-              // kapanmadıysa zaten sağlanır (isClosed ile aynı kapı).
+              // Kupon Ekle butonu: yalnız PERİYODİK kupon ödeyen bond'larda (backend paysCoupon flag'i:
+              // kuponlu DT/TLREF/TÜFE/kira/altın-döviz + kuponlu eurobond). Kuponsuz bono/stripler ve
+              // kupon stripleri (tek-seferlik, periyodik değil) için buton çıkmaz.
               const hasOpenQty = Number(h.totalQuantity ?? h.quantity ?? 0) > 0;
-              const isCouponPaying = isBond && hasOpenQty;
+              const isCouponPaying = isBond && hasOpenQty && h.paysCoupon === true;
               const canExpand = isBond && (coupons.length > 0 || (portfolioId && !isClosed && isCouponPaying));
               const expanded = expandedKeys.has(rowKey);
               const rowClass = isClosed

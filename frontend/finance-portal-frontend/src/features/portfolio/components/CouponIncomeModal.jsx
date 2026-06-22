@@ -34,18 +34,12 @@ export default function CouponIncomeModal({ portfolioId, holding, onClose, onAdd
 
   const symbol = holding?.symbol ?? '';
   const name = holding?.name ?? symbol;
-  const couponRate = holding?.couponRate ?? null;
-  const nominalQty = holding?.totalQuantity ?? null;
   const isEurobond = isEurobondInstrument({
     assetType: holding?.assetType,
     symbol: holding?.symbol,
     subType: holding?.subType,
     isEurobond: holding?.isEurobond,
   });
-  // Tahmini yıllık kupon (basit, kullanıcıya referans için)
-  const estimatedAnnualCoupon = nominalQty != null && couponRate != null
-    ? (parseFloat(nominalQty) * parseFloat(couponRate)) / 100
-    : null;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -113,17 +107,6 @@ export default function CouponIncomeModal({ portfolioId, holding, onClose, onAdd
               {t('Realized gelir olarak portföye yansır; açık nominal pozisyonunuz değişmez.')}
             </span>
           </div>
-
-          {/* Tahmini referans */}
-          {estimatedAnnualCoupon != null && estimatedAnnualCoupon > 0 && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-[11px] text-amber-800 leading-snug">
-              {t('Referans: Mevcut {nominal} TL nominal × %{rate} = ~{est} TL yıllık brüt kupon (genelde 6 ayda bir ödenir).', {
-                nominal: parseFloat(nominalQty).toLocaleString('tr-TR'),
-                rate: parseFloat(couponRate).toFixed(2),
-                est: estimatedAnnualCoupon.toLocaleString('tr-TR', { maximumFractionDigits: 2 }),
-              })}
-            </div>
-          )}
 
           {/* Tutar */}
           <div>

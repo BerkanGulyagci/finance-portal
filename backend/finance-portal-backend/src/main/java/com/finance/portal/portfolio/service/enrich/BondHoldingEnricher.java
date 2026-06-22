@@ -5,6 +5,7 @@ import com.finance.portal.market.application.bond.evds.EvdsBondHistoryPoint;
 import com.finance.portal.market.application.bond.evds.EvdsBondInstrument;
 import com.finance.portal.market.application.bond.evds.EvdsBondService;
 import com.finance.portal.market.application.bond.evds.model.BondCategory;
+import com.finance.portal.market.application.bond.evds.model.BondClassifier;
 import com.finance.portal.market.application.bond.eurobond.EurobondService;
 import com.finance.portal.market.application.bond.eurobond.model.EurobondChartPoint;
 import com.finance.portal.market.application.bond.eurobond.model.EurobondDetail;
@@ -199,10 +200,22 @@ public class BondHoldingEnricher {
         if (category != null) {
             holding.setCategory(category.name());
         }
-        // Kupon oranı (.ORAN serisi) → kupon-ödeme modalındaki "tahmini yıllık kupon" referansı için.
-        // Kuponsuz kıymetlerde bond.getCouponRate() null olur (kutu zaten gösterilmez).
+        // Kupon oranı (.ORAN serisi) holdings'e taşınır. paysCoupon flag'i: yalnız PERİYODİK kupon
+        // ödeyen kategorilerde true. Frontend "Kupon Ekle" butonunu buna göre gösterir.
         if (bond != null) {
             holding.setCouponRate(bond.getCouponRate());
+        }
+        if (category != null) {
+            // TLREF/Kira/TÜFE-Kira ailesinde strip ayrı kategori değildir; ISIN sonekinden ayrılır
+            // (dibs1.txt'te aynı bölümde T=tam, A=ana para stripi, K=kupon stripi listelenir — kanıt:
+            // TÜFE-kira TRD..K değeri ~11 = tek kupon, T değeri ~770 = tam). K = kupon stripi
+            // (tek-seferlik, periyodik kupon ödemez → buton ÇIKMAZ). Aksi halde kategori paysCoupon().
+            boolean stripFamily = category == BondCategory.TLREF_INDEXED_BOND
+                    || category == BondCategory.LEASE_CERTIFICATE
+                    || category == BondCategory.INFLATION_INDEXED_LEASE_CERTIFICATE;
+            boolean kStrip = stripFamily
+                    && BondClassifier.lastIsinLetterBeforeDigits(code) == 'K';
+            holding.setPaysCoupon(category.paysCoupon() && !kStrip);
         }
         holding.setAsOf(lu != null ? lu.atStartOfDay()
                 : fallbackDate != null ? fallbackDate.atStartOfDay()
@@ -266,10 +279,12 @@ public class BondHoldingEnricher {
         holding.setName(d.getName() != null ? d.getName() : isin);
         holding.setChangePercent(d.getChangePercent());
         // Eurobond kupon oranı BI'da string ("11.875%") → parse edip holdings'e taşı (kupon modalı için).
+        // Eurobond'lar periyodik kupon öder → couponRate > 0 ise paysCoupon = true ("Kupon Ekle" çıkar).
         BigDecimal euroCoupon = com.finance.portal.market.application.bond.eurobond.model
                 .AccruedInterestCalculator.parsePercent(d.getCouponRate());
         if (euroCoupon != null) {
             holding.setCouponRate(euroCoupon);
+            holding.setPaysCoupon(euroCoupon.signum() > 0);
         }
         // Günlük mutlak değişim (100 nominal başına TL) — BI yalnız yüzde verir, fiyattan türet:
         // change = priceTry − dünkü = priceTry × pct / (100 + pct). Portföy özeti "Günlük K/Z"

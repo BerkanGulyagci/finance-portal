@@ -377,6 +377,17 @@ export default function AddTransactionModal({
   // Sadece GOLD_INDEXED_BOND kontrol etmek altın kira sertifikasını 100 kat küçük gösterirdi.
   const isGoldBondCat = isBond && (instrument?.category === 'GOLD_INDEXED_BOND'
     || instrument?.category === 'GOLD_INDEXED_LEASE_CERTIFICATE');
+  // Kupon stripi mi? (backend BondHoldingEnricher#paysCoupon ile aynı mantık) — ayrı COUPON_STRIP
+  // kategorisi VEYA TLREF/Kira/TÜFE-Kira ailesinde ISIN son harfi 'K'. Strip "kupon dahil/kirli"
+  // değildir (anapara yok, tek kupon) → o not bu kıymetlerde gösterilmez.
+  const isBondCouponStrip = isBond && (() => {
+    const c = String(instrument?.category ?? '');
+    if (c === 'COUPON_STRIP' || c === 'INFLATION_COUPON_STRIP') return true;
+    const stripFamily = c === 'TLREF_INDEXED_BOND' || c === 'LEASE_CERTIFICATE'
+      || c === 'INFLATION_INDEXED_LEASE_CERTIFICATE';
+    const lastLetter = (String(instrument?.symbol ?? '').match(/([A-Za-z])\d+$/) || [])[1]?.toUpperCase() || '';
+    return stripFamily && lastLetter === 'K';
+  })();
   const isCommodity = instrument?.assetType === 'COMMODITY';
   const commodityUnit = useMemo(
     () => (isCommodity ? getCommodityUnit(instrument?.symbol, instrument?.commoditySpot) : null),
@@ -981,11 +992,23 @@ export default function AddTransactionModal({
                     const isInfl = cat.startsWith('INFLATION_');
                     const isFx = cat === 'FX_DENOMINATED_BOND' || cat === 'FX_LEASE_CERTIFICATE';
                     const isGoldCat = cat === 'GOLD_INDEXED_BOND' || cat === 'GOLD_INDEXED_LEASE_CERTIFICATE';
-                    // TLREF/Kira ailesinde kupon stripi ayrı kategori değil — ISIN son harfi 'K' ise kupon stripidir.
+                    // TLREF/Kira/TÜFE-Kira ailesinde kupon stripi ayrı kategori değil — ISIN son harfi
+                    // 'K' ise kupon stripidir (backend BondHoldingEnricher#paysCoupon ile aynı mantık;
+                    // dibs1.txt'te aynı bölümde T=tam, A=ana para stripi, K=kupon stripi listelenir).
                     const lastIsinLetter = (String(instrument?.symbol ?? '').match(/([A-Za-z])\d+$/) || [])[1]?.toUpperCase() || '';
-                    const isLumpedCouponStrip = (cat === 'TLREF_INDEXED_BOND' || cat === 'LEASE_CERTIFICATE') && lastIsinLetter === 'K';
-                    const isCouponStrip = cat === 'COUPON_STRIP' || isLumpedCouponStrip;
+                    const isLumpedCouponStrip = (cat === 'TLREF_INDEXED_BOND' || cat === 'LEASE_CERTIFICATE'
+                      || cat === 'INFLATION_INDEXED_LEASE_CERTIFICATE') && lastIsinLetter === 'K';
+                    const isCouponStrip = cat === 'COUPON_STRIP' || cat === 'INFLATION_COUPON_STRIP' || isLumpedCouponStrip;
                     // Karşılıklı dışlayan: her senet türü için tek ve doğru açıklama göster.
+                    // Kupon stripi kontrolü ÖNCE — TÜFE/Kira kupon stripleri kategori bakımından
+                    // INFLATION_/LEASE görünür; strip notu, "TÜFE-endeksli senet" notundan önce gelmeli.
+                    if (isCouponStrip) {
+                      return (
+                        <p className="mt-1 text-[11px] text-purple-700 leading-snug bg-purple-50 border border-purple-200 rounded-md px-2 py-1">
+                          {t('Bu bir kupon stripidir — tek bir gelecek kupon ödemesi. Vade sonunda nominalin tamamını DEĞİL, yalnızca o kupona karşılık gelen (genelde nominalden çok küçük) sabit tutarı alırsınız. İskontolu alıp vade sonunda o sabit tutarı tahsil edersiniz.')}
+                        </p>
+                      );
+                    }
                     if (isInfl) {
                       return (
                         <p className="mt-1 text-[11px] text-amber-700 leading-snug bg-amber-50 border border-amber-200 rounded-md px-2 py-1">
@@ -1004,13 +1027,6 @@ export default function AddTransactionModal({
                       return (
                         <p className="mt-1 text-[11px] text-yellow-800 leading-snug bg-yellow-50 border border-yellow-200 rounded-md px-2 py-1">
                           {t('Altına dayalı senettir. Birim "adet" = 1 gram has altın varsayılır; TL piyasa değeri canlı gram altın fiyatı ile otomatik hesaplanır.')}
-                        </p>
-                      );
-                    }
-                    if (isCouponStrip) {
-                      return (
-                        <p className="mt-1 text-[11px] text-purple-700 leading-snug bg-purple-50 border border-purple-200 rounded-md px-2 py-1">
-                          {t('Bu bir kupon stripidir — tek bir gelecek kupon ödemesi. Vade sonunda nominalin tamamını DEĞİL, yalnızca o kupona karşılık gelen (genelde nominalden çok küçük) sabit tutarı alırsınız. İskontolu alıp vade sonunda o sabit tutarı tahsil edersiniz.')}
                         </p>
                       );
                     }
@@ -1108,7 +1124,7 @@ export default function AddTransactionModal({
                 </p>
               )}
               {isBond && !isEurobond && instrument?.couponRate != null && Number(instrument.couponRate) > 0
-                && !isGoldBondCat && (
+                && !isGoldBondCat && !isBondCouponStrip && (
                 <p className="mt-1 text-[11px] italic text-amber-600 leading-snug">
                   {t('Girilen değer EVDS Gösterge Değeridir ve kupon dahildir (kirli fiyat).')}
                 </p>

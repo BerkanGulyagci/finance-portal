@@ -148,8 +148,18 @@ function MetricBar({ bond }) {
     },
   ];
 
-  // Kuponlu kıymetlerde EVDS Gösterge Değeri KİRLİ FİYAT'tır (TCMB "kupon dahil değer").
-  const isCouponBearing = bond.couponRate != null && Number(bond.couponRate) > 0;
+  // Kupon stripi mi? (backend BondHoldingEnricher#paysCoupon ile aynı mantık) — strip "kupon
+  // dahil/kirli" değildir (anapara yok, tek kupon), couponRate dolu olsa bile not gösterilmez.
+  const isCouponStrip = (() => {
+    const c = String(bond.category ?? '');
+    if (c === 'COUPON_STRIP' || c === 'INFLATION_COUPON_STRIP') return true;
+    const stripFamily = c === 'TLREF_INDEXED_BOND' || c === 'LEASE_CERTIFICATE'
+      || c === 'INFLATION_INDEXED_LEASE_CERTIFICATE';
+    const lastLetter = (String(bond.instrumentCode ?? '').match(/([A-Za-z])\d+$/) || [])[1]?.toUpperCase() || '';
+    return stripFamily && lastLetter === 'K';
+  })();
+  // Kuponlu (strip olmayan) kıymetlerde EVDS Gösterge Değeri KİRLİ FİYAT'tır (TCMB "kupon dahil").
+  const isCouponBearing = !isCouponStrip && bond.couponRate != null && Number(bond.couponRate) > 0;
 
   return (
     <div className="space-y-3">
