@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { X, ArrowLeftRight, TrendingUp, TrendingDown } from 'lucide-react';
 import { addTransaction, getPriceAtDate } from '../../../api/portfolioApi';
-import { getViopChart, getEvdsBondDetail, getGlobalBondDetail, getViopContractSpec, getFxTcmb, getFxHistory } from '../../../api/marketApi';
+import { getViopChart, getEvdsBondDetail, getGlobalBondDetail, getGlobalBondPriceAt, getViopContractSpec, getFxTcmb, getFxHistory } from '../../../api/marketApi';
 import { isUsdViop } from '../../market/futures/utils/viopCurrency';
 import InstrumentSearchModal from '../../../components/instrument/InstrumentSearchModal';
 import CommodityPriceHint from './CommodityPriceHint';
@@ -96,6 +96,7 @@ export default function AddTransactionModal({
   const [priceAuto, setPriceAuto] = useState(initialInstrument?.price != null); // fiyat otomatik mi
   const [futureMinDate, setFutureMinDate] = useState(null); // VİOP kontratının ilk işlem günü (YYYY-MM-DD)
   const [bondMinDate, setBondMinDate] = useState(null);     // Tahvil/Eurobond ihraç tarihi (YYYY-MM-DD)
+  const [eurobondDirty, setEurobondDirty] = useState(null); // Eurobond kirli fiyat dökümü (temiz+faiz=kirli, TL)
 
   function set(key, val) {
     setForm(f => ({ ...f, [key]: val }));
@@ -177,8 +178,9 @@ export default function AddTransactionModal({
   // İşlem tarihine göre fiyatı otomatik doldur (geçmiş tarihte tarihsel kapanış).
   // Bugün/ileri tarihte güncel spot fiyat (instrument-based) korunur, AMA spot fiyat
   // arama listesinde yoksa (PLATINUM/PALLADIUM gibi) bugün için de /price-at çağrılır.
-  // Eurobond: backend /price-at TL FX-converted değer döndürür (Model 1: kote × o günün TCMB kuru) →
-  // hem geçmiş hem bugün için autofill TL olarak çalışır (USD/EUR fark etmez, backend FX'i bulur).
+  // Eurobond: ayrı /bonds/global/{isin}/price-at çağrılır → KİRLİ fiyat (temiz + birikmiş faiz)
+  // TL döner (Model 1: o günün TCMB kuru gömülü). Takasta ödenen/alınan bedel kirli fiyattır;
+  // alış da satış da kirli üzerinden kaydedilir. Diğer varlıklar eski genel /price-at'i kullanır.
   useEffect(() => {
     if (step !== 'form' || !instrument) return undefined;
     const dateOnly = (form.transactionDate || '').slice(0, 10);
@@ -194,7 +196,29 @@ export default function AddTransactionModal({
     let cancelled = false;
     setPriceLoading(true);
     setPriceNotFound(false);
+    if (isEurobond) setEurobondDirty(null);
     const handle = setTimeout(() => {
+      // Eurobond → kirli fiyat dökümü (temiz + birikmiş faiz = kirli, TL). Modal fiyatı kirli TL.
+      if (isEurobond) {
+        getGlobalBondPriceAt(instrument.symbol, dateOnly)
+          .then(res => {
+            if (cancelled) return;
+            if (res?.found && res.dirtyPriceTry != null) {
+              set('price', String(res.dirtyPriceTry));
+              setPriceAuto(true);
+              setPriceNotFound(false);
+              setEurobondDirty(res);
+            } else {
+              set('price', '');
+              setPriceAuto(false);
+              setPriceNotFound(true);
+              setEurobondDirty(null);
+            }
+          })
+          .catch(() => { if (!cancelled) { setPriceNotFound(true); setEurobondDirty(null); } })
+          .finally(() => { if (!cancelled) setPriceLoading(false); });
+        return;
+      }
       getPriceAtDate(instrument.assetType, instrument.symbol, dateOnly)
         .then(res => {
           if (cancelled) return;
@@ -430,6 +454,12 @@ export default function AddTransactionModal({
     const isGoldBondLocal = isBond && instrument?.category === 'GOLD_INDEXED_BOND';
     const effectivePrice = isGoldBondLocal ? price : (isBond ? price / 100 : price);
 
+    // Tahvil/bono/eurobond: "tutar ile" modda nominal miktarı 3 ondalığa yuvarla (Schwab/Fidelity
+    // standardı: kesirli bond miktarı en fazla .001 hassasiyetinde). Diğer tipler (kripto/fon/altın)
+    // doğal hassasiyetinde kalır. Yuvarlama matematiği bozmaz; used/totalPayment yuvarlı qty'den türer.
+    const roundBondQty = (q) => (isBond && !isGoldBondLocal && Number.isFinite(q))
+      ? Math.round(q * 1000) / 1000 : q;
+
     // Komisyon >= tutar kontrolü
     if (commission > 0 && commission >= amt) {
       return {
@@ -470,12 +500,15 @@ export default function AddTransactionModal({
           isBuy: true,
         };
       }
+      // Bond: nominal'i 3 ondalığa yuvarla; kullanılan tutar yuvarlı miktardan türer (artan TL kalabilir).
+      const qty = roundBondQty(rawQty);
+      const used = qty * effectivePrice;
       return {
-        qty: rawQty, rawQty,
-        used: rawQty * effectivePrice,
-        remaining: 0,
+        qty, rawQty,
+        used,
+        remaining: isBond && !isGoldBondLocal ? Math.max(0, investable - used) : 0,
         totalPayment: amt,
-        isZero: rawQty <= 0,
+        isZero: qty <= 0,
         commissionOverflow: false,
         isBuy: true,
       };
@@ -501,14 +534,17 @@ export default function AddTransactionModal({
           isBuy: false,
         };
       }
+      // Bond: satılan nominal'i 3 ondalığa yuvarla; brüt satış yuvarlı miktardan türer.
+      const qty = roundBondQty(rawQty);
+      const grossSell = isBond && !isGoldBondLocal ? qty * effectivePrice : amt;
       return {
-        qty: rawQty, rawQty,
-        grossSell: amt,
+        qty, rawQty,
+        grossSell,
         remaining: 0,
-        netIncome: amt - commission,
-        isZero: rawQty <= 0,
+        netIncome: grossSell - commission,
+        isZero: qty <= 0,
         commissionOverflow: false,
-        exceedsAvailable,
+        exceedsAvailable: availableQty != null && qty > availableQty + 1e-10,
         availableQty,
         isBuy: false,
       };
@@ -766,7 +802,9 @@ export default function AddTransactionModal({
       return unit ? `${formatGoldQuantity(qty, goldMeta)} ${unit}` : formatGoldQuantity(qty, goldMeta);
     }
     if (useQtyFloor) return `${fmtNum(qty, 0)} ${t('adet')}`;
-    const num = fmtNum(qty, 8).replace(/\.?0+$/, '');
+    // Bond nominal'i en fazla 3 ondalık (Schwab/Fidelity standardı); diğerleri 8.
+    const isPlainBond = isBond && !(instrument?.category === 'GOLD_INDEXED_BOND');
+    const num = fmtNum(qty, isPlainBond ? 3 : 8).replace(/\.?0+$/, '');
     if (isCommodity && commodityUnit) {
       return `${num} ${commodityUnit} (${symShort})`;
     }
@@ -1016,7 +1054,26 @@ export default function AddTransactionModal({
                   </span>
                 )}
               </div>
-              {isEurobond && (
+              {isEurobond && eurobondDirty && eurobondDirty.dirtyPriceTry != null && (
+                <div className="mt-1.5 bg-[#f3f3fc] border border-[#e2e1eb] rounded-lg px-2.5 py-2 text-[11px] leading-snug">
+                  <div className="flex items-center justify-between gap-2 text-[#434653]">
+                    <span>{t('Temiz Fiyat (kote)')}</span>
+                    <span className="font-semibold">{formatGroupedInput(String(Number(eurobondDirty.cleanPriceTry).toFixed(2)))} ₺</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 text-[#434653] mt-0.5">
+                    <span>{t('Birikmiş Faiz (tahmini)')}</span>
+                    <span className="font-semibold">+ {formatGroupedInput(String(Number(eurobondDirty.accruedInterestTry).toFixed(2)))} ₺</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 mt-1 pt-1 border-t border-[#e2e1eb] text-[#093eaa] font-bold">
+                    <span>{t('Kirli Fiyat (tahmini)')}</span>
+                    <span>{formatGroupedInput(String(Number(eurobondDirty.dirtyPriceTry).toFixed(2)))} ₺</span>
+                  </div>
+                  <p className="text-[#747684] mt-1">
+                    {t('Takasta ödenen/alınan bedel kirli fiyattır; birim fiyat olarak bu girildi. Birikmiş faiz tahminidir.')}
+                  </p>
+                </div>
+              )}
+              {isEurobond && !eurobondDirty && (
                 <p className="mt-1 text-[11px] text-amber-600 leading-snug">
                   {t('Lütfen fiyatı TL olarak giriniz.')}
                 </p>
