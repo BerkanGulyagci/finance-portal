@@ -70,12 +70,12 @@ public class PortfolioPerformanceCalculator {
         return false;
     }
 
-    /** Altın bond? Birim "adet/gram" — /100 uygulanmaz. */
+    /** Per-unit kote (altın bonosu/kira sertifikası, 1 gram has altın)? /100 uygulanmaz. */
     public boolean isGoldBondSymbol(String symbol) {
         if (symbol == null || symbol.isBlank()) return false;
         try {
             EvdsBondInstrument b = evdsBondService.getEvdsBondDetail(symbol);
-            return b != null && b.getCategory() == BondCategory.GOLD_INDEXED_BOND;
+            return b != null && b.getCategory() != null && b.getCategory().usesPerUnitNominalQuote();
         } catch (Exception e) {
             return false;
         }

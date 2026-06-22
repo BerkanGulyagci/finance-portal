@@ -132,7 +132,10 @@ public enum BondCategory {
      * Bu kategorilerde TCMB'nin "100 TL nominal üzerinden" yüzde-quote konvansiyonu
      * UYGULANMAZ — yani holdings hem cost hem mv hesabında {@code /100} ölçeği atlamalıdır:
      * <ul>
-     *   <li>{@link #GOLD_INDEXED_BOND}: birim 1 gram has altın, fiyat TL/gram (binlerce TL).</li>
+     *   <li>{@link #GOLD_INDEXED_BOND}: birim 1 gram has altın, fiyat TL/gram (binlerce TL).
+     *       dibs1.txt: "Present Value (per 1 piece)".</li>
+     *   <li>{@link #GOLD_INDEXED_LEASE_CERTIFICATE}: aynı birim (1 gram has altın), fiyat TL/gram.
+     *       dibs1.txt: "Rental Payment (per 1 piece)". Altın bonosuyla aynı ölçek; /100 atlanır.</li>
      * </ul>
      *
      * <p>TÜFE-endeksli aile (INFLATION_INDEXED_BOND / STRIP / LEASE) BU LİSTEYE DAHİL DEĞİL.
@@ -150,6 +153,6 @@ public enum BondCategory {
      * kira sertifikaları): klasik % nominal quote → {@code /100} uygulanır.
      */
     public boolean usesPerUnitNominalQuote() {
-        return this == GOLD_INDEXED_BOND;
+        return this == GOLD_INDEXED_BOND || this == GOLD_INDEXED_LEASE_CERTIFICATE;
     }
 }

@@ -79,8 +79,9 @@ export function computeSummary(portfolios) {
       const q = num(h.totalQuantity);
       const ch = num(h.change);
       if (q && ch) {
+        // Altın bonosu VE kira sertifikası "per 1 piece" kote → /100 yok (par-bond değil).
         const isParBond = String(h.assetType ?? '').toUpperCase() === 'BOND'
-          && h.category !== 'GOLD_INDEXED_BOND';
+          && h.category !== 'GOLD_INDEXED_BOND' && h.category !== 'GOLD_INDEXED_LEASE_CERTIFICATE';
         totalDaily += isParBond ? (q * ch) / 100 : q * ch;
         hasDaily = true;
       }

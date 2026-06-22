@@ -990,15 +990,16 @@ public class PortfolioServiceImpl implements PortfolioService {
         }
 
         // BOND nominal ölçek katsayısı: işlem listesindeki "Toplam" hesabı için.
-        //   - Altına dayalı senet (GOLD_INDEXED_BOND): birim 1 gram has altın → bölme YOK (parScale = 1).
+        //   - Altına dayalı senet/kira sertifikası (per 1 piece, 1 gram has altın): bölme YOK (parScale = 1).
         //   - Diğer tüm DİBS / Eurobond / TÜFE-endeksli / kira sertifikaları: TCMB "100 TL nominal
-        //     üzerinden temiz fiyat" konvansiyonu → parScale = 100.
+        //     üzerinden" konvansiyonu → parScale = 100.
         // EvdsBondService.getEvdsBondDetail @Cacheable olduğundan per-tx çağrı maliyetsizdir.
         if (tx.getAssetType() == AssetType.BOND) {
             BigDecimal parScale = new BigDecimal("100");
             try {
                 EvdsBondInstrument bond = evdsBondService.getEvdsBondDetail(tx.getSymbol());
-                if (bond != null && bond.getCategory() == BondCategory.GOLD_INDEXED_BOND) {
+                if (bond != null && bond.getCategory() != null
+                        && bond.getCategory().usesPerUnitNominalQuote()) {
                     parScale = BigDecimal.ONE;
                 }
             } catch (Exception ex) {
