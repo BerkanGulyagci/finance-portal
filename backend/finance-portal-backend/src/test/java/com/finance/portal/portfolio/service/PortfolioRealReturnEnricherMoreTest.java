@@ -64,7 +64,7 @@ class PortfolioRealReturnEnricherMoreTest {
                 LocalDate.of(2026, 1, 1), new BigDecimal("1000"));
         PortfolioResponse r = new PortfolioResponse();
         r.setHoldings(List.of(h));
-        when(deflator.cumulativeFactor(any(), eq(LocalDate.of(2026, 1, 1)), any()))
+        when(deflator.cumulativeFactor(any(), eq(LocalDate.of(2026, 1, 1))))
                 .thenReturn(Optional.of(new BigDecimal("1.20")));
 
         enricher.apply(r);
@@ -87,7 +87,7 @@ class PortfolioRealReturnEnricherMoreTest {
                 LocalDate.of(2026, 1, 1), null);
         PortfolioResponse r = new PortfolioResponse();
         r.setHoldings(List.of(h));
-        when(deflator.cumulativeFactor(any(), any(), any())).thenReturn(Optional.empty());
+        when(deflator.cumulativeFactor(any(), any())).thenReturn(Optional.empty());
 
         enricher.apply(r);
 
@@ -136,7 +136,7 @@ class PortfolioRealReturnEnricherMoreTest {
         h.setSumCouponIncome(new BigDecimal("200"));
         PortfolioResponse r = new PortfolioResponse();
         r.setHoldings(List.of(h));
-        when(deflator.cumulativeFactor(any(), eq(LocalDate.of(2026, 1, 1)), any()))
+        when(deflator.cumulativeFactor(any(), eq(LocalDate.of(2026, 1, 1))))
                 .thenReturn(Optional.of(new BigDecimal("1.10")));
 
         enricher.apply(r);
@@ -153,7 +153,7 @@ class PortfolioRealReturnEnricherMoreTest {
         // But TL frame adds coupons (always TL).
         when(deflator.usCpiSeries()).thenReturn(List.of(
                 new EconomySeriesPoint("2026-01-01", new BigDecimal("250"), 0L)));
-        when(deflator.cumulativeFactor(any(), any(), any())).thenReturn(Optional.of(new BigDecimal("1.05")));
+        when(deflator.cumulativeFactor(any(), any())).thenReturn(Optional.of(new BigDecimal("1.05")));
         PortfolioHoldingResponse h = holding("US912", AssetType.BOND, "100", "120", "USD",
                 LocalDate.of(2026, 1, 1));
         h.setSumCouponIncome(new BigDecimal("300")); // TL coupon
@@ -175,7 +175,7 @@ class PortfolioRealReturnEnricherMoreTest {
     @Test
     void apply_usdHoldingButNoUsCpiSeries_nativeFrameSkipped_tlFrameStillApplies() {
         // usCpiSeries empty (default) → nativeSeries null → native frame skipped, but TL frame runs.
-        when(deflator.cumulativeFactor(any(), eq(LocalDate.of(2026, 1, 1)), any()))
+        when(deflator.cumulativeFactor(any(), eq(LocalDate.of(2026, 1, 1))))
                 .thenReturn(Optional.of(new BigDecimal("1.20")));
         PortfolioHoldingResponse h = holding("AAPL", AssetType.STOCK, "100", "120", "USD",
                 LocalDate.of(2026, 1, 1));
@@ -196,7 +196,7 @@ class PortfolioRealReturnEnricherMoreTest {
     void apply_exoticCurrency_noNativeFrame_butContributesToTlTotal() {
         // EUR is neither TRY nor USD → nativeSeries null → no native frame columns.
         // TL frame still applies via converter (×30).
-        when(deflator.cumulativeFactor(any(), eq(LocalDate.of(2026, 1, 1)), any()))
+        when(deflator.cumulativeFactor(any(), eq(LocalDate.of(2026, 1, 1))))
                 .thenReturn(Optional.of(new BigDecimal("1.10")));
         PortfolioHoldingResponse h = holding("SAP", AssetType.STOCK, "100", "130", "EUR",
                 LocalDate.of(2026, 1, 1));

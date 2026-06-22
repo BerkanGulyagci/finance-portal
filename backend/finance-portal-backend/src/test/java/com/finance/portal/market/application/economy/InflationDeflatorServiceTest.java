@@ -109,6 +109,31 @@ class InflationDeflatorServiceTest {
         assertThat(f.doubleValue()).isBetween(1.03, 1.08);
     }
 
+    @Test
+    @DisplayName("cumulativeFactor(from) [reel K/Z]: SON yayınlanan endeksi kullanır, EKSTRAPOLE ETMEZ")
+    void cumulativeFactorToLatest_usesLastPublished_noExtrapolation() {
+        // TIPS/enflasyon-endeksli enstrüman standardı: reel getiri yayınlanmamış günler için
+        // endeksi ileri taşımaz; son bilinen (lag'li) endeksi esas alır.
+        List<EconomySeriesPoint> series = List.of(
+                point("2025-02-01", "90"),
+                point("2025-03-01", "93"),
+                point("2026-05-01", "128"));   // son yayınlanan
+
+        LocalDate from = LocalDate.of(2025, 2, 6);
+
+        // 2-param (reel K/Z): latest(128) / base(~90) — ekstrapolasyon YOK.
+        BigDecimal latestFactor = service.cumulativeFactor(series, from).orElseThrow();
+
+        // 3-param "bugün" (grafik): son aydan çok sonrasına EKSTRAPOLE eder → daha büyük faktör.
+        BigDecimal extrapolatedFactor = service.cumulativeFactor(
+                series, from, LocalDate.of(2026, 7, 1)).orElseThrow();
+
+        // Reel K/Z faktörü, ekstrapole edilen "bugün" faktöründen KÜÇÜK olmalı (ileri taşımıyor).
+        assertThat(latestFactor).isLessThan(extrapolatedFactor);
+        // latest = 128 / ~90 ≈ 1.42 (son yayınlanan ile sınırlı; >1.45'e çıkmaz).
+        assertThat(latestFactor.doubleValue()).isBetween(1.40, 1.45);
+    }
+
     private static EconomySeriesPoint point(String period, String value) {
         long unix = LocalDate.parse(period).atStartOfDay(TR).toEpochSecond();
         return new EconomySeriesPoint(period, new BigDecimal(value), unix);

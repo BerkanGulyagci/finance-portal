@@ -97,7 +97,11 @@ public class PortfolioRealReturnEnricher {
                 if (margin == null || mv == null || margin.signum() <= 0) continue;
 
                 LocalDate buyDate = h.getFirstBuyDate() != null ? h.getFirstBuyDate().toLocalDate() : null;
-                Optional<BigDecimal> fOpt = deflator.cumulativeFactor(tufe, buyDate, LocalDate.now());
+                // Reel K/Z: SON YAYINLANAN TÜFE'yi kullan (ekstrapolasyon YOK). TIPS/enflasyon-endeksli
+                // enstrüman standardı: yayınlanmamış günler için endeks ileri taşınmaz, son bilinen
+                // (lag'li) endeks esas alınır. cumulativeFactor(series, from) = latest/base. (Günlük
+                // performans grafiği ayrı cumulativeFactor(from,to=p.date) çağrısıyla ekstrapole eder.)
+                Optional<BigDecimal> fOpt = deflator.cumulativeFactor(tufe, buyDate);
                 BigDecimal f = fOpt.orElse(BigDecimal.ONE);
 
                 BigDecimal realCost = margin.multiply(f);
@@ -238,7 +242,8 @@ public class PortfolioRealReturnEnricher {
             BigDecimal c = lot.cost();
             if (c == null || c.signum() <= 0 || lot.buyDate() == null) continue;
             costSum = costSum.add(c);
-            Optional<BigDecimal> f = deflator.cumulativeFactor(series, lot.buyDate(), LocalDate.now());
+            // SON YAYINLANAN endeks (ekstrapolasyon yok) — TIPS standardı; bkz. yukarıdaki not.
+            Optional<BigDecimal> f = deflator.cumulativeFactor(series, lot.buyDate());
             if (f.isPresent()) {
                 anyFactor = true;
                 realCostSum = realCostSum.add(c.multiply(f.get()));
@@ -274,7 +279,8 @@ public class PortfolioRealReturnEnricher {
                                            List<EconomySeriesPoint> series) {
         if (totalCost == null || totalCost.signum() <= 0) return null;
         if (fallbackBuyDate == null) return null;
-        BigDecimal f = deflator.cumulativeFactor(series, fallbackBuyDate, LocalDate.now()).orElse(BigDecimal.ONE);
+        // SON YAYINLANAN endeks (ekstrapolasyon yok) — TIPS standardı; bkz. yukarıdaki not.
+        BigDecimal f = deflator.cumulativeFactor(series, fallbackBuyDate).orElse(BigDecimal.ONE);
         return new LotInflation(totalCost.multiply(f), f);
     }
 
