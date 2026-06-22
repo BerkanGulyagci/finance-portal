@@ -690,6 +690,11 @@ const en = {
     'The amount paid/received at settlement = clean price + accrued interest. Accrued interest is estimated from the coupon profile using the {dcc} day-count (the issuance convention is not provided by the source).',
   'Takasta ödenen/alınan bedel kirli fiyattır; birim fiyat olarak bu girildi. Birikmiş faiz tahminidir.':
     'The settlement amount is the dirty price; it has been entered as the unit price. Accrued interest is an estimate.',
+  'Bu değer kupon dahildir (kirli fiyat).': 'This value includes the coupon (dirty price).',
+  'TCMB Gösterge Değeri, biriken kupon faizini içerir. Kupon ödeme tarihinde fiyat birikmiş faiz kadar düşer — bu zarar değildir; düşen tutar size kupon olarak nakit ödenir. Portföyde kupon ödemenizi "Kupon Ekle" ile girmezseniz bu düşüş yanlışlıkla zarar gibi görünür.':
+    'The CBRT indicative value includes accrued coupon interest. On the coupon payment date the price drops by the accrued amount — this is not a loss; the drop is paid to you in cash as the coupon. If you do not record the coupon with "Add Coupon" in your portfolio, this drop will look like a loss by mistake.',
+  'Girilen değer EVDS Gösterge Değeridir ve kupon dahildir (kirli fiyat).':
+    'The entered value is the CBRT indicative value and includes the coupon (dirty price).',
   'Seçili Dönem': 'Selected Period',
   'Normalize Performans Grafiği': 'Normalized Performance Chart',
   'Grafik için yeterli fiyat geçmişi bulunamadı.': 'Not enough price history found for chart.',

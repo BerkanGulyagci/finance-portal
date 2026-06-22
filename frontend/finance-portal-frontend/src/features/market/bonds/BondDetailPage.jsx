@@ -148,24 +148,36 @@ function MetricBar({ bond }) {
     },
   ];
 
+  // Kuponlu kıymetlerde EVDS Gösterge Değeri KİRLİ FİYAT'tır (TCMB "kupon dahil değer").
+  const isCouponBearing = bond.couponRate != null && Number(bond.couponRate) > 0;
+
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-      {metrics.map((m, i) => (
-        <div
-          key={i}
-          className={`bg-white rounded-2xl border shadow-sm p-3 sm:p-5 ${m.accent ? 'border-[#093eaa]/25' : 'border-gray-200'}`}
-        >
-          <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-2 leading-tight">
-            {t(m.label)}
-          </p>
-          <p className={`text-xl sm:text-2xl font-bold font-mono leading-none ${m.valueColor ?? (m.accent ? 'text-[#093eaa]' : 'text-gray-900')}`}>
-            {m.value}
-          </p>
-          {m.sub && (
-            <p className={`text-xs mt-1 font-semibold ${m.valueColor ?? 'text-gray-400'}`}>{m.sub}</p>
-          )}
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {metrics.map((m, i) => (
+          <div
+            key={i}
+            className={`bg-white rounded-2xl border shadow-sm p-3 sm:p-5 ${m.accent ? 'border-[#093eaa]/25' : 'border-gray-200'}`}
+          >
+            <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-2 leading-tight">
+              {t(m.label)}
+            </p>
+            <p className={`text-xl sm:text-2xl font-bold font-mono leading-none ${m.valueColor ?? (m.accent ? 'text-[#093eaa]' : 'text-gray-900')}`}>
+              {m.value}
+            </p>
+            {m.sub && (
+              <p className={`text-xs mt-1 font-semibold ${m.valueColor ?? 'text-gray-400'}`}>{m.sub}</p>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {isCouponBearing && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-[12px] text-amber-800 leading-snug">
+          <span className="font-semibold">{t('Bu değer kupon dahildir (kirli fiyat).')}</span>{' '}
+          {t('TCMB Gösterge Değeri, biriken kupon faizini içerir. Kupon ödeme tarihinde fiyat birikmiş faiz kadar düşer — bu zarar değildir; düşen tutar size kupon olarak nakit ödenir. Portföyde kupon ödemenizi "Kupon Ekle" ile girmezseniz bu düşüş yanlışlıkla zarar gibi görünür.')}
         </div>
-      ))}
+      )}
     </div>
   );
 }

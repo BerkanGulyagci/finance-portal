@@ -153,14 +153,19 @@ public class BondHoldingEnricher {
 
         BondCategory category = bond != null ? bond.getCategory() : null;
 
-        // TÜFE-endeksli bondlarda EVDS "Gösterge Değeri" standart 100 TL nominal üzerinden temiz
-        // fiyattır (ör. TRT150927T11 ≈ 73.11) — günlük kotasyona enflasyon endekslemesi GÖMÜLÜ
-        // DEĞİLDİR. TÜFE endekslemesi yalnız kupon ödemesinde ve vade itfasında ödenir (bkz.
-        // BondMaturityScheduler — TÜFE bondları otomatik itfadan elle dışlanmıştır). Bu yüzden
-        // TÜFE bondları Tier-1 DİBS ile aynı /100 ölçeğini kullanır; ek bir TÜFE çarpanı
-        // UYGULANMAZ. Reel (enflasyondan arındırılmış) getiri PortfolioRealReturnEnricher'da
-        // ayrı hesaplanır ("Reel K/Z %") — formül mv − cost × (1 + TÜFE) çünkü günlük temiz fiyat
-        // enflasyon içermez.
+        // EVDS "Gösterge Değeri" 100 TL nominal üzerinden kote edilir. KİRLİ/TEMİZ AYRIMI:
+        // TCMB dibs1.txt'te KUPONLU kıymetler (Kuponlu DT, TLREF, TÜFE-endeksli, kira sertifikaları)
+        // "Present Value INCLUDING Coupon" başlığı altındadır → değer KİRLİ FİYAT'tır (birikmiş
+        // faiz/kupon dahil). KUPONSUZ kıymetler (bono, stripler) "Present Value" → temiz=kirli.
+        // (Kanıt: TRT080726T21 vadeye 16 gün kala 108.31 — temiz olsa par~100 olurdu; fark birikmiş
+        // faiz. API değeri = dibs1.txt "kupon dahil" değeriyle birebir.) Kullanıcı zaten bu kirli
+        // değerle alıp sattığı için K/Z tutarlıdır; eurobond'dan farklı olarak burada kirli fiyatı
+        // AYRICA hesaplamaya gerek yoktur (EVDS hazır verir).
+        //
+        // TÜFE-endeksli bondlarda günlük kotasyona TÜFE çarpanı GÖMÜLÜ DEĞİLDİR; endeksleme yalnız
+        // kupon/vade ödemesine yansır (bkz. BondMaturityScheduler — TÜFE bondları otomatik itfadan
+        // elle dışlanmıştır). Bu yüzden TÜFE bondları Tier-1 DİBS ile aynı /100 ölçeğini kullanır;
+        // ek TÜFE çarpanı UYGULANMAZ. Reel getiri PortfolioRealReturnEnricher'da ayrı hesaplanır.
 
         // Yabancı para cinsli DT (Section 5/6): EVDS "Değer" zaten TL bazlı kotasyon —
         // dış FX çevirisi YAPILMAZ; currency etiketi de TRY kalır (değerler TL).

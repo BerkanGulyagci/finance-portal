@@ -1103,6 +1103,12 @@ export default function AddTransactionModal({
                   {t('TCMB EVDS "Bugünkü Değer" — 100 TL nominal üzerinden kote. Toplam ödeme = nominal × fiyat / 100.')}
                 </p>
               )}
+              {isBond && !isEurobond && instrument?.couponRate != null && Number(instrument.couponRate) > 0
+                && instrument?.category !== 'GOLD_INDEXED_BOND' && (
+                <p className="mt-1 text-[11px] italic text-amber-600 leading-snug">
+                  {t('Girilen değer EVDS Gösterge Değeridir ve kupon dahildir (kirli fiyat).')}
+                </p>
+              )}
               {instrument?.assetType === 'COMMODITY'
                 && isYahooCommoditySymbol(instrument?.symbol)
                 && instrument?.commoditySpot && (

@@ -137,11 +137,14 @@ public enum BondCategory {
      *
      * <p>TÜFE-endeksli aile (INFLATION_INDEXED_BOND / STRIP / LEASE) BU LİSTEYE DAHİL DEĞİL.
      * Önceki varsayım "indicator değeri ZATEN nominal-endeksli TL" yanlıştı — TRT150927T11
-     * gibi TÜFE-endeksli DT'lerde EVDS gösterge değeri standart "100 TL nominal üzerinden
-     * temiz fiyat" (ör. 73.11) olarak gelir; enflasyon endekslemesi yalnız kupon ve vade
-     * ödemesine yansır ({@link com.finance.portal.portfolio.service.BondMaturityScheduler}
-     * notuna bakınız). Bu yüzden TÜFE-endeksli bondlar da Tier-1 gibi {@code /100}
-     * konvansiyonuna girer.
+     * gibi TÜFE-endeksli DT'lerde EVDS gösterge değeri standart "100 TL nominal üzerinden"
+     * gelir; enflasyon endekslemesi yalnız kupon ve vade ödemesine yansır
+     * ({@link com.finance.portal.portfolio.service.BondMaturityScheduler} notuna bakınız).
+     * Bu yüzden TÜFE-endeksli bondlar da Tier-1 gibi {@code /100} konvansiyonuna girer.
+     *
+     * <p>NOT (kirli/temiz): KUPONLU kategorilerde ({@link #paysCoupon()}) EVDS gösterge değeri
+     * KİRLİ FİYAT'tır (TCMB dibs1.txt "Present Value <b>including Coupon</b>"); kuponsuzlarda
+     * temiz=kirli. Bu, /100 ölçeğinden bağımsızdır (her ikisi de %-of-par).
      *
      * <p>Aksi takdirde (Tier 1 TL, Eurobond, FX_DENOMINATED, TÜFE-endeksli aile,
      * kira sertifikaları): klasik % nominal quote → {@code /100} uygulanır.
