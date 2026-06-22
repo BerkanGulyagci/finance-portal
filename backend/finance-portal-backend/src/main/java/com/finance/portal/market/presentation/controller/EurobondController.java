@@ -4,6 +4,7 @@ import com.finance.portal.common.presentation.dto.ApiResponse;
 import com.finance.portal.market.application.bond.eurobond.EurobondService;
 import com.finance.portal.market.application.bond.eurobond.model.EurobondChartPoint;
 import com.finance.portal.market.application.bond.eurobond.model.EurobondDetail;
+import com.finance.portal.market.application.bond.eurobond.model.EurobondPriceAt;
 import com.finance.portal.market.application.bond.eurobond.model.EurobondSummary;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -60,5 +61,25 @@ public class EurobondController {
             @RequestParam(defaultValue = "1Y") String range) {
         List<EurobondChartPoint> pts = eurobondService.chart(isin.trim().toUpperCase(), range);
         return ResponseEntity.ok(ApiResponse.success(pts, "Eurobond fiyat serisi. Kaynak: Business Insider"));
+    }
+
+    /**
+     * Bir eurobond'un {@code date} tarihindeki kirli fiyat dökümü (TL) — işlem ekleme modalı
+     * autofill'i için. Genel /portfolios/price-at temiz fiyat döndürürken bu uç temiz + birikmiş
+     * faiz = kirli verir (tahmini; tarihsel TCMB kuruyla TL'ye çevrilir). Eurobond'a özel olduğu
+     * için diğer varlık tiplerinin price-at akışını etkilemez.
+     */
+    @GetMapping("/{isin}/price-at")
+    public ResponseEntity<ApiResponse<EurobondPriceAt>> priceAt(
+            @PathVariable String isin,
+            @RequestParam String date) {
+        EurobondPriceAt body;
+        try {
+            body = eurobondService.priceAt(isin.trim().toUpperCase(), java.time.LocalDate.parse(date.trim()));
+        } catch (Exception e) {
+            body = EurobondPriceAt.notFound();
+        }
+        return ResponseEntity.ok(ApiResponse.success(body,
+                "Eurobond kirli fiyat (tahmini). Temiz + birikmiş faiz, tarihsel TCMB kuruyla TL."));
     }
 }

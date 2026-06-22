@@ -232,14 +232,18 @@ public class BondHoldingEnricher {
             holding.setName(d != null && d.getName() != null ? d.getName() : isin);
             return;
         }
-        BigDecimal priceTry = d.getLastPriceTry();
+        // KİRLİ fiyat değerleme: işlem modalı eurobondu KİRLİ fiyatla (temiz + birikmiş faiz) kaydeder
+        // (bkz. EurobondController#priceAt). Maliyet kirli olduğu için piyasa değeri de kirli fiyatla
+        // hesaplanır → K/Z tutarlı (kirli mv − kirli maliyet). dirtyPriceTry yoksa (kupon künyesi eksik
+        // ya da hesap yapılamadı) güvenli şekilde temiz lastPriceTry'a düşülür (geriye uyumlu).
+        BigDecimal priceTry = d.getDirtyPriceTry() != null ? d.getDirtyPriceTry() : d.getLastPriceTry();
         BigDecimal qty = holding.getTotalQuantity() != null ? holding.getTotalQuantity() : BigDecimal.ZERO;
         // BI eurobond kote'si % nominal — DİBS ile aynı 100-üzeri ölçek: mv = qty × priceTry / 100
         BigDecimal mv = bondMarketValue(priceTry, qty);
 
-        // Maliyet builder tarafından ZATEN TL hesaplanır: eurobond fiyatı modal/autofill'de TL girilir
-        // (kote × o günün TCMB satış kuru — tarihsel FX fiyata gömülü). Bu yüzden burada ek FX çevirimi
-        // YAPILMAZ; aksi halde kur çifte sayılıp cost ~FX katı şişerdi (sahte dev zarar). currency = TRY.
+        // Maliyet builder tarafından ZATEN TL hesaplanır: eurobond fiyatı modal/autofill'de KİRLİ TL
+        // girilir (kirli kote × o günün TCMB satış kuru — tarihsel FX fiyata gömülü). Bu yüzden burada
+        // ek FX çevirimi YAPILMAZ; aksi halde kur çifte sayılıp cost ~FX katı şişerdi. currency = TRY.
         BigDecimal cost = holding.getTotalCost() != null ? holding.getTotalCost() : BigDecimal.ZERO;
         BigDecimal pl = mv.subtract(cost).setScale(MONEY_SCALE, RoundingMode.HALF_UP);
         BigDecimal plPct = profitLossPercent(mv, holding.getTotalCost());

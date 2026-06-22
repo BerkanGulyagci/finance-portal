@@ -42,4 +42,13 @@ public class EurobondDetail {
     private long instrumentId;
     private String tkData;              // Chart_GetChartData için ("1,627799832,1330,333")
     private String detailUrl;           // BI detay sayfası tam URL
+
+    // ── Birikmiş faiz / kirli fiyat (tahmini — bilgi amaçlı; portföy değerlemesini ETKİLEMEZ) ──
+    // Kupon künyesinden (couponRate + paymentsPerYear + kupon tarihleri) bugünkü tarih için
+    // hesaplanır (AccruedInterestCalculator, para-birimine göre day-count). Veri kaynağı kupon
+    // konvansiyonunu vermediği için tahminidir. Tümü 100 nominal başına (kote ile aynı ölçek).
+    private BigDecimal accruedInterest; // birikmiş faiz, 100 nominal başına (ör. 3.9583)
+    private BigDecimal dirtyPrice;      // temiz (lastPrice) + birikmiş faiz, döviz cinsinden
+    private BigDecimal dirtyPriceTry;   // kirli fiyatın canlı TCMB kuru ile TL karşılığı
+    private String dayCountConvention;  // kullanılan konvansiyon adı ("THIRTY_360" / "ACT_ACT" / "ACT_365")
 }

@@ -3,11 +3,15 @@ package com.finance.portal.market.application.bond.eurobond;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.finance.portal.common.infrastructure.cache.LastKnownGoodCache;
 import com.finance.portal.market.application.bond.eurobond.model.EurobondChartPoint;
+import com.finance.portal.market.application.bond.eurobond.model.AccruedInterestCalculator;
 import com.finance.portal.market.application.bond.eurobond.model.EurobondDetail;
+import com.finance.portal.market.application.bond.eurobond.model.EurobondPriceAt;
 import com.finance.portal.market.application.bond.eurobond.model.EurobondSummary;
 import com.finance.portal.market.application.bond.eurobond.model.HmbBond;
 import com.finance.portal.market.application.bond.eurobond.port.BusinessInsiderBondPort;
 import com.finance.portal.market.application.bond.eurobond.port.HmbIsinSource;
+import com.finance.portal.market.application.fx.model.FxHistory;
+import com.finance.portal.market.application.fx.model.FxHistoryPoint;
 import com.finance.portal.market.application.fx.model.FxLatestRates;
 import com.finance.portal.market.application.fx.model.FxRateItem;
 import com.finance.portal.market.application.service.MarketFxService;
@@ -24,6 +28,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -191,8 +196,34 @@ public class EurobondService {
                 d.setFxRate(rate);
                 d.setLastPriceTry(d.getLastPrice().multiply(rate).setScale(4, RoundingMode.HALF_UP));
             }
+            enrichAccruedInterest(d, rate);
         }
         return d;
+    }
+
+    /**
+     * Birikmiş faiz + kirli fiyat (tahmini) alanlarını doldurur — yalnız BİLGİ amaçlı; mevcut
+     * lastPrice/lastPriceTry değerlemesini DEĞİŞTİRMEZ. Kupon künyesi eksik/uygunsuzsa alanlar
+     * null kalır (UI göstermez). Defensif: hesap herhangi bir nedenle patlarsa detay akışını
+     * bozmadan sessizce atlanır (kirli fiyat opsiyonel ek bilgidir).
+     */
+    private void enrichAccruedInterest(EurobondDetail d, BigDecimal fxRate) {
+        try {
+            AccruedInterestCalculator.AccruedResult r =
+                    AccruedInterestCalculator.compute(d, d.getLastPrice(), LocalDate.now());
+            if (!r.available()) {
+                return;
+            }
+            d.setAccruedInterest(r.accruedInterest());
+            d.setDirtyPrice(r.dirtyPrice());
+            d.setDayCountConvention(r.dayCount() != null ? r.dayCount().name() : null);
+            if (r.dirtyPrice() != null && fxRate != null) {
+                d.setDirtyPriceTry(r.dirtyPrice().multiply(fxRate).setScale(4, RoundingMode.HALF_UP));
+            }
+        } catch (RuntimeException e) {
+            log.debug("Eurobond birikmiş faiz hesaplanamadı (atlandı) isin={}: {}",
+                    d.getIsin(), e.getMessage());
+        }
     }
 
     /**
@@ -225,6 +256,131 @@ public class EurobondService {
             log.debug("Eurobond FX kuru alınamadı ({}): {}", currency, e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * Bir eurobond'un {@code date} tarihindeki <b>kirli fiyat dökümü</b> (TL) — işlem ekleme
+     * modalı autofill'i için. Temiz kote ({@link #chart}) ve birikmiş faiz
+     * ({@link AccruedInterestCalculator}) <b>o tarihteki</b> TCMB kuruyla ({@link MarketFxService#getFxHistory})
+     * TL'ye çevrilir (Model 1: tarihsel FX gömülü). Kupon konvansiyonu kaynakta olmadığı için
+     * birikmiş faiz tahminidir. Veri yoksa {@link EurobondPriceAt#notFound()}.
+     */
+    public EurobondPriceAt priceAt(String isin, LocalDate date) {
+        if (isin == null || date == null) {
+            return EurobondPriceAt.notFound();
+        }
+        try {
+            EurobondDetail d = detail(isin.trim().toUpperCase(Locale.ROOT));
+            if (d == null) {
+                return EurobondPriceAt.notFound();
+            }
+            String currency = d.getCurrency() != null ? d.getCurrency().toUpperCase(Locale.ROOT) : "USD";
+
+            // 1) İstenen tarihteki temiz kote fiyatı (BI grafik serisinden floor); bugün/yakın için
+            //    seri kapsamıyorsa güncel lastPrice'a düş.
+            String range = priceAtRange(date);
+            BigDecimal cleanQuote = quoteAtOrBefore(isin, range, date);
+            if (cleanQuote == null) {
+                cleanQuote = d.getLastPrice();
+            }
+            if (cleanQuote == null || cleanQuote.signum() <= 0) {
+                return EurobondPriceAt.notFound();
+            }
+
+            // 2) İstenen tarihteki TCMB kuru (tarihsel seri floor); yoksa güncel kura düş.
+            BigDecimal fx = fxAtOrBefore(currency, range, date);
+            if (fx == null || fx.signum() <= 0) {
+                fx = fxRateToTry(currency);
+            }
+            if (fx == null || fx.signum() <= 0) {
+                return EurobondPriceAt.notFound();
+            }
+
+            // 3) O tarihteki birikmiş faiz (döviz, 100 nominal başına; tahmini).
+            AccruedInterestCalculator.AccruedResult acc =
+                    AccruedInterestCalculator.compute(d, cleanQuote, date);
+            BigDecimal accruedQuote = acc.available() && acc.accruedInterest() != null
+                    ? acc.accruedInterest() : BigDecimal.ZERO;
+            String dcc = acc.available() && acc.dayCount() != null ? acc.dayCount().name() : null;
+
+            // 4) TL'ye çevir (hepsi aynı o-gün kuruyla → tutarlı).
+            BigDecimal cleanTry = cleanQuote.multiply(fx).setScale(6, RoundingMode.HALF_UP);
+            BigDecimal accruedTry = accruedQuote.multiply(fx).setScale(6, RoundingMode.HALF_UP);
+            BigDecimal dirtyTry = cleanTry.add(accruedTry).setScale(6, RoundingMode.HALF_UP);
+
+            return new EurobondPriceAt(true, date, currency,
+                    cleanTry, accruedTry, dirtyTry, cleanQuote, accruedQuote, dcc);
+        } catch (RuntimeException e) {
+            log.debug("Eurobond priceAt hesaplanamadı isin={} date={}: {}", isin, date, e.getMessage());
+            return EurobondPriceAt.notFound();
+        }
+    }
+
+    /** {@code date}'i kapsayacak en kısa BI/FX aralığı (frontend autofill ile aynı mantık). */
+    private static String priceAtRange(LocalDate date) {
+        long days = ChronoUnit.DAYS.between(date, LocalDate.now());
+        if (days <= 0) return "1M";
+        if (days <= 25) return "1M";
+        if (days <= 80) return "3M";
+        if (days <= 170) return "6M";
+        if (days <= 350) return "1Y";
+        if (days <= 1800) return "5Y";
+        return "10Y";
+    }
+
+    /** BI kote grafik serisinden {@code date} ve öncesine en yakın kapanış (temiz, döviz). */
+    private BigDecimal quoteAtOrBefore(String isin, String range, LocalDate date) {
+        List<EurobondChartPoint> pts = chart(isin, range);
+        if (pts == null || pts.isEmpty()) {
+            return null;
+        }
+        BigDecimal best = null;
+        LocalDate bestDay = null;
+        for (EurobondChartPoint p : pts) {
+            if (p == null || p.date() == null || p.close() == null) {
+                continue;
+            }
+            LocalDate day;
+            try {
+                day = LocalDate.parse(p.date().substring(0, Math.min(10, p.date().length())));
+            } catch (Exception e) {
+                continue;
+            }
+            if (!day.isAfter(date) && (bestDay == null || day.isAfter(bestDay))) {
+                bestDay = day;
+                best = p.close();
+            }
+        }
+        return best;
+    }
+
+    /** TCMB tarihsel kur serisinden {@code date} ve öncesine en yakın satış kuru (birim normalize). */
+    private BigDecimal fxAtOrBefore(String currency, String range, LocalDate date) {
+        if (currency == null || currency.isBlank() || "TRY".equalsIgnoreCase(currency)) {
+            return BigDecimal.ONE;
+        }
+        FxHistory hist = marketFxService.getFxHistory(currency, range);
+        if (hist == null || hist.getPoints() == null || hist.getPoints().isEmpty()) {
+            return null;
+        }
+        BigDecimal best = null;
+        LocalDate bestDay = null;
+        for (FxHistoryPoint p : hist.getPoints()) {
+            if (p == null || p.getDate() == null || p.getClose() == null) {
+                continue;
+            }
+            LocalDate day;
+            try {
+                day = LocalDate.parse(p.getDate().substring(0, Math.min(10, p.getDate().length())));
+            } catch (Exception e) {
+                continue;
+            }
+            if (!day.isAfter(date) && (bestDay == null || day.isAfter(bestDay))) {
+                bestDay = day;
+                best = p.getClose();
+            }
+        }
+        return best;
     }
 
     private static LocalDate fromDate(String range) {

@@ -107,6 +107,39 @@ export default function EurobondDetailPage() {
                 )}
               </div>
             )}
+
+            {/* Kirli fiyat (tahmini) — temiz + birikmiş faiz. Bilgi amaçlı; portföy değerlemesini etkilemez. */}
+            {d.dirtyPrice != null && d.accruedInterest != null && (
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <div className="flex items-center justify-between gap-3 text-[13px]">
+                  <span className="text-gray-500">{t('Temiz Fiyat (kote)')}</span>
+                  <span className="font-semibold text-gray-700">
+                    {fmtPrice(showingTry ? d.lastPriceTry : d.lastPrice, showingTry ? 'TRY' : d.currency)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3 text-[13px] mt-1">
+                  <span className="text-gray-500">{t('Birikmiş Faiz (tahmini)')}</span>
+                  <span className="font-semibold text-gray-700">
+                    + {fmtPrice(
+                      showingTry && d.fxRate != null ? Number(d.accruedInterest) * Number(d.fxRate) : d.accruedInterest,
+                      showingTry ? 'TRY' : d.currency)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3 text-sm mt-1.5 pt-1.5 border-t border-gray-100">
+                  <span className="text-gray-600 font-semibold">{t('Kirli Fiyat (tahmini)')}</span>
+                  <span className="font-bold text-[#093eaa]">
+                    {fmtPrice(showingTry ? d.dirtyPriceTry : d.dirtyPrice, showingTry ? 'TRY' : d.currency)}
+                  </span>
+                </div>
+                <p className="text-[11px] text-gray-400 mt-1.5 leading-snug">
+                  {t('Takasta ödenen/alınan bedel = temiz fiyat + birikmiş faiz. Birikmiş faiz, kupon künyesinden {dcc} gün-sayımıyla tahmin edilir (ihraç konvansiyonu kaynakta yer almaz).', {
+                    dcc: d.dayCountConvention === 'THIRTY_360' ? '30/360'
+                      : d.dayCountConvention === 'ACT_365' ? 'ACT/365'
+                      : 'ACT/ACT',
+                  })}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Fiyat grafiği (klinecharts) */}

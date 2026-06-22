@@ -456,6 +456,20 @@ export async function getGlobalBondChart(isin, range = '1Y') {
   return data.data ?? [];
 }
 
+/**
+ * Eurobond'un belirli tarihteki KİRLİ fiyat dökümü (TL) — işlem ekleme modalı autofill'i.
+ * Döner: { found, priceDate, currency, cleanPriceTry, accruedInterestTry, dirtyPriceTry,
+ *          cleanPriceQuote, accruedInterest, dayCountConvention }. Genel price-at temiz verirken
+ * bu uç temiz + birikmiş faiz = kirli verir (tahmini; tarihsel TCMB kuru).
+ */
+export async function getGlobalBondPriceAt(isin, date) {
+  const { data } = await client.get(
+    `/api/v1/market/bonds/global/${encodeURIComponent(isin)}/price-at`,
+    { params: { date }, timeout: 120_000 }
+  );
+  return data.data ?? null;
+}
+
 export async function getEconomicIndicators() {
   const { data } = await client.get('/api/v1/market/indicators');
   return data.data ?? {};

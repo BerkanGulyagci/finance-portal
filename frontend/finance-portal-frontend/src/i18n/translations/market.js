@@ -683,6 +683,13 @@ const en = {
   'TL ⇄ döviz çevir': 'Toggle TRY ⇄ currency',
   'fiyata tıklayarak TL gör': 'click the price to see TRY',
   'fiyata tıklayarak döviz/TL değiştir': 'click the price to switch currency/TRY',
+  'Temiz Fiyat (kote)': 'Clean Price (quoted)',
+  'Birikmiş Faiz (tahmini)': 'Accrued Interest (est.)',
+  'Kirli Fiyat (tahmini)': 'Dirty Price (est.)',
+  'Takasta ödenen/alınan bedel = temiz fiyat + birikmiş faiz. Birikmiş faiz, kupon künyesinden {dcc} gün-sayımıyla tahmin edilir (ihraç konvansiyonu kaynakta yer almaz).':
+    'The amount paid/received at settlement = clean price + accrued interest. Accrued interest is estimated from the coupon profile using the {dcc} day-count (the issuance convention is not provided by the source).',
+  'Takasta ödenen/alınan bedel kirli fiyattır; birim fiyat olarak bu girildi. Birikmiş faiz tahminidir.':
+    'The settlement amount is the dirty price; it has been entered as the unit price. Accrued interest is an estimate.',
   'Seçili Dönem': 'Selected Period',
   'Normalize Performans Grafiği': 'Normalized Performance Chart',
   'Grafik için yeterli fiyat geçmişi bulunamadı.': 'Not enough price history found for chart.',
