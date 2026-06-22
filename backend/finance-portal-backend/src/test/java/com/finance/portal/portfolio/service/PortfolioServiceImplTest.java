@@ -347,6 +347,25 @@ class PortfolioServiceImplTest {
     }
 
     @Test
+    @DisplayName("addTransaction: COUPON_INCOME açık miktara sayılmaz — kupon girilen bond satılabilir")
+    void addTransaction_sellOkWithCouponIncome() {
+        // Regresyon: COUPON_INCOME konvansiyonu quantity = TL kupon tutarı (price=1). Satış kontrolünde
+        // bu pozisyondan DÜŞÜLMEMELİ; aksi halde 1000 BUY − 2375 kupon = negatif → yanlışlıkla
+        // "kapatılabilecek pozisyon yok" hatası verir ve kuponu olan bond satılamaz.
+        Portfolio p = portfolio(PortfolioType.HOLDINGS);
+        p.getTransactions().add(tx(AssetType.BOND, TransactionType.BUY, "US900123AL40", "1000", "45.25", null));
+        p.getTransactions().add(tx(AssetType.BOND, TransactionType.COUPON_INCOME, "US900123AL40", "2375", "1", null));
+        when(portfolioPersistence.findByIdAndUserId(p.getId(), USER)).thenReturn(Optional.of(p));
+        when(portfolioPersistence.savePortfolio(any())).thenReturn(p);
+
+        // Tüm 1000 nominal satılabilmeli (kupon miktarı pozisyonu negatife düşürmemeli).
+        service.addTransaction(USER, p.getId(),
+                txRequest(AssetType.BOND, TransactionType.SELL, "US900123AL40", "1000", "57.54"));
+
+        assertThat(p.getTransactions()).hasSize(3);
+    }
+
+    @Test
     @DisplayName("addTransaction: FUTURE SHORT pool closed independently of LONG")
     void addTransaction_futureShortClose() {
         Portfolio p = portfolio(PortfolioType.HOLDINGS);

@@ -935,6 +935,11 @@ public class PortfolioServiceImpl implements PortfolioService {
         // hem de tamamen kapatılmış pozisyonların biriktirdiği realized (artık holding satırı
         // olmayan ama satışı yapılan pozisyonlar). Hepsi TL'ye çevrilir.
         BigDecimal openRealized = holdings.stream()
+                // Kapatılmış (closed) BOND satırları yalnız GÖSTERİM için holding listesinde tutulur
+                // (kullanıcı vade/satış sonrası realized K/Z'yi görsün). Realized'leri ZATEN closed
+                // listesinde (closedRealized) sayılır; burada da saymak çift-sayım yapardı (BOND tam
+                // kapanışta realized 2× görünürdü). Bu yüzden closed satırlar burada atlanır.
+                .filter(h -> !h.isClosed())
                 .map(h -> currencyConverter.toTry(h.getRealizedGainLoss(), h.getCurrency()))
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -1046,6 +1051,11 @@ public class PortfolioServiceImpl implements PortfolioService {
         BigDecimal currentQty = existing.stream()
                 .filter(tx -> transactionSymbolMatches(assetType, symbol, tx.getSymbol(), tx.getAssetType()))
                 .filter(tx -> matchesFutureDirection(tx, assetType, direction))
+                // COUPON_INCOME bir pozisyon hareketi DEĞİL (konvansiyon: quantity = TL kupon tutarı,
+                // price = 1). Açık miktara katılmamalı; aksi halde kupon girilen bond satılamaz hale
+                // gelir (1000 BUY − 2375 kupon = negatif → "pozisyon yok"). Yalnız BUY/SELL sayılır.
+                .filter(tx -> tx.getTransactionType() == TransactionType.BUY
+                        || tx.getTransactionType() == TransactionType.SELL)
                 .reduce(BigDecimal.ZERO, (acc, tx) -> {
                     if (tx.getTransactionType() == TransactionType.BUY) {
                         return acc.add(tx.getQuantity());
