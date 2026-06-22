@@ -132,7 +132,7 @@ public final class AccruedInterestCalculator {
     // ── Parsing yardımcıları (BI ham string formatları) ─────────────────────
 
     /** "11.875%" / "5,200%" → 11.875 / 5.200. Null/boş/ayrıştırılamaz → null. */
-    static BigDecimal parsePercent(String raw) {
+    public static BigDecimal parsePercent(String raw) {
         if (raw == null) return null;
         String s = raw.trim().replace("%", "").trim();
         if (s.isEmpty()) return null;

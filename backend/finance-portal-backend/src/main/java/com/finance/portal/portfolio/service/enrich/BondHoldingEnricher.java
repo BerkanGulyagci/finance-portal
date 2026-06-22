@@ -199,6 +199,11 @@ public class BondHoldingEnricher {
         if (category != null) {
             holding.setCategory(category.name());
         }
+        // Kupon oranı (.ORAN serisi) → kupon-ödeme modalındaki "tahmini yıllık kupon" referansı için.
+        // Kuponsuz kıymetlerde bond.getCouponRate() null olur (kutu zaten gösterilmez).
+        if (bond != null) {
+            holding.setCouponRate(bond.getCouponRate());
+        }
         holding.setAsOf(lu != null ? lu.atStartOfDay()
                 : fallbackDate != null ? fallbackDate.atStartOfDay()
                 : LocalDateTime.now());
@@ -260,6 +265,12 @@ public class BondHoldingEnricher {
         holding.setCurrency("TRY");
         holding.setName(d.getName() != null ? d.getName() : isin);
         holding.setChangePercent(d.getChangePercent());
+        // Eurobond kupon oranı BI'da string ("11.875%") → parse edip holdings'e taşı (kupon modalı için).
+        BigDecimal euroCoupon = com.finance.portal.market.application.bond.eurobond.model
+                .AccruedInterestCalculator.parsePercent(d.getCouponRate());
+        if (euroCoupon != null) {
+            holding.setCouponRate(euroCoupon);
+        }
         // Günlük mutlak değişim (100 nominal başına TL) — BI yalnız yüzde verir, fiyattan türet:
         // change = priceTry − dünkü = priceTry × pct / (100 + pct). Portföy özeti "Günlük K/Z"
         // qty × change kullandığı için (changePercent değil) bu olmadan eurobond özete yansımıyordu.

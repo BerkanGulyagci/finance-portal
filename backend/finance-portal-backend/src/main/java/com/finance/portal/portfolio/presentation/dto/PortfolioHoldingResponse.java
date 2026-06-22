@@ -176,6 +176,13 @@ public class PortfolioHoldingResponse {
     private BigDecimal sumCouponIncome;
 
     /**
+     * BOND için: yıllık kupon faiz oranı (%). Kupon ödeme modalındaki "tahmini yıllık kupon"
+     * referansı için holdings'e taşınır (detayda var ama portföy satırında eksikti). Kuponsuz
+     * kıymetlerde (bono, strip) ve diğer asset tiplerinde null.
+     */
+    private BigDecimal couponRate;
+
+    /**
      * BOND için: kupon ödeme olayları (tarih + TL tutar). What-if "Gerçek" çizgisi her olayın
      * tarihinde step-up uygular (date ≤ t koşulu). Redis cache'ine de serialize edilmeli (What-if
      * cache'ten okur; aksi halde bond "Gerçek" çizgisi kupon step-up'larını kaybeder).
