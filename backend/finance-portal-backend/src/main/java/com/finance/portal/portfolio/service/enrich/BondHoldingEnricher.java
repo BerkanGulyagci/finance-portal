@@ -255,6 +255,17 @@ public class BondHoldingEnricher {
         holding.setCurrency("TRY");
         holding.setName(d.getName() != null ? d.getName() : isin);
         holding.setChangePercent(d.getChangePercent());
+        // Günlük mutlak değişim (100 nominal başına TL) — BI yalnız yüzde verir, fiyattan türet:
+        // change = priceTry − dünkü = priceTry × pct / (100 + pct). Portföy özeti "Günlük K/Z"
+        // qty × change kullandığı için (changePercent değil) bu olmadan eurobond özete yansımıyordu.
+        BigDecimal chgPct = d.getChangePercent();
+        if (chgPct != null && chgPct.signum() != 0) {
+            BigDecimal denom = BigDecimal.valueOf(100).add(chgPct);
+            if (denom.signum() != 0) {
+                holding.setChange(priceTry.multiply(chgPct)
+                        .divide(denom, MONEY_SCALE, RoundingMode.HALF_UP));
+            }
+        }
         holding.setAsOf(LocalDateTime.now());
 
         try {

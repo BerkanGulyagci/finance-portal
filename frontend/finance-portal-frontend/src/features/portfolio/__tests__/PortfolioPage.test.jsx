@@ -52,7 +52,7 @@ vi.mock('../../../components/instrument/AlarmsManager', () => ({
   default: () => <div data-testid="alarms-manager">alarms</div>,
 }));
 
-import PortfolioPage from '../PortfolioPage';
+import PortfolioPage, { computeSummary } from '../PortfolioPage';
 import { LanguageProvider } from '../../../context/LanguageContext';
 
 // Varsayılan dil "tr" → t(key) anahtarın kendisini döndürür; {count} gibi
@@ -268,5 +268,51 @@ describe('PortfolioPage (jsdom + testing-library + React 19)', () => {
     await screen.findByRole('heading', { name: 'Ana Portföy' });
     // Başlık altındaki "2 portföy" metni.
     expect(screen.getByText('2 portföy')).toBeInTheDocument();
+  });
+});
+
+describe('computeSummary — Günlük K/Z ölçekleme', () => {
+  const p = (holdings) => [{
+    id: 1, portfolioType: 'HOLDINGS', currency: 'TRY',
+    totalMarketValue: 0, totalCost: 0, totalProfitLoss: 0, holdings,
+  }];
+
+  it('hisse: qty × change (değişmedi — /100 uygulanmaz)', () => {
+    // STOCK 10 adet, günlük birim değişim 2 → katkı 20 (tam birim, par yok).
+    const s = computeSummary(p([
+      { assetType: 'STOCK', currency: 'TRY', totalQuantity: 10, change: 2 },
+    ]));
+    expect(s.totalDaily).toBeCloseTo(20, 4);
+  });
+
+  it('tahvil (BOND): qty × change / 100 (par-kote — 100 kat şişme düzeltildi)', () => {
+    // BOND 10000 nominal, change 0.087 (100 nominal başına) → katkı 8.70, 870 değil.
+    const s = computeSummary(p([
+      { assetType: 'BOND', currency: 'TRY', totalQuantity: 10000, change: 0.087 },
+    ]));
+    expect(s.totalDaily).toBeCloseTo(8.7, 4);
+  });
+
+  it('altın bonosu: per-unit kote → /100 UYGULANMAZ (tam birim)', () => {
+    const s = computeSummary(p([
+      { assetType: 'BOND', category: 'GOLD_INDEXED_BOND', currency: 'TRY',
+        totalQuantity: 5, change: 3 },
+    ]));
+    expect(s.totalDaily).toBeCloseTo(15, 4); // 5 × 3, /100 yok
+  });
+
+  it('kripto/fx: BOND değil → qty × change (dokunulmaz)', () => {
+    const s = computeSummary(p([
+      { assetType: 'CRYPTO', currency: 'TRY', totalQuantity: 2, change: 100 },
+      { assetType: 'FX', currency: 'TRY', totalQuantity: 1000, change: 0.5 },
+    ]));
+    expect(s.totalDaily).toBeCloseTo(2 * 100 + 1000 * 0.5, 4); // 200 + 500 = 700
+  });
+
+  it('USD pozisyon (TRY değil): günlük K/Z dışında bırakılır', () => {
+    const s = computeSummary(p([
+      { assetType: 'STOCK', currency: 'USD', totalQuantity: 10, change: 2 },
+    ]));
+    expect(s.hasDaily).toBe(false);
   });
 });

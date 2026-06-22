@@ -55,8 +55,8 @@ function isTryCur(c) {
   return c == null || c === 'TRY' || c === 'TL';
 }
 
-/** Tüm varlık portföyleri üzerinden genel özet (üst metrik kartları için). */
-function computeSummary(portfolios) {
+/** Tüm varlık portföyleri üzerinden genel özet (üst metrik kartları için). Test için export'lu. */
+export function computeSummary(portfolios) {
   const holdings = (portfolios ?? []).filter(p => p.portfolioType !== 'WATCHLIST');
   let totalValue = 0, totalCost = 0, totalPnl = 0, totalReal = 0, totalDaily = 0;
   let hasReal = false, hasDaily = false;
@@ -71,12 +71,19 @@ function computeSummary(portfolios) {
     totalPnl += pnl;
     if (p.totalRealProfitLoss != null) { totalReal += num(p.totalRealProfitLoss); hasReal = true; }
 
-    // Günlük K/Z: yalnız TL pozisyonlar (kur karışmasın); qty × günlük birim değişim
+    // Günlük K/Z: yalnız TL pozisyonlar (kur karışmasın); qty × günlük birim değişim.
+    // Tahvil/bono/eurobond (altın bonosu hariç) %-of-par kote → piyasa değeri qty × price / 100;
+    // change da 100 nominal başına olduğundan katkı qty × change / 100 (aksi halde 100 kat şişer).
     for (const h of p.holdings ?? []) {
       if (!isTryCur(h.currency)) continue;
       const q = num(h.totalQuantity);
       const ch = num(h.change);
-      if (q && ch) { totalDaily += q * ch; hasDaily = true; }
+      if (q && ch) {
+        const isParBond = String(h.assetType ?? '').toUpperCase() === 'BOND'
+          && h.category !== 'GOLD_INDEXED_BOND';
+        totalDaily += isParBond ? (q * ch) / 100 : q * ch;
+        hasDaily = true;
+      }
     }
 
     const pct = cost > 0 ? (pnl / cost) * 100 : null;
