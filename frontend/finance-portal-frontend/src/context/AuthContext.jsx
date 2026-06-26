@@ -39,6 +39,14 @@ export function AuthProvider({ children }) {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(ID_TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
+    // Çizimler kullanıcıya özgü — çıkışta temizle, sonraki kullanıcıya sızmasın.
+    // Giriş yapan kullanıcı kendi çizimlerini hydratePrefs ile sunucudan geri alır.
+    const drawingKeys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('chart-overlays:')) drawingKeys.push(k);
+    }
+    drawingKeys.forEach(k => localStorage.removeItem(k));
     setToken(null);
     setIdToken(null);
   }
