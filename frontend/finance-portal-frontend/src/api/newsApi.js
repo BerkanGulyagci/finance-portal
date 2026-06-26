@@ -53,13 +53,3 @@ export async function getNewsDetail(id, lang) {
   const { data: wrapper } = await client.get(`/api/v1/news/detail/${id}`, { params });
   return wrapper.data ?? null;
 }
-
-export async function getBloombergHtNews() {
-  const { data: wrapper } = await client.get('/api/v1/news/bloomberg-ht');
-  return wrapper.data ?? [];
-}
-
-export async function getGoldNews() {
-  const { data: wrapper } = await client.get('/api/v1/news/gold');
-  return wrapper.data ?? { items: [], isFiltered: false, label: 'Son Haberler' };
-}

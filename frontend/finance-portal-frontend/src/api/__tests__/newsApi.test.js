@@ -14,8 +14,6 @@ import {
   getNews,
   getForMeNews,
   getNewsDetail,
-  getBloombergHtNews,
-  getGoldNews,
 } from '../newsApi';
 
 beforeEach(() => {
@@ -189,47 +187,3 @@ describe('getNewsDetail', () => {
   });
 });
 
-describe('getBloombergHtNews', () => {
-  it('bloomberg-ht uç noktasını çağırır ve wrapper.data’yı döndürür', async () => {
-    client.get.mockResolvedValue({ data: { data: [{ t: 'a' }] } });
-
-    const res = await getBloombergHtNews();
-
-    expect(client.get).toHaveBeenCalledWith(`/api/v1/news/bloomberg-ht`);
-    expect(res).toEqual([{ t: 'a' }]);
-  });
-
-  it('wrapper.data yoksa boş dizi döndürür', async () => {
-    client.get.mockResolvedValue({ data: {} });
-    const res = await getBloombergHtNews();
-    expect(res).toEqual([]);
-  });
-
-  it('hata durumunda reddi yukarı taşır', async () => {
-    client.get.mockRejectedValue(new Error('boom'));
-    await expect(getBloombergHtNews()).rejects.toThrow('boom');
-  });
-});
-
-describe('getGoldNews', () => {
-  it('gold uç noktasını çağırır ve wrapper.data’yı döndürür', async () => {
-    const payload = { items: [{ id: 1 }], isFiltered: true, label: 'Altın' };
-    client.get.mockResolvedValue({ data: { data: payload } });
-
-    const res = await getGoldNews();
-
-    expect(client.get).toHaveBeenCalledWith(`/api/v1/news/gold`);
-    expect(res).toEqual(payload);
-  });
-
-  it('wrapper.data yoksa varsayılan altın zarfını döndürür', async () => {
-    client.get.mockResolvedValue({ data: {} });
-    const res = await getGoldNews();
-    expect(res).toEqual({ items: [], isFiltered: false, label: 'Son Haberler' });
-  });
-
-  it('hata durumunda reddi yukarı taşır', async () => {
-    client.get.mockRejectedValue(new Error('fail'));
-    await expect(getGoldNews()).rejects.toThrow('fail');
-  });
-});

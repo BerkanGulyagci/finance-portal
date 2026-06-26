@@ -1,6 +1,5 @@
 package com.finance.portal.news.presentation.mapper;
 
-import com.finance.portal.news.application.model.GoldNewsResult;
 import com.finance.portal.news.application.model.NewsArticle;
 import com.finance.portal.news.application.model.NewsDetail;
 import com.finance.portal.news.application.model.NewsPage;
@@ -157,36 +156,6 @@ class NewsPresentationMapperTest {
         assertThat(response.getPageSize()).isEqualTo(10);
         assertThat(response.getTotalElements()).isZero();
         assertThat(response.getTotalPages()).isZero();
-    }
-
-    // ---- toGoldNewsBody ----
-
-    @Test
-    @DisplayName("toGoldNewsBody items/isFiltered/label anahtarlarını map eder")
-    void toGoldNewsBody_mapsKeys() {
-        GoldNewsResult result = new GoldNewsResult(List.of(fullArticle()), true, "Altın Haberleri");
-
-        Map<String, Object> body = mapper.toGoldNewsBody(result);
-
-        assertThat(body).containsKeys("items", "isFiltered", "label");
-        assertThat(body.get("isFiltered")).isEqualTo(true);
-        assertThat(body.get("label")).isEqualTo("Altın Haberleri");
-        @SuppressWarnings("unchecked")
-        List<NewsItemDto> items = (List<NewsItemDto>) body.get("items");
-        assertThat(items).hasSize(1);
-        assertThat(items.get(0).getTitle()).isEqualTo("Başlık");
-    }
-
-    @Test
-    @DisplayName("toGoldNewsBody boş sonuç (default) → boş items, isFiltered false")
-    void toGoldNewsBody_default() {
-        Map<String, Object> body = mapper.toGoldNewsBody(new GoldNewsResult());
-
-        assertThat(body.get("isFiltered")).isEqualTo(false);
-        assertThat(body.get("label")).isEqualTo("Son Haberler");
-        @SuppressWarnings("unchecked")
-        List<NewsItemDto> items = (List<NewsItemDto>) body.get("items");
-        assertThat(items).isEmpty();
     }
 
     // ---- toListResponse ----

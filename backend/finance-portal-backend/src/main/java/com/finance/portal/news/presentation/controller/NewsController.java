@@ -2,14 +2,10 @@ package com.finance.portal.news.presentation.controller;
 
 import com.finance.portal.common.application.exception.ResourceNotFoundException;
 import com.finance.portal.common.presentation.dto.ApiResponse;
-import com.finance.portal.news.application.model.GoldNewsResult;
-import com.finance.portal.news.application.model.NewsArticle;
 import com.finance.portal.news.application.model.NewsDetail;
 import com.finance.portal.news.application.model.NewsQueryResult;
 import com.finance.portal.news.application.service.NewsAggregatorService;
-import com.finance.portal.news.application.service.NewsService;
 import com.finance.portal.news.presentation.dto.NewsDetailResponse;
-import com.finance.portal.news.presentation.dto.NewsItemDto;
 import com.finance.portal.news.presentation.dto.NewsListResponse;
 import com.finance.portal.news.presentation.mapper.NewsPresentationMapper;
 import jakarta.validation.constraints.Max;
@@ -27,22 +23,17 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping(value = "/api/v1", produces = MediaType.APPLICATION_JSON_VALUE)
 @Validated
 public class NewsController {
 
-    private final NewsService newsService;
     private final NewsAggregatorService aggregatorService;
     private final NewsPresentationMapper newsMapper;
 
-    public NewsController(NewsService newsService,
-                         NewsAggregatorService aggregatorService,
+    public NewsController(NewsAggregatorService aggregatorService,
                          NewsPresentationMapper newsMapper) {
-        this.newsService = newsService;
         this.aggregatorService = aggregatorService;
         this.newsMapper = newsMapper;
     }
@@ -97,20 +88,6 @@ public class NewsController {
         }
         NewsDetailResponse body = newsMapper.toDetailResponse(detail);
         return ResponseEntity.ok(ApiResponse.success(body, "Haber detayı getirildi"));
-    }
-
-    @GetMapping("/news/bloomberg-ht")
-    public ResponseEntity<ApiResponse<List<NewsItemDto>>> getBloombergHtNews() {
-        List<NewsArticle> articles = newsService.getBloombergHtNews();
-        List<NewsItemDto> items = newsMapper.toNewsItemDtoList(articles);
-        return ResponseEntity.ok(ApiResponse.success(items, "BloombergHT news retrieved successfully"));
-    }
-
-    @GetMapping("/news/gold")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getGoldNews() {
-        GoldNewsResult result = newsService.getGoldNews();
-        Map<String, Object> body = newsMapper.toGoldNewsBody(result);
-        return ResponseEntity.ok(ApiResponse.success(body, "Gold news retrieved successfully"));
     }
 
     private static Long rangeToFromMillis(String range) {

@@ -8,7 +8,6 @@ import com.finance.portal.market.application.crypto.model.CryptoMarketItem;
 import com.finance.portal.market.application.stock.StockCacheWarmupService;
 import com.finance.portal.market.application.stock.StockQueryService;
 import com.finance.portal.market.application.stock.StockSymbolProvider;
-import com.finance.portal.news.infrastructure.external.BloombergHtRssClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,7 +16,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
-import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -105,21 +103,5 @@ class IntegrationLoggingScenarioTest {
         assertEquals("WARN", event.getLevel());
         assertEquals(1, event.getMetadata().get("failedCount"));
         assertEquals(2, event.getMetadata().get("totalCount"));
-    }
-
-    @Test
-    void bloombergRssClient_fetchFailure_publishesNewsFetchFailed() {
-        RestTemplate restTemplate = mock(RestTemplate.class);
-        when(restTemplate.getForObject(any(), eq(byte[].class))).thenThrow(new RuntimeException("network down"));
-
-        BloombergHtRssClient client = new BloombergHtRssClient(restTemplate, integrationLogService);
-        List<?> articles = client.fetchNews();
-
-        assertEquals(0, articles.size());
-        ArgumentCaptor<IntegrationLogEvent> captor = ArgumentCaptor.forClass(IntegrationLogEvent.class);
-        verify(integrationLogPublisher).publish(captor.capture());
-        IntegrationLogEvent event = captor.getValue();
-        assertEquals(IntegrationLogSupport.EVENT_NEWS_FETCH_FAILED, event.getEventType());
-        assertEquals(IntegrationLogSupport.PROVIDER_BLOOMBERG_HT, event.getProvider());
     }
 }
