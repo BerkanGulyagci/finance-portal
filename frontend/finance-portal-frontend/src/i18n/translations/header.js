@@ -12,6 +12,8 @@ const en = {
 
   // Dropdown labels
   'Piyasalar': 'Markets',
+  'Borsa': 'Exchange',
+  'Kripto': 'Crypto',
   'Döviz': 'Currencies',
   'Emtia': 'Commodities',
   'Yatırım Fonları': 'Investment Funds',
@@ -42,6 +44,8 @@ const en = {
   'Türk bankalarının alış/satış kurları': 'Buy/sell rates from Turkish banks',
   'Karşılaştır': 'Compare',
   'Dövizleri karşılaştır': 'Compare currencies',
+  'Döviz Karşılaştırma': 'Currency Comparison',
+  'Fon Karşılaştırma': 'Fund Comparison',
 
   // Emtia (Commodities)
   'Kıymetli Madenler': 'Precious Metals',

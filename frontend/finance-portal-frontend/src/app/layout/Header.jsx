@@ -280,14 +280,16 @@ export function Header() {
       ],
     },
     {
-      label: 'Piyasalar',
+      label: 'Borsa',
       items: [
         { label: 'Hisse Senetleri', path: '/market/stocks', desc: 'BIST hisse fiyatları ve endeksler' },
-        { label: 'Kripto Para', path: '/market/crypto', desc: 'Anlık kripto fiyatları' },
         { label: 'Vadeli İşlemler', path: '/market/futures', desc: 'VİOP ve küresel vadeli' },
         { label: 'Tahvil / Bono', path: '/market/bonds', desc: 'Devlet İç Borçlanma Senetleri ve Eurobondlar' },
-        { label: 'Varlık Karşılaştırma', path: '/market/stocks/compare', desc: 'Farklı varlıkları aynı grafikte kıyasla' },
       ],
+    },
+    {
+      label: 'Kripto',
+      path: '/market/crypto',
     },
     {
       label: 'Döviz',
@@ -295,7 +297,6 @@ export function Header() {
         { label: 'TCMB Kurları', path: '/market/fx?tab=tcmb', desc: 'Resmi döviz kurları' },
         { label: 'Open Exchange Rates', path: '/market/fx?tab=open', desc: 'Uluslararası serbest piyasa kurları' },
         { label: 'Banka Kurları', path: '/market/fx?tab=banks', desc: 'Türk bankalarının alış/satış kurları' },
-        { label: 'Karşılaştır', path: '/market/fx/compare', desc: 'Dövizleri karşılaştır' },
       ],
     },
     {
@@ -311,9 +312,8 @@ export function Header() {
           ],
         },
         {
-          title: 'Analiz',
+          title: 'Diğer',
           items: [
-            { label: 'Emtia Karşılaştırma', path: '/market/commodities/compare', desc: 'Normalize performans karşılaştırması' },
             { label: 'Diğer Emtialar', path: '/market/commodities', desc: 'Enerji, tarım, sanayi metalleri' },
           ],
         },
@@ -321,9 +321,15 @@ export function Header() {
     },
     {
       label: 'Fonlar',
+      path: '/market/tefas',
+    },
+    {
+      label: 'Karşılaştır',
       items: [
-        { label: 'Tüm Fonlar',      path: '/market/tefas',         desc: 'TEFAS · BES · OKS · Osmanlı Portföy' },
-        { label: 'Fon Karşılaştır', path: '/market/tefas/compare', desc: 'Fonları karşılaştır' },
+        { label: 'Varlık Karşılaştırma', path: '/market/stocks/compare', desc: 'Farklı varlıkları aynı grafikte kıyasla' },
+        { label: 'Döviz Karşılaştırma', path: '/market/fx/compare', desc: 'Dövizleri karşılaştır' },
+        { label: 'Emtia Karşılaştırma', path: '/market/commodities/compare', desc: 'Normalize performans karşılaştırması' },
+        { label: 'Fon Karşılaştırma', path: '/market/tefas/compare', desc: 'Fonları karşılaştır' },
       ],
     },
   ];
@@ -371,12 +377,12 @@ export function Header() {
           </Link>
 
           {/* Desktop Nav — logo ile sağ grup arasında ortalı */}
-          <nav className="hidden lg:flex items-center gap-1 flex-1 justify-center" ref={navRef}>
+          <nav className="hidden lg:flex items-center gap-0.5 flex-1 justify-center" ref={navRef}>
             {/* Static nav items */}
             {navItems.filter(item => !item.auth || isAuthenticated).map(item => (
               <NavLink key={item.path} to={item.path}
                 className={({ isActive }) =>
-                  `px-3 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${isActive ? 'text-[#093eaa] bg-blue-50' : 'text-gray-700 hover:text-[#093eaa] hover:bg-gray-50'}`
+                  `px-2.5 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${isActive ? 'text-[#093eaa] bg-blue-50' : 'text-gray-700 hover:text-[#093eaa] hover:bg-gray-50'}`
                 }>
                 {t(item.name)}
               </NavLink>
@@ -387,7 +393,7 @@ export function Header() {
               <div className="relative">
                 <button
                   onClick={() => setOpenMenu(openMenu === 'portfolio' ? null : 'portfolio')}
-                  className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${openMenu === 'portfolio' ? 'text-[#093eaa] bg-blue-50' : 'text-gray-700 hover:text-[#093eaa] hover:bg-gray-50'}`}>
+                  className={`flex items-center gap-1 px-2.5 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${openMenu === 'portfolio' ? 'text-[#093eaa] bg-blue-50' : 'text-gray-700 hover:text-[#093eaa] hover:bg-gray-50'}`}>
                   {t('Portföy')}
                   <ChevronDown className={`w-3 h-3 transition-transform ${openMenu === 'portfolio' ? 'rotate-180' : ''}`} />
                 </button>
@@ -399,22 +405,31 @@ export function Header() {
             {isAdmin && (
               <NavLink to="/admin/users"
                 className={({ isActive }) =>
-                  `px-3 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${isActive ? 'text-[#093eaa] bg-blue-50' : 'text-gray-700 hover:text-[#093eaa] hover:bg-gray-50'}`
+                  `px-2.5 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${isActive ? 'text-[#093eaa] bg-blue-50' : 'text-gray-700 hover:text-[#093eaa] hover:bg-gray-50'}`
                 }>
                 {t('Admin Panel')}
               </NavLink>
             )}
 
             {dropdownMenus.map((menu, idx) => (
-              <div key={menu.label} className="relative">
-                <button
-                  onClick={() => setOpenMenu(openMenu === idx ? null : idx)}
-                  className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${openMenu === idx ? 'text-[#093eaa] bg-blue-50' : 'text-gray-700 hover:text-[#093eaa] hover:bg-gray-50'}`}>
+              menu.path ? (
+                <NavLink key={menu.label} to={menu.path}
+                  className={({ isActive }) =>
+                    `px-2.5 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${isActive ? 'text-[#093eaa] bg-blue-50' : 'text-gray-700 hover:text-[#093eaa] hover:bg-gray-50'}`
+                  }>
                   {t(menu.label)}
-                  <ChevronDown className={`w-3 h-3 transition-transform ${openMenu === idx ? 'rotate-180' : ''}`} />
-                </button>
-                {openMenu === idx && <NavDropdown menu={menu} onClose={() => setOpenMenu(null)} t={t} />}
-              </div>
+                </NavLink>
+              ) : (
+                <div key={menu.label} className="relative">
+                  <button
+                    onClick={() => setOpenMenu(openMenu === idx ? null : idx)}
+                    className={`flex items-center gap-0.5 px-2.5 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${openMenu === idx ? 'text-[#093eaa] bg-blue-50' : 'text-gray-700 hover:text-[#093eaa] hover:bg-gray-50'}`}>
+                    {t(menu.label)}
+                    <ChevronDown className={`w-3 h-3 transition-transform ${openMenu === idx ? 'rotate-180' : ''}`} />
+                  </button>
+                  {openMenu === idx && <NavDropdown menu={menu} onClose={() => setOpenMenu(null)} t={t} />}
+                </div>
+              )
             ))}
           </nav>
 
@@ -583,42 +598,53 @@ export function Header() {
               </MobileAccordion>
             )}
 
-            {/* Dropdown menus — each as accordion */}
+            {/* Dropdown menus — each as accordion (path varsa düz link) */}
             {dropdownMenus.map(menu => (
-              <MobileAccordion
-                key={menu.label}
-                title={t(menu.label)}
-                isOpen={!!openSections[menu.label]}
-                onToggle={() => toggleSection(menu.label)}
-              >
-                {menu.groups
-                  ? menu.groups.map(group => (
-                      <div key={group.title} className="pt-1.5 pb-0.5">
-                        <p className="px-7 pb-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t(group.title)}</p>
-                        {group.items.map(item => (
-                          <Link
-                            key={item.path + item.label}
-                            to={item.path}
-                            onClick={() => setMobileOpen(false)}
-                            className="block px-7 py-2 text-sm font-medium text-gray-700 hover:text-[#093eaa] hover:bg-gray-50"
-                          >
-                            {t(item.label)}
-                          </Link>
-                        ))}
-                      </div>
-                    ))
-                  : menu.items.map(item => (
-                      <Link
-                        key={item.path + item.label}
-                        to={item.path}
-                        onClick={() => setMobileOpen(false)}
-                        className="block px-7 py-2.5 text-sm font-medium text-gray-700 hover:text-[#093eaa] hover:bg-gray-50"
-                      >
-                        {t(item.label)}
-                      </Link>
-                    ))
-                }
-              </MobileAccordion>
+              menu.path ? (
+                <Link
+                  key={menu.label}
+                  to={menu.path}
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center px-5 py-3 text-[15px] font-semibold text-gray-800 hover:bg-gray-50 active:bg-gray-100 transition-colors border-t border-gray-100"
+                >
+                  {t(menu.label)}
+                </Link>
+              ) : (
+                <MobileAccordion
+                  key={menu.label}
+                  title={t(menu.label)}
+                  isOpen={!!openSections[menu.label]}
+                  onToggle={() => toggleSection(menu.label)}
+                >
+                  {menu.groups
+                    ? menu.groups.map(group => (
+                        <div key={group.title} className="pt-1.5 pb-0.5">
+                          <p className="px-7 pb-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t(group.title)}</p>
+                          {group.items.map(item => (
+                            <Link
+                              key={item.path + item.label}
+                              to={item.path}
+                              onClick={() => setMobileOpen(false)}
+                              className="block px-7 py-2 text-sm font-medium text-gray-700 hover:text-[#093eaa] hover:bg-gray-50"
+                            >
+                              {t(item.label)}
+                            </Link>
+                          ))}
+                        </div>
+                      ))
+                    : menu.items.map(item => (
+                        <Link
+                          key={item.path + item.label}
+                          to={item.path}
+                          onClick={() => setMobileOpen(false)}
+                          className="block px-7 py-2.5 text-sm font-medium text-gray-700 hover:text-[#093eaa] hover:bg-gray-50"
+                        >
+                          {t(item.label)}
+                        </Link>
+                      ))
+                  }
+                </MobileAccordion>
+              )
             ))}
 
             {/* Login / Register (unauthenticated) */}

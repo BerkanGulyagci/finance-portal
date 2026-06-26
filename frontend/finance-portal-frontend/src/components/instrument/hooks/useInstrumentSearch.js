@@ -271,6 +271,7 @@ export function useInstrumentSearch({ initialType, onSelect }) {
         fxBuy,
         fxSell,
         category: item.category,
+        ...(activeType === 'CRYPTO' && item.id ? { coinId: item.id } : {}),
         ...(item.subType ? { subType: item.subType } : {}),
         // BOND için kategori-bazlı modal uyarıları + manuel kupon ekleme referansı
         ...(activeType === 'BOND' ? {

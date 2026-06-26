@@ -93,10 +93,12 @@ describe('Header (Vitest + @testing-library/react)', () => {
       renderHeader();
       // Bunlar desktop nav'da daima DOM'dadır (drawer kapalıyken tek kopya).
       expect(screen.getByText('Ekonomi')).toBeInTheDocument();
-      expect(screen.getByText('Piyasalar')).toBeInTheDocument();
+      expect(screen.getByText('Borsa')).toBeInTheDocument();
+      expect(screen.getByText('Kripto')).toBeInTheDocument();
       expect(screen.getByText('Döviz')).toBeInTheDocument();
       expect(screen.getByText('Emtia')).toBeInTheDocument();
       expect(screen.getByText('Fonlar')).toBeInTheDocument();
+      expect(screen.getByText('Karşılaştır')).toBeInTheDocument();
     });
   });
 
@@ -150,16 +152,36 @@ describe('Header (Vitest + @testing-library/react)', () => {
   });
 
   describe('dropdown menüleri (etkileşim)', () => {
-    it('"Piyasalar" başlığına tıklayınca menü öğeleri (Hisse Senetleri vb.) açılır', () => {
+    it('"Borsa" başlığına tıklayınca menü öğeleri (Hisse Senetleri vb.) açılır', () => {
       renderHeader();
       // Önce kapalı: öğeler yok
       expect(screen.queryByText('Hisse Senetleri')).not.toBeInTheDocument();
 
-      fireEvent.click(screen.getByText('Piyasalar'));
+      fireEvent.click(screen.getByText('Borsa'));
 
       expect(screen.getByText('Hisse Senetleri')).toBeInTheDocument();
-      expect(screen.getByText('Kripto Para')).toBeInTheDocument();
+      expect(screen.getByText('Vadeli İşlemler')).toBeInTheDocument();
+      expect(screen.getByText('Tahvil / Bono')).toBeInTheDocument();
+    });
+
+    it('"Karşılaştır" başlığına tıklayınca tüm karşılaştırma öğeleri açılır', () => {
+      renderHeader();
+      expect(screen.queryByText('Varlık Karşılaştırma')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByText('Karşılaştır'));
+
       expect(screen.getByText('Varlık Karşılaştırma')).toBeInTheDocument();
+      expect(screen.getByText('Döviz Karşılaştırma')).toBeInTheDocument();
+      expect(screen.getByText('Emtia Karşılaştırma')).toBeInTheDocument();
+      expect(screen.getByText('Fon Karşılaştırma')).toBeInTheDocument();
+    });
+
+    it('"Kripto" ve "Fonlar" dropdown değil düz link (path) — href doğru, tıklayınca menü açılmaz', () => {
+      renderHeader();
+      const kripto = screen.getByText('Kripto').closest('a');
+      const fonlar = screen.getByText('Fonlar').closest('a');
+      expect(kripto).toHaveAttribute('href', '/market/crypto');
+      expect(fonlar).toHaveAttribute('href', '/market/tefas');
     });
 
     it('gruplu "Ekonomi" menüsü grup başlıklarını ve öğelerini render eder', () => {
@@ -265,15 +287,15 @@ describe('Header (Vitest + @testing-library/react)', () => {
       expect(document.body.style.overflow).toBe('');
     });
 
-    it('drawer içindeki accordion (Piyasalar) başlığa tıklayınca öğelerini açar', () => {
+    it('drawer içindeki accordion (Borsa) başlığa tıklayınca öğelerini açar', () => {
       renderHeader();
       fireEvent.click(screen.getByLabelText('Menüyü aç'));
       const dialog = screen.getByRole('dialog');
 
-      // Drawer içinde "Piyasalar" accordion başlığı (desktop'taki ayrı kopyadan
+      // Drawer içinde "Borsa" accordion başlığı (desktop'taki ayrı kopyadan
       // ayırmak için dialog kapsamında ara).
-      const piyasalarBtn = within(dialog).getByText('Piyasalar');
-      fireEvent.click(piyasalarBtn);
+      const borsaBtn = within(dialog).getByText('Borsa');
+      fireEvent.click(borsaBtn);
 
       expect(within(dialog).getByText('Hisse Senetleri')).toBeInTheDocument();
     });

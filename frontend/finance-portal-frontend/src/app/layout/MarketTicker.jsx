@@ -109,6 +109,7 @@ export function MarketTicker() {
             key: `fx:${sym}`,
             label: `${sym}/TRY`,
             value: val.toLocaleString('tr-TR', { minimumFractionDigits: 3 }),
+            unit: '₺',
             change: ch != null && Math.abs(ch) > 1e-6 ? ch : null,
             dir: ch != null ? dir : null,
             spark: sparkline,
@@ -135,6 +136,7 @@ export function MarketTicker() {
             key: 'gold:ons',
             label: t('ALTIN/ONS'),
             value: val.toLocaleString('tr-TR', { minimumFractionDigits: 2 }),
+            unit: '$',
             change: ch,
             dir: dirFromChangePct(spotChg),
             spark,
@@ -159,6 +161,7 @@ export function MarketTicker() {
             coinId: c.id,            // CoinGecko id (ör. "bitcoin") — detay route'u için
             label: c.symbol?.toUpperCase(),
             value: val.toLocaleString('tr-TR', { minimumFractionDigits: 0 }),
+            unit: '₺',               // kripto fiyatları TL bazlı çekiliyor (getCryptoChart 'try')
             change: ch,
             dir: d,
             spark,
@@ -254,8 +257,11 @@ export function MarketTicker() {
           key: `custom:${d.assetType}:${d.symbol}`,
           tok: `${d.assetType}:${d.symbol}`.toLowerCase(),
           custom: true,
+          coinId: d.coinId,
+          subType: d.subType,
           label,
           value: last.toLocaleString('tr-TR', { maximumFractionDigits: 4 }),
+          unit: '₺',
           change: pct != null && Math.abs(pct) > 1e-6 ? pct : null,
           dir: dirFromChangePct(pct),
           spark,
@@ -347,7 +353,9 @@ export function MarketTicker() {
       <>
         <div className="flex-1 min-w-0">
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5 truncate" title={item.label}>{item.label}</p>
-          <p className="text-sm font-bold leading-tight" style={{ color: valueColor }}>{item.value}</p>
+          <p className="text-sm font-bold leading-tight" style={{ color: valueColor }}>
+            {item.unit ? <span className="text-gray-400 font-semibold">{item.unit}</span> : null}{item.value}
+          </p>
         </div>
         <Sparkline data={item.spark} color={sparkColor} />
       </>

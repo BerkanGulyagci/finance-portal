@@ -55,6 +55,18 @@ describe('tickerHref', () => {
     expect(tickerHref({ key: 'custom:STOCK:THYAO' })).toBe('/market/stocks/THYAO');
   });
 
+  it('custom CRYPTO → coinId varsa /market/crypto/{coinId}, yoksa null (sembol değil)', () => {
+    expect(tickerHref({ key: 'custom:CRYPTO:FIGR_HELOC', coinId: 'figure-heloc' }))
+      .toBe('/market/crypto/figure-heloc');
+    expect(tickerHref({ key: 'custom:CRYPTO:FIGR_HELOC' })).toBeNull();
+  });
+
+  it('custom BOND: DİBS → /market/bonds/{symbol}, Eurobond → /market/bonds/global/{isin}', () => {
+    expect(tickerHref({ key: 'custom:BOND:TRD0707' })).toBe('/market/bonds/TRD0707');
+    expect(tickerHref({ key: 'custom:BOND:XS3123', subType: 'EUROBOND' }))
+      .toBe('/market/bonds/global/XS3123');
+  });
+
   it('custom GOLD: ons sekmesi query eklemez, diğerleri ?tab=', () => {
     expect(tickerHref({ key: 'custom:GOLD:ONS' })).toBe('/market/gold');
     expect(tickerHref({ key: 'custom:GOLD:GRAM' })).toBe('/market/gold?tab=gram');

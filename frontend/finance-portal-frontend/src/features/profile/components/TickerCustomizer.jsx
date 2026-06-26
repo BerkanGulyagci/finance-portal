@@ -42,7 +42,13 @@ export default function TickerCustomizer() {
     setSearchOpen(false);
     setCustom(prev => {
       if (prev.some(c => c.assetType === inst.assetType && c.symbol === inst.symbol)) return prev;
-      const next = [...prev, { assetType: inst.assetType, symbol: inst.symbol, name: inst.name || inst.symbol }];
+      const next = [...prev, {
+        assetType: inst.assetType,
+        symbol: inst.symbol,
+        name: inst.name || inst.symbol,
+        ...(inst.assetType === 'CRYPTO' && inst.coinId ? { coinId: inst.coinId } : {}),
+        ...(inst.subType ? { subType: inst.subType } : {}),
+      }];
       saveCustomTickerItems(next);
       return next;
     });

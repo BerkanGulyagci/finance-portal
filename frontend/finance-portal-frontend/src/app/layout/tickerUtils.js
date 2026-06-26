@@ -52,6 +52,12 @@ export function tickerHref(item) {
         const tab = GOLD_SYMBOL_TO_TAB[(symbol || '').toUpperCase()];
         return tab && tab !== 'ons' ? `/market/gold?tab=${tab}` : '/market/gold';
       }
+      if (assetType === 'CRYPTO') {
+        return item.coinId ? `/market/crypto/${encodeURIComponent(item.coinId)}` : null;
+      }
+      if (assetType === 'BOND' && item.subType === 'EUROBOND') {
+        return symbol ? `/market/bonds/global/${encodeURIComponent(symbol)}` : null;
+      }
       const seg = CUSTOM_ROUTE_SEG[assetType];
       return seg && symbol ? `/market/${seg}/${encodeURIComponent(symbol)}` : null;
     }
