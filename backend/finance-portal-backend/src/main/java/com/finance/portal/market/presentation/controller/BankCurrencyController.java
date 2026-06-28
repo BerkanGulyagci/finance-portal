@@ -2,6 +2,7 @@ package com.finance.portal.market.presentation.controller;
 
 import com.finance.portal.market.application.currency.BankCurrencyRateDto;
 import com.finance.portal.market.application.currency.BankCurrencyService;
+import com.finance.portal.market.presentation.dto.BankCurrencyRatesDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -12,7 +13,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Banka döviz kurları REST controller.
@@ -46,7 +46,7 @@ public class BankCurrencyController {
      * GET /api/v1/market/currency/banks?currency=USD
      */
     @GetMapping("/banks")
-    public ResponseEntity<Map<String, Object>> getBankRates(
+    public ResponseEntity<BankCurrencyRatesDto> getBankRates(
             @RequestParam(required = false) String currency) {
 
         try {
@@ -54,19 +54,10 @@ public class BankCurrencyController {
                     ? bankCurrencyService.getBankRatesByCurrency(currency.trim())
                     : bankCurrencyService.getAllBankRates();
 
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "data", rates,
-                    "count", rates.size()
-            ));
+            return ResponseEntity.ok(new BankCurrencyRatesDto(true, rates, rates.size(), null));
         } catch (Exception e) {
             log.error("Error fetching bank rates: {}", e.getMessage(), e);
-            return ResponseEntity.ok(Map.of(
-                    "success", false,
-                    "data", List.of(),
-                    "count", 0,
-                    "error", "Banka kurları alınamadı"
-            ));
+            return ResponseEntity.ok(new BankCurrencyRatesDto(false, List.of(), 0, "Banka kurları alınamadı"));
         }
     }
 
@@ -77,25 +68,16 @@ public class BankCurrencyController {
      * Örn: /api/v1/market/currency/banks/Garanti
      */
     @GetMapping("/banks/{bankName}")
-    public ResponseEntity<Map<String, Object>> getBankRatesByBankName(
+    public ResponseEntity<BankCurrencyRatesDto> getBankRatesByBankName(
             @PathVariable String bankName) {
 
         try {
             List<BankCurrencyRateDto> rates = bankCurrencyService.getBankRatesByBankName(bankName);
 
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "data", rates,
-                    "count", rates.size()
-            ));
+            return ResponseEntity.ok(new BankCurrencyRatesDto(true, rates, rates.size(), null));
         } catch (Exception e) {
             log.error("Error fetching bank rates for bank '{}': {}", bankName, e.getMessage(), e);
-            return ResponseEntity.ok(Map.of(
-                    "success", false,
-                    "data", List.of(),
-                    "count", 0,
-                    "error", "Banka kurları alınamadı"
-            ));
+            return ResponseEntity.ok(new BankCurrencyRatesDto(false, List.of(), 0, "Banka kurları alınamadı"));
         }
     }
 }

@@ -2,6 +2,7 @@ package com.finance.portal.market.presentation.controller;
 
 import com.finance.portal.common.presentation.dto.ApiResponse;
 import com.finance.portal.market.application.bond.evds.EvdsBondService;
+import com.finance.portal.market.presentation.dto.EvdsBondCacheEvictDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -9,8 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.List;
 
 /**
  * EVDS DİBS yönetim endpoint'leri (yalnız ADMIN — /api/v1/admin/** ROLE_ADMIN korumalı).
@@ -38,16 +38,15 @@ public class EvdsBondAdminController {
      * Maturity parser düzeltmesi gibi deploy-sonrası anlık tazeleme için.
      */
     @PostMapping("/cache-evict")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> evictCaches() {
+    public ResponseEntity<ApiResponse<EvdsBondCacheEvictDto>> evictCaches() {
         log.info("[EvdsBondAdminController] /cache-evict çağrıldı — tüm DİBS cache'leri boşaltılıyor.");
         evdsBondService.evictAllBondCaches();
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("evicted", java.util.List.of(
+        var evicted = List.of(
                 "market.evds.bonds.list",
                 "market.evds.bonds.detail",
                 "market.evds.bonds.history",
                 "market.evds.bonds.active-series"
-        ));
-        return ResponseEntity.ok(ApiResponse.success(body, "EVDS DİBS cache'leri boşaltıldı."));
+        );
+        return ResponseEntity.ok(ApiResponse.success(new EvdsBondCacheEvictDto(evicted), "EVDS DİBS cache'leri boşaltıldı."));
     }
 }

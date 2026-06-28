@@ -7,6 +7,7 @@ import com.finance.portal.market.application.stock.StockDetail;
 import com.finance.portal.market.application.stock.StockPageResponse;
 import com.finance.portal.market.application.stock.StockQueryService;
 import com.finance.portal.market.application.stock.StockSummary;
+import com.finance.portal.market.presentation.dto.StockOhlcCandleDto;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
 @Validated
 @RestController
@@ -83,7 +85,7 @@ public class MarketStockController {
     }
 
     @GetMapping("/{symbol}/ohlc")
-    public ResponseEntity<ApiResponse<List<java.util.Map<String, Object>>>> getStockOhlc(
+    public ResponseEntity<ApiResponse<List<StockOhlcCandleDto>>> getStockOhlc(
             @PathVariable("symbol") String symbol,
             @RequestParam(defaultValue = "3mo") String range,
             @RequestParam(defaultValue = "1d") String interval
@@ -93,8 +95,9 @@ public class MarketStockController {
         }
         String normalizedSymbol = symbol.trim().toUpperCase();
         validateSymbol(normalizedSymbol);
-        List<java.util.Map<String, Object>> data = stockQueryService.getStockOhlc(normalizedSymbol, range, interval);
-        return ResponseEntity.ok(ApiResponse.success(data, "OHLC data retrieved"));
+        List<Map<String, Object>> data = stockQueryService.getStockOhlc(normalizedSymbol, range, interval);
+        List<StockOhlcCandleDto> candles = data.stream().map(StockOhlcCandleDto::from).toList();
+        return ResponseEntity.ok(ApiResponse.success(candles, "OHLC data retrieved"));
     }
 
     @GetMapping("/{symbol}/midas")

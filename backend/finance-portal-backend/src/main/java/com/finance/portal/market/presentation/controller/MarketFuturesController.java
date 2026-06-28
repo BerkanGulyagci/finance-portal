@@ -7,6 +7,7 @@ import com.finance.portal.market.application.stock.StockChartResponse;
 import com.finance.portal.market.application.stock.StockQueryService;
 import com.finance.portal.market.application.viop.ViopChartPeriod;
 import com.finance.portal.market.application.viop.ViopChartService;
+import com.finance.portal.market.application.viop.ViopContract;
 import com.finance.portal.market.application.viop.ViopService;
 import com.finance.portal.market.application.viop.model.ViopChartPoint;
 import com.finance.portal.market.application.viop.model.ViopContractDetail;
@@ -91,30 +92,18 @@ public class MarketFuturesController {
      * VIOP kontrat listesi (Akbank'tan)
      */
     @GetMapping("/viop/contracts")
-    public ResponseEntity<ApiResponse<?>> getViopContracts() {
+    public ResponseEntity<ApiResponse<List<ViopContract>>> getViopContracts() {
         var contracts = viopService.getAllContracts();
-
-        ApiResponse<?> response = ApiResponse.success(
-                contracts,
-                "VIOP contracts retrieved successfully"
-        );
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success(contracts, "VIOP contracts retrieved successfully"));
     }
 
     /**
      * Belirli bir hisse senedine ait VİOP kontratlarını getir
      */
     @GetMapping("/viop/contracts/by-underlying/{symbol}")
-    public ResponseEntity<ApiResponse<?>> getViopContractsByUnderlying(@PathVariable String symbol) {
+    public ResponseEntity<ApiResponse<List<ViopContract>>> getViopContractsByUnderlying(@PathVariable String symbol) {
         var contracts = viopService.getContractsByUnderlyingAsset(symbol.toUpperCase());
-
-        ApiResponse<?> response = ApiResponse.success(
-                contracts,
-                "Related VIOP contracts retrieved successfully"
-        );
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success(contracts, "Related VIOP contracts retrieved successfully"));
     }
 
     /**
