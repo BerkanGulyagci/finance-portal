@@ -320,7 +320,6 @@ export default function TefasFundDetailPage() {
                     ['Alım Valörü', d.buySettlement ? `T+${d.buySettlement}` : '-'],
                     ['Satım Valörü', d.sellSettlement ? `T+${d.sellSettlement}` : '-'],
                     ['Min. Alım Miktarı', d.minimumQuantitySales ?? '-'],
-                    ['Yıllık Yönetim Ücreti', fmtPercentField(d.managementFeeAnnual)],
                     ['Komisyon', d.commission != null && d.commission !== '' ? fmtPercentField(d.commission) : '-'],
                     ['Fon Yöneticisi', d.managerName ?? '-'],
                     ['Kurucu', d.founderName ?? '-'],

@@ -56,7 +56,7 @@ function CustomTooltip({ active, payload, unit }) {
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-md px-3 py-2 text-xs">
       <div className="font-semibold text-gray-700">{pt.fullPeriod}</div>
-      <div className="font-bold text-[#093eaa]">{fmtValue(pt.y, unit)}</div>
+      <div className="font-bold text-[#093eaa]">{fmtValue(pt.y, unit, true)}</div>
     </div>
   );
 }

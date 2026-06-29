@@ -47,10 +47,6 @@ export default function ViopContractStats({ contract }) {
           </div>
         ))}
       </div>
-
-      <p className="text-xs text-gray-400 mt-4">
-        {t('Kaynak:')} {t('Veriler Akbank VİOP\'tan alınmaktadır.')}
-      </p>
     </div>
   );
 }

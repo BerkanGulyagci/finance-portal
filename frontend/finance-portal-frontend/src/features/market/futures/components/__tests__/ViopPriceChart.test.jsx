@@ -107,7 +107,7 @@ describe('ViopPriceChart (Vitest + @testing-library/react, jsdom)', () => {
       );
     });
 
-    it('tüm periyot butonlarını ve kaynak/yenile kontrollerini render eder', async () => {
+    it('tüm periyot butonlarını ve yenile kontrolünü render eder', async () => {
       renderChart();
       await screen.findByText('VİOP Sözleşme Grafiği');
       // PERIODS etiketleri
@@ -115,9 +115,6 @@ describe('ViopPriceChart (Vitest + @testing-library/react, jsdom)', () => {
         expect(screen.getByText(lbl)).toBeInTheDocument()
       );
       expect(screen.getByTitle('Yenile')).toBeInTheDocument();
-      expect(
-        screen.getByText(/Kaynak: İş Yatırım/)
-      ).toBeInTheDocument();
     });
   });
 

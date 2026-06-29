@@ -47,7 +47,7 @@ export default function StockComparePage() {
 
       {/* ── Hisse Seçici ── */}
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3 sm:p-5">
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">{t('Hisse Ekle')}</p>
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">{t('Varlık Ekle')}</p>
 
         {/* Hızlı ekle: endeksler + faiz/enflasyon benchmark'ları */}
         <div className="flex flex-wrap gap-2 mb-3 items-center">

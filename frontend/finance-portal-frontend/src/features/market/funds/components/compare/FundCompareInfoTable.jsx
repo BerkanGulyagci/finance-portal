@@ -19,7 +19,6 @@ const INFO_ROWS = [
   { key: 'fundType',            label: 'Fon Tipi',          fmt: v => safe(v) },
   { key: 'riskLevel',           label: 'Risk Seviyesi',      fmt: v => v != null && !isNaN(v) ? `${v}/7` : '-' },
   { key: 'marketCap',           label: 'Fon Büyüklüğü',      fmt: v => fmtBig(v) },
-  { key: 'managementFeeAnnual', label: 'Yönetim Ücreti',     fmt: v => { const s = safe(v); return s !== '-' ? `%${s}` : '-'; } },
   { key: 'commission',          label: 'Komisyon',           fmt: v => { const s = safe(v); return s !== '-' ? `%${s}` : '-'; } },
   { key: 'buySettlement',       label: 'Alım Valörü',        fmt: v => v != null && !isNaN(Number(v)) ? `T+${v}` : '-' },
   { key: 'sellSettlement',      label: 'Satım Valörü',       fmt: v => v != null && !isNaN(Number(v)) ? `T+${v}` : '-' },

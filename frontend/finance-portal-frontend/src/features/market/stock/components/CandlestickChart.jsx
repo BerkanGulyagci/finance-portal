@@ -119,14 +119,15 @@ export default function CandlestickChart({ symbol }) {
     return () => window.removeEventListener('keydown', handler);
   }, [setActiveTool]);
 
+  // Grafiği SEMBOL başına BİR KEZ kur. Aralık/interval değişiminde grafik YENİDEN KURULMAZ
+  // (eskiden kurulurdu → dispose/init'te eski indikatör pane'leri kalıp üst üste biniyordu).
   useEffect(() => {
     const id = chartId.current;
     const chart = klineInit(id);
     chartRef.current = chart;
-    indicatorPaneIds.current = {}; // Temizle
+    indicatorPaneIds.current = {};
 
     // İmleç hover'ında OHLC + tarih tooltip'i (kripto/emtia grafiğiyle aynı deneyim).
-    // klinecharts crosshair + candle tooltip'ini açıkça etkinleştir.
     try {
       chart.setStyles({
         crosshair: { show: true },
@@ -140,12 +141,26 @@ export default function CandlestickChart({ symbol }) {
       });
     } catch (_) { /* klinecharts sürüm farkı */ }
 
+    return () => {
+      klineDispose(id);
+      chartRef.current = null;
+      indicatorPaneIds.current = {};
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [symbol]);
+
+  // Aralık/interval değişiminde YALNIZ veriyi güncelle (applyNewData) — grafiği yeniden kurma.
+  // İndikatörler (MA/VOL/BOLL) kalıcı grafikte durur, yeni veriyle yeniden hesaplanır → stacking yok.
+  useEffect(() => {
+    let cancelled = false; // bayat (in-flight) isteğin yeni veriye yazmasını engeller
+    const id = chartId.current;
     setLoading(true);
     setError(false);
 
     const fetchRange = STOCK_WARMUP_RANGE[range] ?? range;
     getStockOhlc(symbol, fetchRange, interval)
       .then(data => {
+        if (cancelled || !chartRef.current) return;
         if (!data?.length) { setError(true); setLoading(false); return; }
         const klineData = data
           .map(d => ({
@@ -160,52 +175,19 @@ export default function CandlestickChart({ symbol }) {
           .filter(d => !isNaN(d.open) && d.open > 0)
           .sort((a, b) => a.timestamp - b.timestamp);
 
-        chartRef.current?.applyNewData(klineData);
+        chartRef.current.applyNewData(klineData);
         // Görünür alanı yalnız seçili pencereye sığdır (ısınma verisi sola kayar, MA dolu çizilir)
         const winMsC = RANGE_WINDOW_MS[range];
         fitVisibleToWindow(chartRef.current, id, klineData, (winMsC && winMsC !== Infinity) ? Date.now() - winMsC : 0);
 
-        // Data yüklendikten SONRA aktif indikatörleri ekle
-        if (chartRef.current) {
-          // MA ekle
-          if (activeMAs.length > 0) {
-            chartRef.current.createIndicator(
-              { name: 'MA', calcParams: activeMAs, styles: maLineStyles(activeMAs) },
-              false,
-              { id: 'candle_pane' }
-            );
-          }
-
-          // Alt indikatörleri ekle ve pane ID'lerini kaydet
-          activeSubInds.forEach(indName => {
-            try {
-              const paneId = chartRef.current.createIndicator(
-                { name: indName },
-                true,
-                { height: 80 }
-              );
-              if (paneId) {
-                indicatorPaneIds.current[indName] = paneId;
-              }
-            } catch (e) {
-              console.error('Error creating indicator in useEffect:', indName, e);
-            }
-          });
-
-          // ── Kaydedilmiş çizimleri geri yükle (refresh / başka cihaz / aralık değişimi sonrası) ──
-          // applyNewData'dan SONRA: pencere içi çizimler çizilir, pencere dışındakiler korunur (ortak hook).
-          restoreOverlays(klineData);
-        }
+        // ── Kaydedilmiş çizimleri geri yükle (applyNewData'dan SONRA) ──
+        restoreOverlays(klineData);
 
         setLoading(false);
       })
-      .catch(() => { setError(true); setLoading(false); });
+      .catch(() => { if (!cancelled) { setError(true); setLoading(false); } });
 
-    // Cleanup
-    return () => { 
-      klineDispose(id);
-      indicatorPaneIds.current = {};
-    };
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbol, range, interval]);
 

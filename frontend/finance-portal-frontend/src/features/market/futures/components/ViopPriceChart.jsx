@@ -825,10 +825,11 @@ export default function ViopPriceChart({ contractName }) {
         )}
       </div>
 
-      <p className="text-xs text-gray-400 mt-3">
-        {t('Kaynak: İş Yatırım · isyatirim.com.tr')}
-        {isComparing ? t(' · Karşılaştırma grafiği normalize edilmiştir (ilk değer = 100 baz).') : ''}
-      </p>
+      {isComparing && (
+        <p className="text-xs text-gray-400 mt-3">
+          {t('Karşılaştırma grafiği normalize edilmiştir (ilk değer = 100 baz).')}
+        </p>
+      )}
     </div>
   );
 }

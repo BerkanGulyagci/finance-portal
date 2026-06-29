@@ -1075,7 +1075,7 @@ const en = {
   'Hisse, kripto, döviz, altın, fon, enflasyon… her şeyi yan yana karşılaştır — en fazla':
     'Compare stocks, crypto, FX, gold, funds, inflation… everything side by side — up to',
   'öğe': 'items',
-  'Hisse Ekle': 'Add Asset',
+  'Varlık Ekle': 'Add Asset',
   'En az bir hisse daha ekle': 'Add at least one more asset',
   'Hepsi ortak başlangıç tarihinden 0%\'dan başlar (en geç başlayan varlığın tarihi) — adil kümülatif % kıyas · Scroll ile zoom':
     'All start at 0% from a common start date (the latest-starting asset\'s date) — a fair cumulative % comparison · Scroll to zoom',
