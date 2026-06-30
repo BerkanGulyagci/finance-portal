@@ -40,22 +40,23 @@ Sistem üç ana katmandan oluşur:
 ## İçindekiler
 
 1. [Neler Yapabilir?](#neler-yapabilir)
-2. [Sistem Mimarisi](#sistem-mimarisi)
-3. [Kurulum ve Çalıştırma](#kurulum-ve-çalıştırma)
-4. [Kullanılan Teknolojiler](#kullanılan-teknolojiler)
-5. [Dizin ve Kod Yapısı](#dizin-ve-kod-yapısı)
-6. [Servisler ve Erişim Bilgileri](#servisler-ve-erişim-bilgileri)
-7. [Sunucu Tarafı (Backend)](#sunucu-tarafı-backend)
-8. [İstemci Tarafı (Frontend)](#istemci-tarafı-frontend)
-9. [İzleme ve Gözlemlenebilirlik](#izleme-ve-gözlemlenebilirlik)
-10. [Güvenlik Mimarisi](#güvenlik-mimarisi)
-11. [Sürekli Entegrasyon ve Dağıtım](#sürekli-entegrasyon-ve-dağıtım)
-12. [Test ve Kod Kalitesi](#test-ve-kod-kalitesi)
-13. [Dikkat Edilmesi Gerekenler](#dikkat-edilmesi-gerekenler)
-14. [Sık Karşılaşılan Sorunlar](#sık-karşılaşılan-sorunlar)
-15. [Detaylı Dökümantasyon](#detaylı-dökümantasyon)
-16. [İletişim](#i̇letişim)
-17. [Lisans](#lisans)
+2. [Modül Vitrini](#modül-vitrini)
+3. [Sistem Mimarisi](#sistem-mimarisi)
+4. [Kurulum ve Çalıştırma](#kurulum-ve-çalıştırma)
+5. [Kullanılan Teknolojiler](#kullanılan-teknolojiler)
+6. [Dizin ve Kod Yapısı](#dizin-ve-kod-yapısı)
+7. [Servisler ve Erişim Bilgileri](#servisler-ve-erişim-bilgileri)
+8. [Sunucu Tarafı (Backend)](#sunucu-tarafı-backend)
+9. [İstemci Tarafı (Frontend)](#istemci-tarafı-frontend)
+10. [İzleme ve Gözlemlenebilirlik](#izleme-ve-gözlemlenebilirlik)
+11. [Güvenlik Mimarisi](#güvenlik-mimarisi)
+12. [Sürekli Entegrasyon ve Dağıtım](#sürekli-entegrasyon-ve-dağıtım)
+13. [Test ve Kod Kalitesi](#test-ve-kod-kalitesi)
+14. [Dikkat Edilmesi Gerekenler](#dikkat-edilmesi-gerekenler)
+15. [Sık Karşılaşılan Sorunlar](#sık-karşılaşılan-sorunlar)
+16. [Detaylı Dökümantasyon](#detaylı-dökümantasyon)
+17. [İletişim](#i̇letişim)
+18. [Lisans](#lisans)
 
 ## Neler Yapabilir?
 
@@ -68,11 +69,11 @@ Sistem üç ana katmandan oluşur:
 | **Tahvil / Bono** | TCMB EVDS DİBS (TCMB sınıflandırmasıyla) + Eurobond (HMB ISIN + Business Insider grafik). |
 | **VİOP (Vadeli İşlemler)** | İş Yatırım / Akbank kontratları; long/short pozisyon takibi, teminat, vade kapatma (otomatik settlement). |
 | **Emtia / Kıymetli Metal** | Altın, gümüş, platin, paladyum, emtia — fiyat, geçmiş, kıyaslama. |
-| **Ekonomi / Enflasyon** | TCMB EVDS (TÜFE, faiz, makro) + FRED (ABD CPI); ekonomik takvim, kredi/mevduat hesaplayıcı. |
+| **Ekonomi / Enflasyon** | TCMB EVDS (TÜFE, faiz, makro) + FRED (ABD CPI); ekonomik takvim (TradingView, anahtarsız), kredi/mevduat hesaplayıcı. |
 | **Portföy Takibi** | Çok varlıklı portföy; maliyet ortalaması, güncel değer, kâr/zarar, varlık dağılımı, performans, "ne olurdu?" (what-if), AI analiz, Excel/PDF dışa aktarma. |
 | **İzleme Listesi (Watchlist)** | Çoklu takip listesi, yıldızla hızlı ekleme. |
 | **Fiyat Alarmları** | Fiyat / değişim / hacim alarmları; uygulama içi bildirim + e-posta (TR/EN). |
-| **Haberler** | Çok kaynaklı (RSS + Finnhub) haber akışı, sınıflandırma, kişiselleştirilmiş "Size Özel" haberler. |
+| **Haberler** | Çok kaynaklı RSS haber akışı, sınıflandırma, kişiselleştirilmiş "Size Özel" haberler. |
 | **Yapay Zekâ Sohbet Asistanı** | Çoklu sağlayıcı (Groq/Gemini) + araç çağırma: fiyat, geçmiş, haber, portföy özeti, ekonomi göstergesi, senaryo simülasyonu, alarm oluşturma, izleme listesine ekleme. |
 | **Teknik Analiz** | Hareketli ortalama (MA), RSI, MACD, Bollinger; grafik üzerine çizim ve kaydetme. |
 | **Bildirimler** | Uygulama içi bildirim merkezi + zil rozeti. |
@@ -81,6 +82,51 @@ Sistem üç ana katmandan oluşur:
 | **Yönetim (Admin)** | Kullanıcı yönetimi (Keycloak), ban (cascade), Eurobond ISIN / önbellek yönetimi. |
 | **Kimlik** | Keycloak OIDC + TOTP 2FA + LDAP federasyonu + e-posta doğrulama. |
 | **Cihazlar Arası Senkron** | Kullanıcı tercihleri (kontrol paneli düzeni, tema, dil, grafik çizimleri) sunucuda saklanır, cihazlar arası taşınır. |
+
+## Modül Vitrini
+
+Çekirdek modüllerin görsel turu — her kart, bir isteri (haber, piyasa verisi, tarihsel analiz, portföy) onu karşılayan ekranla eşler; ayrıca şartnameyi aşan ekstraları da gösterir (AI asistan, "ne olurdu?" analizi).
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="assets/dashboard.png" alt="Özelleştirilebilir Kontrol Paneli" width="100%"/>
+      <p><b>Özelleştirilebilir Kontrol Paneli</b><br/>
+      Sürükle-bırak piyasa kartları, izleme listeleri ve TL'ye normalize edilmiş dağılım pastası. Düzen kullanıcıya özel kaydedilir, cihazlar arası senkronlanır.</p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="assets/portfolio.png" alt="Portföy ve AI Analizi" width="100%"/>
+      <p><b>Portföy ve AI Analizi</b><br/>
+      Çok varlıklı takip — ortalama maliyet, güncel değer, K/Z (₺ / %), dağılım pastası ve performans — ayrıca risk skorlaması ve "ne olurdu?" senaryolarıyla AI destekli "Analiz Et" ekranı.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="assets/charts.png" alt="Grafikler ve Teknik Analiz" width="100%"/>
+      <p><b>Grafikler ve Teknik Analiz</b><br/>
+      Hareketli ortalama, RSI, MACD ve Bollinger bantlarıyla etkileşimli mum (OHLC) grafikler; tarih aralığı seçimi, çoklu enstrüman karşılaştırması ve trend sinyalleri.</p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="assets/markets.png" alt="Piyasalar" width="100%"/>
+      <p><b>Piyasalar — Hisse · Tahvil · Döviz · Fon · VİOP · Kripto</b><br/>
+      Her enstrüman sınıfı için canlı fiyat ve detay sayfaları: BIST hisseleri ve endeksleri, TCMB/Eurobond tahvilleri, döviz, TEFAS fonları, vadeli işlemler ve kripto.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="assets/ai-chat.png" alt="AI Sohbet Asistanı" width="100%"/>
+      <p><b>AI Sohbet Asistanı (Porti)</b><br/>
+      Araç çağırma yeteneğine sahip çok sağlayıcılı (Groq / Gemini) asistan: canlı fiyat, geçmiş, haber, portföy özeti, ekonomik göstergeler, senaryo simülasyonu ve alarm oluşturma.</p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="assets/news.png" alt="Haberler ve Kişiselleştirilmiş Akış" width="100%"/>
+      <p><b>Haberler ve Kişiselleştirilmiş Akış</b><br/>
+      Çok kaynaklı RSS toplu haber, kategori filtreleme ve portföyünüzdeki varlıklara göre öne çıkaran "Size Özel" akışı.</p>
+    </td>
+  </tr>
+</table>
+
+> Ekran görüntüleri temsilidir; canlı arayüz açık/koyu tema ve TR/EN destekler.
 
 ## Sistem Mimarisi
 
@@ -173,7 +219,6 @@ Sistem anahtarsız çalışır; ancak bazı dış veri kaynaklarını ve özelli
 | `FRED_API_KEY` | FRED | ABD enflasyon (CPI) | [fred.stlouisfed.org/docs/api](https://fred.stlouisfed.org/docs/api/api_key.html) (ücretsiz) |
 | `ASSISTANT_API_KEY` | Groq | Yapay zekâ sohbet asistanı | [console.groq.com/keys](https://console.groq.com/keys) (ücretsiz) |
 | `GEMINI_API_KEY` | Gemini | Yapay zekâ (yedek) | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) (ücretsiz) |
-| `FINNHUB_API_KEY` | Finnhub | Ekonomik takvim / haber | [finnhub.io](https://finnhub.io/register) (ücretsiz) |
 | `COINGECKO_API_KEY` | CoinGecko | Kripto piyasa verisi | [coingecko.com/api](https://www.coingecko.com/en/api) (anahtarsız da çalışır) |
 | `TEFAS_BEARER_TOKEN` | TEFAS | Yatırım fonları | (anonim varsayılan vardır) |
 | `KEYCLOAK_ADMIN_CLIENT_SECRET` | Keycloak | Admin kullanıcı yönetimi | Keycloak konsolu → Clients → `finance-portal-admin-service` → Credentials |

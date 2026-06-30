@@ -40,22 +40,23 @@ The system consists of three main layers:
 ## Table of Contents
 
 1. [Features](#features)
-2. [System Architecture](#system-architecture)
-3. [Installation & Running](#installation--running)
-4. [Technology Stack](#technology-stack)
-5. [Directory & Code Structure](#directory--code-structure)
-6. [Services & Access Details](#services--access-details)
-7. [Server Side (Backend)](#server-side-backend)
-8. [Client Side (Frontend)](#client-side-frontend)
-9. [Monitoring & Observability](#monitoring--observability)
-10. [Security Architecture](#security-architecture)
-11. [Continuous Integration & Deployment](#continuous-integration--deployment)
-12. [Testing & Code Quality](#testing--code-quality)
-13. [Things to Note](#things-to-note)
-14. [Troubleshooting](#troubleshooting)
-15. [Detailed Documentation](#detailed-documentation)
-16. [Contact](#contact)
-17. [License](#license)
+2. [Module Showcase](#module-showcase)
+3. [System Architecture](#system-architecture)
+4. [Installation & Running](#installation--running)
+5. [Technology Stack](#technology-stack)
+6. [Directory & Code Structure](#directory--code-structure)
+7. [Services & Access Details](#services--access-details)
+8. [Server Side (Backend)](#server-side-backend)
+9. [Client Side (Frontend)](#client-side-frontend)
+10. [Monitoring & Observability](#monitoring--observability)
+11. [Security Architecture](#security-architecture)
+12. [Continuous Integration & Deployment](#continuous-integration--deployment)
+13. [Testing & Code Quality](#testing--code-quality)
+14. [Things to Note](#things-to-note)
+15. [Troubleshooting](#troubleshooting)
+16. [Detailed Documentation](#detailed-documentation)
+17. [Contact](#contact)
+18. [License](#license)
 
 ## Features
 
@@ -68,11 +69,11 @@ The system consists of three main layers:
 | **Government / Corporate Bonds** | TCMB EVDS DİBS (with TCMB classification) + Eurobonds (HMB ISIN + Business Insider charts). |
 | **VIOP (Futures)** | İş Yatırım / Akbank contracts; long/short position tracking, margin, automatic settlement at maturity. |
 | **Commodities / Precious Metals** | Gold, silver, platinum, palladium, commodities — price, history, comparison. |
-| **Economy / Inflation** | TCMB EVDS (CPI, rates, macro) + FRED (US CPI); economic calendar, loan/deposit calculators. |
+| **Economy / Inflation** | TCMB EVDS (CPI, rates, macro) + FRED (US CPI); economic calendar (TradingView, keyless), loan/deposit calculators. |
 | **Portfolio Tracking** | Multi-asset portfolio; average cost, current value, P/L, asset allocation, performance, "what-if" analysis, AI analysis, Excel/PDF export. |
 | **Watchlist** | Multiple watchlists, quick add via star. |
 | **Price Alerts** | Price / change / volume alerts; in-app notification + email (TR/EN). |
-| **News** | Multi-source (RSS + Finnhub) news feed, classification, personalized "For You" news. |
+| **News** | Multi-source RSS news feed, classification, personalized "For You" news. |
 | **AI Chat Assistant** | Multi-provider (Groq/Gemini) + tool calling: price, history, news, portfolio summary, economic indicator, scenario simulation, alarm creation, add to watchlist. |
 | **Technical Analysis** | Moving averages (MA), RSI, MACD, Bollinger; drawing and saving on charts. |
 | **Notifications** | In-app notification center + bell badge. |
@@ -81,6 +82,51 @@ The system consists of three main layers:
 | **Administration (Admin)** | User management (Keycloak), ban (cascade), Eurobond ISIN / cache management. |
 | **Identity** | Keycloak OIDC + TOTP 2FA + LDAP federation + email verification. |
 | **Cross-Device Sync** | User preferences (dashboard layout, theme, language, chart drawings) are stored on the server and carried across devices. |
+
+## Module Showcase
+
+A visual tour of the core modules — each tile maps a requirement (news, market data, historical analysis, portfolio) to the screen that fulfills it, plus the extras that go beyond the spec (AI assistant, what-if analysis).
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="assets/dashboard.png" alt="Customizable Dashboard" width="100%"/>
+      <p><b>Customizable Dashboard</b><br/>
+      Drag-and-drop grid of market cards, watchlists and a TRY-normalized allocation pie. Layout is saved per user and synced across devices.</p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="assets/portfolio.png" alt="Portfolio &amp; AI Analysis" width="100%"/>
+      <p><b>Portfolio &amp; AI Analysis</b><br/>
+      Multi-asset tracking — average cost, current value, P/L (₺ / %), allocation pie and performance — plus an AI-powered "Analyze" view with risk scoring and what-if scenarios.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="assets/charts.png" alt="Charts &amp; Technical Analysis" width="100%"/>
+      <p><b>Charts &amp; Technical Analysis</b><br/>
+      Interactive candlestick (OHLC) charts with moving averages, RSI, MACD and Bollinger bands; date-range selection, multi-instrument comparison and trend signals.</p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="assets/markets.png" alt="Markets" width="100%"/>
+      <p><b>Markets — Stocks · Bonds · FX · Funds · VIOP · Crypto</b><br/>
+      Live prices and detail pages for every instrument class: BIST stocks &amp; indices, TCMB/Eurobond bonds, FX, TEFAS funds, futures and crypto.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="assets/ai-chat.png" alt="AI Chat Assistant" width="100%"/>
+      <p><b>AI Chat Assistant (Porti)</b><br/>
+      Multi-provider (Groq / Gemini) assistant with tool calling: live price, history, news, portfolio summary, economic indicators, scenario simulation and alarm creation.</p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="assets/news.png" alt="News &amp; Personalized Feed" width="100%"/>
+      <p><b>News &amp; Personalized Feed</b><br/>
+      Multi-source RSS aggregated news with category filtering and a portfolio-based "For You" feed that surfaces what matters to your holdings.</p>
+    </td>
+  </tr>
+</table>
+
+> Screenshots are illustrative; the live UI supports light/dark themes and TR/EN.
 
 ## System Architecture
 
@@ -169,7 +215,6 @@ The system runs without keys; however, to enable certain external data sources a
 | `FRED_API_KEY` | FRED | US inflation (CPI) | [fred.stlouisfed.org/docs/api](https://fred.stlouisfed.org/docs/api/api_key.html) (free) |
 | `ASSISTANT_API_KEY` | Groq | AI chat assistant | [console.groq.com/keys](https://console.groq.com/keys) (free) |
 | `GEMINI_API_KEY` | Gemini | AI (fallback) | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) (free) |
-| `FINNHUB_API_KEY` | Finnhub | Economic calendar / news | [finnhub.io](https://finnhub.io/register) (free) |
 | `COINGECKO_API_KEY` | CoinGecko | Crypto market data | [coingecko.com/api](https://www.coingecko.com/en/api) (works without a key too) |
 | `TEFAS_BEARER_TOKEN` | TEFAS | Mutual funds | (an anonymous default exists) |
 | `KEYCLOAK_ADMIN_CLIENT_SECRET` | Keycloak | Admin user management | Keycloak console → Clients → `finance-portal-admin-service` → Credentials |
