@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.info.Contact;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.info.License;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.annotations.servers.Server;
 import org.springframework.context.annotation.Configuration;
@@ -31,6 +32,10 @@ import org.springframework.context.annotation.Configuration;
                 contact = @Contact(name = "Finance Portal", email = "bgulyaci@gmail.com"),
                 license = @License(name = "Proprietary")
         ),
+        // Global güvenlik gereksinimi: tüm operasyonlar bearerAuth ister → Swagger UI
+        // "Authorize" ile girilen JWT'yi her isteğe Authorization header'ı olarak ekler.
+        // (Sadece dokümantasyon/UI içindir; gerçek koruma SecurityConfig'tedir.)
+        security = @SecurityRequirement(name = "bearerAuth"),
         servers = {
                 @Server(url = "/", description = "Geçerli ortam")
         }
