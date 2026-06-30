@@ -285,23 +285,20 @@ describe('AiAnalysisPage (jsdom + testing-library + React 19)', () => {
     expect(screen.getByText('%-28,4')).toBeInTheDocument();
   });
 
-  it('varlık bazlı sinyal kartı: ad, ağırlık ve momentum metrikleri', async () => {
+  it('varlık bazlı sinyaller bölümü artık sayfada gösterilmiyor (gizlendi)', async () => {
     renderPage();
     await screen.findByRole('heading', { name: 'AI Portföy Analizi' });
 
-    expect(screen.getByText(/Varlık Bazlı Sinyaller/)).toBeInTheDocument();
-    expect(screen.getByText('Türk Hava Yolları')).toBeInTheDocument();
-    expect(screen.getByText('MA20 > MA50')).toBeInTheDocument();
-    // momentum1mPercent=4.1 → "%4,1" (Mini değer)
-    expect(screen.getByText('%4,1')).toBeInTheDocument();
+    // Bölüm bilinçli kaldırıldı — assetSignals dolu olsa bile render edilmez.
+    expect(screen.queryByText(/Varlık Bazlı Sinyaller/)).not.toBeInTheDocument();
   });
 
-  it('alt kartlar (ForecastCard/RebalanceCard) doğru prop ile mount edilir', async () => {
+  it('RebalanceCard doğru prop ile mount edilir', async () => {
     renderPage('7');
     await screen.findByRole('heading', { name: 'AI Portföy Analizi' });
 
-    // ForecastCard forecast.available köprüsü.
-    expect(screen.getByTestId('forecast-card')).toHaveTextContent('forecast:true');
+    // ForecastCard sayfadan kaldırıldı → artık mount edilmez.
+    expect(screen.queryByTestId('forecast-card')).not.toBeInTheDocument();
     // RebalanceCard portfolioId (route id) + drift köprüsü.
     expect(screen.getByTestId('rebalance-card')).toHaveTextContent('rebalance:7:9.4');
   });

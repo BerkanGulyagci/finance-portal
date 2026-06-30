@@ -77,6 +77,14 @@ public class EvdsBondService {
      * kıymetler ~99–111 aralığında olduğundan onları etkilemez (ör. 49TDOZ, 73TOZ tipi ~2 kıymet).
      */
     private static final BigDecimal CAPITALIZING_INDICATOR_THRESHOLD = new BigDecimal("130");
+
+    /**
+     * Mantıklı kupon oranı üst sınırı (%). EVDS {@code .ORAN} serisi bazı likit olmayan uzun vadeli
+     * kıymetlerde kupon oranı yerine <b>vadeye kalan gün sayısını</b> döndürüyor (gözlenen:
+     * TRT211229F12 couponRate=1271=remainingDays, TRT250232F15=2067). Hiçbir DİBS kuponu %100'ü
+     * aşmadığından, üstündeki "oran" sahte kabul edilip {@code null}'lanır (UI yanlış %1.271 yerine "—").
+     */
+    private static final BigDecimal MAX_PLAUSIBLE_COUPON_RATE = new BigDecimal("100");
     private static final Set<BondCategory> FIXED_COUPON_FAMILY = Set.of(
             BondCategory.FIXED_COUPON_BOND,
             BondCategory.PRINCIPAL_STRIP,
@@ -429,11 +437,21 @@ public class EvdsBondService {
         // dolayısıyla code-based parse devreye girer.
         LocalDate maturityD = resolveMaturityDate(instrumentCode, info);
         instrument.setMaturityDate(maturityD);
-        instrument.setRemainingDays(calculateRemainingDays(instrumentCode, info, today));
+        int remainingDays = calculateRemainingDays(instrumentCode, info, today);
+        instrument.setRemainingDays(remainingDays);
         instrument.setIndicatorValue(indicatorValue);
         instrument.setPreviousValue(previousValue);
         instrument.setDailyChange(dailyChange);
         instrument.setDailyChangePercent(dailyChangePercent);
+        // EVDS .ORAN serisi bazı likit olmayan uzun vadeli kıymetlerde kupon oranı yerine VADEYE
+        // KALAN GÜN sayısını döndürüyor (TRT211229F12 couponRate=1271=remainingDays; TRT250232F15=2067).
+        // Hiçbir DİBS kuponu %100'ü aşmaz → 100'ün üstündeki değer sahte (gün sızıntısı) kabul edilip
+        // null'lanır; böylece ileride benzer kıymet çıkarsa otomatik elenir (hardcode liste değil).
+        if (couponRate != null && couponRate.compareTo(MAX_PLAUSIBLE_COUPON_RATE) > 0) {
+            log.debug("[EvdsBondService] {} kupon oranı mantıksız (={}, remainingDays={}) — "
+                    + "EVDS .ORAN gün-sızıntısı, null'landı", instrumentCode, couponRate, remainingDays);
+            couponRate = null;
+        }
         instrument.setCouponRate(couponRate);
         instrument.setSource(SOURCE);
         instrument.setLastUpdated(valuePoints.get(valuePoints.size() - 1).getDate());

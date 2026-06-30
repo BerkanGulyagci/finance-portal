@@ -119,12 +119,17 @@ public class GeminiChatClient implements AssistantChatPort {
         if (systemPrompt != null && !systemPrompt.isBlank()) {
             body.put("systemInstruction", Map.of("parts", List.of(Map.of("text", systemPrompt))));
         }
-        // "thinking" modelleri (gemini-2.5-*) çıktı bütçesinin bir kısmını düşünmeye harcar →
-        // yanıtın kesilmemesi için en az 1024 token ver.
-        int maxOut = Math.max(props.getMaxTokens(), 1024);
-        body.put("generationConfig", Map.of(
-                "temperature", props.getTemperature(),
-                "maxOutputTokens", maxOut));
+        // "thinking" modelleri (gemini-2.5-*) çıktı bütçesinin BÜYÜK kısmını düşünmeye harcayıp uzun
+        // yanıtları (ör. 9 bölümlük portföy analiz raporu) Teşhis'ten sonra kesiyordu. Bu kullanım
+        // yorum/özet odaklı (yeni akıl yürütme gerektirmez) → thinkingBudget=0 ile düşünmeyi KAPATIP
+        // tüm bütçeyi çıktıya bırakıyoruz. Tavanı da 8192'ye çekiyoruz (güvenlik ağı: thinking herhangi
+        // bir modelde yine devreye girse bile rapor sığsın). flash-lite'ta thinking zaten varsayılan 0.
+        int maxOut = Math.max(props.getMaxTokens(), 8192);
+        Map<String, Object> genConfig = new LinkedHashMap<>();
+        genConfig.put("temperature", props.getTemperature());
+        genConfig.put("maxOutputTokens", maxOut);
+        genConfig.put("thinkingConfig", Map.of("thinkingBudget", 0));
+        body.put("generationConfig", genConfig);
         if (offerTools) {
             body.put("tools", List.of(Map.of("functionDeclarations", toolRegistry.geminiFunctionDeclarations())));
         }

@@ -358,8 +358,7 @@ export default function AiAnalysisPage() {
         </Card>
       )}
 
-      {/* Çok-ufuklu tahmin (1ay/3ay/1y + varlık-bazlı) */}
-      {data.forecast && <ForecastCard forecast={data.forecast} />}
+      {/* Gelecek Projeksiyon (ForecastCard) sayfadan gizlendi — fan chart yeterli */}
 
       {/* Tarihsel stres testleri */}
       {data.stressTests?.some((s) => s.available) && (
@@ -380,17 +379,7 @@ export default function AiAnalysisPage() {
         </Card>
       )}
 
-      {/* Varlık-bazlı teknik sinyaller */}
-      {signals.length > 0 && (
-        <Card title={t('Varlık Bazlı Sinyaller — Her pozisyonun teknik durumu')} icon={<Activity className="w-4 h-4 text-[#093eaa]" />}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {signals.map((s) => <AssetSignalCard key={s.symbol} s={s} />)}
-          </div>
-          <p className="text-[11px] text-gray-400 mt-2 leading-snug">
-            {t('Trend = fiyatın MA20/MA50\'ye göre konumu; çubuk = 52-hafta bandındaki yer; momentum = 1/3 aylık değişim.')}
-          </p>
-        </Card>
-      )}
+      {/* Varlık Bazlı Sinyaller sayfadan gizlendi (kullanıcı isteği) */}
 
       {/* Yeniden dengeleme (risk profili anketi) */}
       {data.rebalance && <RebalanceCard rebalance={data.rebalance} portfolioId={id} />}
