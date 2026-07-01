@@ -168,8 +168,8 @@ export default function AlarmsManager({ compact = false }) {
                   className="p-2 sm:p-1.5 rounded-lg text-gray-400 hover:text-[#093eaa] hover:bg-[#093eaa]/5 transition-colors disabled:opacity-40">
                   <Pencil className="w-4 h-4" />
                 </button>
-                <button onClick={() => togglePause(a)} disabled={busyId === a.id || a.status === 'TRIGGERED'}
-                  title={a.status === 'DISABLED' ? t('Devam Et') : t('Duraklat')}
+                <button onClick={() => togglePause(a)} disabled={busyId === a.id}
+                  title={a.status === 'DISABLED' ? t('Devam Et') : a.status === 'TRIGGERED' ? t('Durdur') : t('Duraklat')}
                   className="p-2 sm:p-1.5 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50 transition-colors disabled:opacity-40">
                   {a.status === 'DISABLED' ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
                 </button>

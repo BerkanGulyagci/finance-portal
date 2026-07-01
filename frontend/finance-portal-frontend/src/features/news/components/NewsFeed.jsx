@@ -63,7 +63,7 @@ export function NewsFeed({ filters, onFacets }) {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
-  const feedTopRef = useRef(null); // "Daha Az Göster"de haber listesinin başına dön (sayfanın en tepesine DEĞİL)
+  const bottomRef = useRef(null); // "Daha Az Göster"de butonların yanına dön (sayfa tepesine/feed başına DEĞİL)
 
   useEffect(() => {
     let cancelled = false;
@@ -99,12 +99,14 @@ export function NewsFeed({ filters, onFacets }) {
   function showLess() {
     setItems(prev => prev.slice(0, PAGE_SIZE));
     setPage(1);
-    // Sayfanın en tepesine (hero/filtrelerin üstüne) DEĞİL, haber listesinin başına dön.
-    feedTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Sayfanın tepesine FIRLATMA — collapse sonrası "Daha Fazla/Az" butonlarının yanına dön (tıklanan
+    // yere yakın kal). Çift rAF: liste küçülüp DOM güncellendikten SONRA scroll et.
+    requestAnimationFrame(() => requestAnimationFrame(() =>
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })));
   }
 
   return (
-    <div className="space-y-4 scroll-mt-24" ref={feedTopRef}>
+    <div className="space-y-4">
       <p className="text-xs text-gray-400 px-1">{total} {t('haber')}</p>
 
       {loading && items.length === 0 ? (
@@ -132,7 +134,7 @@ export function NewsFeed({ filters, onFacets }) {
       )}
 
       {!loading && items.length > 0 && (page < totalPages || page > 1) && (
-        <div className="flex justify-center items-center gap-3 pt-2">
+        <div ref={bottomRef} className="flex justify-center items-center gap-3 pt-2">
           {page < totalPages && (
             <button
               onClick={loadMore}

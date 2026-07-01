@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import AppLayout from '../app/layout/AppLayout';
 import ProtectedRoute from '../app/layout/ProtectedRoute';
@@ -56,9 +57,18 @@ function FxCompareRedirect() {
   return <Navigate to={`/market/fx/compare${search}`} replace />;
 }
 
+// Route (pathname) değişince sayfayı en üste çek. SPA'da tarayıcı önceki scroll'u koruyup yeni sayfayı
+// "ortasından" açıyordu. Yalnız pathname'e bağlı → ?modal= gibi query değişimlerinde tetiklenmez.
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  return null;
+}
+
 export default function AppRouter() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<Navigate to="/news" replace />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
