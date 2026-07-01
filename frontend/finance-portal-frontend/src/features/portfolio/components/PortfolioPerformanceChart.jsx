@@ -361,7 +361,8 @@ function PortfolioPerformanceKlineChart({
   }
 
   return (
-    <div ref={containerRef} className="relative w-full" style={{ height: 300 }}>
+    <div ref={containerRef} className="relative w-full" style={{ height: 300 }}
+      onMouseLeave={() => setHoverInfo(null)}>
       {hoverInfo && (
         <div
           className={`absolute z-30 pointer-events-none rounded-xl border px-3 py-2 shadow-lg backdrop-blur-md ${

@@ -587,6 +587,11 @@ export default function BondEvdsHistoryChart({
 
         {!isLoading && !error && (
           <BondKlineChart
+            /* Mod (değer↔performans) ya da karşılaştırılan kıymet değişince grafiği KOMPLE taze mount et.
+               Aksi halde compare overlay indikatörü aynı instance'ta kalıyordu: (1) karşılaştırma
+               kaldırılınca eski çizgi siliniyor değildi, (2) custom indikatör ilk render'da çizilmeyip
+               ancak zoom sonrası beliriyordu. Taze mount = temiz initial render → ikisi de düzelir. */
+            key={`${chartMode}-${compareCode ?? 'none'}`}
             mainPoints={filteredPoints}
             comparePoints={filteredComparePoints}
             mainCode={instrumentCode}

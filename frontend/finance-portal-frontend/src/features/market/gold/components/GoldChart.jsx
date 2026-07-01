@@ -215,6 +215,8 @@ function useGoldKline({ idRef, points, buildStyles, buildKlineData, isLine, curr
     });
 
     // Crosshair (sadece çizgi grafikte)
+    const containerEl = containerRef.current;
+    const clearTooltip = () => setTooltip(null);
     if (isLine) {
       chart.subscribeAction('onCrosshairChange', (data) => {
         if (!data || data.dataIndex == null || data.dataIndex < 0) { setTooltip(null); return; }
@@ -224,9 +226,13 @@ function useGoldKline({ idRef, points, buildStyles, buildKlineData, isLine, curr
         setTooltip({ x:data.x??0, y:data.y??0, date:bar.timestamp,
           close:bar.close, high:bar.high, low:bar.low, containerWidth:cw });
       });
+      // Mouse grafikten çıkınca tooltip'i temizle — klinecharts mouse-out'ta onCrosshairChange'i
+      // güvenilir tetiklemiyor, hover kartı ekranda kalıyordu (native mouseleave ile garanti).
+      if (containerEl) containerEl.addEventListener('mouseleave', clearTooltip);
     }
 
     return () => {
+      if (containerEl) containerEl.removeEventListener('mouseleave', clearTooltip);
       setTooltip(null);
       klineDispose(id);
       chartRef.current = null;

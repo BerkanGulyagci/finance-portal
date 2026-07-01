@@ -42,19 +42,25 @@ public class MarketListCacheWarmupService {
     private final InflationDeflatorService inflationDeflatorService;
     private final CentralIntegrationLogService integrationLogService;
     private final com.finance.portal.market.application.movers.MarketMoversService marketMoversService;
+    private final com.finance.portal.market.application.bond.eurobond.EurobondService eurobondService;
+    private final com.finance.portal.market.application.index.IndexQueryService indexQueryService;
 
     public MarketListCacheWarmupService(EvdsBondService evdsBondService,
                                         RasyonetFundService rasyonetFundService,
                                         MarketFxService marketFxService,
                                         InflationDeflatorService inflationDeflatorService,
                                         CentralIntegrationLogService integrationLogService,
-                                        com.finance.portal.market.application.movers.MarketMoversService marketMoversService) {
+                                        com.finance.portal.market.application.movers.MarketMoversService marketMoversService,
+                                        com.finance.portal.market.application.bond.eurobond.EurobondService eurobondService,
+                                        com.finance.portal.market.application.index.IndexQueryService indexQueryService) {
         this.evdsBondService = evdsBondService;
         this.rasyonetFundService = rasyonetFundService;
         this.marketFxService = marketFxService;
         this.inflationDeflatorService = inflationDeflatorService;
         this.integrationLogService = integrationLogService;
         this.marketMoversService = marketMoversService;
+        this.eurobondService = eurobondService;
+        this.indexQueryService = indexQueryService;
     }
 
     // ── Açılışta bir kez (asenkron — uygulama başlatmayı bloklamaz) ──────────────
@@ -69,6 +75,8 @@ public class MarketListCacheWarmupService {
         warmMovers();
         warmBonds();
         warmFunds();
+        warmIndices();
+        warmEurobond();
     }
 
     // ── Dashboard movers + hacim liderleri: 90 sn'de bir (cache TTL 120 sn) ──────
@@ -89,6 +97,15 @@ public class MarketListCacheWarmupService {
         warmBonds();
     }
 
+    // ── Eurobond listesi: 2 saatte bir (cache TTL 6 saat) — ISIN başına BI scrape, AĞIR ──
+    @Scheduled(fixedDelayString = "${market.warmup.eurobond.fixed-delay-ms:7200000}",
+               initialDelayString = "${market.warmup.eurobond.initial-delay-ms:7200000}")
+    @SchedulerLock(name = "market-eurobond-list-warmup", lockAtMostFor = "PT15M", lockAtLeastFor = "PT1M")
+    public void scheduledEurobondWarmup() {
+        log.info("Market eurobond list cache scheduled refresh starting...");
+        warmEurobond();
+    }
+
     // ── Fon listeleri: 8 dakikada bir (cache TTL 10 dakika) ──────────────────────
     @Scheduled(fixedDelayString = "${market.warmup.funds.fixed-delay-ms:480000}",
                initialDelayString = "${market.warmup.funds.initial-delay-ms:600000}")
@@ -96,6 +113,15 @@ public class MarketListCacheWarmupService {
     public void scheduledFundsWarmup() {
         log.info("Market funds list cache scheduled refresh starting...");
         warmFunds();
+    }
+
+    // ── BIST endeks listesi: 8 dakikada bir (cache TTL 10 dakika) — intraday, fonlarla aynı tazelik ──
+    @Scheduled(fixedDelayString = "${market.warmup.indices.fixed-delay-ms:480000}",
+               initialDelayString = "${market.warmup.indices.initial-delay-ms:480000}")
+    @SchedulerLock(name = "market-indices-list-warmup", lockAtMostFor = "PT5M", lockAtLeastFor = "PT30S")
+    public void scheduledIndicesWarmup() {
+        log.info("Market BIST indices list cache scheduled refresh starting...");
+        warmIndices();
     }
 
     // ── TCMB FX latest: 2 saatte bir (cache TTL 6 saat) — her TL-çevriminin temeli ──
@@ -125,6 +151,26 @@ public class MarketListCacheWarmupService {
         } catch (Exception e) {
             log.warn("Market bonds list cache warmup failed: {}", e.getMessage());
             publishFailure("market_bonds_list_warmup", IntegrationLogSupport.PROVIDER_TCMB, e.getMessage());
+        }
+    }
+
+    private void warmEurobond() {
+        try {
+            int count = eurobondService.refreshList().size();
+            log.info("Market eurobond list cache warmed: {} bonds.", count);
+        } catch (Exception e) {
+            log.warn("Market eurobond list cache warmup failed: {}", e.getMessage());
+            publishFailure("market_eurobond_list_warmup", IntegrationLogSupport.PROVIDER_EXTERNAL, e.getMessage());
+        }
+    }
+
+    private void warmIndices() {
+        try {
+            int count = indexQueryService.refreshIndices().size();
+            log.info("Market BIST indices list cache warmed: {} indices.", count);
+        } catch (Exception e) {
+            log.warn("Market BIST indices list cache warmup failed: {}", e.getMessage());
+            publishFailure("market_indices_list_warmup", IntegrationLogSupport.PROVIDER_YAHOO, e.getMessage());
         }
     }
 

@@ -104,10 +104,6 @@ function ProfileMenu({ onClose, t }) {
         <LifeBuoy className="w-4 h-4 shrink-0" />
         {t('Taleplerim')}
       </Link>
-      <button type="button" onClick={() => openProfileModal('password')} className={itemClass}>
-        <Shield className="w-4 h-4 shrink-0" />
-        {t('Şifre Değiştir')}
-      </button>
       <button type="button" onClick={handleLogout} className={`${itemClass} text-red-700 hover:text-red-800`}>
         <LogOut className="w-4 h-4 shrink-0" />
         {t('Çıkış Yap')}
@@ -586,10 +582,6 @@ export function Header() {
                 <Link to="/profile?tab=support" onClick={() => setMobileOpen(false)}
                   className="flex items-center gap-2.5 px-7 py-2.5 text-sm font-semibold text-gray-700 hover:text-[#093eaa] hover:bg-gray-50">
                   <LifeBuoy className="w-4 h-4 shrink-0" /> {t('Taleplerim')}
-                </Link>
-                <Link to="/profile?modal=password" onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-2.5 px-7 py-2.5 text-sm font-semibold text-gray-700 hover:text-[#093eaa] hover:bg-gray-50">
-                  <Shield className="w-4 h-4 shrink-0" /> {t('Şifre Değiştir')}
                 </Link>
                 <button type="button" onClick={() => { setMobileOpen(false); handleLogout(); }}
                   className="w-full text-left flex items-center gap-2.5 px-7 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50">

@@ -253,7 +253,6 @@ describe('Header (Vitest + @testing-library/react)', () => {
       // Profil butonu = kullanıcı adını içeren buton
       fireEvent.click(screen.getByText('berkan'));
       expect(screen.getByText('Profilim')).toBeInTheDocument();
-      expect(screen.getByText('Şifre Değiştir')).toBeInTheDocument();
 
       fireEvent.click(screen.getByText('Çıkış Yap'));
       expect(logoutSpy).toHaveBeenCalledTimes(1);

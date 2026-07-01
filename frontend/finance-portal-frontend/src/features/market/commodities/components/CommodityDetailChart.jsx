@@ -182,6 +182,7 @@ export default function CommodityDetailChart({
   sourceWarning = null,
   valueFormatter = null,
   persistId = null,   // çizim kalıcılık anahtarı (ör. `crypto:bitcoin`, `commodity:XAU`); yoksa kapalı
+  showTrendBadge = true,  // grafik yanı trend rozeti (kripto'da kapatılır — sol panelde zaten var)
 }) {
   const { t } = useTranslation();
   const resolvedSourceNote = sourceNote ?? t('Kaynak: Yahoo Finance · OHLC verisi');
@@ -404,7 +405,7 @@ export default function CommodityDetailChart({
   return (
     <div>
       {/* Trend rozeti */}
-      {trendItem && <div className="mb-2"><TrendBadge item={trendItem} size="xs" /></div>}
+      {showTrendBadge && trendItem && <div className="mb-2"><TrendBadge item={trendItem} size="xs" /></div>}
 
       {/* Drawing Toolbar (İndikatör menüsü çizim gruplarının yanında — hisse detay tarzı) */}
       <DrawingToolbar

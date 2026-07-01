@@ -197,17 +197,6 @@ describe('ProfilePage (jsdom + testing-library + React 19)', () => {
     await waitFor(() => expect(getMe).toHaveBeenCalledTimes(2));
   });
 
-  it('"Şifre Değiştir" → şifre modalı açılır ve kapatılabilir', async () => {
-    renderPage();
-    await screen.findByRole('heading', { name: 'Berkan Gulyagci' });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Şifre Değiştir' }));
-    expect(screen.getByTestId('password-modal')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByText('close-password'));
-    await waitFor(() => expect(screen.queryByTestId('password-modal')).not.toBeInTheDocument());
-  });
-
   it('"Email Değiştir" → email modalı açılır', async () => {
     renderPage();
     await screen.findByRole('heading', { name: 'Berkan Gulyagci' });
@@ -270,12 +259,6 @@ describe('ProfilePage (jsdom + testing-library + React 19)', () => {
 
     expect(await screen.findByText('LOGIN SAYFASI')).toBeInTheDocument();
     expect(getMe).not.toHaveBeenCalled();
-  });
-
-  it('URL ?modal=password ile gelince şifre modalı otomatik açılır', async () => {
-    renderPage(['/profile?modal=password']);
-    // password modalı, profil yüklenmesini beklemeden açılır (kodda erken dönüş).
-    expect(await screen.findByTestId('password-modal')).toBeInTheDocument();
   });
 
   it('URL ?modal=name ile gelince (profil yüklendikten sonra) isim modalı otomatik açılır', async () => {

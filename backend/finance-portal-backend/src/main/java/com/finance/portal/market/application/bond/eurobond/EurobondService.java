@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -76,6 +77,21 @@ public class EurobondService {
 
     @Cacheable(cacheNames = LIST_CACHE)
     public List<EurobondSummary> list() {
+        return buildList();
+    }
+
+    /**
+     * Warm-up scheduler çağırır — {@code @CachePut}: cache'li olsa bile her zaman çalışıp listeyi
+     * yeniden derler ve cache'i atomik tazeler (EVDS bonds {@code refreshEvdsBondsAll} deseniyle aynı).
+     * Amaç: kullanıcı isteği ISIN başına Business Insider scrape soğuk yoluna HİÇ düşmesin.
+     */
+    @CachePut(cacheNames = LIST_CACHE)
+    public List<EurobondSummary> refreshList() {
+        log.info("[EurobondService] refreshList (warm-up) — eurobond.list cache'i yenileniyor.");
+        return buildList();
+    }
+
+    private List<EurobondSummary> buildList() {
         // HMB ISIN künyesi — kaynak çökerse son başarılı listeyi servis et (BI detayları ayrıca LKG'li).
         List<HmbBond> bonds = lkg.resilient("eurobond.hmb.bonds", EUROBOND_LIST_LKG_TTL,
                 new TypeReference<List<HmbBond>>() {}, hmb::bonds);

@@ -10,6 +10,7 @@ import com.finance.portal.news.domain.NewsCategory;
 import com.finance.portal.news.domain.NewsDateUtil;
 import com.finance.portal.news.domain.NewsIdUtil;
 import io.opentelemetry.instrumentation.annotations.WithSpan;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -121,6 +122,11 @@ public class NewsAggregatorService {
         return new NewsQueryResult(outItems, pageIndex, size, total, totalPages, sources, categoryCounts);
     }
 
+    // Detay = scrape (varsa) + canlı çeviri (global haberde başlık/özet/ilgili) → maliyetli.
+    // id+dil bazlı cache: aynı haberi aynı dilde tekrar açan anında görsün (çeviri bir kez yapılır).
+    // Bulunamayan (null) cache'lenmez → yeni gelen haberde tekrar denenir.
+    @Cacheable(cacheNames = "news.detail", key = "#id + '|' + (#lang == null ? '' : #lang)",
+            unless = "#result == null")
     @WithSpan("NewsAggregatorService.getById")
     public NewsDetail getById(String id, String lang) {
         if (id == null || id.isBlank()) {
@@ -160,7 +166,7 @@ public class NewsAggregatorService {
             relatedAssets = List.of();
         }
 
-        // UI dili makale dilinden farklıysa başlık+özet+içerik (ve ilgili başlıkları) çevir — best-effort.
+        // ANA makale: UI dili makale dilinden farklıysa başlık+özet+içerik çevir — best-effort.
         NewsArticle out = match;
         String tgt = norm(lang);
         if (!tgt.isEmpty() && match.getLanguage() != null && !tgt.equals(norm(match.getLanguage()))) {
@@ -171,8 +177,11 @@ public class NewsAggregatorService {
             if (content != null) {
                 content = translationPort.translate(content, src, tgt);
             }
-            related = translatePage(related, tgt);
         }
+        // İLGİLİ haberler: ana makalenin dilinden BAĞIMSIZ çevrilir. translatePage her haberi KENDİ
+        // diline göre işler → TR ana haberin İngilizce (Finnhub) ilgili haberleri de hedefe çevrilir.
+        // (Bug: eskiden bu satır ana-haber-çeviri bloğunun içindeydi; TR ana haberde hiç çalışmıyordu.)
+        related = translatePage(related, tgt);
         return new NewsDetail(out, related, content, relatedAssets);
     }
 

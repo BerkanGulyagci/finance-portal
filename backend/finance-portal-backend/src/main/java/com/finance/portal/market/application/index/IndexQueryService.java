@@ -9,6 +9,7 @@ import com.finance.portal.market.application.stock.StockSummary;
 import com.finance.portal.market.application.stock.StockSymbolProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -60,6 +61,19 @@ public class IndexQueryService {
                 new TypeReference<List<IndexSummary>>() {}, this::fetchIndices);
     }
 
+    /**
+     * Warm-up scheduler çağırır — {@code @CachePut}: cache'li olsa bile her zaman çalışıp endeks
+     * listesini yeniden çeker ve cache'i atomik tazeler (EVDS bonds {@code refreshEvdsBondsAll}
+     * deseniyle aynı). Endeks intraday hareket ettiği için kısa TTL korunur; warm-up sıcak tutar →
+     * kullanıcı 41 endekslik Yahoo soğuk yoluna HİÇ düşmez.
+     */
+    @CachePut(cacheNames = "market.indices.list", key = "'indices'")
+    public List<IndexSummary> refreshIndices() {
+        log.info("[IndexQueryService] refreshIndices (warm-up) — market.indices.list cache'i yenileniyor.");
+        return lkg.resilient("market.indices.list", INDEX_LKG_TTL,
+                new TypeReference<List<IndexSummary>>() {}, this::fetchIndices);
+    }
+
     private List<IndexSummary> fetchIndices() {
         List<IndexInfo> catalog = BistIndexCatalog.all();
         List<String> symbols = catalog.stream().map(IndexInfo::yahooSymbol).toList();
@@ -97,7 +111,16 @@ public class IndexQueryService {
         return toIndexSummary(info, s);
     }
 
-    /** Endeksle ilgili hisseler (büyüklük endeksleri canlı, sektör endeksleri küratörlü). Yoksa boş liste. */
+    /**
+     * Endeksle ilgili hisseler (büyüklük endeksleri canlı, sektör endeksleri küratörlü). Yoksa boş liste.
+     *
+     * <p>Her açılışta {@code getSummariesFor} ile 110 hisseye kadar canlı Yahoo çağrısı yapılırdı; bu çok
+     * ağırdı. Sonuç endeks kodu başına cache'lenir (hisse listesiyle aynı intraday TTL). Boş sonuç
+     * cache'lenmez ({@code unless}) → kaynak geçici çökerse sonraki istek tekrar dener. Controller'dan
+     * çağrıldığı için proxy devreye girer (self-invocation yok).</p>
+     */
+    @Cacheable(cacheNames = "market.indices.constituents", key = "#code?.toUpperCase()",
+            unless = "#result.isEmpty()")
     public List<StockSummary> getConstituents(String code) {
         IndexInfo info = BistIndexCatalog.byCode(code);
         if (info == null) {

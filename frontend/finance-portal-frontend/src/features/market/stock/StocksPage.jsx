@@ -56,10 +56,8 @@ export default function StocksPage() {
 
   useEffect(() => { if (view === 'stocks') fetchPage(page, activeIndex, currentSize); }, [view, page, activeIndex, currentSize, fetchPage]);
 
-  // Tüm hisseleri arka planda çek — arama için
-  useEffect(() => {
-    getAllStocks().then(data => setAllStocksCache(data ?? [])).catch(() => {});
-  }, []);
+  // Tüm-hisse cache'i (arama/sıralama için) artık TEMBEL yükleniyor — sortKey tanımından sonra,
+  // aşağıdaki effect'te. Her sayfa açılışında 31 ardışık istek atmamak için mount'ta çekilmez.
 
   function handleIndexChange(idx) {
     setActiveIndex(idx);
@@ -95,6 +93,14 @@ export default function StocksPage() {
       return key;
     });
   }, []);
+
+  // Tüm hisseleri SADECE gerektiğinde (arama VEYA sıralama) çek; cache bir kez dolunca tekrar çekilmez.
+  // Böylece sayfa açılışı 31 ardışık istekten kurtulur — arama/sıralamaya basınca bir kez yüklenir.
+  useEffect(() => {
+    if ((search.trim() || sortKey) && allStocksCache.length === 0) {
+      getAllStocks().then(data => setAllStocksCache(data ?? [])).catch(() => {});
+    }
+  }, [search, sortKey, allStocksCache.length]);
 
   // Veri kaynağı: arama VEYA sıralama aktifse TÜM hisseler (cache); değilse sayfa verisi.
   // Böylece bir sütuna basınca sadece görünen sayfa değil, TÜM liste sıralanır.
@@ -167,7 +173,9 @@ export default function StocksPage() {
       {/* Görünüm seçici — Material 3 segmented buttons (hisse filtreleri + Endeksler) */}
       <div className="mb-4 overflow-x-auto pb-1">
         <div className="inline-flex rounded-full border border-gray-300 bg-white divide-x divide-gray-300 shadow-sm overflow-hidden">
-          {INDEX_FILTERS.map(f => {
+          {/* BIST 30/50/100 filtre butonları HİÇ gösterilmez — sekme çubuğunda yalnızca
+              "Tüm Hisseler" ve "Endeksler" kalır. (BIST endekslerine Endeksler sekmesinden erişilir.) */}
+          {INDEX_FILTERS.filter(f => f.key === '').map(f => {
             const active = view === 'stocks' && activeIndex === f.key;
             return (
               <button key={f.key} onClick={() => handleIndexChange(f.key)}

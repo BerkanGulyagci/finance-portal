@@ -221,6 +221,20 @@ public class CacheConfig {
                 .enableStatistics()
                 .cacheDefaults(jsonDefaultCacheConfig)
                 .withCacheConfiguration("newsCache", newsCacheConfig)
+                // Makale tam-metni (scrape) — içerik ~değişmez; haber detayı her açılışta kaynak
+                // sayfayı canlı scrape etmesin diye 6 saat cache'lenir (in-memory LRU üstüne kalıcı L2).
+                .withCacheConfiguration("news.article.content",
+                        RedisCacheConfiguration.defaultCacheConfig()
+                                .entryTtl(Duration.ofHours(6))
+                                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(
+                                        new GenericJackson2JsonRedisSerializer())))
+                // Haber DETAYI (id+dil) — global haberde canlı çeviri maliyetli; aynı haberi aynı dilde
+                // tekrar açan anında görsün diye 30 dk cache'lenir (çeviri bir kez yapılır).
+                .withCacheConfiguration("news.detail",
+                        RedisCacheConfiguration.defaultCacheConfig()
+                                .entryTtl(Duration.ofMinutes(30))
+                                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(
+                                        new GenericJackson2JsonRedisSerializer())))
                 .withCacheConfiguration("market.fx.tcmb.latest", marketFxTcmbCacheConfig)
                 .withCacheConfiguration("market.fx.open.latest", marketFxOpenCacheConfig)
                 .withCacheConfiguration("market.fx.history", RedisCacheConfiguration.defaultCacheConfig()
@@ -232,6 +246,9 @@ public class CacheConfig {
                 .withCacheConfiguration("market.stocks.chart", marketStocksCacheConfig)
                 // BIST endeks listesi (~42 endeks, Yahoo snapshot) — hisse listesiyle aynı intraday TTL.
                 .withCacheConfiguration("market.indices.list", marketStocksCacheConfig)
+                // Endeks bileşenleri (ilgili hisseler) — endeks başına 110 hisseye kadar canlı Yahoo
+                // snapshot; her açılışta çekmek yerine hisse listesiyle aynı intraday TTL'de cache'lenir.
+                .withCacheConfiguration("market.indices.constituents", marketStocksCacheConfig)
                 .withCacheConfiguration("market.tefas.funds", marketFundsCacheConfig)
                 .withCacheConfiguration("market.ipo", marketFundsCacheConfig)
                 // VİOP: ViopService gerçek cache isimleri "market.viop.contracts" + "market.viop.detail".

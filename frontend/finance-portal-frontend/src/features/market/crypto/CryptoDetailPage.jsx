@@ -640,6 +640,7 @@ export default function CryptoDetailPage() {
                   persistId={coinId ? `crypto:${coinId}` : null}
                   points={chartMode === 'candle' ? ohlcData : linePoints}
                   chartMode={chartMode}
+                  showTrendBadge={false}
                   valueFormatter={(v) => fmtPrice(v, currency)}
                   loading={chartLoading || compareLoading}
                   sourceNote={(() => {

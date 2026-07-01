@@ -809,6 +809,10 @@ export default function ViopPriceChart({ contractName }) {
 
         {!isLoading && status === 'ok' && (
           <ViopKlineChart
+            /* Mod değişince (değer↔karşılaştırma) ya da karşılaştırılan sözleşme değişince grafiği
+               KOMPLE taze mount et. Aksi halde compare overlay indikatörü (normalize ~100 çizgi)
+               aynı instance'ta kalıp değer moduna dönünce siliniyor değildi → "eski hâline gelmiyor". */
+            key={isComparing && comparePoints.length > 0 ? `cmp-${compareName}` : 'value'}
             mainPoints={points}
             comparePoints={comparePoints}
             compareName={compareName ? (compareName.replace(/[^A-Za-z0-9_]/g, '_').slice(0, 20)) : null}

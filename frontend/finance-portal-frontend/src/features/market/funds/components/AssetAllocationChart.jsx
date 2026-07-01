@@ -67,7 +67,7 @@ export default function AssetAllocationChart({ assetAllocation }) {
           {hovered !== null && slices[hovered] ? (
             <>
               <text x={cx} y={cy - 7} textAnchor="middle" fontSize={10} fill="#6b7280">
-                {slices[hovered].name?.length > 16 ? slices[hovered].name.slice(0, 16) + '…' : slices[hovered].name}
+                {(() => { const nm = t(slices[hovered].name) ?? ''; return nm.length > 16 ? nm.slice(0, 16) + '…' : nm; })()}
               </text>
               <text x={cx} y={cy + 12} textAnchor="middle" fontSize={18} fontWeight="bold" fill="#111827">
                 %{slices[hovered].pct.toFixed(1)}
@@ -92,7 +92,7 @@ export default function AssetAllocationChart({ assetAllocation }) {
             onMouseLeave={() => setHovered(null)}>
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
-              <span className="text-gray-700">{s.name}</span>
+              <span className="text-gray-700">{t(s.name)}</span>
             </div>
             <span className="text-gray-900 font-semibold">%{fmtAllocPct(s.percentage)}</span>
           </div>

@@ -91,9 +91,12 @@ export default function InstrumentTargetModal({ instrument, onClose, onChanged, 
     }
   }
 
-  // Varlık portföyü seçildi → işlem ekleme modalı
+  // Varlık portföyü seçildi → işlem ekleme modalı.
+  // AddTransactionModal da fixed overlay kullanıyor → market liste sayfalarının transform/overflow
+  // bağlamına hapsolup tabloyla iç içe geçmemesi için body'ye PORTAL ile render edilir (aşağıdaki
+  // ana modalla aynı sebep; eskiden bu erken-return portal'sızdı → FX/liste sayfasında bozuk çıkıyordu).
   if (txPortfolio) {
-    return (
+    return createPortal(
       <AddTransactionModal
         portfolioId={txPortfolio.id}
         portfolioName={txPortfolio.name}
@@ -101,7 +104,8 @@ export default function InstrumentTargetModal({ instrument, onClose, onChanged, 
         initialInstrument={instrument}
         onClose={() => setTxPortfolio(null)}
         onAdded={() => { setTxPortfolio(null); onChanged?.(); onClose(); }}
-      />
+      />,
+      document.body
     );
   }
 

@@ -7,7 +7,6 @@ import { useTranslation } from '../../context/LanguageContext';
 import {
   ProfileEmailModal,
   ProfileNameModal,
-  ProfilePasswordModal,
 } from './components/ProfileAccountModals';
 import TickerCustomizer from './components/TickerCustomizer';
 import NewsletterModal from '../../components/shared/NewsletterModal';
@@ -51,7 +50,6 @@ export default function ProfilePage() {
   const [successMessage, setSuccessMessage] = useState('');
   const [nameModalOpen, setNameModalOpen] = useState(false);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
-  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [newsletterOpen, setNewsletterOpen] = useState(false);
   const [newsletter, setNewsletter] = useState({ subscribed: false, frequency: 'WEEKLY' });
 
@@ -89,12 +87,6 @@ export default function ProfilePage() {
   useEffect(() => {
     const modal = searchParams.get('modal');
     if (!modal) return;
-
-    if (modal === 'password') {
-      setPasswordModalOpen(true);
-      setSearchParams({}, { replace: true });
-      return;
-    }
 
     if (!loading && profile) {
       if (modal === 'name') setNameModalOpen(true);
@@ -204,10 +196,6 @@ export default function ProfilePage() {
                   <Pencil className="w-4 h-4" />
                   {t('Bilgilerimi Düzenle')}
                 </button>
-                <button type="button" onClick={() => setPasswordModalOpen(true)} className="m3-btn m3-btn-tonal">
-                  <KeyRound className="w-4 h-4" />
-                  {t('Şifre Değiştir')}
-                </button>
                 <button type="button" onClick={() => setEmailModalOpen(true)} className="m3-btn m3-btn-tonal">
                   <Mail className="w-4 h-4" />
                   {t('Email Değiştir')}
@@ -314,11 +302,6 @@ export default function ProfilePage() {
         profile={profile}
         onClose={() => setEmailModalOpen(false)}
         onRequiresReLogin={(message) => handleRequiresReLogin(message, '/verify-email')}
-      />
-      <ProfilePasswordModal
-        open={passwordModalOpen}
-        onClose={() => setPasswordModalOpen(false)}
-        onRequiresReLogin={(message) => handleRequiresReLogin(message, '/login')}
       />
 
       {newsletterOpen && (

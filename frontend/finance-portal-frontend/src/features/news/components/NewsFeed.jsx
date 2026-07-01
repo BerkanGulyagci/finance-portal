@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { RefreshCw, Newspaper, ChevronUp } from 'lucide-react';
 import { getNews, proxyImageUrl } from '../../../api/newsApi';
@@ -63,6 +63,7 @@ export function NewsFeed({ filters, onFacets }) {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const feedTopRef = useRef(null); // "Daha Az Göster"de haber listesinin başına dön (sayfanın en tepesine DEĞİL)
 
   useEffect(() => {
     let cancelled = false;
@@ -98,11 +99,12 @@ export function NewsFeed({ filters, onFacets }) {
   function showLess() {
     setItems(prev => prev.slice(0, PAGE_SIZE));
     setPage(1);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Sayfanın en tepesine (hero/filtrelerin üstüne) DEĞİL, haber listesinin başına dön.
+    feedTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 scroll-mt-24" ref={feedTopRef}>
       <p className="text-xs text-gray-400 px-1">{total} {t('haber')}</p>
 
       {loading && items.length === 0 ? (

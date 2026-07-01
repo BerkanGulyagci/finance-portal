@@ -3,6 +3,7 @@ package com.finance.portal.news.infrastructure.external;
 import com.finance.portal.news.application.port.ArticleContentPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -57,7 +58,15 @@ public class ArticleContentFetcher implements ArticleContentPort {
         this.restTemplate = restTemplate;
     }
 
-    /** Makale tam metni (paragraflar) ya da çıkarılamazsa null. */
+    /**
+     * Makale tam metni (paragraflar) ya da çıkarılamazsa null.
+     *
+     * <p>Makale gövdesi ~değişmez → sonuç Redis'te cache'lenir ({@code news.article.content}, 6 saat):
+     * haber detayı her açılışta kaynak sayfayı canlı scrape ETMESİN (asıl yavaşlık buydu) ve cache
+     * restart'ta korunsun (in-memory LRU üstüne kalıcı L2). {@code unless} ile null/başarısız scrape
+     * Redis'e yazılmaz → sonraki istek tekrar dener.</p>
+     */
+    @Cacheable(cacheNames = "news.article.content", key = "#url", unless = "#result == null")
     public String fetchContent(String url) {
         if (url == null || url.isBlank()) {
             return null;
