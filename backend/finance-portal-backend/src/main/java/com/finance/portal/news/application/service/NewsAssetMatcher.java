@@ -17,6 +17,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -44,7 +45,7 @@ public class NewsAssetMatcher {
 
     // Sözlük in-memory cache'lenir (Redis'e konmaz — private record serileştirme derdi yok,
     // ayrıca yalnız okuma-ağırlıklı küçük yapı). 24 saatte bir tembel yenilenir.
-    private volatile List<DictEntry> cachedDict = null;
+    private final AtomicReference<List<DictEntry>> cachedDict = new AtomicReference<>();
     private volatile Instant cachedAt = Instant.EPOCH;
 
     public NewsAssetMatcher(StockQueryService stockQueryService,
@@ -96,18 +97,19 @@ public class NewsAssetMatcher {
      * zaten kendi cache'lerinden okur, bu yalnız sözlüğü hazırlar.
      */
     private List<DictEntry> getDictionary() {
-        List<DictEntry> snapshot = cachedDict;
+        List<DictEntry> snapshot = cachedDict.get();
         if (snapshot != null && Duration.between(cachedAt, Instant.now()).compareTo(DICT_TTL) < 0) {
             return snapshot;
         }
         synchronized (this) {
-            if (cachedDict != null && Duration.between(cachedAt, Instant.now()).compareTo(DICT_TTL) < 0) {
-                return cachedDict;
+            List<DictEntry> current = cachedDict.get();
+            if (current != null && Duration.between(cachedAt, Instant.now()).compareTo(DICT_TTL) < 0) {
+                return current;
             }
             List<DictEntry> built = buildDictionary();
             // Boş sözlük (kaynaklar geçici çöktü) cache'lenmesin — bir sonraki çağrı tekrar dener.
             if (!built.isEmpty()) {
-                cachedDict = built;
+                cachedDict.set(built);
                 cachedAt = Instant.now();
             }
             return built;
