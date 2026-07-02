@@ -232,7 +232,7 @@ export default function StockDetailPage() {
               {/* Grafik mod seçici (segmented) + Karşılaştır */}
               <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
                 <div className="inline-flex items-center gap-0.5 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
-                  {[{ key: 'tv', label: 'Mum Grafik' }, { key: 'line', label: 'Çizgi' }].map(m => (
+                  {[{ key: 'tv', label: 'Mum Grafik' }, { key: 'line', label: 'Alan' }].map(m => (
                     <button key={m.key} onClick={() => setChartMode(m.key)}
                       className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${chartMode === m.key ? 'bg-white text-[#093eaa] shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>
                       {t(m.label)}

@@ -36,7 +36,7 @@ export default function CommodityDetailToolbar({
       {/* Grafik modu — her range'de göster */}
       <div className="flex gap-1">
         {[
-          { key: 'line',   label: '〰 Çizgi' },
+          { key: 'line',   label: '〰 Alan' },
           { key: 'candle', label: '🕯 Mum'   },
         ].map(m => (
           <button key={m.key} onClick={() => onChartModeChange(m.key)}

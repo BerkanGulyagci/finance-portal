@@ -186,14 +186,14 @@ describe('StockDetailPage (Vitest + @testing-library/react)', () => {
     expect(screen.getByText('Dünya genelinde geniş uçuş ağına sahiptir.')).toBeInTheDocument();
   });
 
-  it('varsayılan modda Mum grafiği render eder; "Çizgi"ye tıklayınca çizgi grafiğine geçer', async () => {
+  it('varsayılan modda Mum grafiği render eder; "Alan"a tıklayınca alan grafiğine geçer', async () => {
     renderPage();
     await screen.findByText('Güncel Fiyat');
     // Varsayılan chartMode='tv' → CandlestickChart (symbol prop'u iletilir).
     expect(screen.getByTestId('candlestick-chart')).toHaveTextContent('THYAO.IS');
     expect(screen.queryByTestId('line-chart')).not.toBeInTheDocument();
-    // "Çizgi" moduna geç.
-    fireEvent.click(screen.getByRole('button', { name: 'Çizgi' }));
+    // "Alan" moduna geç.
+    fireEvent.click(screen.getByRole('button', { name: 'Alan' }));
     expect(screen.getByTestId('line-chart')).toBeInTheDocument();
     expect(screen.queryByTestId('candlestick-chart')).not.toBeInTheDocument();
   });

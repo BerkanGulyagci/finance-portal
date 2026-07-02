@@ -548,7 +548,7 @@ export default function CryptoDetailPage() {
             <div className="flex items-center gap-2 px-3 sm:px-6 pt-3 sm:pt-5 pb-3 flex-wrap">
               {/* Grafik modu */}
               <div className="flex gap-1">
-                {[{ key: 'line', label: '〰 Çizgi' }, { key: 'candle', label: '🕯 Mum' }].map(m => (
+                {[{ key: 'line', label: '〰 Alan' }, { key: 'candle', label: '🕯 Mum' }].map(m => (
                   <button key={m.key} onClick={() => setChartMode(m.key)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${chartMode === m.key ? 'bg-[#093eaa] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                     {t(m.label)}

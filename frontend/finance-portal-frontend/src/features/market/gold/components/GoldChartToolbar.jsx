@@ -24,7 +24,7 @@ export default function GoldChartToolbar({
           {canCandle && (
             <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
               {[
-                { key: 'line',   label: 'Çizgi' },
+                { key: 'line',   label: 'Alan' },
                 { key: 'candle', label: 'Mum' },
               ].map(m => (
                 <button
